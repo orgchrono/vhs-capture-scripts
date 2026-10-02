@@ -45,14 +45,33 @@ exit /b 0
 
 :process_args
 REM Determine input file
-set "INPUT_FILE=%~1"
+set "INPUT_FILE="
 set "HAS_INPUT=0"
-if not "%INPUT_FILE%"=="" (
-    for %%A in ("%INPUT_FILE%") do set "INPUT_FILE=%%~fA"
+
+REM 1. Verifica se os argumentos 1 e 2 juntos formam um arquivo existente com espaco (ex: 2026-10-02 13-48-53.mkv)
+if exist "%~1 %~2" (
+    for %%A in ("%~1 %~2") do set "INPUT_FILE=%%~fA"
     set "HAS_INPUT=1"
     shift
+    shift
+    goto :collect_args_start
 )
 
+REM 2. Verifica se o primeiro argumento e um arquivo valido
+if exist "%~1" (
+    for %%A in ("%~1") do set "INPUT_FILE=%%~fA"
+    set "HAS_INPUT=1"
+    shift
+    goto :collect_args_start
+)
+
+REM 3. Se comecar com '--', entao e uma opcao e nao o arquivo
+if not "%~1"=="" (
+    set "ARG1_PREFIX=%~1"
+    if "%ARG1_PREFIX:~0,2%"=="--" goto :collect_args_start
+)
+
+:collect_args_start
 REM Collect remaining options safely (preserving spaces in filenames)
 set "EXTRA_OPTS="
 :collect_args
@@ -62,10 +81,9 @@ shift
 goto :collect_args
 :done_args
 
-REM Default: usa qtgmc (melhor qualidade, consistente com master.sh default).
-REM Use --bwdif se VapourSynth não estiver instalado.
+REM Default: usa bwdif (double-rate 50/60p, estavel e rapido nativo no FFmpeg)
 if "%EXTRA_OPTS%"=="" (
-    set "EXTRA_OPTS=--qtgmc --vhs --trim-black"
+    set "EXTRA_OPTS=--bwdif --vhs --trim-black --crf 18"
 )
 
 if "%HAS_INPUT%"=="1" goto :found_file

@@ -70,7 +70,7 @@ function run_pipeline_for_file(filepath)
     obs.script_log(obs.LOG_INFO, "[VHS Auto-Restore] Disparando pipeline para: " .. filepath)
     obs.script_log(obs.LOG_INFO, "[VHS Auto-Restore] Opções: " .. extra_opts)
 
-    local cmd = string.format('start "VHS Studio - Restauracao" cmd /c call "%s" "%s" "%s"', bat_path, filepath, extra_opts)
+    local cmd = string.format('start "VHS Studio - Restauracao" cmd /k ""%s" "%s" %s"', bat_path, filepath, extra_opts)
     obs.script_log(obs.LOG_INFO, "[VHS Auto-Restore] Executando: " .. cmd)
     os.execute(cmd)
 end
