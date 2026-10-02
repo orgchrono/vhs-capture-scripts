@@ -30,9 +30,12 @@ if exist "%~dp0capture\obs\config\obs-studio\.sentinel" (
     del /q /f "%~dp0capture\obs\config\obs-studio\.sentinel\*" 2>nul
 )
 
+:: Inicia o Monitor de Disparo Automático (Auto-Start / Auto-Stop via WebSocket nativo seguro)
+start "VHS Studio - Auto Watcher" /min python "%~dp0capture\obs\vhs_auto_watcher.py"
+
 cd /d "%~dp0capture\obs\bin\64bit"
 start "" "obs64.exe" --disable-updater --collection "VHS Studio" --profile "VHS Studio"
 
-echo [OK] OBS Studio iniciado em segundo plano!
+echo [OK] OBS Studio e Monitor de Auto-Gravação iniciados com sucesso!
 echo Esta janela pode ser fechada a qualquer momento.
 ping 127.0.0.1 -n 4 >nul

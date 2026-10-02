@@ -2,6 +2,8 @@
 .DS_Store
 *.swp
 *.swo
+__pycache__/
+*.py[cod]
 
 # Local envs
 config/local.env
