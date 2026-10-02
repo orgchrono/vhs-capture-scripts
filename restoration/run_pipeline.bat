@@ -113,7 +113,7 @@ echo.
 echo [SISTEMA] Iniciando restauração master...
 echo ------------------------------------------------------------
 
-"%BASH_EXE%" "%SCRIPT_DIR%master.sh" "%INPUT_FILE:\=/%" %EXTRA_OPTS% -y
+python "%SCRIPT_DIR%direct_restore.py" "%INPUT_FILE%"
 
 set "EXIT_CODE=%ERRORLEVEL%"
 echo ------------------------------------------------------------
