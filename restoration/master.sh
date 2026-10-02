@@ -227,26 +227,21 @@ if [[ "$MODE" == "guess" ]]; then
 fi
 CURRENT="$IN"
 
-# Optional exposure/colour (before deinterlace — works best on interlaced source)
-if [[ $APPLY_EXPCOL -eq 1 ]]; then
-  info "Step: exposure/colour"
-  BRIGHT=0.05 CONTRAST=1.10 SAT=1.20 GAMMA=1.20 \
-  "$REPO_ROOT/stages/2_restoration/01_exposure_colour.sh" "$CURRENT" "$(stage_dir 3)"
-  CURRENT="$(stage_dir 3)/$(basename "${CURRENT%.*}")_expcol.mkv"
-fi
+# ── Single-pass pre-deinterlace restoration ────────────────────────────────
+# Compõe expcol + denoise + chroma em UM único passo ffmpeg → zero I/O intermediário.
+# Cada filtro habilitado é encadeado com vírgula antes de ser passado ao ffmpeg.
+# shellcheck source=/dev/null
+source "$REPO_ROOT/lib/filters.sh"
 
-# Optional denoise (before deinterlace)
-if [[ $APPLY_DENOISE -eq 1 ]]; then
-  info "Step: denoise (hqdn3d)"
-  "$REPO_ROOT/stages/2_restoration/02_denoise_hqdn3d.sh" "$CURRENT" "$(stage_dir 3)"
-  CURRENT="$(stage_dir 3)/$(basename "${CURRENT%.*}")_dn.mkv"
-fi
+PREDEINT_VF="$(build_predeint_filters "$APPLY_EXPCOL" "$APPLY_DENOISE" "$APPLY_CHROMA")"
 
-# Optional chroma fix (before deinterlace)
-if [[ $APPLY_CHROMA -eq 1 ]]; then
-  info "Step: chroma shift"
-  "$REPO_ROOT/stages/2_restoration/03_chroma_shift.sh" "$CURRENT" "$(stage_dir 3)"
-  CURRENT="$(stage_dir 3)/$(basename "${CURRENT%.*}")_cshift.mkv"
+if [[ -n "$PREDEINT_VF" ]]; then
+  info "Step: pré-deinterlace (single-pass: ${PREDEINT_VF})"
+  PRE_OUT="$(stage_dir 3)/$(basename "${CURRENT%.*}")_pre.mkv"
+  run_ffmpeg "${PRE_OUT%.*}.log" -hide_banner -i "$CURRENT" \
+    -vf "$PREDEINT_VF" \
+    "${ffv1_args[@]}" "$PRE_OUT"
+  CURRENT="$PRE_OUT"
 fi
 
 # Deinterlace
@@ -262,11 +257,22 @@ fi
 
 # Trim black frames AFTER deinterlace (progressive 50p) — eliminates jumps at splice points.
 # MUST run before vidstab so the stabiliser never tries to track across edit boundaries.
+#
+# --mode=auto:
+#   - Gaps intermediários (dropouts, falhas de sinal): remove do VÍDEO APENAS.
+#     O áudio continua 100% intacto e contínuo — isso corrige a dessincronização
+#     progressiva causada pelos frames extras inseridos pela capturadora.
+#   - Líder inicial / trailer final: remove de ambos os streams (A/V sync),
+#     pois não há conteúdo útil em nenhum dos dois.
 if [[ $TRIM_BLACK -eq 1 ]]; then
-  info "Step: trim black frames (synchronous A/V cut — post-deinterlace)"
-  "$REPO_ROOT/stages/2_restoration/00_trim_black_sync.sh" "$CURRENT" "$(stage_dir 3)"
+  info "Step: trim black frames (video-only para gaps, A/V sync para líder/trailer)"
+  python "$REPO_ROOT/stages/2_restoration/00_trim_black_sync.py" \
+    --mode=auto \
+    "$CURRENT" "$(stage_dir 3)/$(basename "${CURRENT%.*}")_trimmed.mkv"
   CURRENT="$(stage_dir 3)/$(basename "${CURRENT%.*}")_trimmed.mkv"
 fi
+
+
 
 # Stabilise
 info "Step: stabilise (detect)"
@@ -305,16 +311,8 @@ info "Step: single-pass upscale & encode to 1080p master (zero intermediate disk
 FINAL_DIR="$(stage_dir 5)"
 mkdir -p "$FINAL_DIR"
 
-# Build consolidated video filter chain
-if [[ $FILL16X9 -eq 1 ]]; then
-  VFILTER="setsar=1,scale=1920:1080:flags=lanczos:force_original_aspect_ratio=increase,crop=1920:1080"
-else
-  VFILTER="setsar=1,scale=1440:1080:flags=lanczos,pad=1920:1080:(ow-iw)/2:(oh-ih)/2"
-fi
-
-if [[ $APPLY_SHARP -eq 1 ]]; then
-  VFILTER="${VFILTER},unsharp=5:5:0.5:5:5:0.0"
-fi
+# Build final video filter chain using filters.sh library
+VFILTER="$(build_final_filters "$FILL16X9" "$APPLY_SHARP")"
 
 if [[ "$FINAL" == "prores" ]]; then
   FINAL_OUT="$FINAL_DIR/$(basename "${CURRENT%.*}")_1080p_prores.mov"
@@ -325,10 +323,11 @@ if [[ "$FINAL" == "prores" ]]; then
     -c:a copy "$FINAL_OUT"
 else
   FINAL_OUT="$FINAL_DIR/$(basename "${CURRENT%.*}")_1080p_h264.mp4"
-  info "Encoding H.264 (CRF=$CRF, preset=fast): $FINAL_OUT"
+  info "Encoding H.264 (CRF=$CRF, preset=slow): $FINAL_OUT"
   run_ffmpeg "${FINAL_OUT%.*}.log" -hide_banner -y -i "$CURRENT" \
     -vf "$VFILTER" \
-    -c:v libx264 -preset fast -crf "$CRF" -pix_fmt yuv420p \
+    -c:v libx264 -preset slow -crf "$CRF" -pix_fmt yuv420p \
+    -color_primaries bt470bg -color_trc bt470bg -colorspace bt470bg \
     -c:a aac -b:a 192k "$FINAL_OUT"
 fi
 

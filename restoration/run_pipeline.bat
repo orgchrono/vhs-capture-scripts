@@ -62,8 +62,10 @@ shift
 goto :collect_args
 :done_args
 
+REM Default: usa qtgmc (melhor qualidade, consistente com master.sh default).
+REM Use --bwdif se VapourSynth não estiver instalado.
 if "%EXTRA_OPTS%"=="" (
-    set "EXTRA_OPTS=--bwdif --vhs --trim-black"
+    set "EXTRA_OPTS=--qtgmc --vhs --trim-black"
 )
 
 if "%HAS_INPUT%"=="1" goto :found_file
@@ -87,6 +89,7 @@ if "%INPUT_FILE%"=="" (
 
 echo [ENTRADA] %INPUT_FILE%
 echo [DESTINO] media\output\
+echo [OPÇÕES]  %EXTRA_OPTS%
 echo.
 
 echo [SISTEMA] Iniciando restauração master...
