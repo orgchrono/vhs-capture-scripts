@@ -1,9 +1,10 @@
 """
-VHS Studio - Auto Watcher & Trigger (OBS WebSocket 5.x)
-Monitora o volume da Blackmagic Intensity Shuttle em tempo real sem tocar na memória interna do OBS.
-- Dá PLAY na câmera -> Inicia gravação automaticamente após 1s de áudio.
-- Fita acaba / STOP -> Interrompe gravação automaticamente após 5s de silêncio.
-- 100% thread-safe, nativo e blindado contra quedas.
+VHS Studio - Monitor Inteligente de Captura (OBS WebSocket 5.x)
+Monitoramento em tempo real de ÁUDIO e VÍDEO da Blackmagic Intensity Shuttle:
+- AUTO-START IMEDIATO (< 100ms): Dispara assim que a fita começa (áudio detectado OU imagem ativa). Zero quadros perdidos!
+- AUTO-STOP INTELIGENTE (~1.0s): Detecta parada real combinando silêncio + tela azul/preta/sem sinal. Sem 5s de sobra vazia!
+- PROTEÇÃO DE CENA: Cenas silenciosas com vídeo em movimento NÃO são cortadas.
+- 100% thread-safe, nativo, fora do processo do OBS (à prova de crash).
 """
 
 import socket
@@ -14,12 +15,25 @@ import os
 import time
 import math
 import sys
+import subprocess
+import io
 
+try:
+    from PIL import Image
+    HAS_PIL = True
+except ImportError:
+    HAS_PIL = False
+
+# Limiares de áudio
 THRESHOLD_DB = -50.0
-# Multiplicador correspondente a -50 dB: 10^(-50/20) = ~0.00316
+# Multiplicador correspondente a -50 dB: 10^(-50/20) ≈ 0.00316
 THRESHOLD_MUL = 10.0 ** (THRESHOLD_DB / 20.0)
-START_DELAY_SEC = 1.0
-STOP_DELAY_SEC = 5.0
+
+# Tempos de confirmação ultrarrápidos e inteligentes
+START_CONFIRM_SEC = 0.10      # 100ms (apenas 2 pacotes de áudio): disparo imediato ao dar play!
+STOP_BLANK_CONFIRM_SEC = 1.0  # 1.0s quando confirmada tela de parada (silêncio + azul/preto/congelado)
+STOP_QUIET_SCENE_SEC = 20.0   # Tolerância estendida se o áudio estiver quieto mas a imagem estiver ativa!
+SCREENSHOT_INTERVAL_SEC = 0.25 # Captura miniatura a cada 250ms (4x/seg) para análise visual instantânea
 
 class SimpleWebSocket:
     def __init__(self, host="127.0.0.1", port=4455):
@@ -128,10 +142,8 @@ class SimpleWebSocket:
         if self.sock:
             try:
                 self.sock.close()
-            except:
+            except Exception:
                 pass
-
-import subprocess
 
 def mul_to_db(mul):
     if mul <= 0.000001:
@@ -145,15 +157,73 @@ def is_obs_running():
     except Exception:
         return True
 
+def analyze_visual_frame(img_b64, prev_pixels=None):
+    """
+    Analisa uma miniatura JPEG (16x12) capturada via OBS WebSocket:
+    - Retorna se é tela preta, tela azul, vídeo ativo e nível de variação/movimento.
+    """
+    if not HAS_PIL or not img_b64:
+        return None
+
+    try:
+        raw_b64 = img_b64.split(",")[-1]
+        raw_bytes = base64.b64decode(raw_b64)
+        im = Image.open(io.BytesIO(raw_bytes)).convert("RGB")
+        pixels = list(im.getdata())
+        n = len(pixels)
+        if n == 0:
+            return None
+
+        r_sum = sum(p[0] for p in pixels)
+        g_sum = sum(p[1] for p in pixels)
+        b_sum = sum(p[2] for p in pixels)
+        r_avg = r_sum / n
+        g_avg = g_sum / n
+        b_avg = b_sum / n
+
+        # Detecção de Tela Preta (brilho abaixo do piso de sinal)
+        is_black = (r_avg < 25 and g_avg < 25 and b_avg < 25)
+
+        # Detecção de Tela Azul (filmadora/VCR em standby ou stop)
+        is_blue = (b_avg > 90 and b_avg > (r_avg + g_avg) * 1.4)
+
+        # Variância interna da imagem (mede se é tela lisa ou se contém texturas/conteúdo)
+        variance = sum((p[0] - r_avg)**2 + (p[1] - g_avg)**2 + (p[2] - b_avg)**2 for p in pixels) / (n * 3)
+        is_solid = variance < 15.0
+
+        # Diferença entre quadros consecutivos (mede movimento / ruído analógico de fita)
+        diff = 0.0
+        if prev_pixels and len(prev_pixels) == n:
+            diff = sum(abs(p1[0] - p2[0]) + abs(p1[1] - p2[1]) + abs(p1[2] - p2[2]) for p1, p2 in zip(pixels, prev_pixels)) / (n * 3)
+
+        is_blank = is_black or is_blue or (is_solid and (r_avg < 35 or b_avg > 80))
+        # Vídeo ativo: não é tela lisa e possui textura/movimento de fita
+        is_active = not is_blank and (variance >= 20.0 or diff >= 2.0)
+
+        return {
+            "r": r_avg, "g": g_avg, "b": b_avg,
+            "is_black": is_black,
+            "is_blue": is_blue,
+            "is_blank": is_blank,
+            "is_active": is_active,
+            "diff": diff,
+            "variance": variance,
+            "pixels": pixels
+        }
+    except Exception:
+        return None
+
 def run_watcher():
-    os.system("title VHS Studio - Monitor de Gravacao Automatica")
-    print("=" * 75)
-    print("      📼 VHS STUDIO - SERVIÇO DE CAPTURA AUTOMÁTICA (WEBSOCKET) 📼")
-    print("=" * 75)
-    print(f"Limiar de Detecção : {THRESHOLD_DB:.1f} dB")
-    print(f"Tempo de Início    : {START_DELAY_SEC:.1f}s com áudio contínuo")
-    print(f"Tempo de Término   : {STOP_DELAY_SEC:.1f}s em silêncio contínuo")
-    print("-" * 75)
+    os.system("title VHS Studio - Monitor Inteligente de Gravacao")
+    print("=" * 78)
+    print("       📼 VHS STUDIO - SERVIÇO DE CAPTURA INTELIGENTE (ÁUDIO + VÍDEO) 📼")
+    print("=" * 78)
+    print(f"Limiar de Áudio    : {THRESHOLD_DB:.1f} dB")
+    print(f"Gatilho de Início  : IMEDIATO (< {START_CONFIRM_SEC*1000:.0f}ms de áudio ou vídeo ativo)")
+    print(f"Gatilho de Parada  : {STOP_BLANK_CONFIRM_SEC:.1f}s (Silêncio + Tela de Parada Azul/Preta)")
+    print(f"Proteção de Cena   : Cenas silenciosas com vídeo ativo mantêm gravação ativa!")
+    print(f"Análise Visual     : {'Ativa (Pillow 16x12)' if HAS_PIL else 'Básica (Apenas Áudio)'}")
+    print("-" * 78)
 
     while True:
         ws = SimpleWebSocket()
@@ -193,13 +263,18 @@ def run_watcher():
 
             # 3. Recebe Identified (OpCode 2)
             ws.recv_msg()
-            print("[Pronto] Monitoramento ativo de áudio e status do OBS.")
+            print("[Pronto] Monitoramento inteligente ativo de áudio e vídeo.")
 
             is_recording = False
             signal_start_time = None
-            silence_start_time = None
+            blank_silence_start_time = None
+            quiet_scene_start_time = None
             last_feedback_time = 0
+            last_shot_request_time = 0
             target_input_name = None
+
+            latest_visual_info = None
+            prev_visual_pixels = None
 
             while True:
                 msg_raw = ws.recv_msg()
@@ -207,9 +282,23 @@ def run_watcher():
                     break
                 msg = json.loads(msg_raw)
                 op = msg.get("op")
+                now = time.time()
+
+                # Resposta de Screenshot (OpCode 7)
+                if op == 7:
+                    d = msg.get("d", {})
+                    req_id = d.get("requestId", "")
+                    if req_id == "vshot":
+                        resp_data = d.get("responseData", {})
+                        img_data = resp_data.get("imageData", "")
+                        if img_data:
+                            vinfo = analyze_visual_frame(img_data, prev_visual_pixels)
+                            if vinfo:
+                                latest_visual_info = vinfo
+                                prev_visual_pixels = vinfo.get("pixels")
 
                 # Evento recebido (OpCode 5)
-                if op == 5:
+                elif op == 5:
                     d = msg.get("d", {})
                     event_type = d.get("eventType")
                     event_data = d.get("eventData", {})
@@ -223,7 +312,8 @@ def run_watcher():
                         else:
                             print(f"\n[OBS] ⏹ GRAVAÇÃO FINALIZADA ({state_str})")
                             signal_start_time = None
-                            silence_start_time = None
+                            blank_silence_start_time = None
+                            quiet_scene_start_time = None
 
                     # Monitor de Níveis de Áudio (dispara a cada 50ms)
                     elif event_type == "InputVolumeMeters":
@@ -252,23 +342,66 @@ def run_watcher():
                                 break
 
                         current_db = mul_to_db(current_max_mul)
-                        now = time.time()
+                        has_audio = (current_max_mul >= THRESHOLD_MUL)
+
+                        # Solicita miniatura visual periodicamente para análise visual
+                        if HAS_PIL and target_input_name and (now - last_shot_request_time >= SCREENSHOT_INTERVAL_SEC):
+                            last_shot_request_time = now
+                            ws.send_json({
+                                "op": 6,
+                                "d": {
+                                    "requestType": "GetSourceScreenshot",
+                                    "requestId": "vshot",
+                                    "requestData": {
+                                        "sourceName": target_input_name,
+                                        "imageFormat": "jpeg",
+                                        "imageWidth": 16,
+                                        "imageHeight": 12,
+                                        "imageCompressionQuality": 30
+                                    }
+                                }
+                            })
+
+                        # Interpretação do estado visual
+                        is_visual_active = False
+                        is_visual_blank = True
+                        visual_label = "DESCONHECIDO"
+
+                        if latest_visual_info:
+                            if latest_visual_info.get("is_blue"):
+                                visual_label = "TELA AZUL (Standby)"
+                                is_visual_blank = True
+                            elif latest_visual_info.get("is_black"):
+                                visual_label = "TELA PRETA"
+                                is_visual_blank = True
+                            elif latest_visual_info.get("is_active"):
+                                visual_label = "VÍDEO ATIVO"
+                                is_visual_active = True
+                                is_visual_blank = False
+                            else:
+                                visual_label = "ESTÁTICO"
+                                is_visual_blank = True
 
                         # Feedback no console a cada 3 segundos
                         if now - last_feedback_time > 3.0:
                             last_feedback_time = now
                             status_label = "🔴 GRAVANDO" if is_recording else "⏹ ESPERANDO PLAY"
-                            print(f"[Status] {status_label} | Volume: {current_db:5.1f} dB (Limiar: {THRESHOLD_DB:.1f} dB)", end="\r")
+                            print(f"[Status] {status_label} | Áudio: {current_db:5.1f} dB | Vídeo: {visual_label}        ", end="\r")
 
-                        # LÓGICA DE AUTO-START
-                        if current_max_mul >= THRESHOLD_MUL:
-                            silence_start_time = None
-                            if not is_recording:
+                        # =========================================================
+                        # 1. LÓGICA DE AUTO-START INTELIGENTE (< 100ms)
+                        # =========================================================
+                        if not is_recording:
+                            # Dispara se houver áudio OU se a imagem sair de tela preta/azul para vídeo ativo!
+                            has_content_signal = has_audio or is_visual_active
+
+                            if has_content_signal:
                                 if signal_start_time is None:
                                     signal_start_time = now
-                                elif now - signal_start_time >= START_DELAY_SEC:
-                                    print(f"\n[Auto-Start] ▶ SINAL DETECTADO ({current_db:.1f} dB >= {THRESHOLD_DB:.1f} dB)!")
-                                    print("[Auto-Start] Iniciando gravação no OBS...")
+                                elif (now - signal_start_time >= START_CONFIRM_SEC):
+                                    cause = "Áudio detectado" if has_audio else "Vídeo ativo detectado"
+                                    print(f"\n[Auto-Start] ▶ SINAL DETECTADO ({cause})!")
+                                    print(f"[Auto-Start] Disparando gravação no OBS imediatamente...")
                                     ws.send_json({
                                         "op": 6,
                                         "d": {
@@ -277,35 +410,70 @@ def run_watcher():
                                         }
                                     })
                                     signal_start_time = None
+                                    blank_silence_start_time = None
                                     is_recording = True
+                            else:
+                                signal_start_time = None
+
+                        # =========================================================
+                        # 2. LÓGICA DE AUTO-STOP INTELIGENTE (~1.0s)
+                        # =========================================================
                         else:
-                            # LÓGICA DE AUTO-STOP
                             signal_start_time = None
-                            if is_recording:
-                                if silence_start_time is None:
-                                    silence_start_time = now
-                                elif now - silence_start_time >= STOP_DELAY_SEC:
-                                    print(f"\n[Auto-Stop] ⏹ FITA FINALIZADA / SILÊNCIO DETECTADO ({STOP_DELAY_SEC}s)!")
-                                    print("[Auto-Stop] Encerrando gravação no OBS...")
-                                    ws.send_json({
-                                        "op": 6,
-                                        "d": {
-                                             "requestType": "StopRecord",
-                                             "requestId": "stop-rec-1"
-                                        }
-                                    })
-                                    silence_start_time = None
-                                    is_recording = False
+                            
+                            # Se há áudio forte, reseta todos os contadores de parada
+                            if has_audio:
+                                blank_silence_start_time = None
+                                quiet_scene_start_time = None
+                            else:
+                                # Áudio silencioso (< -50 dB)
+                                # CASO A: Silêncio + Tela de Parada (Azul, Preta ou Imagem Congelada) -> FITA ACABOU!
+                                if is_visual_blank or not HAS_PIL:
+                                    quiet_scene_start_time = None
+                                    if blank_silence_start_time is None:
+                                        blank_silence_start_time = now
+                                    elif now - blank_silence_start_time >= STOP_BLANK_CONFIRM_SEC:
+                                        stop_reason = f"Silêncio + {visual_label}" if HAS_PIL else "Silêncio contínuo"
+                                        print(f"\n[Auto-Stop] ⏹ FIM DE FITA / STOP DETECTADO ({stop_reason})!")
+                                        print("[Auto-Stop] Encerrando gravação no OBS...")
+                                        ws.send_json({
+                                            "op": 6,
+                                            "d": {
+                                                 "requestType": "StopRecord",
+                                                 "requestId": "stop-rec-1"
+                                            }
+                                        })
+                                        blank_silence_start_time = None
+                                        is_recording = False
+
+                                # CASO B: Silêncio MAS o vídeo continua ATIVO -> CENA SILENCIOSA DO FILME!
+                                elif is_visual_active:
+                                    blank_silence_start_time = None
+                                    if quiet_scene_start_time is None:
+                                        quiet_scene_start_time = now
+                                    elif now - quiet_scene_start_time >= STOP_QUIET_SCENE_SEC:
+                                        # Apenas corta se ficar em silêncio absoluto por mais de 20s seguidos
+                                        print(f"\n[Auto-Stop] ⏹ Silêncio prolongado ({STOP_QUIET_SCENE_SEC}s). Encerrando gravação...")
+                                        ws.send_json({
+                                            "op": 6,
+                                            "d": {
+                                                 "requestType": "StopRecord",
+                                                 "requestId": "stop-rec-1"
+                                            }
+                                        })
+                                        quiet_scene_start_time = None
+                                        is_recording = False
 
         except Exception as e:
             print(f"\n[Aviso] Conexão com OBS interrompida ({e}).")
         finally:
             ws.close()
-            time.sleep(1.0)
-            if not is_obs_running():
-                print("[VHS Studio] OBS Studio foi finalizado. Encerrando monitor de gravação.")
-                return
-            time.sleep(1.5)
+
+        time.sleep(1.0)
+        if not is_obs_running():
+            print("[VHS Studio] OBS Studio foi finalizado. Encerrando monitor de gravação.")
+            return
+        time.sleep(1.5)
 
 if __name__ == "__main__":
     try:

@@ -128,10 +128,12 @@ def apply_dropout_concealment(input_file, temp_output, max_conceal_sec=1.0, y_th
     return total_frames, concealed_frames
 
 def detect_black_intervals(input_file, min_duration=0.033, pix_th=0.12, pic_th=0.96):
+    # Detecta quadros pretos E quadros azuis (telas azuis de standby de filmadoras/VCRs)
+    # colorkey mapeia telas azuis sólidas para transparência/preto antes do blackdetect
     cmd = [
         "ffmpeg", "-hide_banner",
         "-i", input_file,
-        "-vf", f"blackdetect=d={min_duration}:pix_th={pix_th}:pic_th={pic_th}",
+        "-vf", f"colorkey=0x0000FF:0.35:0.1,format=yuv420p,blackdetect=d={min_duration}:pix_th={pix_th}:pic_th={pic_th}",
         "-an", "-f", "null", "-"
     ]
     res = subprocess.run(cmd, capture_output=True, text=True)
@@ -140,8 +142,8 @@ def detect_black_intervals(input_file, min_duration=0.033, pix_th=0.12, pic_th=0
     for line in res.stderr.splitlines():
         m = pattern.search(line)
         if m:
-            start = max(0.0, float(m.group(1)) - 0.015)
-            end = float(m.group(2)) + 0.015
+            start = float(m.group(1))          # sem padding negativo — evita morder conteúdo válido
+            end = float(m.group(2)) + 0.005    # +5ms (~1/8 frame) para incluir o frame preto final
             intervals.append((start, end))
     return intervals
 
@@ -196,6 +198,8 @@ def trim_video_audio_sync(input_file, output_file, keep_segments):
         "-map", "[vout]"
     ]
     if has_audio:
+        # atrim+asetpts reescreve timestamps — não é compatível com -c:a copy.
+        # pcm_s16le é lossless para capturas VHS (áudio analógico).
         cmd += ["-map", "[aout]", "-c:a", "pcm_s16le"]
     cmd += ["-c:v", "ffv1", "-level", "3", "-coder", "1", "-context", "1", output_file]
 

@@ -227,14 +227,7 @@ if [[ "$MODE" == "guess" ]]; then
 fi
 CURRENT="$IN"
 
-# Optional synchronous trim of black frames (preserves audio sync)
-if [[ $TRIM_BLACK -eq 1 ]]; then
-  info "Step: trim black frames (synchronous A/V cut)"
-  "$REPO_ROOT/stages/2_restoration/00_trim_black_sync.sh" "$CURRENT" "$(stage_dir 3)"
-  CURRENT="$(stage_dir 3)/$(basename "${CURRENT%.*}")_trimmed.mkv"
-fi
-
-# Optional exposure/colour
+# Optional exposure/colour (before deinterlace — works best on interlaced source)
 if [[ $APPLY_EXPCOL -eq 1 ]]; then
   info "Step: exposure/colour"
   BRIGHT=0.05 CONTRAST=1.10 SAT=1.20 GAMMA=1.20 \
@@ -242,14 +235,14 @@ if [[ $APPLY_EXPCOL -eq 1 ]]; then
   CURRENT="$(stage_dir 3)/$(basename "${CURRENT%.*}")_expcol.mkv"
 fi
 
-# Optional denoise
+# Optional denoise (before deinterlace)
 if [[ $APPLY_DENOISE -eq 1 ]]; then
   info "Step: denoise (hqdn3d)"
   "$REPO_ROOT/stages/2_restoration/02_denoise_hqdn3d.sh" "$CURRENT" "$(stage_dir 3)"
   CURRENT="$(stage_dir 3)/$(basename "${CURRENT%.*}")_dn.mkv"
 fi
 
-# Optional chroma fix
+# Optional chroma fix (before deinterlace)
 if [[ $APPLY_CHROMA -eq 1 ]]; then
   info "Step: chroma shift"
   "$REPO_ROOT/stages/2_restoration/03_chroma_shift.sh" "$CURRENT" "$(stage_dir 3)"
@@ -265,6 +258,14 @@ else
   info "Step: bwdif deinterlace to 50p"
   "$REPO_ROOT/stages/3_motion_and_fps_correction/01_deinterlace_bwdif.sh" "$CURRENT" "$(stage_dir 3)"
   CURRENT="$(stage_dir 3)/$(basename "${CURRENT%.*}")_bwdif.mkv"
+fi
+
+# Trim black frames AFTER deinterlace (progressive 50p) — eliminates jumps at splice points.
+# MUST run before vidstab so the stabiliser never tries to track across edit boundaries.
+if [[ $TRIM_BLACK -eq 1 ]]; then
+  info "Step: trim black frames (synchronous A/V cut — post-deinterlace)"
+  "$REPO_ROOT/stages/2_restoration/00_trim_black_sync.sh" "$CURRENT" "$(stage_dir 3)"
+  CURRENT="$(stage_dir 3)/$(basename "${CURRENT%.*}")_trimmed.mkv"
 fi
 
 # Stabilise
