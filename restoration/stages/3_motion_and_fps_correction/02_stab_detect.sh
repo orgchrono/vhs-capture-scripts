@@ -37,7 +37,8 @@ IN="${1:-}"
 TRF_BASENAME="${2:-$(basename "${IN%.*}")}"
 TRF="$(stage_dir 3)/${TRF_BASENAME}.trf"
 
-TRF_REL="$(realpath --relative-to="." "$TRF" 2>/dev/null || echo "$TRF")"
+# Ensure relative path without drive letter colons (e.g. C:) so ffmpeg filter parser never breaks
+TRF_REL="media/work/stage_3/${TRF_BASENAME}.trf"
 run_ffmpeg "${TRF%.trf}.log" -hide_banner -i "$IN" \
   -vf "vidstabdetect=shakiness=${SHAKINESS}:accuracy=${ACC}:result=${TRF_REL}" \
   -f null -

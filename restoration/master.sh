@@ -87,6 +87,7 @@ APPLY_DENOISE=0
 APPLY_CHROMA=0
 APPLY_EXPCOL=0
 APPLY_SHARP=0
+APPLY_STAB=""
 FILL16X9=0
 FINAL="h264"
 CRF=18
@@ -105,6 +106,7 @@ AUDIO_RATE=""
 CAP_LIMIT=""
 CAP_SPLIT_MIN=""
 CLEAN_WORK=0      # --clean-work: remove intermediários após encode final bem-sucedido
+BLACKMAGIC=0      # --blackmagic: calibração para placas Blackmagic (Intensity / DeckLink)
 
 # Parse args
 while [[ $# -gt 0 ]]; do
@@ -131,10 +133,13 @@ while [[ $# -gt 0 ]]; do
     --qtgmc=*) DEINT="qtgmc"; FIELD="${1#--qtgmc=}";;
     --bwdif) DEINT="bwdif";;
     --trim-black|--remove-black) TRIM_BLACK=1;;
+    --blackmagic) BLACKMAGIC=1; TRIM_BLACK=1;;
     --denoise) APPLY_DENOISE=1;;
     --chroma-fix) APPLY_CHROMA=1;;
     --expcol) APPLY_EXPCOL=1;;
     --sharpen) APPLY_SHARP=1;;
+    --stab) APPLY_STAB=1;;
+    --no-stab) APPLY_STAB=0;;
     --fill16x9) FILL16X9=1;;
     --prores) FINAL="prores";;
     --crf) shift; CRF="${1:?value}";;
@@ -228,6 +233,13 @@ if [[ "$MODE" == "guess" ]]; then
   if [[ -z "$HAS_AUDIO" ]]; then MODE="cine18"; info "Heuristic: no audio -> CINE 18fps"
   else MODE="vhs"; info "Heuristic: audio present -> VHS"; fi
 fi
+if [[ -z "$APPLY_STAB" ]]; then
+  if [[ "$MODE" == "vhs" ]]; then
+    APPLY_STAB=0
+  else
+    APPLY_STAB=1
+  fi
+fi
 CURRENT="$IN"
 
 # ── Single-pass pre-deinterlace restoration ────────────────────────────────
@@ -254,13 +266,25 @@ fi
 
 # Deinterlace
 if [[ "$DEINT" == "qtgmc" ]]; then
-  info "Step: QTGMC deinterlace to 50p (${FIELD})"
-  "$REPO_ROOT/stages/3_motion_and_fps_correction/00_qtgmc_deint.sh" "$CURRENT" "$(stage_dir 3)" "$FIELD"
-  CURRENT="$(stage_dir 3)/$(basename "${CURRENT%.*}")_qtgmc50p.mkv"
+  DEINT_OUT="$(stage_dir 3)/$(basename "${CURRENT%.*}")_qtgmc50p.mkv"
+  if [[ -f "$DEINT_OUT" && $(wc -c < "$DEINT_OUT" 2>/dev/null || echo 0) -gt 1000000 && "${OVERWRITE:-0}" != "1" ]]; then
+    info "Step: QTGMC deinterlace already exists ($DEINT_OUT). Reusing..."
+    CURRENT="$DEINT_OUT"
+  else
+    info "Step: QTGMC deinterlace to 50p (${FIELD})"
+    "$REPO_ROOT/stages/3_motion_and_fps_correction/00_qtgmc_deint.sh" "$CURRENT" "$(stage_dir 3)" "$FIELD"
+    CURRENT="$DEINT_OUT"
+  fi
 else
-  info "Step: bwdif deinterlace to 50p"
-  "$REPO_ROOT/stages/3_motion_and_fps_correction/01_deinterlace_bwdif.sh" "$CURRENT" "$(stage_dir 3)"
-  CURRENT="$(stage_dir 3)/$(basename "${CURRENT%.*}")_bwdif.mkv"
+  DEINT_OUT="$(stage_dir 3)/$(basename "${CURRENT%.*}")_bwdif.mkv"
+  if [[ -f "$DEINT_OUT" && $(wc -c < "$DEINT_OUT" 2>/dev/null || echo 0) -gt 1000000 && "${OVERWRITE:-0}" != "1" ]]; then
+    info "Step: bwdif deinterlace already exists ($DEINT_OUT). Reusing..."
+    CURRENT="$DEINT_OUT"
+  else
+    info "Step: bwdif deinterlace to 50p"
+    "$REPO_ROOT/stages/3_motion_and_fps_correction/01_deinterlace_bwdif.sh" "$CURRENT" "$(stage_dir 3)"
+    CURRENT="$DEINT_OUT"
+  fi
 fi
 validate_video "$CURRENT" "deinterlace"
 WORK_FILES+=("$CURRENT")
@@ -275,24 +299,36 @@ WORK_FILES+=("$CURRENT")
 #   - Líder inicial / trailer final: remove de ambos os streams (A/V sync),
 #     pois não há conteúdo útil em nenhum dos dois.
 if [[ $TRIM_BLACK -eq 1 ]]; then
-  info "Step: trim black frames (video-only para gaps, A/V sync para líder/trailer)"
   TRIM_OUT="$(stage_dir 3)/$(basename "${CURRENT%.*}")_trimmed.mkv"
-  python "$REPO_ROOT/stages/2_restoration/00_trim_black_sync.py" \
-    --mode=auto \
-    "$CURRENT" "$TRIM_OUT"
-  CURRENT="$TRIM_OUT"
+  if [[ -f "$TRIM_OUT" && $(wc -c < "$TRIM_OUT" 2>/dev/null || echo 0) -gt 1000000 && "${OVERWRITE:-0}" != "1" ]]; then
+    info "Step: trim_black already exists ($TRIM_OUT). Reusing..."
+    CURRENT="$TRIM_OUT"
+  else
+    info "Step: trim black frames (video-only para gaps, A/V sync para líder/trailer)"
+    TRIM_EXTRA=()
+    [[ $BLACKMAGIC -eq 1 ]] && TRIM_EXTRA+=( "--blackmagic" )
+    python "$REPO_ROOT/stages/2_restoration/00_trim_black_sync.py" \
+      --mode=auto \
+      "${TRIM_EXTRA[@]}" \
+      "$CURRENT" "$TRIM_OUT"
+    CURRENT="$TRIM_OUT"
+  fi
   validate_video "$CURRENT" "trim_black"
   WORK_FILES+=("$CURRENT")
 fi
 
 # Stabilise
-info "Step: stabilise (detect)"
-"$REPO_ROOT/stages/3_motion_and_fps_correction/02_stab_detect.sh" "$CURRENT" "$(basename "${CURRENT%.*}")"
-info "Step: stabilise (apply)"
-"$REPO_ROOT/stages/3_motion_and_fps_correction/03_stab_apply.sh" "$CURRENT" "$(stage_dir 3)/$(basename "${CURRENT%.*}").trf" "$(stage_dir 3)"
-CURRENT="$(stage_dir 3)/$(basename "${CURRENT%.*}")_stab.mkv"
-validate_video "$CURRENT" "vidstab"
-WORK_FILES+=("$CURRENT")
+if [[ $APPLY_STAB -eq 1 ]]; then
+  info "Step: stabilise (detect)"
+  "$REPO_ROOT/stages/3_motion_and_fps_correction/02_stab_detect.sh" "$CURRENT" "$(basename "${CURRENT%.*}")"
+  info "Step: stabilise (apply)"
+  "$REPO_ROOT/stages/3_motion_and_fps_correction/03_stab_apply.sh" "$CURRENT" "$(stage_dir 3)/$(basename "${CURRENT%.*}").trf" "$(stage_dir 3)"
+  CURRENT="$(stage_dir 3)/$(basename "${CURRENT%.*}")_stab.mkv"
+  validate_video "$CURRENT" "vidstab"
+  WORK_FILES+=("$CURRENT")
+else
+  info "Step: stabilise skipped (use --stab to enable)"
+fi
 
 # Mode-specific timing/interp
 case "$MODE" in

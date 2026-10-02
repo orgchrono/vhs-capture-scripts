@@ -81,9 +81,9 @@ shift
 goto :collect_args
 :done_args
 
-REM Default: usa bwdif (double-rate 50/60p, estavel e rapido nativo no FFmpeg)
+REM Default: usa bwdif e calibração blackmagic
 if "%EXTRA_OPTS%"=="" (
-    set "EXTRA_OPTS=--bwdif --vhs --trim-black --crf 18"
+    set "EXTRA_OPTS=--bwdif --vhs --trim-black --blackmagic"
 )
 
 if "%HAS_INPUT%"=="1" goto :found_file

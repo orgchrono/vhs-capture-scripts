@@ -186,7 +186,10 @@ def classify_intervals(black_intervals, total_duration, leader_threshold=2.0):
         trailer = black_intervals[-1]
         black_intervals = black_intervals[:-1]
 
-    gaps = black_intervals
+    # Apenas intervalos com duração significativa (>= 0.5s) são tratados como gaps entre gravações.
+    # Micro-quedas analógicas de 1-2 frames são ruído de fita e NÃO devem ser cortadas do vídeo
+    # para evitar encurtar o vídeo e dessincronizar o áudio com o tempo.
+    gaps = [g for g in black_intervals if (g[1] - g[0]) >= 0.5]
     return leader, gaps, trailer
 
 
@@ -226,6 +229,12 @@ def remove_black_video_only(input_file, output_file, black_gaps, total_duration,
             raise RuntimeError(f"ffmpeg copy falhou: {res.stderr}")
         return
 
+    # Limita o número de gaps processados via CLI para nunca exceder o limite do sistema
+    if len(black_gaps) > 100:
+        print(f"[TRIM] Limitando a {100} maiores gaps para respeitar os limites do sistema operacional.")
+        black_gaps = sorted(black_gaps, key=lambda g: g[1] - g[0], reverse=True)[:100]
+        black_gaps.sort(key=lambda g: g[0])
+
     # Constrói expressão `select` para excluir os intervalos pretos.
     # A expressão seleciona frames FORA de todos os gaps.
     # Formato: not(between(t,start1,end1)+between(t,start2,end2)+...)
@@ -242,7 +251,7 @@ def remove_black_video_only(input_file, output_file, black_gaps, total_duration,
         "ffmpeg", "-y", "-hide_banner",
         "-i", input_file,
         "-vf", vf,
-        "-vsync", "vfr",          # Variable frame rate — essencial com select
+        "-fps_mode:v", "vfr",          # Variable frame rate — essencial com select
         "-c:v", "ffv1", "-level", "3", "-coder", "1", "-context", "1",
     ]
     if has_audio:
@@ -304,11 +313,12 @@ def trim_av_sync(input_file, output_file, keep_start, keep_end):
 # ---------------------------------------------------------------------------
 
 def process_auto(input_file, output_file, black_intervals, total_duration,
-                 leader_threshold=2.0, fade_frames=0):
+                 leader_threshold=2.0, fade_frames=0, cut_middle_gaps=False):
     """
     Estratégia combinada:
-      1. Remove líder inicial e trailer final com av-sync (corta ambos os streams).
-      2. Remove gaps intermediários com video-only (preserva áudio contínuo).
+      1. Remove líder inicial e trailer final com av-sync (corta ambos os streams mantendo sincronia perfeita).
+      2. Gaps intermediários são preservados por padrão para não desincronizar transições/cenas.
+         (Podem ser removidos com --cut-middle-gaps se solicitado explicitamente).
     """
     leader, gaps, trailer = classify_intervals(
         list(black_intervals), total_duration, leader_threshold
@@ -335,20 +345,29 @@ def process_auto(input_file, output_file, black_intervals, total_duration,
     # Passo 1: remove líder e trailer (A/V sync)
     if leader or trailer:
         temp_cut = output_file + ".leader_cut.mkv"
-        print(f"[TRIM] Removendo líder/trailer (A/V sync): janela [{keep_start:.3f}s, {keep_end:.3f}s]")
-        trim_av_sync(input_file, temp_cut, keep_start, keep_end)
+        if os.path.exists(temp_cut) and os.path.getsize(temp_cut) > 1000000:
+            print(f"[TRIM] Líder/trailer já cortado anteriormente ({temp_cut}). Reutilizando...")
+        else:
+            print(f"[TRIM] Removendo líder/trailer (A/V sync): janela [{keep_start:.3f}s, {keep_end:.3f}s]")
+            trim_av_sync(input_file, temp_cut, keep_start, keep_end)
     else:
         temp_cut = input_file
 
-    # Passo 2: remove gaps intermediários (somente vídeo)
-    if adjusted_gaps:
+    # Passo 2: remove gaps intermediários (somente se solicitado explicitamente)
+    if cut_middle_gaps and adjusted_gaps:
         remove_black_video_only(temp_cut, output_file, adjusted_gaps,
                                 keep_end - keep_start, fade_frames)
     else:
+        print("[TRIM] Líder e trailer removidos com sucesso. Sincronia A/V mantida integralmente.")
         if temp_cut == input_file:
             shutil.copy2(input_file, output_file)
         elif temp_cut != output_file:
-            os.replace(temp_cut, output_file)
+            if os.path.exists(output_file):
+                try:
+                    os.remove(output_file)
+                except OSError:
+                    pass
+            shutil.move(temp_cut, output_file)
 
     # Limpeza do temp
     if temp_cut != input_file and temp_cut != output_file and os.path.exists(temp_cut):
@@ -389,12 +408,21 @@ def main():
                         help="Fração mínima da tela preta (padrão: 0.96)")
     parser.add_argument("--leader-threshold", type=float, default=2.0,
                         help="Distância do início/fim para classificar como líder/trailer (padrão: 2.0s)")
+    parser.add_argument("--blackmagic", action="store_true",
+                        help="Ajusta limiares para perda de sinal de placas Blackmagic (pix_th=0.08, pic_th=0.98)")
     parser.add_argument("--skip-doc", action="store_true",
                         help="(Legado) sem efeito — DOC não é mais executado aqui")
     parser.add_argument("--fade-frames", type=int, default=0,
                         help="Frames de blend nos pontos de corte de gap (0=desabilitado)")
+    parser.add_argument("--cut-middle-gaps", action="store_true",
+                        help="Remove gaps pretos no meio do conteúdo (pode alterar sincronia se áudio for contínuo)")
 
     args = parser.parse_args()
+
+    # Aplica calibração Blackmagic se solicitado
+    if args.blackmagic:
+        args.pix_th = 0.08
+        args.pic_th = 0.98
 
     # Resolve paths
     input_path = os.path.abspath(args.input)
@@ -407,8 +435,14 @@ def main():
         base_name = os.path.splitext(os.path.basename(input_path))[0]
         output_path = os.path.join(output_path, f"{base_name}_trimmed.mkv")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    if os.path.exists(output_path) and os.path.getsize(output_path) > 1000000 and os.environ.get("OVERWRITE") != "1":
+        print(f"[TRIM] Arquivo de saída já existe e é válido: {output_path}")
+        print("[TRIM] Reutilizando saída existente. Para reprocessar, remova o arquivo ou defina OVERWRITE=1.")
+        sys.exit(0)
 
     print(f"[TRIM] Entrada: {input_path}")
+    if args.blackmagic:
+        print("[TRIM] Perfil Blackmagic ativo: limiares ajustados para perda de sinal DeckLink/Intensity.")
     total_dur = get_duration(input_path)
     _, _, r_frame_rate, has_audio = get_stream_info(input_path)
     fps = get_fps(r_frame_rate)
@@ -476,7 +510,8 @@ def main():
 
     else:  # auto
         process_auto(input_path, output_path, merged, total_dur,
-                     args.leader_threshold, args.fade_frames)
+                     args.leader_threshold, args.fade_frames,
+                     cut_middle_gaps=args.cut_middle_gaps)
 
     new_dur = get_duration(output_path)
     print(f"\n[TRIM] ✓ Concluído: {output_path}")

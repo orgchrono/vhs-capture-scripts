@@ -40,7 +40,7 @@ OUT="$(out_path "$IN" "$OUTDIR" "_stab")"
 LOG="${OUT%.*}.log"
 
 [[ -e "$TRF_PATH" ]] || { err "Missing transforms file: $TRF_PATH (run 02_stab_detect.sh first)"; exit 1; }
-TRF_REL="$(realpath --relative-to="." "$TRF_PATH" 2>/dev/null || echo "$TRF_PATH")"
+TRF_REL="media/work/stage_3/$(basename "$TRF_PATH")"
 vf="vidstabtransform=smoothing=${SMOOTH}:input=${TRF_REL}"
 ensure_dest "$OUT"
 
