@@ -67,6 +67,7 @@ Framing & delivery:
   --fill16x9            Crop/scale to fill 16:9 (default is 4:3 pillarbox)
   --prores              Final encode as ProRes MOV (default H.264 MP4)
   --crf N               CRF for H.264 (default 18)
+  --clean-work          Remove intermediate work files after successful final encode
   -y                    Allow overwriting where underlying steps use -y
   -h|--help             Show help and exit
 Examples:
@@ -103,6 +104,7 @@ INPUT_FMT=""
 AUDIO_RATE=""
 CAP_LIMIT=""
 CAP_SPLIT_MIN=""
+CLEAN_WORK=0      # --clean-work: remove intermediários após encode final bem-sucedido
 
 # Parse args
 while [[ $# -gt 0 ]]; do
@@ -137,6 +139,7 @@ while [[ $# -gt 0 ]]; do
     --prores) FINAL="prores";;
     --crf) shift; CRF="${1:?value}";;
     -y) FFMPEG_Y="-y"; export OVERWRITE=1; export FFMPEG_Y;;
+    --clean-work) CLEAN_WORK=1;;
     -h|--help) usage; exit 0;;
     -*)
       err "Unknown option: $1"; usage; exit 1;;
@@ -233,6 +236,9 @@ CURRENT="$IN"
 # shellcheck source=/dev/null
 source "$REPO_ROOT/lib/filters.sh"
 
+# Rastreia todos os intermediários para limpeza opcional ao final
+WORK_FILES=()
+
 PREDEINT_VF="$(build_predeint_filters "$APPLY_EXPCOL" "$APPLY_DENOISE" "$APPLY_CHROMA")"
 
 if [[ -n "$PREDEINT_VF" ]]; then
@@ -242,6 +248,8 @@ if [[ -n "$PREDEINT_VF" ]]; then
     -vf "$PREDEINT_VF" \
     "${ffv1_args[@]}" "$PRE_OUT"
   CURRENT="$PRE_OUT"
+  validate_video "$CURRENT" "pré-deinterlace"
+  WORK_FILES+=("$CURRENT")
 fi
 
 # Deinterlace
@@ -254,6 +262,8 @@ else
   "$REPO_ROOT/stages/3_motion_and_fps_correction/01_deinterlace_bwdif.sh" "$CURRENT" "$(stage_dir 3)"
   CURRENT="$(stage_dir 3)/$(basename "${CURRENT%.*}")_bwdif.mkv"
 fi
+validate_video "$CURRENT" "deinterlace"
+WORK_FILES+=("$CURRENT")
 
 # Trim black frames AFTER deinterlace (progressive 50p) — eliminates jumps at splice points.
 # MUST run before vidstab so the stabiliser never tries to track across edit boundaries.
@@ -266,13 +276,14 @@ fi
 #     pois não há conteúdo útil em nenhum dos dois.
 if [[ $TRIM_BLACK -eq 1 ]]; then
   info "Step: trim black frames (video-only para gaps, A/V sync para líder/trailer)"
+  TRIM_OUT="$(stage_dir 3)/$(basename "${CURRENT%.*}")_trimmed.mkv"
   python "$REPO_ROOT/stages/2_restoration/00_trim_black_sync.py" \
     --mode=auto \
-    "$CURRENT" "$(stage_dir 3)/$(basename "${CURRENT%.*}")_trimmed.mkv"
-  CURRENT="$(stage_dir 3)/$(basename "${CURRENT%.*}")_trimmed.mkv"
+    "$CURRENT" "$TRIM_OUT"
+  CURRENT="$TRIM_OUT"
+  validate_video "$CURRENT" "trim_black"
+  WORK_FILES+=("$CURRENT")
 fi
-
-
 
 # Stabilise
 info "Step: stabilise (detect)"
@@ -280,6 +291,8 @@ info "Step: stabilise (detect)"
 info "Step: stabilise (apply)"
 "$REPO_ROOT/stages/3_motion_and_fps_correction/03_stab_apply.sh" "$CURRENT" "$(stage_dir 3)/$(basename "${CURRENT%.*}").trf" "$(stage_dir 3)"
 CURRENT="$(stage_dir 3)/$(basename "${CURRENT%.*}")_stab.mkv"
+validate_video "$CURRENT" "vidstab"
+WORK_FILES+=("$CURRENT")
 
 # Mode-specific timing/interp
 case "$MODE" in
@@ -287,21 +300,29 @@ case "$MODE" in
     info "Step: conform to 18fps"
     "$REPO_ROOT/stages/3_motion_and_fps_correction/04_conform_18fps.sh" "$CURRENT" "$(stage_dir 3)"
     CURRENT="$(stage_dir 3)/$(basename "${CURRENT%.*}")_18fps.mkv"
+    validate_video "$CURRENT" "conform_18fps"
+    WORK_FILES+=("$CURRENT")
     info "Step: motion interpolate to 50p"
     "$REPO_ROOT/stages/3_motion_and_fps_correction/06_minterp_50p.sh" "$CURRENT" "$(stage_dir 4)"
     CURRENT="$(stage_dir 4)/$(basename "${CURRENT%.*}")_50p.mkv"
+    validate_video "$CURRENT" "minterp_50p"
+    WORK_FILES+=("$CURRENT")
     ;;
   cine24)
     info "Step: conform to 24fps"
     "$REPO_ROOT/stages/3_motion_and_fps_correction/05_conform_24fps.sh" "$CURRENT" "$(stage_dir 3)"
     CURRENT="$(stage_dir 3)/$(basename "${CURRENT%.*}")_24fps.mkv"
+    validate_video "$CURRENT" "conform_24fps"
+    WORK_FILES+=("$CURRENT")
     info "Step: motion interpolate to 50p"
     "$REPO_ROOT/stages/3_motion_and_fps_correction/06_minterp_50p.sh" "$CURRENT" "$(stage_dir 4)"
     CURRENT="$(stage_dir 4)/$(basename "${CURRENT%.*}")_50p.mkv"
+    validate_video "$CURRENT" "minterp_50p"
+    WORK_FILES+=("$CURRENT")
     ;;
   vhs)
-    # VHS deinterlaced via bwdif or qtgmc is ALREADY double-rate (50p/60p).
-    # Skipping minterpolate avoids redundant optical flow estimation and accelerates processing by 10x-20x.
+    # VHS deinterlaced via bwdif ou QTGMC já é double-rate (50p).
+    # Pular minterpolate evita optical flow redundante — ~10-20x mais rápido.
     info "Step: VHS cadence verified at 50/60p (skipping redundant minterpolate)"
     ;;
 esac
@@ -331,4 +352,20 @@ else
     -c:a aac -b:a 192k "$FINAL_OUT"
 fi
 
-info "Done! Final video master saved to: $FINAL_OUT"
+validate_video "$FINAL_OUT" "encode final"
+
+# ── Limpeza de intermediários (--clean-work) ────────────────────────────────
+if [[ $CLEAN_WORK -eq 1 ]]; then
+  info "Removendo arquivos intermediários (--clean-work)..."
+  cleanup_work "${WORK_FILES[@]}"
+  # Remove também TRF de vidstab
+  find "$(stage_dir 3)" -name "*.trf" -delete 2>/dev/null || true
+  info "Limpeza concluída."
+fi
+
+# ── Resumo final ─────────────────────────────────────────────────────────────
+info "══════════════════════════════════════════"
+info "Concluído! Master restaurado:"
+info "  $FINAL_OUT"
+info "══════════════════════════════════════════"
+

@@ -7,9 +7,13 @@ source "$REPO_ROOT/lib/video-lib.sh"
 
 cmd="${1:-help}"; shift || true
 case "$cmd" in
+  master)    "$REPO_ROOT/master.sh" "$@" ;;
   preview)   "$REPO_ROOT/stages/1_raw_captures/00_live_preview.sh" "$@" ;;
   capture)   "$REPO_ROOT/stages/1_raw_captures/00_live_capture.sh" "$@" ;;
   cap-prev)  "$REPO_ROOT/stages/1_raw_captures/00_capture_and_preview.sh" "$@" ;;
+  trim)      python "$REPO_ROOT/stages/2_restoration/00_trim_black_sync.py" "$@" ;;
+  scopes)    "$REPO_ROOT/stages/1_raw_captures/00_live_preview.sh" --scopes "$@" ;;
+  hist)      "$REPO_ROOT/stages/2_restoration/preview_hist.sh" "$@" ;;
   denoise)   "$REPO_ROOT/stages/2_restoration/02_denoise_hqdn3d.sh" "$@" ;;
   expcol)    "$REPO_ROOT/stages/2_restoration/01_exposure_colour.sh" "$@" ;;
   chroma)    "$REPO_ROOT/stages/2_restoration/03_chroma_shift.sh" "$@" ;;
@@ -28,6 +32,6 @@ case "$cmd" in
   prores)    "$REPO_ROOT/stages/5_final_encoding/02_encode_prores.sh" "$@" ;;
   aoffset)   "$REPO_ROOT/stages/5_final_encoding/03_audio_offset_helper.sh" "$@" ;;
   *)
-    echo "Usage: vhs <preview|capture|cap-prev|denoise|expcol|chroma|bwdif|qtgmc|stab-det|stab-apply|conform18|conform24|minterp50|set-sar|up1080|fill1080|unsharp|h264|prores|aoffset> [args...]"
+    echo "Usage: vhs <master|preview|scopes|capture|cap-prev|trim|hist|denoise|expcol|chroma|bwdif|qtgmc|stab-det|stab-apply|conform18|conform24|minterp50|set-sar|up1080|fill1080|unsharp|h264|prores|aoffset> [args...]"
     exit 2 ;;
 esac

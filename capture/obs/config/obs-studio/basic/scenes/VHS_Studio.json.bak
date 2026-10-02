@@ -13,8 +13,8 @@
                 "audio_connection": 4,
                 "mode_id": -1,
                 "device_name": "Intensity Shuttle",
-                "buffering": false,
-                "mode_name": "Auto"
+                "mode_name": "Auto",
+                "buffering": false
             },
             "mixers": 255,
             "sync": 0,
@@ -144,7 +144,7 @@
     "saved_projectors": [],
     "preview_locked": false,
     "scaling_enabled": false,
-    "scaling_level": -2,
+    "scaling_level": -3,
     "scaling_off_x": 0.0,
     "scaling_off_y": 0.0,
     "virtual-camera": {
@@ -160,12 +160,12 @@
                     "signal_threshold_db": -50.0,
                     "signal_start_delay": 1.0,
                     "silence_stop_delay": 5.0,
-                    "trim_black": true,
+                    "source_name": "Blackmagic Intensity Shuttle",
                     "auto_restore": true,
+                    "trim_black": true,
                     "deinterlacer": "bwdif",
                     "output_format": "h264",
-                    "crf_value": 18,
-                    "source_name": "Blackmagic Intensity Shuttle"
+                    "crf_value": 18
                 }
             }
         ],
