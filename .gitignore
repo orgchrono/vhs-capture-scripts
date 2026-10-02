@@ -1,0 +1,44 @@
+# OS / Editor noise
+.DS_Store
+*.swp
+*.swo
+
+# Local envs
+config/local.env
+profiles/*-local.env
+
+# Video and temporary media files
+*.mkv
+*.mp4
+*.mov
+*.avi
+*.trf
+*.wav
+*.flac
+*.log
+workspace/
+data/
+tmp*/
+
+# Legacy Rust builds
+legado/
+
+# OBS Studio compiled binaries & dependencies (kept locally on disk, not in git)
+capture/obs/bin/
+capture/obs/obs-plugins/
+capture/obs/data/
+capture/obs/obs_portable_mode
+
+# OBS Studio runtime logs, crashes and sentinels
+capture/obs/config/obs-studio/logs/
+capture/obs/config/obs-studio/crashes/
+capture/obs/config/obs-studio/.sentinel/
+capture/obs/config/obs-studio/updates/
+
+# Media directories (keep clean folder structure via .gitkeep)
+media/raw/*
+!media/raw/.gitkeep
+media/work/*
+!media/work/.gitkeep
+media/output/*
+!media/output/.gitkeep
