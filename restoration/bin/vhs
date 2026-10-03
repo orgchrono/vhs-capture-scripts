@@ -31,7 +31,8 @@ case "$cmd" in
   h264)      "$REPO_ROOT/stages/5_final_encoding/01_encode_h264_crf18.sh" "$@" ;;
   prores)    "$REPO_ROOT/stages/5_final_encoding/02_encode_prores.sh" "$@" ;;
   aoffset)   "$REPO_ROOT/stages/5_final_encoding/03_audio_offset_helper.sh" "$@" ;;
+  bmd-setup) "$REPO_ROOT/bin/setup_blackmagic.sh" "$@" ;;
   *)
-    echo "Usage: vhs <master|preview|scopes|capture|cap-prev|trim|hist|denoise|expcol|chroma|bwdif|qtgmc|stab-det|stab-apply|conform18|conform24|minterp50|set-sar|up1080|fill1080|unsharp|h264|prores|aoffset> [args...]"
+    echo "Usage: vhs <master|preview|scopes|capture|cap-prev|trim|hist|bmd-setup|denoise|expcol|chroma|bwdif|qtgmc|stab-det|stab-apply|conform18|conform24|minterp50|set-sar|up1080|fill1080|unsharp|h264|prores|aoffset> [args...]"
     exit 2 ;;
 esac

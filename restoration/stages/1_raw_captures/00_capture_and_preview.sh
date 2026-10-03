@@ -11,18 +11,17 @@ usage() {
 INFO — 00_capture_and_preview.sh
 
 Captura lossless FFV1/PCM MKV + preview ao vivo via ffplay (tee muxer).
-Segmentação não suportada neste modo; use 00_live_capture.sh para splitting.
+Suporta Blackmagic DeckLink, DirectShow (Windows) e V4L2/ALSA (Linux).
 
 USAGE
   ./00_capture_and_preview.sh [BaseName] [--help]
+  VHS_PROFILE=blackmagic ./00_capture_and_preview.sh "TapeA"
   DEV_VIDEO=/dev/video2 ALSA_DEV=hw:1,0 ./00_capture_and_preview.sh "TapeA"
-  LIMIT="01:30:00" ./00_capture_and_preview.sh
 
 NOTES
   - Pressione Q na janela do ffplay para parar o preview e a captura.
-  - O arquivo arquivado é lossless (yuv422p, campos entrelaçados preservados).
-  - O preview usa bwdif para mostrar a aparência do vídeo após deinterlace.
-  - Defina PREVIEW_VF para substituir o filtro de preview.
+  - O arquivo gravado em disco é lossless (campos entrelaçados originais preservados).
+  - O preview na tela usa bwdif para exibir movimento fluido de 50p ao vivo.
 EOF
 }
 
@@ -40,7 +39,9 @@ LIMIT="${LIMIT:-}"
 OUTDIR="${OUTDIR:-$(stage_dir 1)}"
 PREVIEW_VF="${PREVIEW_VF:-bwdif=mode=1:parity=auto}"
 
-[[ -e "$DEV_VIDEO" ]] || { err "Video device not found: $DEV_VIDEO"; exit 1; }
+if [[ "$DEV_VIDEO" == /dev/* ]]; then
+  [[ -e "$DEV_VIDEO" ]] || { err "Dispositivo de vídeo não encontrado: $DEV_VIDEO"; exit 1; }
+fi
 mkdir -p "$OUTDIR"
 
 ts="$(date +'%Y-%m-%d_%H%M%S')"
@@ -48,26 +49,69 @@ base="${1:-capture_${ts}}"
 outfile="$OUTDIR/${base}.mkv"
 logfile="${outfile%.mkv}.log"
 
-info "Capture+Preview → $outfile (press Q to stop)"
-info "Source: $DEV_VIDEO ($INPUT_FMT $VIDEO_SIZE @ ${FRAMERATE}fps) | $ALSA_DEV (${AUDIO_RATE}Hz)"
-info "Preview filter: $PREVIEW_VF"
+# Seleção automática de sistema
+sys="${CAPTURE_SYSTEM:-}"
+if [[ -z "$sys" ]]; then
+  if [[ "$DEV_VIDEO" =~ (DeckLink|Intensity|decklink) ]]; then
+    sys="decklink"
+  elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || -n "${WINDIR:-}" ]]; then
+    sys="dshow"
+  else
+    sys="v4l2"
+  fi
+fi
 
-in_video=( -f v4l2 -thread_queue_size 4096 -input_format "$INPUT_FMT" -framerate "$FRAMERATE" -video_size "$VIDEO_SIZE" -i "$DEV_VIDEO" )
-in_audio=( -f alsa -thread_queue_size 4096 -channels 2 -sample_rate "$AUDIO_RATE" -i "$ALSA_DEV" )
+info "Capture+Preview → $outfile (Pressione Q na janela para parar)"
+info "Sistema: $sys | Dispositivo: $DEV_VIDEO ($VIDEO_SIZE @ ${FRAMERATE}fps)"
 
-enc=( -map 0:v:0 -map 1:a:0
-      -c:v ffv1 -level 3 -g 1 -slices 24 -slicecrc 1 -pix_fmt yuv422p
-      -c:a pcm_s16le
-      -af aresample=async=1:first_pts=0 )
+if [[ "$sys" == "decklink" ]]; then
+  input_args=(
+    -f decklink
+    -format_code "${DECKLINK_FORMAT:-pal}"
+    -video_input "${DECKLINK_INPUT:-composite}"
+    -audio_input "${DECKLINK_AUDIO:-analog}"
+    -draw_bars 0
+    -queue_size "${QUEUE_SIZE:-1073741824}"
+    -i "$DEV_VIDEO"
+  )
+  map_video="0:v"
+  map_audio="0:a"
+elif [[ "$sys" == "dshow" ]]; then
+  audio_dshow=""
+  [[ -n "${ALSA_DEV:-}" && "$ALSA_DEV" != "none" ]] && audio_dshow=":audio=${ALSA_DEV}"
+  input_args=(
+    -f dshow
+    -rtbufsize "${BUFFER_SIZE:-1024M}"
+    -thread_queue_size 4096
+    -video_size "$VIDEO_SIZE"
+    -framerate "$FRAMERATE"
+    -pixel_format "${INPUT_FMT:-uyvy422}"
+    -i "video=${DEV_VIDEO}${audio_dshow}"
+  )
+  map_video="0:v"
+  map_audio="0:a"
+else
+  input_args=(
+    -f v4l2 -thread_queue_size 4096 -input_format "$INPUT_FMT" -framerate "$FRAMERATE" -video_size "$VIDEO_SIZE" -i "$DEV_VIDEO"
+    -f alsa -thread_queue_size 4096 -channels 2 -sample_rate "$AUDIO_RATE" -i "$ALSA_DEV"
+  )
+  map_video="0:v"
+  map_audio="1:a"
+fi
+
+enc=(
+  -c:v ffv1 -level 3 -g 1 -slices 24 -slicecrc 1 -pix_fmt yuv422p
+  -c:a pcm_s16le
+  -af aresample=async=1:first_pts=0
+)
 
 dur=()
 [[ -n "$LIMIT" ]] && dur=( -t "$LIMIT" )
 
-# Tee: MKV arquivado no disco (sem filtros) + preview deinterlaced no ffplay
 cmd=( ffmpeg -hide_banner \
-    "${in_video[@]}" "${in_audio[@]}" \
+    "${input_args[@]}" \
     "${enc[@]}" "${dur[@]}" \
-    -f tee -map 0:v -map 1:a \
+    -f tee -map "$map_video" -map "$map_audio" \
     "[f=matroska]${outfile}|[vf=${PREVIEW_VF}:f=matroska]pipe:1" )
 
 {
@@ -75,5 +119,5 @@ cmd=( ffmpeg -hide_banner \
   printf '%s ' "${cmd[@]}"; echo
 } >> "$logfile"
 
-"${cmd[@]}" 2>&1 | tee -a "$logfile" | ffplay -hide_banner -loglevel warning -window_title "VHS Preview" -
-info "Capture finished (file saved: $outfile)"
+"${cmd[@]}" 2>&1 | tee -a "$logfile" | ffplay -hide_banner -loglevel warning -window_title "VHS Preview ($sys)" -
+info "Captura concluída (salvo em: $outfile)"
