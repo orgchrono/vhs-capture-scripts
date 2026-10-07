@@ -17,6 +17,8 @@ class Filters:
     DEINT_BWDIF_BOB = "bwdif=mode=1:parity=auto"
     DEINT_BWDIF_SINGLE = "bwdif=mode=0:parity=auto"
     DEINT_ZNEDI3 = "znedi3"
+    DEINT_NNEDI = "nnedi=deint=all"
+    DEINT_YADIF = "yadif=mode=1:parity=auto"
     
     UPSCALE_1080P_LANCZOS = "scale=1440:1080:flags=lanczos:in_color_matrix=smpte170m:out_color_matrix=bt709,setsar=1:1,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:black,cas=0.4"
     

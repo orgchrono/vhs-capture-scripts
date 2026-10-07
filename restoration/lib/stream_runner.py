@@ -1,6 +1,9 @@
 import sys
 import time
-from lib.logger import log
+try:
+    from lib.logger import log
+except ImportError:
+    from logger import log
 
 class StreamRunner:
     def __init__(self, mode, frame_bytes, y_bytes, luma_threshold=18.0):
@@ -32,7 +35,10 @@ class StreamRunner:
             mean_luma = sum(y_sample) / len(y_sample) if y_sample else 0
 
             try:
-                if mean_luma <= self.luma_threshold:
+                if self.mode == "passthrough":
+                    kept_frames += 1
+                    p_out.stdin.write(buf)
+                elif mean_luma <= self.luma_threshold:
                     if self.mode == "freeze":
                         if last_good_frame is not None:
                             p_out.stdin.write(last_good_frame)
@@ -55,7 +61,9 @@ class StreamRunner:
                 last_log_time = now
                 elapsed = now - t0
                 fps_proc = total_frames / elapsed if elapsed > 0 else 0
-                if self.mode == "freeze":
+                if self.mode == "passthrough":
+                    log.info(f"  -> Frames: {total_frames:,} | Mantidos: {kept_frames:,} (Passthrough Puro 100%) | Velocidade: {fps_proc:.0f} fps")
+                elif self.mode == "freeze":
                     pct_elim = ((frozen_frames + dropped_frames) / total_frames) * 100 if total_frames > 0 else 0
                     log.info(f"  -> Frames: {total_frames:,} | Válidos: {kept_frames:,} | Congelados TBC: {frozen_frames:,} | Pretos neutralizados: {frozen_frames+dropped_frames:,} ({pct_elim:.1f}%) | Velocidade: {fps_proc:.0f} fps")
                 else:

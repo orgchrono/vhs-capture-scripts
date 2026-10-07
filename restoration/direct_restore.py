@@ -122,13 +122,18 @@ def restore_stream(input_path, output_path, start_sec=0.0, target_1080p=True, cr
     frame_bytes = int(w * h * 1.5)
     y_bytes = w * h
 
-    use_qsv = FilterBuilder.check_filter_support("h264_qsv") # Fallback to CPU if not supported
-
+    builder = FilterBuilder(target_1080p=target_1080p, crf=crf, mode=mode)
+    
     log.info(f"[RESTAURAÇÃO] Resolução de entrada: {w}x{h} @ {fps:.2f} fps")
     log.info(f"[RESTAURAÇÃO] Modo de desentrelaçamento: {deinterlacer}")
     log.info(f"[RESTAURAÇÃO] Política de canais de áudio: {audio_mode}")
-    log.info(f"[RESTAURAÇÃO] Aceleração de hardware: {'Intel QuickSync (h264_qsv)' if use_qsv else 'Software (libx264)'}")
-    log.info(f"[RESTAURAÇÃO] Modo de remoção de pretos: {'TBC Frame-Hold (Congela último frame bom - Sincronia A/V 100% perfeita)' if mode == 'freeze' else 'Descarte direto (Acelera vídeo)'}")
+    log.info(f"[RESTAURAÇÃO] Aceleração de hardware/Encoder: {builder.encoder}")
+    mode_desc = {
+        "freeze": "TBC Frame-Hold (Congela último frame bom - Sincronia A/V 100% perfeita)",
+        "drop": "Descarte direto (Acelera vídeo)",
+        "passthrough": "Passthrough Puro (Sem alteração de frames, bit-perfect para uso com TBC EH55)"
+    }.get(mode, mode)
+    log.info(f"[RESTAURAÇÃO] Modo de remoção de pretos: {mode_desc}")
     if abs(audio_offset) > 0.001:
         log.info(f"[RESTAURAÇÃO] Ajuste de sincronia de áudio: {audio_offset:+.3f}s ({'adiantando' if audio_offset > 0 else 'atrasando'} áudio)")
 
@@ -145,7 +150,6 @@ def restore_stream(input_path, output_path, start_sec=0.0, target_1080p=True, cr
 
     p_in = subprocess.Popen(cmd_in, stdout=subprocess.PIPE, stderr=log_file, bufsize=16*1024*1024)
 
-    builder = FilterBuilder(use_qsv=use_qsv, target_1080p=target_1080p, crf=crf, mode=mode)
     vf = builder.build_video_filters(apply_chroma, apply_denoise, deinterlacer)
     cmd_out = builder.build_ffmpeg_output_args(input_path, output_path, w, h, fps, start_sec, audio_offset, duration, vf, audio_mode)
     
@@ -196,12 +200,12 @@ def main():
     parser.add_argument("input", help="Arquivo raw de entrada")
     parser.add_argument("--output", default=None, help="Arquivo final de saída")
     parser.add_argument("--crf", type=int, default=20, help="Qualidade CRF / ICQ (padrão: 20)")
-    parser.add_argument("--mode", choices=["freeze", "drop"], default="freeze", help="Modo: 'freeze' (TBC frame-hold, zero pretos, sync perfeito) ou 'drop' (descarta pretos)")
+    parser.add_argument("--mode", choices=["freeze", "drop", "passthrough"], default="freeze", help="Modo: 'freeze' (TBC frame-hold, zero pretos, sync perfeito), 'drop' (descarta pretos) ou 'passthrough' (preservação pura bit-perfect com TBC EH55)")
     parser.add_argument("--no-1080p", action="store_true", help="Mantém resolução original 480p/576p em vez de upscale 1080p")
-    parser.add_argument("--deinterlacer", choices=["auto", "bwdif", "bwdif_single", "znedi3", "none"], default="auto", help="Desentrelaçamento: auto (pula se já progressivo ~60p), bwdif (60p dobro), bwdif_single, znedi3 (premium), none")
+    parser.add_argument("--deinterlacer", choices=["auto", "bwdif", "bwdif_single", "znedi3", "nnedi", "qtgmc", "none"], default="auto", help="Desentrelaçamento: auto (pula se já progressivo ~60p), bwdif (60p dobro), bwdif_single, znedi3/nnedi (redes neurais), qtgmc (VapourSynth padrão ouro), none")
     parser.add_argument("--fps", type=float, default=None, help="Forçar taxa de quadros (ex: 29.97, 59.94, 60.0)")
     parser.add_argument("--audio-mode", choices=["auto", "stereo", "mono_l", "mono_r"], default="auto", help="Tratamento de áudio: auto (detecta canal mudo/duplicação), stereo, mono_l (L->R), mono_r")
-    parser.add_argument("--device", choices=["jvc_gr_ax410", "jvc_hr_d227m", "auto"], default="auto", help="Perfil do hardware")
+    parser.add_argument("--device", choices=["jvc_gr_ax410", "jvc_hr_d227m", "dmr_eh55", "blackmagic", "auto"], default="auto", help="Perfil do hardware")
     parser.add_argument("--interactive", action="store_true", help="Solicita confirmação interativa se houver ambiguidade técnica")
     parser.add_argument("--denoise", action="store_true", help="Aplica redução de ruído temporal/espacial (hqdn3d)")
     parser.add_argument("--chroma-fix", action="store_true", help="Aplica correção de alinhamento de croma (chromashift)")
@@ -252,7 +256,7 @@ def main():
     resolved_deint = "none"
     if strat["need_deinterlace"]:
         resolved_deint = "bwdif" if args.deinterlacer in ("auto", "bwdif") else args.deinterlacer
-    elif args.deinterlacer in ("bwdif", "bwdif_single", "znedi3"):
+    elif args.deinterlacer in ("bwdif", "bwdif_single", "znedi3", "nnedi", "qtgmc"):
         resolved_deint = args.deinterlacer
 
     resolved_audio = strat["audio_policy"]

@@ -11,7 +11,14 @@ import json
 import subprocess
 import time
 import re
-from lib.logger import log
+try:
+    from lib.logger import log
+except ImportError:
+    try:
+        from logger import log
+    except ImportError:
+        import logging
+        log = logging.getLogger("VHSPipeline")
 
 def get_ffprobe_path():
     """Localiza o binário ffprobe disponível no sistema."""

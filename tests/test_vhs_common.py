@@ -11,7 +11,10 @@ import tempfile
 
 # Garante que o diretório de bibliotecas da restauração esteja no PYTHONPATH
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-LIB_DIR = os.path.join(REPO_ROOT, "restoration", "lib")
+RESTORATION_DIR = os.path.join(REPO_ROOT, "restoration")
+LIB_DIR = os.path.join(RESTORATION_DIR, "lib")
+if RESTORATION_DIR not in sys.path:
+    sys.path.insert(0, RESTORATION_DIR)
 if LIB_DIR not in sys.path:
     sys.path.insert(0, LIB_DIR)
 
@@ -122,6 +125,28 @@ class TestVHSCommon(unittest.TestCase):
         self.assertTrue(strat["need_deinterlace"])
         self.assertEqual(strat["audio_policy"], "mono_l")
 
+    def test_filter_builder_hardware_encoder(self):
+        """Testa se o FilterBuilder detecta um encoder válido (QSV, NVENC, AMF ou libx264)."""
+        from lib.filter_builder import FilterBuilder
+        builder = FilterBuilder()
+        self.assertIn(builder.encoder, ["h264_qsv", "h264_nvenc", "h264_amf", "libx264"])
+
+    def test_stream_runner_passthrough_mode(self):
+        """Testa se o StreamRunner em modo passthrough não descarta nenhum frame."""
+        from unittest.mock import MagicMock
+        from lib.stream_runner import StreamRunner
+
+        runner = StreamRunner(mode="passthrough", frame_bytes=100, y_bytes=50)
+        p_in = MagicMock()
+        p_out = MagicMock()
+        # Simula 5 frames escuros (luma 0)
+        p_in.stdout.read.side_effect = [b"\x00" * 100] * 5 + [b""]
+
+        stats = runner.run(p_in, p_out, fps=30.0)
+        self.assertEqual(stats["total_frames"], 5)
+        self.assertEqual(stats["kept_frames"], 5)
+        self.assertEqual(stats["dropped_frames"], 0)
+        self.assertEqual(stats["frozen_frames"], 0)
 
 if __name__ == "__main__":
     unittest.main()

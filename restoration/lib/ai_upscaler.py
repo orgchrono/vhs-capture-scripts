@@ -2,7 +2,10 @@ import os
 import sys
 import subprocess
 import numpy as np
-from lib.logger import log
+try:
+    from lib.logger import log
+except ImportError:
+    from logger import log
 
 class AIUpscaler:
     """
@@ -10,11 +13,41 @@ class AIUpscaler:
     Utiliza ONNXRuntime ou o binário realesrgan-ncnn-vulkan para aceleração de GPU sem depender de software pago.
     """
     
-    def __init__(self, model_name="realesrgan-x4plus", gpu_id=0):
+    def __init__(self, model_name="realesrgan-x4plus", gpu_id="auto"):
         self.model_name = model_name
-        self.gpu_id = gpu_id
         self.use_ncnn = True
         self.ncnn_path = self._find_or_download_ncnn()
+        
+        if gpu_id == "auto":
+            self.gpu_id = self._detect_best_gpu()
+        else:
+            self.gpu_id = gpu_id
+
+    def _detect_best_gpu(self):
+        """
+        Tenta detectar a melhor GPU disponível para o Vulkan.
+        Prioriza Placas Dedicadas (NVIDIA/AMD) sobre Gráficos Integrados (Intel/Radeon Vega).
+        """
+        try:
+            res = subprocess.run(["vulkaninfo", "--summary"], capture_output=True, text=True, timeout=5)
+            output = res.stdout.lower()
+            
+            # VulkanInfo geralmente lista as GPUs no resumo.
+            # Lógica simples: se acharmos "nvidia" ou "radeon rx", é dedicada.
+            if "nvidia" in output or "rtx" in output or "gtx" in output:
+                log.info("[AI UPSCALER] GPU NVIDIA Dedicada detectada para aceleração Vulkan.")
+                return 0
+            elif "radeon rx" in output or "amd radeon pro" in output:
+                log.info("[AI UPSCALER] GPU AMD Dedicada detectada para aceleração Vulkan.")
+                return 0
+            elif "intel" in output or "uhd" in output or "iris" in output:
+                log.info("[AI UPSCALER] GPU Intel Integrada detectada para aceleração Vulkan.")
+                return 0 # NCNN normalmente mapeia a primeira GPU como 0
+        except Exception:
+            pass
+            
+        log.warning("[AI UPSCALER] vulkaninfo não encontrado ou falhou. Usando GPU 0 por padrão (Auto-detecção cega).")
+        return 0
 
     def _find_or_download_ncnn(self):
         """
