@@ -18,6 +18,7 @@ import subprocess
 import argparse
 import time
 import json
+from lib.logger import log
 
 LIB_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "lib"))
 if LIB_DIR not in sys.path:
@@ -61,7 +62,7 @@ def find_first_video_frame(input_file, max_scan_sec=VideoConfig.MAX_SCAN_SECONDS
     """
     Identifica o segundo exato onde a gravação real começa na fita (fim do líder inicial).
     """
-    print("[RESTAURAÇÃO] Localizando o início da gravação real na fita...", flush=True)
+    log.info("[RESTAURAÇÃO] Localizando o início da gravação real na fita...")
     w, h, fps, _, _ = get_stream_info(input_file)
     if fps <= 0:
         fps = VideoConfig.DEFAULT_FPS
@@ -96,7 +97,7 @@ def find_first_video_frame(input_file, max_scan_sec=VideoConfig.MAX_SCAN_SECONDS
     p.wait()
 
     start_sec = max(0.0, first_good_frame / fps)
-    print(f"[RESTAURAÇÃO] Gravação útil identificada a partir de {start_sec:.3f}s (frame {first_good_frame} a {fps:.2f} fps).", flush=True)
+    log.info(f"[RESTAURAÇÃO] Gravação útil identificada a partir de {start_sec:.3f}s (frame {first_good_frame} a {fps:.2f} fps).")
     return start_sec
 
 def print_log_tail(log_path, lines=20):
@@ -106,10 +107,10 @@ def print_log_tail(log_path, lines=20):
         with open(log_path, "r", encoding="utf-8", errors="replace") as f:
             content = f.readlines()
             tail = content[-lines:] if len(content) > lines else content
-            print("\n--- Últimas linhas do log do FFmpeg ---", file=sys.stderr)
+            log.error("\n--- Últimas linhas do log do FFmpeg ---")
             for l in tail:
-                print(l.rstrip(), file=sys.stderr)
-            print("----------------------------------------\n", file=sys.stderr)
+                log.error(l.rstrip())
+            log.error("----------------------------------------\n")
     except Exception:
         pass
 
@@ -123,13 +124,13 @@ def restore_stream(input_path, output_path, start_sec=0.0, target_1080p=True, cr
 
     use_qsv = FilterBuilder.check_filter_support("h264_qsv") # Fallback to CPU if not supported
 
-    print(f"[RESTAURAÇÃO] Resolução de entrada: {w}x{h} @ {fps:.2f} fps", flush=True)
-    print(f"[RESTAURAÇÃO] Modo de desentrelaçamento: {deinterlacer}", flush=True)
-    print(f"[RESTAURAÇÃO] Política de canais de áudio: {audio_mode}", flush=True)
-    print(f"[RESTAURAÇÃO] Aceleração de hardware: {'Intel QuickSync (h264_qsv)' if use_qsv else 'Software (libx264)'}", flush=True)
-    print(f"[RESTAURAÇÃO] Modo de remoção de pretos: {'TBC Frame-Hold (Congela último frame bom - Sincronia A/V 100% perfeita)' if mode == 'freeze' else 'Descarte direto (Acelera vídeo)'}", flush=True)
+    log.info(f"[RESTAURAÇÃO] Resolução de entrada: {w}x{h} @ {fps:.2f} fps")
+    log.info(f"[RESTAURAÇÃO] Modo de desentrelaçamento: {deinterlacer}")
+    log.info(f"[RESTAURAÇÃO] Política de canais de áudio: {audio_mode}")
+    log.info(f"[RESTAURAÇÃO] Aceleração de hardware: {'Intel QuickSync (h264_qsv)' if use_qsv else 'Software (libx264)'}")
+    log.info(f"[RESTAURAÇÃO] Modo de remoção de pretos: {'TBC Frame-Hold (Congela último frame bom - Sincronia A/V 100% perfeita)' if mode == 'freeze' else 'Descarte direto (Acelera vídeo)'}")
     if abs(audio_offset) > 0.001:
-        print(f"[RESTAURAÇÃO] Ajuste de sincronia de áudio: {audio_offset:+.3f}s ({'adiantando' if audio_offset > 0 else 'atrasando'} áudio)", flush=True)
+        log.info(f"[RESTAURAÇÃO] Ajuste de sincronia de áudio: {audio_offset:+.3f}s ({'adiantando' if audio_offset > 0 else 'atrasando'} áudio)")
 
     log_path = f"{output_path}.log"
     log_file = open(log_path, "w", encoding="utf-8", errors="replace")
@@ -165,30 +166,30 @@ def restore_stream(input_path, output_path, start_sec=0.0, target_1080p=True, cr
     log_file.close()
 
     if stats["stream_broken"] or rc_out != 0 or rc_in != 0:
-        print(f"\n[ERRO] O processo de restauração falhou! (in rc={rc_in}, out rc={rc_out})", file=sys.stderr, flush=True)
+        log.error(f"\n[ERRO] O processo de restauração falhou! (in rc={rc_in}, out rc={rc_out})")
         print_log_tail(log_path, lines=25)
         sys.exit(1)
 
     final_size = os.path.getsize(output_path) / (1024 * 1024) if os.path.exists(output_path) else 0
     duration_hours = (stats["total_frames"] / fps / 3600.0) if fps > 0 else 0.0
 
-    print(f"\n============================================================", flush=True)
-    print(f"[SUCESSO] Vídeo master restaurado e finalizado com êxito!", flush=True)
-    print(f"  Destino:             {output_path}", flush=True)
-    print(f"  Tamanho:             {final_size:.1f} MB", flush=True)
-    print(f"  Total analisado:     {stats['total_frames']:,} frames ({duration_hours:.2f}h de conteúdo)", flush=True)
-    print(f"  Frames de vídeo:     {stats['kept_frames']:,} frames válidos", flush=True)
+    log.info(f"\n============================================================")
+    log.info(f"[SUCESSO] Vídeo master restaurado e finalizado com êxito!")
+    log.info(f"  Destino:             {output_path}")
+    log.info(f"  Tamanho:             {final_size:.1f} MB")
+    log.info(f"  Total analisado:     {stats['total_frames']:,} frames ({duration_hours:.2f}h de conteúdo)")
+    log.info(f"  Frames de vídeo:     {stats['kept_frames']:,} frames válidos")
     if mode == "freeze":
-        print(f"  Pretos neutralizados:{stats['frozen_frames']+stats['dropped_frames']:,} frames ({stats['frozen_frames']:,} mantidos via TBC frame-hold)", flush=True)
-        print(f"  Sincronia A/V:       100% PERFEITA (0 ms de desvio ao longo de todo o vídeo)", flush=True)
+        log.info(f"  Pretos neutralizados:{stats['frozen_frames']+stats['dropped_frames']:,} frames ({stats['frozen_frames']:,} mantidos via TBC frame-hold)")
+        log.info(f"  Sincronia A/V:       100% PERFEITA (0 ms de desvio ao longo de todo o vídeo)")
     else:
         sec_recup = (stats['dropped_frames'] / fps) if fps > 0 else 0
-        print(f"  Pretos descartados:  {stats['dropped_frames']:,} frames pretos eliminados ({sec_recup:.2f}s recuperados)", flush=True)
+        log.info(f"  Pretos descartados:  {stats['dropped_frames']:,} frames pretos eliminados ({sec_recup:.2f}s recuperados)")
     fps_avg = (stats['total_frames'] / stats['elapsed']) if stats['elapsed'] > 0 else 0
-    print(f"  Tempo gasto:         {stats['elapsed']/60:.1f} minutos ({fps_avg:.0f} fps médio)", flush=True)
-    print(f"  Áudio:               100% contínuo e intacto (sem cortes)", flush=True)
-    print(f"  Arquivo de log:      {log_path}", flush=True)
-    print(f"============================================================", flush=True)
+    log.info(f"  Tempo gasto:         {stats['elapsed']/60:.1f} minutos ({fps_avg:.0f} fps médio)")
+    log.info(f"  Áudio:               100% contínuo e intacto (sem cortes)")
+    log.info(f"  Arquivo de log:      {log_path}")
+    log.info(f"============================================================")
 
 def main():
     parser = argparse.ArgumentParser(description="Restauração direta ultra-rápida sem perda de sincronia A/V para VHS")
@@ -209,11 +210,11 @@ def main():
     parser.add_argument("--duration", "-t", type=float, default=None, help="Duração máxima a processar em segundos (para testes)")
     args, unknown = parser.parse_known_args()
     if unknown:
-        print(f"[INFO] Opções adicionais ignoradas pelo restaurador direto: {' '.join(unknown)}", flush=True)
+        log.info(f"[INFO] Opções adicionais ignoradas pelo restaurador direto: {' '.join(unknown)}")
 
     input_path = os.path.abspath(args.input)
     if not os.path.exists(input_path):
-        print(f"[ERRO] Arquivo não encontrado: {input_path}", file=sys.stderr, flush=True)
+        log.error(f"[ERRO] Arquivo não encontrado: {input_path}")
         sys.exit(1)
 
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -227,7 +228,7 @@ def main():
         suffix = "480p" if args.no_1080p else "1080p"
         output_path = os.path.join(output_dir, f"{base_name}_restored_{suffix}.mp4")
 
-    print(f"\n[RESTAURAÇÃO] Arquivo de Entrada: {input_path}", flush=True)
+    log.info(f"\n[RESTAURAÇÃO] Arquivo de Entrada: {input_path}")
 
     # Análise técnica prévia e resolução de estratégia
     meta = vhs_common.probe_media(input_path)

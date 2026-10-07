@@ -11,6 +11,7 @@ import json
 import subprocess
 import time
 import re
+from lib.logger import log
 
 def get_ffprobe_path():
     """Localiza o binário ffprobe disponível no sistema."""
@@ -278,21 +279,21 @@ def resolve_pipeline_strategy(meta, interlace_info, audio_info, user_fps=None, u
 
     # 3. Interatividade quando houver dúvida ou modo interativo ativo
     if interactive and (ambiguity_reasons or interactive == "always"):
-        print("\n============================================================")
-        print("[AUDIT / DECISÃO INTERATIVA DA PIPELINE]")
-        print(f"  Arquivo: {meta.get('file_path')}")
-        print(f"  FPS Nativo: {raw_fps:.3f} | Resolução: {meta.get('width')}x{meta.get('height')}")
-        print(f"  Status idet: {interlace_info.get('summary')}")
-        print(f"  Áudio: {audio_info.get('reason')}")
+        log.info("============================================================")
+        log.info("[AUDIT / DECISÃO INTERATIVA DA PIPELINE]")
+        log.info(f"  Arquivo: {meta.get('file_path')}")
+        log.info(f"  FPS Nativo: {raw_fps:.3f} | Resolução: {meta.get('width')}x{meta.get('height')}")
+        log.info(f"  Status idet: {interlace_info.get('summary')}")
+        log.info(f"  Áudio: {audio_info.get('reason')}")
         if ambiguity_reasons:
-            print("  Avisos de ambiguidade:")
+            log.warning("  Avisos de ambiguidade:")
             for a in ambiguity_reasons:
-                print(f"    - {a}")
-        print("\nComo deseja processar o vídeo?")
-        print(f"  [1] Recomendado: FPS {target_fps:.3f} | Desentrelaçamento: {'Sim' if need_deinterlace else 'Não'} | Áudio: {audio_policy}")
-        print("  [2] Forçar NTSC 29.97i -> 59.94p (Double-Rate BWDIF/QTGMC)")
-        print("  [3] Forçar Progressivo Direto (Pular desentrelaçamento, manter FPS nativo)")
-        print("  [4] Forçar PAL 25i -> 50p")
+                log.warning(f"    - {a}")
+        log.info("\nComo deseja processar o vídeo?")
+        log.info(f"  [1] Recomendado: FPS {target_fps:.3f} | Desentrelaçamento: {'Sim' if need_deinterlace else 'Não'} | Áudio: {audio_policy}")
+        log.info("  [2] Forçar NTSC 29.97i -> 59.94p (Double-Rate BWDIF/QTGMC)")
+        log.info("  [3] Forçar Progressivo Direto (Pular desentrelaçamento, manter FPS nativo)")
+        log.info("  [4] Forçar PAL 25i -> 50p")
         try:
             choice = input("Escolha uma opção [1-4] (Enter para 1): ").strip()
             if choice == "2":
@@ -308,7 +309,7 @@ def resolve_pipeline_strategy(meta, interlace_info, audio_info, user_fps=None, u
                 preferred_order = "tff"
         except (EOFError, KeyboardInterrupt):
             pass
-        print("============================================================\n")
+        log.info("============================================================\n")
 
     return {
         "raw_fps": raw_fps,

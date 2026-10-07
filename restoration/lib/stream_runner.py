@@ -1,5 +1,6 @@
 import sys
 import time
+from lib.logger import log
 
 class StreamRunner:
     def __init__(self, mode, frame_bytes, y_bytes, luma_threshold=18.0):
@@ -18,7 +19,7 @@ class StreamRunner:
         t0 = time.time()
         last_log_time = t0
 
-        print("[RESTAURAÇÃO] Iniciando processamento streaming frame-by-frame...", flush=True)
+        log.info("[RESTAURAÇÃO] Iniciando processamento streaming frame-by-frame...")
 
         stream_broken = False
         while True:
@@ -45,7 +46,7 @@ class StreamRunner:
                     kept_frames += 1
                     p_out.stdin.write(buf)
             except (BrokenPipeError, OSError) as e:
-                print(f"\n[ERRO] Falha de escrita no processo de saída: {e}", file=sys.stderr, flush=True)
+                log.error(f"[ERRO] Falha de escrita no processo de saída: {e}")
                 stream_broken = True
                 break
 
@@ -56,10 +57,10 @@ class StreamRunner:
                 fps_proc = total_frames / elapsed if elapsed > 0 else 0
                 if self.mode == "freeze":
                     pct_elim = ((frozen_frames + dropped_frames) / total_frames) * 100 if total_frames > 0 else 0
-                    print(f"  -> Frames: {total_frames:,} | Válidos: {kept_frames:,} | Congelados TBC: {frozen_frames:,} | Pretos neutralizados: {frozen_frames+dropped_frames:,} ({pct_elim:.1f}%) | Velocidade: {fps_proc:.0f} fps", flush=True)
+                    log.info(f"  -> Frames: {total_frames:,} | Válidos: {kept_frames:,} | Congelados TBC: {frozen_frames:,} | Pretos neutralizados: {frozen_frames+dropped_frames:,} ({pct_elim:.1f}%) | Velocidade: {fps_proc:.0f} fps")
                 else:
                     pct_dropped = (dropped_frames / total_frames) * 100 if total_frames > 0 else 0
-                    print(f"  -> Frames: {total_frames:,} | Mantidos: {kept_frames:,} | Pretos descartados: {dropped_frames:,} ({pct_dropped:.1f}%) | Velocidade: {fps_proc:.0f} fps", flush=True)
+                    log.info(f"  -> Frames: {total_frames:,} | Mantidos: {kept_frames:,} | Pretos descartados: {dropped_frames:,} ({pct_dropped:.1f}%) | Velocidade: {fps_proc:.0f} fps")
 
         t1 = time.time()
         elapsed = t1 - t0

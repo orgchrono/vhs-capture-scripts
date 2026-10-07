@@ -1,5 +1,6 @@
 import subprocess
 from lib.config import Filters, AudioConfig, OutputConfig
+from lib.logger import log
 
 class FilterBuilder:
     def __init__(self, use_qsv=False, target_1080p=True, crf=20, mode="freeze"):
@@ -31,7 +32,7 @@ class FilterBuilder:
             if self.check_filter_support("znedi3"):
                 vf_filters.append(Filters.DEINT_ZNEDI3)
             else:
-                print("[AVISO] Filtro 'znedi3' não encontrado neste FFmpeg. Fazendo fallback para 'bwdif'!", flush=True)
+                log.warning("[AVISO] Filtro 'znedi3' não encontrado neste FFmpeg. Fazendo fallback para 'bwdif'!")
                 vf_filters.append(Filters.DEINT_BWDIF_BOB)
 
         if self.target_1080p:

@@ -2,6 +2,7 @@ import os
 import sys
 import subprocess
 import numpy as np
+from lib.logger import log
 
 class AIUpscaler:
     """
@@ -24,10 +25,9 @@ class AIUpscaler:
         exe_path = os.path.join(base_dir, "realesrgan-ncnn-vulkan.exe")
         
         if not os.path.exists(exe_path):
-            print(f"\n[AI UPSCALER] O motor gratuito RealESRGAN-NCNN-Vulkan nao foi encontrado.")
-            print(f"Para usar upscale de IA gratuito, baixe a ultima versao em:")
-            print(f"https://github.com/xinntao/Real-ESRGAN/releases")
-            print(f"E extraia o executavel em: {base_dir}\n")
+            log.warning("[AI UPSCALER] O motor gratuito RealESRGAN-NCNN-Vulkan nao foi encontrado.")
+            log.info("Para usar upscale de IA gratuito, baixe a ultima versao em: https://github.com/xinntao/Real-ESRGAN/releases")
+            log.info(f"E extraia o executavel em: {base_dir}")
             return None
         return exe_path
 
@@ -39,7 +39,7 @@ class AIUpscaler:
         if not self.ncnn_path:
             raise RuntimeError("Motor ESRGAN ausente. Impossivel realizar upscaling via IA.")
             
-        print(f"[AI UPSCALER] Iniciando Upscaling Neural com {self.model_name}...")
+        log.info(f"[AI UPSCALER] Iniciando Upscaling Neural com {self.model_name}...")
         
         cmd = [
             self.ncnn_path,
@@ -52,10 +52,10 @@ class AIUpscaler:
         
         try:
             # Roda o ESRGAN
-            subprocess.run(cmd, check=True)
-            print(f"[AI UPSCALER] Upscaling de IA concluído com sucesso: {output_video}")
+            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            log.info(f"[AI UPSCALER] Upscaling de IA concluído com sucesso: {output_video}")
         except subprocess.CalledProcessError as e:
-            print(f"[ERRO AI] Falha ao executar RealESRGAN: {e}", file=sys.stderr)
+            log.error(f"[AI UPSCALER] Falha ao executar RealESRGAN: {e}")
 
     def process_frame_in_memory(self, rgb_frame_bytes, width, height):
         """
@@ -82,4 +82,4 @@ class AIUpscaler:
 if __name__ == "__main__":
     upscaler = AIUpscaler()
     if upscaler.ncnn_path:
-        print("Upscaler ESRGAN configurado e pronto para uso!")
+        log.info("Upscaler ESRGAN configurado e pronto para uso!")
