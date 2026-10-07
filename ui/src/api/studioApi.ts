@@ -22,6 +22,10 @@ export interface RestorationPayload {
   audio_offset: number
   chroma_fix: boolean
   denoise: boolean
+  comb_filter?: boolean
+  overscan_blanking?: boolean
+  audio_treatment?: boolean
+  output_codec?: string
 }
 
 export const studioApi = {

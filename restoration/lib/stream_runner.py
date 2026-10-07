@@ -18,6 +18,8 @@ class StreamRunner:
         frozen_frames = 0
         kept_frames = 0
         last_good_frame = None
+        chapters = []
+        bad_streak = 0
 
         t0 = time.time()
         last_log_time = t0
@@ -33,12 +35,13 @@ class StreamRunner:
             total_frames += 1
             y_sample = buf[:self.y_bytes:64]
             mean_luma = sum(y_sample) / len(y_sample) if y_sample else 0
+            is_bad = mean_luma <= self.luma_threshold
 
             try:
                 if self.mode == "passthrough":
                     kept_frames += 1
                     p_out.stdin.write(buf)
-                elif mean_luma <= self.luma_threshold:
+                elif is_bad:
                     if self.mode == "freeze":
                         if last_good_frame is not None:
                             p_out.stdin.write(last_good_frame)
@@ -70,6 +73,15 @@ class StreamRunner:
                     pct_dropped = (dropped_frames / total_frames) * 100 if total_frames > 0 else 0
                     log.info(f"  -> Frames: {total_frames:,} | Mantidos: {kept_frames:,} | Pretos descartados: {dropped_frames:,} ({pct_dropped:.1f}%) | Velocidade: {fps_proc:.0f} fps")
 
+            if is_bad:
+                bad_streak += 1
+            else:
+                if bad_streak > fps * 1.5:  # 1.5 seconds of static/black = new scene
+                    scene_sec = total_frames / fps
+                    chapters.append(scene_sec)
+                    log.info(f"[SCENE DETECT] Nova cena detectada em {scene_sec:.2f}s (após corte de câmera)")
+                bad_streak = 0
+
         t1 = time.time()
         elapsed = t1 - t0
         return {
@@ -78,5 +90,6 @@ class StreamRunner:
             "frozen_frames": frozen_frames,
             "dropped_frames": dropped_frames,
             "elapsed": elapsed,
-            "stream_broken": stream_broken
+            "stream_broken": stream_broken,
+            "chapters": chapters
         }

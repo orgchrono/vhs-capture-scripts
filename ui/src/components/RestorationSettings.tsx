@@ -20,6 +20,14 @@ export const RestorationSettings: React.FC = () => {
     setChromaFix,
     denoise,
     setDenoise,
+    combFilter,
+    setCombFilter,
+    outputCodec,
+    setOutputCodec,
+    overscanBlanking,
+    setOverscanBlanking,
+    audioTreatment,
+    setAudioTreatment,
   } = useStudioStore()
 
   return (
@@ -42,8 +50,8 @@ export const RestorationSettings: React.FC = () => {
             onChange={(e) => setDeinterlacer(e.target.value as any)}
             className="w-full bg-slate-950/80 border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-100 outline-none focus:border-sky-500 transition cursor-pointer"
           >
-            <option value="qtgmc">QTGMC (VapourSynth Padrão Ouro • 60p)</option>
-            <option value="bwdif">BWDIF (Bob 60p • Tempo Real Ultra-Rápido)</option>
+            <option value="qtgmc">QTGMC (VapourSynth • 60p)</option>
+            <option value="bwdif">BWDIF (Bob 60p • Tempo Real)</option>
             <option value="znedi3">ZNEDI3 / NNEDI (Rede Neural Intra-Campo)</option>
             <option value="none">Nenhum (Manter Entrelaçado)</option>
           </select>
@@ -59,9 +67,9 @@ export const RestorationSettings: React.FC = () => {
             onChange={(e) => setMode(e.target.value as any)}
             className="w-full bg-slate-950/80 border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-100 outline-none focus:border-sky-500 transition cursor-pointer"
           >
-            <option value="passthrough">Passthrough Puro (Bit-Perfect • Ideal com EH55 TBC)</option>
-            <option value="freeze">TBC Frame-Hold (Congela glitches • Zero perda sync)</option>
-            <option value="drop">Descarte Direto (Acelera vídeo nos cortes)</option>
+            <option value="passthrough">Passthrough Puro (Bit-Perfect • Ideal p/ TBC de Hardware como ES10/EH55)</option>
+            <option value="freeze">TBC Frame-Hold (Congela dropouts de vídeo • Zero perda sync)</option>
+            <option value="drop">Descarte Direto (Acelera vídeo nos cortes vazios)</option>
           </select>
         </div>
       </div>
@@ -98,6 +106,21 @@ export const RestorationSettings: React.FC = () => {
           >
             <option value="1080p">Upscale Lanczos 1080p (Pilar 4:3 sem distorção)</option>
             <option value="original">Original Preservado (480p / 576p)</option>
+          </select>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
+            Formato de Entrega (Codec):
+          </label>
+          <select
+            value={outputCodec}
+            onChange={(e) => setOutputCodec(e.target.value as any)}
+            className="w-full bg-slate-950/80 border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-100 outline-none focus:border-sky-500 transition cursor-pointer"
+          >
+            <option value="h264">Web/Delivery (H.264 VBR Aceleração GPU)</option>
+            <option value="prores">Intermediário (Apple ProRes 422 HQ)</option>
+            <option value="ffv1">Arquivamento (FFV1 Lossless 10-bit)</option>
           </select>
         </div>
       </div>
@@ -139,7 +162,7 @@ export const RestorationSettings: React.FC = () => {
       </div>
 
       {/* Toggles */}
-      <div className="flex items-center gap-6 pt-3 border-t border-white/5">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-3 border-t border-white/5">
         <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
           <input
             type="checkbox"
@@ -147,7 +170,7 @@ export const RestorationSettings: React.FC = () => {
             onChange={(e) => setChromaFix(e.target.checked)}
             className="w-4 h-4 rounded border-white/10 bg-slate-950 text-sky-500 focus:ring-sky-400 accent-sky-400 cursor-pointer"
           />
-          <span>Correção de Alinhamento de Croma (Chroma Shift VHS)</span>
+          <span>Alinhamento Croma</span>
         </label>
 
         <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
@@ -157,7 +180,37 @@ export const RestorationSettings: React.FC = () => {
             onChange={(e) => setDenoise(e.target.checked)}
             className="w-4 h-4 rounded border-white/10 bg-slate-950 text-sky-500 focus:ring-sky-400 accent-sky-400 cursor-pointer"
           />
-          <span>Redução de Ruído Temporal/Espacial (hqdn3d)</span>
+          <span>Redução Ruído (hqdn3d)</span>
+        </label>
+
+        <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
+          <input
+            type="checkbox"
+            checked={combFilter}
+            onChange={(e) => setCombFilter(e.target.checked)}
+            className="w-4 h-4 rounded border-white/10 bg-slate-950 text-sky-500 focus:ring-sky-400 accent-sky-400 cursor-pointer"
+          />
+          <span>Filtro 3D Comb (TBC)</span>
+        </label>
+
+        <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
+          <input
+            type="checkbox"
+            checked={overscanBlanking}
+            onChange={(e) => setOverscanBlanking(e.target.checked)}
+            className="w-4 h-4 rounded border-white/10 bg-slate-950 text-sky-500 focus:ring-sky-400 accent-sky-400 cursor-pointer"
+          />
+          <span title="Cobre o ruído tremido no rodapé do VHS com uma tarja preta limpa">Auto-Masking (Head Noise)</span>
+        </label>
+
+        <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
+          <input
+            type="checkbox"
+            checked={audioTreatment}
+            onChange={(e) => setAudioTreatment(e.target.checked)}
+            className="w-4 h-4 rounded border-white/10 bg-slate-950 text-sky-500 focus:ring-sky-400 accent-sky-400 cursor-pointer"
+          />
+          <span title="Remove DC Offset, reduz chiados e reequilibra o sinal sonoro analógico">Tratamento Áudio Estúdio</span>
         </label>
       </div>
     </div>

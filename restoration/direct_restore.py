@@ -115,7 +115,7 @@ def print_log_tail(log_path, lines=20):
     except Exception:
         pass
 
-def restore_stream(input_path, output_path, start_sec=0.0, target_1080p=True, crf=20, mode="freeze", audio_offset=0.0, duration=None, apply_denoise=False, apply_chroma=False, deinterlacer="auto", audio_mode="auto", target_fps=None):
+def restore_stream(input_path, output_path, start_sec=0.0, target_1080p=True, crf=20, mode="freeze", audio_offset=0.0, duration=None, apply_denoise=False, apply_chroma=False, apply_comb_filter=False, apply_overscan_blanking=False, apply_audio_treatment=False, output_codec="h264", deinterlacer="auto", audio_mode="auto", target_fps=None):
     w, h, detected_fps, total_dur, a_codec = get_stream_info(input_path)
     fps = target_fps if target_fps else detected_fps
     if fps <= 0:
@@ -123,7 +123,7 @@ def restore_stream(input_path, output_path, start_sec=0.0, target_1080p=True, cr
     frame_bytes = int(w * h * 1.5)
     y_bytes = w * h
 
-    builder = FilterBuilder(target_1080p=target_1080p, crf=crf, mode=mode)
+    builder = FilterBuilder(target_1080p=target_1080p, crf=crf, mode=mode, output_codec=output_codec)
     
     log.info(f"[RESTAURAÇÃO] Resolução de entrada: {w}x{h} @ {fps:.2f} fps")
     log.info(f"[RESTAURAÇÃO] Modo de desentrelaçamento: {deinterlacer}")
@@ -132,9 +132,11 @@ def restore_stream(input_path, output_path, start_sec=0.0, target_1080p=True, cr
     mode_desc = {
         "freeze": "TBC Frame-Hold (Congela último frame bom - Sincronia A/V 100% perfeita)",
         "drop": "Descarte direto (Acelera vídeo)",
-        "passthrough": "Passthrough Puro (Sem alteração de frames, bit-perfect para uso com TBC EH55)"
+        "passthrough": "Passthrough Puro (Sem alteração de frames, bit-perfect para uso com TBC Hardware)"
     }.get(mode, mode)
     log.info(f"[RESTAURAÇÃO] Modo de remoção de pretos: {mode_desc}")
+    if apply_comb_filter:
+        log.info(f"[RESTAURAÇÃO] Filtro 3D Comb ativado")
     if abs(audio_offset) > 0.001:
         log.info(f"[RESTAURAÇÃO] Ajuste de sincronia de áudio: {audio_offset:+.3f}s ({'adiantando' if audio_offset > 0 else 'atrasando'} áudio)")
 
@@ -151,8 +153,8 @@ def restore_stream(input_path, output_path, start_sec=0.0, target_1080p=True, cr
 
     p_in = subprocess.Popen(cmd_in, stdout=subprocess.PIPE, stderr=log_file, bufsize=16*1024*1024)
 
-    vf = builder.build_video_filters(apply_chroma, apply_denoise, deinterlacer)
-    cmd_out = builder.build_ffmpeg_output_args(input_path, output_path, w, h, fps, start_sec, audio_offset, duration, vf, audio_mode)
+    vf = builder.build_video_filters(apply_chroma, apply_denoise, deinterlacer, apply_comb_filter=apply_comb_filter, overscan_blanking=apply_overscan_blanking)
+    cmd_out = builder.build_ffmpeg_output_args(input_path, output_path, w, h, fps, start_sec, audio_offset, duration, vf, audio_mode, audio_treatment=apply_audio_treatment)
     
     p_out = subprocess.Popen(cmd_out, stdin=subprocess.PIPE, stderr=log_file, bufsize=16*1024*1024)
 
@@ -175,13 +177,18 @@ def restore_stream(input_path, output_path, start_sec=0.0, target_1080p=True, cr
         print_log_tail(log_path, lines=25)
         sys.exit(1)
 
-    final_size = os.path.getsize(output_path) / (1024 * 1024) if os.path.exists(output_path) else 0
+    final_size_bytes = os.path.getsize(output_path) if os.path.exists(output_path) else 0
+    final_size_mb = final_size_bytes / (1024 * 1024)
+    if final_size_mb >= 1000:
+        size_str = f"{final_size_mb / 1024:.1f} GB"
+    else:
+        size_str = f"{final_size_mb:.1f} MB"
     duration_hours = (stats["total_frames"] / fps / 3600.0) if fps > 0 else 0.0
 
     log.info(f"\n============================================================")
     log.info(f"[SUCESSO] Vídeo master restaurado e finalizado com êxito!")
     log.info(f"  Destino:             {output_path}")
-    log.info(f"  Tamanho:             {final_size:.1f} MB")
+    log.info(f"  Tamanho:             {size_str}")
     log.info(f"  Total analisado:     {stats['total_frames']:,} frames ({duration_hours:.2f}h de conteúdo)")
     log.info(f"  Frames de vídeo:     {stats['kept_frames']:,} frames válidos")
     if mode == "freeze":
@@ -194,6 +201,44 @@ def restore_stream(input_path, output_path, start_sec=0.0, target_1080p=True, cr
     log.info(f"  Tempo gasto:         {stats['elapsed']/60:.1f} minutos ({fps_avg:.0f} fps médio)")
     log.info(f"  Áudio:               100% contínuo e intacto (sem cortes)")
     log.info(f"  Arquivo de log:      {log_path}")
+
+    if stats.get('chapters'):
+        chap_path = f"{output_path}_meta.txt"
+        with open(chap_path, "w", encoding="utf-8") as f:
+            f.write(";FFMETADATA1\n")
+            f.write("title=VHS Archive\n")
+            f.write("artist=VHS Studio Pipeline\n")
+            for i, sec in enumerate(stats['chapters'], 1):
+                start_time = int(sec * 1000)
+                end_time = int((stats['chapters'][i] * 1000) if i < len(stats['chapters']) else (stats['elapsed'] * 1000 + start_time + 100000))
+                f.write("[CHAPTER]\n")
+                f.write("TIMEBASE=1/1000\n")
+                f.write(f"START={start_time}\n")
+                f.write(f"END={end_time}\n")
+                f.write(f"title=Cena {i}\n")
+        log.info(f"  Cenas detectadas:    {len(stats['chapters'])}. Embutindo metadados no arquivo final...")
+        
+        # Muxing the metadata into the container
+        ext = "mkv" if output_codec == "ffv1" else "mov" if output_codec == "prores" else "mp4"
+        muxed_path = f"{output_path}.muxed.{ext}"
+        mux_cmd = [
+            "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+            "-i", output_path,
+            "-i", chap_path,
+            "-map_metadata", "1",
+            "-codec", "copy",
+            muxed_path
+        ]
+        try:
+            subprocess.run(mux_cmd, check=True)
+            os.replace(muxed_path, output_path)
+            os.remove(chap_path)
+            log.info(f"  Metadados/Capítulos injetados com sucesso!")
+        except Exception as e:
+            log.warning(f"  Aviso: Falha ao embutir capítulos ({e})")
+            if os.path.exists(muxed_path):
+                os.remove(muxed_path)
+
     log.info(f"============================================================")
 
 def main():
@@ -203,13 +248,17 @@ def main():
     parser.add_argument("--crf", type=int, default=20, help="Qualidade CRF / ICQ (padrão: 20)")
     parser.add_argument("--mode", choices=["freeze", "drop", "passthrough"], default="freeze", help="Modo: 'freeze' (TBC frame-hold, zero pretos, sync perfeito), 'drop' (descarta pretos) ou 'passthrough' (preservação pura bit-perfect com TBC EH55)")
     parser.add_argument("--no-1080p", action="store_true", help="Mantém resolução original 480p/576p em vez de upscale 1080p")
-    parser.add_argument("--deinterlacer", choices=["auto", "bwdif", "bwdif_single", "znedi3", "nnedi", "qtgmc", "none"], default="auto", help="Desentrelaçamento: auto (pula se já progressivo ~60p), bwdif (60p dobro), bwdif_single, znedi3/nnedi (redes neurais), qtgmc (VapourSynth padrão ouro), none")
+    parser.add_argument("--deinterlacer", choices=["auto", "bwdif", "bwdif_single", "znedi3", "nnedi", "qtgmc", "none"], default="auto", help="Desentrelaçamento: auto (pula se já progressivo ~60p), bwdif (60p dobro), bwdif_single, znedi3/nnedi (redes neurais), qtgmc (VapourSynth), none")
     parser.add_argument("--fps", type=float, default=None, help="Forçar taxa de quadros (ex: 29.97, 59.94, 60.0)")
     parser.add_argument("--audio-mode", choices=["auto", "stereo", "mono_l", "mono_r"], default="auto", help="Tratamento de áudio: auto (detecta canal mudo/duplicação), stereo, mono_l (L->R), mono_r")
     parser.add_argument("--device", choices=["jvc_gr_ax410", "jvc_hr_d227m", "dmr_eh55", "blackmagic", "auto"], default="auto", help="Perfil do hardware")
     parser.add_argument("--interactive", action="store_true", help="Solicita confirmação interativa se houver ambiguidade técnica")
     parser.add_argument("--denoise", action="store_true", help="Aplica redução de ruído temporal/espacial (hqdn3d)")
     parser.add_argument("--chroma-fix", action="store_true", help="Aplica correção de alinhamento de croma (chromashift)")
+    parser.add_argument("--comb-filter", action="store_true", help="Aplica TComb 3D Comb Filter (apenas via VapourSynth)")
+    parser.add_argument("--overscan-blanking", action="store_true", help="Aplica uma máscara preta (blanking) nos 12px inferiores para ocultar Head Switching Noise")
+    parser.add_argument("--audio-treatment", action="store_true", help="Remove DC Offset, Hum Elétrico (60Hz notch) e reduz chiado de fundo do áudio analógico")
+    parser.add_argument("--output-codec", type=str, choices=["h264", "prores", "ffv1"], default="h264", help="Formato de exportação (Delivery vs Archival)")
     parser.add_argument("--start-sec", type=float, default=None, help="Segundo inicial forçado (ignora detecção automática)")
     parser.add_argument("--audio-offset", type=float, default=0.0, help="Ajuste fino de áudio em segundos (ex: +1.0 para adiantar o áudio, -1.0 para atrasar)")
     parser.add_argument("--duration", "-t", type=float, default=None, help="Duração máxima a processar em segundos (para testes)")
@@ -237,7 +286,8 @@ def main():
         output_path = os.path.abspath(args.output)
     else:
         suffix = "480p" if args.no_1080p else "1080p"
-        output_path = os.path.join(output_dir, f"{base_name}_restored_{suffix}.mp4")
+        ext = "mkv" if args.output_codec == "ffv1" else "mov" if args.output_codec == "prores" else "mp4"
+        output_path = os.path.join(output_dir, f"{base_name}_restored_{suffix}.{ext}")
 
     log.info(f"\n[RESTAURAÇÃO] Arquivo de Entrada: {input_path}")
 
@@ -295,6 +345,10 @@ def main():
         duration=args.duration,
         apply_denoise=args.denoise,
         apply_chroma=args.chroma_fix,
+        apply_comb_filter=args.comb_filter,
+        apply_overscan_blanking=args.overscan_blanking,
+        apply_audio_treatment=args.audio_treatment,
+        output_codec=args.output_codec,
         deinterlacer=resolved_deint,
         audio_mode=resolved_audio,
         target_fps=target_fps

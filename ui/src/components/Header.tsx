@@ -18,12 +18,12 @@ export const Header: React.FC<HeaderProps> = ({ status, onInstallQtgmc, isInstal
         </div>
         <div>
           <h1 className="text-lg font-bold tracking-tight text-white flex items-center gap-2">
-            Restauração Padrão Ouro
+            Restauração Profissional
             <span className="text-[10px] bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded-full font-mono font-medium">
               Desktop Pro
             </span>
           </h1>
-          <p className="text-xs text-slate-400">Panasonic DMR-EH55 TBC • QTGMC • Blackmagic DeckLink</p>
+          <p className="text-xs text-slate-400">Suporte a Múltiplos Dispositivos (DeckLink / USB / Hardware TBC)</p>
         </div>
       </div>
 

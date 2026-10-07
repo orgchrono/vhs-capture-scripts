@@ -46,7 +46,7 @@ export const CaptureBar: React.FC = () => {
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-white">Captura Automatizada OBS Studio</span>
             <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">
-              DeckLink SDK
+              DeckLink / Intensity Shuttle SDK
             </span>
           </div>
           <p className="text-xs text-slate-400 flex items-center gap-1.5">
@@ -77,7 +77,7 @@ export const CaptureBar: React.FC = () => {
         <div className="relative group">
           <HelpCircle className="w-4 h-4 text-slate-500 hover:text-slate-300 cursor-help" />
           <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block w-72 p-3 bg-slate-950 border border-white/10 rounded-lg text-xs text-slate-300 shadow-xl z-50 leading-relaxed">
-            <strong className="text-white block mb-1">Padrão Ouro Multiplataforma:</strong>
+            <strong className="text-white block mb-1">Integração Multiplataforma:</strong>
             O OBS Studio grava via DeckLink SDK nativo no Windows, Mac e Linux sem perdas. Se você preferir usar o <strong>VirtualDub2</strong> ou <strong>AmaRecTV</strong> no Windows, basta salvar os arquivos na pasta <code className="text-sky-300 font-mono">media/raw/</code> que o app reconhece na hora!
           </div>
         </div>

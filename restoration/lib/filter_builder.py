@@ -8,8 +8,9 @@ except ImportError:
     from logger import log
 
 class FilterBuilder:
-    def __init__(self, target_1080p=True, crf=20, mode="freeze"):
-        self.encoder = self.detect_best_encoder()
+    def __init__(self, target_1080p=True, crf=20, mode="freeze", output_codec="h264"):
+        self.output_codec = output_codec
+        self.encoder = self.detect_best_encoder() if output_codec == "h264" else None
         self.target_1080p = target_1080p
         self.crf = crf
         self.mode = mode
@@ -52,8 +53,16 @@ class FilterBuilder:
             return "h264_qsv"
         return "libx264"
 
-    def build_video_filters(self, apply_chroma, apply_denoise, deinterlacer):
+    def build_video_filters(self, apply_chroma, apply_denoise, deinterlacer, apply_comb_filter=False, overscan_blanking=False):
         vf_filters = []
+        if overscan_blanking:
+            vf_filters.append("drawbox=y=ih-12:color=black:width=iw:height=12:t=fill")
+        if apply_comb_filter:
+            if self.check_filter_support("dedot"):
+                vf_filters.append("dedot=m=comb")
+            else:
+                log.warning("[AVISO] Filtro 3D Comb (dedot) não encontrado no FFmpeg local. Omitindo.")
+                
         if apply_chroma:
             vf_filters.append(Filters.CHROMA_SHIFT)
         if apply_denoise:
@@ -86,7 +95,7 @@ class FilterBuilder:
 
         return ",".join(vf_filters) if vf_filters else "null"
 
-    def build_ffmpeg_output_args(self, input_path, output_path, w, h, fps, start_sec, audio_offset, duration, vf, audio_mode):
+    def build_ffmpeg_output_args(self, input_path, output_path, w, h, fps, start_sec, audio_offset, duration, vf, audio_mode, audio_treatment=False):
         cmd_out = [
             "ffmpeg", "-y", "-hide_banner",
             "-f", "rawvideo", "-pix_fmt", "yuv420p", "-s", f"{w}x{h}", "-r", f"{fps:.3f}", "-i", "-"
@@ -104,29 +113,46 @@ class FilterBuilder:
             "-vf", vf
         ]
 
+        af_filters = []
         if audio_mode == "mono_l":
-            cmd_out += ["-af", AudioConfig.PAN_MONO_LEFT]
+            af_filters.append(AudioConfig.PAN_MONO_LEFT)
         elif audio_mode == "mono_r":
-            cmd_out += ["-af", AudioConfig.PAN_MONO_RIGHT]
+            af_filters.append(AudioConfig.PAN_MONO_RIGHT)
 
-        if self.encoder == "h264_videotoolbox":
-            cmd_out += ["-c:v", "h264_videotoolbox", "-q:v", str(min(100, max(1, 100 - self.crf * 2))), "-pix_fmt", "yuv420p"]
-        elif self.encoder == "h264_nvenc":
-            cmd_out += ["-c:v", "h264_nvenc", "-preset", "p4", "-cq", str(self.crf), "-rc", "vbr"]
-        elif self.encoder == "h264_amf":
-            cmd_out += ["-c:v", "h264_amf", "-quality", "speed", "-rc", "cqp", "-qp_i", str(self.crf), "-qp_p", str(self.crf)]
-        elif self.encoder == "h264_vaapi":
-            cmd_out += ["-c:v", "h264_vaapi", "-qp", str(self.crf)]
-        elif self.encoder == "h264_qsv":
-            cmd_out += ["-c:v", "h264_qsv", "-global_quality", str(self.crf)]
+        if audio_treatment:
+            # Remove DC Offset and apply notch filter at 60Hz for electrical hum
+            af_filters.append("dcshift=shift=0")
+            af_filters.append("anequalizer=c0 f=60 w=5 g=-30|c1 f=60 w=5 g=-30")
+        
+        if af_filters:
+            cmd_out += ["-af", ",".join(af_filters)]
+
+        if self.output_codec == "prores":
+            cmd_out += ["-c:v", "prores_ks", "-profile:v", "3", "-pix_fmt", "yuv422p10le", "-vendor", "ap10"]
+        elif self.output_codec == "ffv1":
+            cmd_out += ["-c:v", "ffv1", "-level", "3", "-g", "1", "-pix_fmt", "yuv420p"]
         else:
-            cmd_out += ["-c:v", "libx264", "-preset", "veryfast", "-crf", str(self.crf), "-pix_fmt", "yuv420p"]
+            if self.encoder == "h264_videotoolbox":
+                cmd_out += ["-c:v", "h264_videotoolbox", "-q:v", str(min(100, max(1, 100 - self.crf * 2))), "-pix_fmt", "yuv420p"]
+            elif self.encoder == "h264_nvenc":
+                cmd_out += ["-c:v", "h264_nvenc", "-preset", "p4", "-cq", str(self.crf), "-rc", "vbr"]
+            elif self.encoder == "h264_amf":
+                cmd_out += ["-c:v", "h264_amf", "-quality", "speed", "-rc", "cqp", "-qp_i", str(self.crf), "-qp_p", str(self.crf)]
+            elif self.encoder == "h264_vaapi":
+                cmd_out += ["-c:v", "h264_vaapi", "-qp", str(self.crf)]
+            elif self.encoder == "h264_qsv":
+                cmd_out += ["-c:v", "h264_qsv", "-global_quality", str(self.crf)]
+            else:
+                cmd_out += ["-c:v", "libx264", "-preset", "veryfast", "-crf", str(self.crf), "-pix_fmt", "yuv420p"]
 
         cmd_out += ["-color_primaries", OutputConfig.COLOR_PRIMARIES, 
                    "-color_trc", OutputConfig.COLOR_TRC, 
                    "-colorspace", OutputConfig.COLOR_SPACE]
 
-        cmd_out += ["-c:a", AudioConfig.CODEC, "-b:a", AudioConfig.BITRATE]
+        if self.output_codec in ("prores", "ffv1"):
+            cmd_out += ["-c:a", "pcm_s24le"] # Uncompressed audio for archival
+        else:
+            cmd_out += ["-c:a", AudioConfig.CODEC, "-b:a", AudioConfig.BITRATE]
 
         if self.mode == "drop":
             cmd_out += ["-movflags", "+faststart", output_path]

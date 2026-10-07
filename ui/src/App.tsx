@@ -86,6 +86,10 @@ const StudioMain: React.FC = () => {
       audio_offset: audioOffset,
       chroma_fix: chromaFix,
       denoise,
+      comb_filter: useStudioStore.getState().combFilter,
+      overscan_blanking: useStudioStore.getState().overscanBlanking,
+      audio_treatment: useStudioStore.getState().audioTreatment,
+      output_codec: useStudioStore.getState().outputCodec,
     })
   }
 

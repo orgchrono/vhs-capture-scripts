@@ -678,6 +678,14 @@ class AssistantServer(BaseHTTPRequestHandler):
                     cmd.append("--chroma-fix")
                 if params.get("denoise"):
                     cmd.append("--denoise")
+                if params.get("comb_filter"):
+                    cmd.append("--comb-filter")
+                if params.get("overscan_blanking"):
+                    cmd.append("--overscan-blanking")
+                if params.get("audio_treatment"):
+                    cmd.append("--audio-treatment")
+                if params.get("output_codec"):
+                    cmd.extend(["--output-codec", params["output_codec"]])
 
                 active_process = subprocess.Popen(
                     cmd,

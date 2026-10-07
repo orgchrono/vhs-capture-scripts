@@ -32,14 +32,17 @@ class VapourSynthQTGMC:
             return False
 
     @classmethod
-    def generate_qtgmc_script(cls, input_path, output_vpy_path, preset="Slower", field_order="tff", fps_mode=2):
+    def generate_qtgmc_script(cls, input_path, output_vpy_path, preset="Slower", field_order="tff", fps_mode=2, apply_comb_filter=False):
         """
         Gera um script .vpy configurado para desentrelaçamento de alta precisão via QTGMC.
         field_order: 'tff' (Top Field First) ou 'bff' (Bottom Field First)
         fps_mode: 2 para dobrar a taxa de quadros (29.97i -> 59.94p), 1 para taxa simples.
+        apply_comb_filter: Se True, aplica TComb para mitigar dot-crawl em sinal composto antes de desentrelaçar.
         """
         escaped_input = input_path.replace("\\", "/")
         tff_bool = "True" if field_order.lower() == "tff" else "False"
+
+        comb_str = "clip = core.tcomb.TComb(clip, mode=2, fthreshl=4, fthreshc=5, othreshl=5, othreshc=6)" if apply_comb_filter else ""
 
         script_content = f"""# Script VapourSynth QTGMC gerado automaticamente pela Pipeline VHS Studio
 import vapoursynth as vs
@@ -55,7 +58,9 @@ except Exception:
     except Exception:
         clip = core.bs.VideoSource(source=r"{escaped_input}")
 
-# Aplica QTGMC (Padrão Ouro de desentrelaçamento temporal)
+{comb_str}
+
+# Aplica QTGMC (Avançado de desentrelaçamento temporal)
 # Preset: {preset} | TFF: {tff_bool} | FPSDivisor: {1 if fps_mode == 2 else 2}
 clip = haf.QTGMC(
     clip,
