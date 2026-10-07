@@ -109,6 +109,13 @@ def check_qsv_support():
     except Exception:
         return False
 
+def check_filter_support(filter_name):
+    try:
+        res = subprocess.run(["ffmpeg", "-filters"], capture_output=True, text=True)
+        return filter_name in res.stdout
+    except Exception:
+        return False
+
 def print_log_tail(log_path, lines=20):
     if not os.path.exists(log_path):
         return
@@ -167,6 +174,13 @@ def restore_stream(input_path, output_path, start_sec=0.0, target_1080p=True, cr
     elif deinterlacer == "bwdif_single":
         # Mode 0 = send 1 frame for each frame
         vf_filters.append("bwdif=mode=0:parity=auto")
+    elif deinterlacer == "znedi3":
+        # znedi3 premium deinterlacing (requires ffmpeg with znedi3 filter)
+        if check_filter_support("znedi3"):
+            vf_filters.append("znedi3")
+        else:
+            print("[AVISO] Filtro 'znedi3' não encontrado neste FFmpeg. Fazendo fallback para 'bwdif'!", flush=True)
+            vf_filters.append("bwdif=mode=1:parity=auto")
 
     if target_1080p:
         # Upscale Lanczos + Correção SD->HD Color Matrix + Contrast Adaptive Sharpen (CAS) para restaurar nitidez sem halos
@@ -312,7 +326,7 @@ def main():
     parser.add_argument("--crf", type=int, default=20, help="Qualidade CRF / ICQ (padrão: 20)")
     parser.add_argument("--mode", choices=["freeze", "drop"], default="freeze", help="Modo: 'freeze' (TBC frame-hold, zero pretos, sync perfeito) ou 'drop' (descarta pretos)")
     parser.add_argument("--no-1080p", action="store_true", help="Mantém resolução original 480p/576p em vez de upscale 1080p")
-    parser.add_argument("--deinterlacer", choices=["auto", "bwdif", "bwdif_single", "none"], default="auto", help="Desentrelaçamento: auto (pula se já progressivo ~60p), bwdif (60p dobro), bwdif_single, none")
+    parser.add_argument("--deinterlacer", choices=["auto", "bwdif", "bwdif_single", "znedi3", "none"], default="auto", help="Desentrelaçamento: auto (pula se já progressivo ~60p), bwdif (60p dobro), bwdif_single, znedi3 (premium), none")
     parser.add_argument("--fps", type=float, default=None, help="Forçar taxa de quadros (ex: 29.97, 59.94, 60.0)")
     parser.add_argument("--audio-mode", choices=["auto", "stereo", "mono_l", "mono_r"], default="auto", help="Tratamento de áudio: auto (detecta canal mudo/duplicação), stereo, mono_l (L->R), mono_r")
     parser.add_argument("--device", choices=["jvc_gr_ax410", "jvc_hr_d227m", "auto"], default="auto", help="Perfil do hardware")
@@ -366,7 +380,7 @@ def main():
     resolved_deint = "none"
     if strat["need_deinterlace"]:
         resolved_deint = "bwdif" if args.deinterlacer in ("auto", "bwdif") else args.deinterlacer
-    elif args.deinterlacer in ("bwdif", "bwdif_single"):
+    elif args.deinterlacer in ("bwdif", "bwdif_single", "znedi3"):
         resolved_deint = args.deinterlacer
 
     resolved_audio = strat["audio_policy"]

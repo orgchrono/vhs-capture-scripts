@@ -12,22 +12,12 @@ set "SCRIPT_DIR=%~dp0"
 set "PROJECT_ROOT=%SCRIPT_DIR%.."
 pushd "%PROJECT_ROOT%"
 
-REM Detect Git Bash (evita invocar o bash.exe do WSL em System32)
-set "BASH_EXE="
-if exist "C:\Program Files\Git\bin\bash.exe" set "BASH_EXE=C:\Program Files\Git\bin\bash.exe"
-if exist "C:\Program Files\Git\usr\bin\bash.exe" if not defined BASH_EXE set "BASH_EXE=C:\Program Files\Git\usr\bin\bash.exe"
-if exist "%LOCALAPPDATA%\Programs\Git\bin\bash.exe" if not defined BASH_EXE set "BASH_EXE=%LOCALAPPDATA%\Programs\Git\bin\bash.exe"
-if not defined BASH_EXE (
-    for %%P in (bash.exe) do (
-        if /i not "%%~$PATH:P"=="C:\Windows\System32\bash.exe" (
-            set "BASH_EXE=%%~$PATH:P"
-        )
-    )
-)
-if not defined BASH_EXE (
+REM Python is required
+python --version >nul 2>&1
+if errorlevel 1 (
     color 0C
-    echo [ERRO] Git Bash não foi encontrado!
-    echo Instale o Git para Windows ou adicione o bash ao PATH.
+    echo [ERRO] Python nao foi encontrado!
+    echo Instale o Python e adicione-o ao PATH.
     pause
     popd
     exit /b 1
@@ -45,7 +35,7 @@ if "%~1"=="/?" goto :show_help
 goto :process_args
 
 :show_help
-"%BASH_EXE%" "%SCRIPT_DIR%master.sh" -h
+python "%SCRIPT_DIR%direct_restore.py" -h
 popd
 exit /b 0
 
@@ -87,9 +77,9 @@ shift
 goto :collect_args
 :done_args
 
-REM Default: usa bwdif e calibração blackmagic
+REM Default: usa znedi3, denoise, chroma-fix e hardware auto
 if "%EXTRA_OPTS%"=="" (
-    set "EXTRA_OPTS=--bwdif --vhs --trim-black --blackmagic"
+    set "EXTRA_OPTS=--deinterlacer znedi3 --denoise --chroma-fix --device auto"
 )
 
 if "%HAS_INPUT%"=="1" goto :found_file
@@ -134,13 +124,8 @@ if exist "%LOCK_FILE%" (
 )
 echo %DATE% %TIME% - %INPUT_FILE% > "%LOCK_FILE%"
 
-if "%USE_MASTER_SH%"=="1" (
-    echo [MODO] Pipeline Master Multi-estágios (via Bash)
-    "%BASH_EXE%" "%SCRIPT_DIR%master.sh" "%INPUT_FILE%" %EXTRA_OPTS%
-) else (
-    echo [MODO] Restauração Direta Frame-Accurate (via Python Streaming)
-    python "%SCRIPT_DIR%direct_restore.py" "%INPUT_FILE%" %EXTRA_OPTS%
-)
+echo [MODO] Restauração Direta Frame-Accurate (via Python Streaming)
+python "%SCRIPT_DIR%direct_restore.py" "%INPUT_FILE%" %EXTRA_OPTS%
 
 set "EXIT_CODE=%ERRORLEVEL%"
 if exist "%LOCK_FILE%" del "%LOCK_FILE%" >nul 2>&1
