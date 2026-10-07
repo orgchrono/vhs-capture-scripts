@@ -27,6 +27,7 @@ import vhs_common
 from lib.config import VideoConfig
 from lib.filter_builder import FilterBuilder
 from lib.stream_runner import StreamRunner
+from lib.vapoursynth_qtgmc import VapourSynthQTGMC
 
 def get_stream_info(input_file):
     cmd = [
@@ -212,9 +213,15 @@ def main():
     parser.add_argument("--start-sec", type=float, default=None, help="Segundo inicial forçado (ignora detecção automática)")
     parser.add_argument("--audio-offset", type=float, default=0.0, help="Ajuste fino de áudio em segundos (ex: +1.0 para adiantar o áudio, -1.0 para atrasar)")
     parser.add_argument("--duration", "-t", type=float, default=None, help="Duração máxima a processar em segundos (para testes)")
+    parser.add_argument("--install-qtgmc", action="store_true", help="Executa o instalador multiplataforma de VapourSynth + QTGMC para o sistema operacional")
     args, unknown = parser.parse_known_args()
     if unknown:
         log.info(f"[INFO] Opções adicionais ignoradas pelo restaurador direto: {' '.join(unknown)}")
+
+    if getattr(args, "install_qtgmc", False):
+        log.info("[INSTALADOR] Iniciando instalador automático do VapourSynth + QTGMC...")
+        ok = VapourSynthQTGMC.install_dependencies(interactive=True)
+        sys.exit(0 if ok else 1)
 
     input_path = os.path.abspath(args.input)
     if not os.path.exists(input_path):
@@ -258,6 +265,17 @@ def main():
         resolved_deint = "bwdif" if args.deinterlacer in ("auto", "bwdif") else args.deinterlacer
     elif args.deinterlacer in ("bwdif", "bwdif_single", "znedi3", "nnedi", "qtgmc"):
         resolved_deint = args.deinterlacer
+
+    if resolved_deint == "qtgmc":
+        if not VapourSynthQTGMC.is_available():
+            log.warning("[QTGMC] VapourSynth (vspipe) não encontrado no sistema!")
+            log.info("[QTGMC] Disparando instalador automático multiplataforma (PowerShell/Bash)...")
+            VapourSynthQTGMC.install_dependencies(interactive=True)
+            if not VapourSynthQTGMC.is_available():
+                log.warning("[QTGMC] VapourSynth não detectado após tentativa (pode requerer reinício da sessão).")
+                fallback_filt = "nnedi" if FilterBuilder.check_filter_support("nnedi") else "bwdif"
+                log.warning(f"[QTGMC] Fazendo fallback seguro para filtro FFmpeg '{fallback_filt}'.")
+                resolved_deint = fallback_filt
 
     resolved_audio = strat["audio_policy"]
     target_fps = strat["target_fps"]

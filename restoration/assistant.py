@@ -373,6 +373,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             <div class="telemetry-pill">
                 <span class="dot-green"></span>
                 <span>QTGMC: <strong id="qtgmc-badge">Detectando...</strong></span>
+                <button id="btn-install-qtgmc" onclick="installQtgmc()" style="display:none; margin-left: 0.5rem; font-size: 0.75rem; background: rgba(56, 189, 248, 0.2); border: 1px solid var(--primary); color: #fff; padding: 0.2rem 0.5rem; border-radius: 6px; cursor: pointer;">Instalar QTGMC</button>
             </div>
         </div>
     </header>

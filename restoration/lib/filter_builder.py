@@ -1,3 +1,4 @@
+import sys
 import subprocess
 try:
     from lib.config import Filters, AudioConfig, OutputConfig
@@ -33,12 +34,21 @@ class FilterBuilder:
 
     @classmethod
     def detect_best_encoder(cls):
-        # Prioritize NVIDIA NVENC, then AMD AMF, then Intel QSV, fallback to libx264
+        # 1. macOS (Apple Silicon M1/M2/M3/M4 e Macs Intel)
+        if sys.platform == "darwin":
+            if cls.check_encoder_support("h264_videotoolbox"):
+                return "h264_videotoolbox"
+            return "libx264"
+
+        # 2. Windows e Linux
+        # Prioritize NVIDIA NVENC, then AMD AMF (Windows), then VAAPI (Linux), then Intel QSV, fallback to libx264
         if cls.check_encoder_support("h264_nvenc"):
             return "h264_nvenc"
-        elif cls.check_encoder_support("h264_amf"):
+        if sys.platform == "win32" and cls.check_encoder_support("h264_amf"):
             return "h264_amf"
-        elif cls.check_encoder_support("h264_qsv"):
+        if sys.platform != "win32" and cls.check_encoder_support("h264_vaapi"):
+            return "h264_vaapi"
+        if cls.check_encoder_support("h264_qsv"):
             return "h264_qsv"
         return "libx264"
 
@@ -99,10 +109,14 @@ class FilterBuilder:
         elif audio_mode == "mono_r":
             cmd_out += ["-af", AudioConfig.PAN_MONO_RIGHT]
 
-        if self.encoder == "h264_nvenc":
+        if self.encoder == "h264_videotoolbox":
+            cmd_out += ["-c:v", "h264_videotoolbox", "-q:v", str(min(100, max(1, 100 - self.crf * 2))), "-pix_fmt", "yuv420p"]
+        elif self.encoder == "h264_nvenc":
             cmd_out += ["-c:v", "h264_nvenc", "-preset", "p4", "-cq", str(self.crf), "-rc", "vbr"]
         elif self.encoder == "h264_amf":
             cmd_out += ["-c:v", "h264_amf", "-quality", "speed", "-rc", "cqp", "-qp_i", str(self.crf), "-qp_p", str(self.crf)]
+        elif self.encoder == "h264_vaapi":
+            cmd_out += ["-c:v", "h264_vaapi", "-qp", str(self.crf)]
         elif self.encoder == "h264_qsv":
             cmd_out += ["-c:v", "h264_qsv", "-global_quality", str(self.crf)]
         else:
