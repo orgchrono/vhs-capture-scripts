@@ -1,0 +1,2 @@
+[console_scripts]
+vhs-studio = vhs_studio.cli.main:main

@@ -40,5 +40,5 @@ Ao adicionar a fonte da Blackmagic ou USB:
 ## 3. Integração Automática (WebSocket)
 O VHS Studio pode controlar a sua sessão de captura no OBS remotamente.
 1. No OBS, vá em **Ferramentas -> Configurações do Servidor WebSocket**.
-2. Marque **Habilitar servidor WebSocket**, defina a porta como `4455` (padrão) e desabilite temporariamente a senha para integração em loopback (ou configure a senha respectiva nas variáveis do VHS Studio).
+2. Marque **Habilitar servidor WebSocket**, defina a porta como `4455` (padrão) e habilite a senha. O *VHS Studio* irá configurar automaticamente uma senha segura em seu arquivo `config/local.toml` quando necessário, garantindo integração segura (handshake SHA-256).
 3. Salve o arquivo na pasta `media/raw/` do seu projeto. O pipeline do VHS Studio iniciará automaticamente ou poderá ser acionado pelo painel web.

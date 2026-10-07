@@ -48,17 +48,13 @@ function run_pipeline_for_file(filepath)
     local extra_opts = "--device " .. hardware_device
 
     if restore_mode == "master" then
-        extra_opts = extra_opts .. " --master"
+        extra_opts = extra_opts .. " --output-codec ffv1"
     end
 
-    if deinterlacer == "bwdif" then
-        extra_opts = extra_opts .. " --bwdif"
-    else
-        extra_opts = extra_opts .. " --qtgmc"
-    end
+    extra_opts = extra_opts .. " --deinterlacer " .. deinterlacer
 
     if trim_black then
-        extra_opts = extra_opts .. " --trim-black"
+        extra_opts = extra_opts .. " --mode drop"
     end
 
     if apply_denoise then
@@ -70,7 +66,7 @@ function run_pipeline_for_file(filepath)
     end
 
     if output_format == "prores" then
-        extra_opts = extra_opts .. " --prores"
+        extra_opts = extra_opts .. " --output-codec prores"
     else
         extra_opts = extra_opts .. " --crf " .. tostring(crf_value)
     end

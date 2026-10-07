@@ -1,0 +1,7 @@
+websocket-client>=1.0.0
+fastapi
+uvicorn
+pywebview
+
+[:python_version < "3.11"]
+tomli

@@ -5,10 +5,10 @@ export type RestorationPreset = 'gold' | 'speed' | 'tbc_hold' | 'ai_master' | 'c
 export interface StudioState {
   selectedFile: string
   preset: RestorationPreset
-  mode: 'freeze' | 'passthrough' | 'drop'
-  deinterlacer: 'qtgmc' | 'bwdif' | 'znedi3' | 'nnedi' | 'none'
-  audioMode: 'auto' | 'stereo' | 'mono_l' | 'mono_r'
-  outputCodec: 'h264' | 'prores' | 'ffv1'
+  mode: 'double' | 'single' | 'freeze' | 'passthrough' | 'drop'
+  deinterlacer: 'qtgmc_fast' | 'qtgmc_slow' | 'qtgmc' | 'bwdif' | 'znedi3' | 'nnedi' | 'none'
+  audioMode: 'auto' | 'stereo' | 'mono_l' | 'mono_r' | 'mono' | 'left_only' | 'right_only'
+  outputCodec: 'h264' | 'hevc' | 'prores' | 'ffv1'
   resolution: '1080p' | 'original'
   crf: number
   audioOffset: number
@@ -25,10 +25,10 @@ export interface StudioState {
   setSelectedFile: (file: string) => void
   setPreset: (preset: RestorationPreset) => void
   applyPreset: (preset: RestorationPreset) => void
-  setMode: (mode: 'freeze' | 'passthrough' | 'drop') => void
-  setDeinterlacer: (deint: 'qtgmc' | 'bwdif' | 'znedi3' | 'nnedi' | 'none') => void
-  setAudioMode: (audio: 'auto' | 'stereo' | 'mono_l' | 'mono_r') => void
-  setOutputCodec: (codec: 'h264' | 'prores' | 'ffv1') => void
+  setMode: (mode: 'double' | 'single' | 'freeze' | 'passthrough' | 'drop') => void
+  setDeinterlacer: (deint: 'qtgmc_fast' | 'qtgmc_slow' | 'qtgmc' | 'bwdif' | 'znedi3' | 'nnedi' | 'none') => void
+  setAudioMode: (audio: 'auto' | 'stereo' | 'mono_l' | 'mono_r' | 'mono' | 'left_only' | 'right_only') => void
+  setOutputCodec: (codec: 'h264' | 'hevc' | 'prores' | 'ffv1') => void
   setResolution: (res: '1080p' | 'original') => void
   setCrf: (crf: number) => void
   setAudioOffset: (offset: number) => void
@@ -46,9 +46,9 @@ export interface StudioState {
 export const useStudioStore = create<StudioState>((set) => ({
   selectedFile: '',
   preset: 'gold',
-  mode: 'passthrough',
-  deinterlacer: 'qtgmc',
-  audioMode: 'auto',
+  mode: 'double',
+  deinterlacer: 'bwdif',
+  audioMode: 'stereo',
   outputCodec: 'h264',
   resolution: '1080p',
   crf: 20,
