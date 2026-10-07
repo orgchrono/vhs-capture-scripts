@@ -90,6 +90,38 @@ class TestVHSCommon(unittest.TestCase):
         self.assertIn("Início do conteúdo útil", res.stdout)
         self.assertIn("Perdas de sinal no meio", res.stdout)
 
+    def test_detect_audio_layout_synthetic(self):
+        """Testa se a detecção de áudio identifica canais balanceados na fita sintética."""
+        synthetic_path = os.path.join(REPO_ROOT, "tests", "vhs_test_synthetic.mkv")
+        if not os.path.exists(synthetic_path):
+            self.skipTest("Fita sintética não encontrada.")
+
+        layout = vhs_common.detect_audio_layout(synthetic_path, sample_sec=3.0, sample_duration=2.0)
+        self.assertTrue(layout["detected"])
+        self.assertIn(layout["layout"], ["dual_mono", "stereo"])
+
+    def test_resolve_pipeline_strategy_progressive_60p(self):
+        """Testa se a estratégia de desentrelaçamento é pulada para arquivos já em 60p."""
+        meta = {"fps": 60.0, "width": 708, "height": 480}
+        interlace_info = {"is_interlaced": False, "preferred_order": "bff", "summary": "Progressive"}
+        audio_info = {"recommendation": "passthrough", "reason": "Estéreo normal"}
+
+        strat = vhs_common.resolve_pipeline_strategy(meta, interlace_info, audio_info)
+        self.assertEqual(strat["target_fps"], 60.0)
+        self.assertFalse(strat["need_deinterlace"])
+        self.assertEqual(strat["audio_policy"], "stereo")
+
+    def test_resolve_pipeline_strategy_interlaced_2997i(self):
+        """Testa se a estratégia de desentrelaçamento dobra a taxa para 29.97i nativo."""
+        meta = {"fps": 29.97, "width": 720, "height": 480}
+        interlace_info = {"is_interlaced": True, "preferred_order": "bff", "summary": "Interlaced BFF"}
+        audio_info = {"recommendation": "duplicate_l_to_r", "reason": "Canal R mudo"}
+
+        strat = vhs_common.resolve_pipeline_strategy(meta, interlace_info, audio_info)
+        self.assertAlmostEqual(strat["target_fps"], 59.94, places=1)
+        self.assertTrue(strat["need_deinterlace"])
+        self.assertEqual(strat["audio_policy"], "mono_l")
+
 
 if __name__ == "__main__":
     unittest.main()

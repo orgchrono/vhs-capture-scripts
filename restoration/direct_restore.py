@@ -20,6 +20,11 @@ import argparse
 import time
 import json
 
+LIB_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "lib"))
+if LIB_DIR not in sys.path:
+    sys.path.insert(0, LIB_DIR)
+import vhs_common
+
 def get_stream_info(input_file):
     cmd = [
         "ffprobe", "-v", "error",
@@ -118,8 +123,9 @@ def print_log_tail(log_path, lines=20):
     except Exception:
         pass
 
-def restore_stream(input_path, output_path, start_sec=0.0, target_1080p=True, crf=20, mode="freeze", audio_offset=0.0, duration=None, apply_denoise=False, apply_chroma=False, deinterlacer="bwdif"):
-    w, h, fps, total_dur, a_codec = get_stream_info(input_path)
+def restore_stream(input_path, output_path, start_sec=0.0, target_1080p=True, crf=20, mode="freeze", audio_offset=0.0, duration=None, apply_denoise=False, apply_chroma=False, deinterlacer="auto", audio_mode="auto", target_fps=None):
+    w, h, detected_fps, total_dur, a_codec = get_stream_info(input_path)
+    fps = target_fps if target_fps else detected_fps
     if fps <= 0:
         fps = 29.97
     frame_bytes = int(w * h * 1.5)
@@ -127,6 +133,8 @@ def restore_stream(input_path, output_path, start_sec=0.0, target_1080p=True, cr
 
     use_qsv = check_qsv_support()
     print(f"[RESTAURAÇÃO] Resolução de entrada: {w}x{h} @ {fps:.2f} fps", flush=True)
+    print(f"[RESTAURAÇÃO] Modo de desentrelaçamento: {deinterlacer}", flush=True)
+    print(f"[RESTAURAÇÃO] Política de canais de áudio: {audio_mode}", flush=True)
     print(f"[RESTAURAÇÃO] Aceleração de hardware: {'Intel QuickSync (h264_qsv)' if use_qsv else 'Software (libx264)'}", flush=True)
     print(f"[RESTAURAÇÃO] Modo de remoção de pretos: {'TBC Frame-Hold (Congela último frame bom - Sincronia A/V 100% perfeita)' if mode == 'freeze' else 'Descarte direto (Acelera vídeo)'}", flush=True)
     if abs(audio_offset) > 0.001:
@@ -150,7 +158,8 @@ def restore_stream(input_path, output_path, start_sec=0.0, target_1080p=True, cr
     if apply_chroma:
         vf_filters.append("chromashift=cbh=2:cbv=1:crh=2:crv=1:edge=smear")
     if apply_denoise:
-        vf_filters.append("hqdn3d=2.0:1.5:3.0:2.5")
+        # Tuning otimizado para VHS: Luma/Chroma espacial e temporal
+        vf_filters.append("hqdn3d=4.0:3.0:6.0:4.5")
 
     if deinterlacer == "bwdif":
         # Mode 1 = send 1 frame for each field (bob deinterlace para 60p/50p suave)
@@ -160,7 +169,8 @@ def restore_stream(input_path, output_path, start_sec=0.0, target_1080p=True, cr
         vf_filters.append("bwdif=mode=0:parity=auto")
 
     if target_1080p:
-        vf_filters.append("scale=1440:1080:flags=lanczos,setsar=1:1,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:black")
+        # Upscale Lanczos + Correção SD->HD Color Matrix + Contrast Adaptive Sharpen (CAS) para restaurar nitidez sem halos
+        vf_filters.append("scale=1440:1080:flags=lanczos:in_color_matrix=smpte170m:out_color_matrix=bt709,setsar=1:1,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:black,cas=0.4")
 
     vf = ",".join(vf_filters) if vf_filters else "null"
 
@@ -179,10 +189,18 @@ def restore_stream(input_path, output_path, start_sec=0.0, target_1080p=True, cr
         "-vf", vf
     ]
 
+    if audio_mode == "mono_l":
+        cmd_out += ["-af", "pan=stereo|c0=c0|c1=c0"]
+    elif audio_mode == "mono_r":
+        cmd_out += ["-af", "pan=stereo|c0=c1|c1=c1"]
+
     if use_qsv:
         cmd_out += ["-c:v", "h264_qsv", "-global_quality", str(crf)]
     else:
         cmd_out += ["-c:v", "libx264", "-preset", "veryfast", "-crf", str(crf), "-pix_fmt", "yuv420p"]
+
+    # Tags e metadados de cor Rec.709 para playback correto em displays modernos
+    cmd_out += ["-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709"]
 
     # ÁUDIO SAMPLE-ACCURATE: Sempre re-codifica em AAC 192k para corte preciso
     cmd_out += ["-c:a", "aac", "-b:a", "192k"]
@@ -294,7 +312,11 @@ def main():
     parser.add_argument("--crf", type=int, default=20, help="Qualidade CRF / ICQ (padrão: 20)")
     parser.add_argument("--mode", choices=["freeze", "drop"], default="freeze", help="Modo: 'freeze' (TBC frame-hold, zero pretos, sync perfeito) ou 'drop' (descarta pretos)")
     parser.add_argument("--no-1080p", action="store_true", help="Mantém resolução original 480p/576p em vez de upscale 1080p")
-    parser.add_argument("--deinterlacer", choices=["bwdif", "bwdif_single", "none"], default="bwdif", help="Desentrelaçamento: bwdif (60p/50p dobro), bwdif_single (mesmo fps), none (já progressivo)")
+    parser.add_argument("--deinterlacer", choices=["auto", "bwdif", "bwdif_single", "none"], default="auto", help="Desentrelaçamento: auto (pula se já progressivo ~60p), bwdif (60p dobro), bwdif_single, none")
+    parser.add_argument("--fps", type=float, default=None, help="Forçar taxa de quadros (ex: 29.97, 59.94, 60.0)")
+    parser.add_argument("--audio-mode", choices=["auto", "stereo", "mono_l", "mono_r"], default="auto", help="Tratamento de áudio: auto (detecta canal mudo/duplicação), stereo, mono_l (L->R), mono_r")
+    parser.add_argument("--device", choices=["jvc_gr_ax410", "jvc_hr_d227m", "auto"], default="auto", help="Perfil do hardware")
+    parser.add_argument("--interactive", action="store_true", help="Solicita confirmação interativa se houver ambiguidade técnica")
     parser.add_argument("--denoise", action="store_true", help="Aplica redução de ruído temporal/espacial (hqdn3d)")
     parser.add_argument("--chroma-fix", action="store_true", help="Aplica correção de alinhamento de croma (chromashift)")
     parser.add_argument("--start-sec", type=float, default=None, help="Segundo inicial forçado (ignora detecção automática)")
@@ -320,7 +342,35 @@ def main():
         suffix = "480p" if args.no_1080p else "1080p"
         output_path = os.path.join(output_dir, f"{base_name}_restored_{suffix}.mp4")
 
-    print(f"[RESTAURAÇÃO] Arquivo de Entrada: {input_path}", flush=True)
+    print(f"\n[RESTAURAÇÃO] Arquivo de Entrada: {input_path}", flush=True)
+
+    # Análise técnica prévia e resolução de estratégia
+    meta = vhs_common.probe_media(input_path)
+    interlace_info = vhs_common.detect_interlace_status(input_path)
+    audio_info = vhs_common.detect_audio_layout(input_path)
+
+    forced_audio = None
+    if args.device == "jvc_gr_ax410":
+        forced_audio = "mono_l"
+    elif args.audio_mode != "auto":
+        forced_audio = args.audio_mode
+
+    strat = vhs_common.resolve_pipeline_strategy(
+        meta, interlace_info, audio_info,
+        user_fps=args.fps,
+        user_deint=None if args.deinterlacer == "auto" else args.deinterlacer,
+        user_audio=forced_audio,
+        interactive=args.interactive
+    )
+
+    resolved_deint = "none"
+    if strat["need_deinterlace"]:
+        resolved_deint = "bwdif" if args.deinterlacer in ("auto", "bwdif") else args.deinterlacer
+    elif args.deinterlacer in ("bwdif", "bwdif_single"):
+        resolved_deint = args.deinterlacer
+
+    resolved_audio = strat["audio_policy"]
+    target_fps = strat["target_fps"]
 
     if args.start_sec is not None:
         start_sec = args.start_sec
@@ -337,7 +387,9 @@ def main():
         duration=args.duration,
         apply_denoise=args.denoise,
         apply_chroma=args.chroma_fix,
-        deinterlacer=args.deinterlacer
+        deinterlacer=resolved_deint,
+        audio_mode=resolved_audio,
+        target_fps=target_fps
     )
 
 if __name__ == "__main__":

@@ -119,8 +119,20 @@ echo.
 echo [SISTEMA] Iniciando restauração master...
 echo ------------------------------------------------------------
 
-set "USE_MASTER_SH=0"
-echo %EXTRA_OPTS% | findstr /i /c:"--master" /c:"--stages" >nul && set "USE_MASTER_SH=1"
+REM Mutex / Lockfile check (PIPE-08: previne múltiplos pipelines pesados simultâneos)
+set "LOCK_FILE=%PROJECT_ROOT%\media\work\.pipeline.lock"
+if exist "%LOCK_FILE%" (
+    color 0E
+    echo [AVISO] Já existe outra instância do pipeline em execução!
+    echo Arquivo de trava: %LOCK_FILE%
+    echo Aguarde o término do processamento anterior para evitar sobrecarga de CPU/GPU.
+    echo Se você tiver certeza de que nenhum pipeline está rodando, delete o arquivo '.pipeline.lock' em 'media\work\'.
+    echo.
+    pause
+    popd
+    exit /b 1
+)
+echo %DATE% %TIME% - %INPUT_FILE% > "%LOCK_FILE%"
 
 if "%USE_MASTER_SH%"=="1" (
     echo [MODO] Pipeline Master Multi-estágios (via Bash)
@@ -131,6 +143,7 @@ if "%USE_MASTER_SH%"=="1" (
 )
 
 set "EXIT_CODE=%ERRORLEVEL%"
+if exist "%LOCK_FILE%" del "%LOCK_FILE%" >nul 2>&1
 echo ------------------------------------------------------------
 
 if %EXIT_CODE% equ 0 (

@@ -18,7 +18,7 @@ LIB_DIR = os.path.join(RESTO_ROOT, "lib")
 if LIB_DIR not in sys.path:
     sys.path.insert(0, LIB_DIR)
 
-from vhs_common import probe_media, detect_interlace_status, write_manifest
+from vhs_common import probe_media, detect_interlace_status, detect_audio_layout, resolve_pipeline_strategy, write_manifest
 
 def run_preflight(input_file, output_manifest=None, device_id=None, standard_override=None):
     print(f"\n============================================================", flush=True)
@@ -46,26 +46,33 @@ def run_preflight(input_file, output_manifest=None, device_id=None, standard_ove
     needs_vbi_crop = (info["height"] == 486)
     target_height = 480 if standard == "ntsc" else 576
 
-    # Análise de entrelaçamento via idet
+    # Análise de entrelaçamento via idet com amostragem inteligente
     print("\n[PREFLIGHT] Analisando entrelaçamento de sinal (filtro idet)...", flush=True)
     idet_result = detect_interlace_status(input_file, num_frames=300)
     print(f"  Diagnóstico de campo: {idet_result['summary']}", flush=True)
 
-    # Determinação do desentrelaçamento
-    # Se a taxa já for ~60fps ou ~50fps e idet indicar dominantemente progressivo, pula deinterlace
-    if info["fps"] > 45.0 and not idet_result["is_interlaced"]:
-        needs_deinterlace = False
-        print("  [AVISO] O vídeo já se encontra em formato PROGRESSIVO (~60p/50p). O desentrelaçamento será ignorado.", flush=True)
-    else:
-        needs_deinterlace = True
+    # Análise de canais de áudio via astats
+    print("\n[PREFLIGHT] Analisando equilíbrio de canais de áudio...", flush=True)
+    audio_layout = detect_audio_layout(input_file)
+    print(f"  Diagnóstico de áudio: {audio_layout['reason']}", flush=True)
 
-    # Perfil de hardware e áudio
-    audio_policy = "stereo_passthrough"
-    if device_id == "jvc_gr_ax410" or info["audio_channels"] == 1:
-        audio_policy = "duplicate_mono_to_stereo"
-        print("  [ÁUDIO] Fonte mono identificada (JVC GR-AX410 / mono). Ativando duplicação para L+R estéreo.", flush=True)
+    # Resolução de estratégia unificada
+    strategy = resolve_pipeline_strategy(
+        info, idet_result, audio_layout,
+        user_fps=None,
+        user_deint=None,
+        user_audio="mono_l" if device_id == "jvc_gr_ax410" else None
+    )
+
+    needs_deinterlace = strategy["need_deinterlace"]
+    if not needs_deinterlace:
+        print("  [AVISO] O vídeo já se encontra em formato PROGRESSIVO (~60p/50p). O desentrelaçamento será ignorado.", flush=True)
+
+    audio_policy = strategy["audio_policy"]
+    if audio_policy == "mono_l":
+        print("  [ÁUDIO] Duplicação de canal mono L para L+R ativada.", flush=True)
     else:
-        print("  [ÁUDIO] Fonte estéreo mantida.", flush=True)
+        print("  [ÁUDIO] Áudio mantido sem alterações na distribuição de canais.", flush=True)
 
     # Cores
     color_matrix_in = "smpte170m" if standard == "ntsc" else "bt470bg"
@@ -79,6 +86,7 @@ def run_preflight(input_file, output_manifest=None, device_id=None, standard_ove
         "target_active_height": target_height,
         "needs_vbi_crop": needs_vbi_crop,
         "fps": info["fps"],
+        "target_fps": strategy["target_fps"],
         "fps_rational": info["fps_rational"],
         "duration": info["duration"],
         "video_codec": info["video_codec"],
