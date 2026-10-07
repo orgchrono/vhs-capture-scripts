@@ -31,8 +31,8 @@ THRESHOLD_MUL = 10.0 ** (THRESHOLD_DB / 20.0)
 
 # Tempos de confirmação ultrarrápidos e inteligentes
 START_CONFIRM_SEC = 0.10      # 100ms (apenas 2 pacotes de áudio): disparo imediato ao dar play!
-STOP_BLANK_CONFIRM_SEC = 1.0  # 1.0s quando confirmada tela de parada (silêncio + azul/preto/congelado)
-STOP_QUIET_SCENE_SEC = 20.0   # Tolerância estendida se o áudio estiver quieto mas a imagem estiver ativa!
+STOP_BLANK_CONFIRM_SEC = 3.5  # 3.5s quando confirmada tela de parada (silêncio + azul/preto) para evitar corte em pausas entre takes
+STOP_QUIET_SCENE_SEC = 25.0   # Tolerância estendida se o áudio estiver quieto mas a imagem estiver ativa!
 SCREENSHOT_INTERVAL_SEC = 0.25 # Captura miniatura a cada 250ms (4x/seg) para análise visual instantânea
 
 class SimpleWebSocket:

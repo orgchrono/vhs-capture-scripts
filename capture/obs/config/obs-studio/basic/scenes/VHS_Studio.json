@@ -33,7 +33,7 @@
                 "libobs.push-to-mute": [],
                 "libobs.push-to-talk": []
             },
-            "deinterlace_mode": 8,
+            "deinterlace_mode": 0,
             "deinterlace_field_order": 0,
             "monitoring_type": 2,
             "private_settings": {}

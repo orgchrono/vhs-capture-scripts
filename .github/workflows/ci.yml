@@ -1,0 +1,37 @@
+name: CI Pipeline VHS Studio
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Lint Python with Ruff
+        run: |
+          pip install ruff
+          ruff check .
+
+      - name: Lint Shell scripts with ShellCheck
+        run: |
+          sudo apt-get install -y shellcheck
+          find . -name "*.sh" -exec shellcheck -x {} +
+
+      - name: Run Unit Tests
+        run: |
+          python -m unittest discover tests

@@ -14,7 +14,7 @@ usage() {
   cat <<'EOF'
 INFO — 03_chroma_shift.sh
 
-Corrects horizontal/vertical chroma misalignment using ffmpeg's `chroma_shift` filter.
+Corrects horizontal/vertical chroma misalignment using ffmpeg's `chromashift` filter.
 
 Environment variables let you set the shift in pixels:
 
@@ -45,7 +45,7 @@ OUTDIR="${2:-$(stage_dir 3)}"
 OUT="$(out_path "$IN" "$OUTDIR" "_cshift")"
 LOG="${OUT%.*}.log"
 
-vf="chroma_shift=w=${W}:h=${H}"
+vf="chromashift=cbh=${W}:cbv=${H}:crh=${W}:crv=${H}:edge=smear"
 ensure_dest "$OUT"
 run_ffmpeg "$LOG" -hide_banner -i "$IN" -vf "$vf" "${ffv1_args[@]}" "$OUT"
 info "Wrote: $OUT"

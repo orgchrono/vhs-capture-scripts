@@ -52,11 +52,16 @@ if [[ $# -lt 1 ]] || [[ "${1:-}" == "-h" ]] || [[ "${1:-}" == "--help" ]] || [[ 
   usage; exit 0
 fi
 
-command -v vspipe >/dev/null 2>&1 || { err "vspipe not found in PATH"; exit 1; }
+command -v vspipe >/dev/null 2>&1 || { 
+  err "vspipe not found in PATH."
+  err "To use QTGMC, install VapourSynth + vspipe and plugins (havsfunc, mvtools, znedi3)."
+  err "Alternative without external dependencies: use './01_deinterlace_bwdif.sh' (FFmpeg bwdif)."
+  exit 1
+}
 
 IN="$1"
 OUTDIR="${2:-$(stage_dir 3)}"
-FIELD="${3:-TFF}"  # TFF (PAL common), BFF, or AUTO
+FIELD="${3:-AUTO}"  # AUTO (default), TFF, or BFF
 VPY="$(dirname -- "${BASH_SOURCE[0]}")/00_qtgmc_deint.vpy"
 
 [[ -f "$VPY" ]] || { err "Missing VapourSynth script: $VPY (expected next to this .sh)"; exit 1; }
@@ -65,38 +70,33 @@ case "$FIELD" in
   *) err "Third arg must be TFF, BFF, or AUTO"; exit 1;;
 esac
 
-OUT="$(out_path "$IN" "$OUTDIR" "_qtgmc50p")"
+OUT="$(out_path "$IN" "$OUTDIR" "_qtgmc")"
 LOG="${OUT%.*}.log"
 ensure_dest "$OUT"
 
-# Prepare a temp .vpy with correct field order
-TMPVPY="$(mktemp --suffix=.vpy)"
-if [[ "$FIELD" == "BFF" ]]; then
-  sed 's/TFF=True/TFF=False/' "$VPY" > "$TMPVPY"
-elif [[ "$FIELD" == "AUTO" ]]; then
-  sed 's/TFF=True/Order=0/' "$VPY" > "$TMPVPY"
+# Convert path for Windows native python/vspipe if running in Git Bash/MSYS
+if command -v cygpath >/dev/null 2>&1; then
+  export VS_SRC="$(cygpath -w "$(realpath "$IN")")"
+  VS_VPY_ARG="$(cygpath -w "$VPY")"
 else
-  cp "$VPY" "$TMPVPY"
+  export VS_SRC="$(realpath "$IN")"
+  VS_VPY_ARG="$VPY"
 fi
-
-# vspipe produces video only; mux original audio as second ffmpeg input
-export VS_SRC="$(realpath "$IN")"
+export VS_FIELD="$FIELD"
 
 {
   echo "----- $(date -Iseconds)"
-  echo "VS_SRC=$VS_SRC vspipe --y4m $TMPVPY - | ffmpeg -hide_banner -i - -i \"$IN\" -map 0:v -map 1:a -c:v ffv1 -level 3 -g 1 -slices 24 -slicecrc 1 -c:a copy \"$OUT\""
+  echo "VS_SRC=$VS_SRC VS_FIELD=$VS_FIELD vspipe --y4m \"$VS_VPY_ARG\" - | ffmpeg -hide_banner -i - -i \"$IN\" -map 0:v -map 1:a? -c:v ffv1 -level 3 -g 1 -slices 24 -slicecrc 1 -c:a copy \"$OUT\""
 } >> "$LOG"
 
 set +e
-vspipe --y4m "$TMPVPY" - \
+vspipe --y4m "$VS_VPY_ARG" - \
 | ffmpeg -hide_banner -i - -i "$IN" \
   -map 0:v -map 1:a? \
   -c:v ffv1 -level 3 -g 1 -slices 24 -slicecrc 1 -c:a copy \
   "$OUT" 2>&1 | tee -a "$LOG"
 rc=$?
 set -e
-
-rm -f "$TMPVPY"
 
 if [[ $rc -ne 0 ]]; then
   err "QTGMC deinterlace failed (see log: ${LOG})"

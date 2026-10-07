@@ -18,12 +18,23 @@ if ! command -v ffmpeg >/dev/null 2>&1; then
 fi
 
 # Basic dependency checks
-for cmd in ffmpeg ffprobe; do
+for cmd in ffmpeg ffprobe python; do
   command -v "$cmd" >/dev/null 2>&1 || { echo "Missing dependency: $cmd" >&2; exit 1; }
 done
 
 # shellcheck source=/dev/null
 source "$REPO_ROOT/lib/video-lib.sh"
+# shellcheck source=/dev/null
+source "$REPO_ROOT/lib/filters.sh"
+
+# Helper para converter caminhos POSIX em caminhos Windows para o Python nativo
+to_win_path() {
+  if command -v cygpath >/dev/null 2>&1; then
+    cygpath -w "$1"
+  else
+    echo "$1"
+  fi
+}
 
 cd "$REPO_ROOT"
 
@@ -34,54 +45,45 @@ Usage:
   master.sh --preview [device options]
   master.sh --capture[=NAME] [device options] [--limit HH:MM:SS] [--split-min N] [pipeline options]
   master.sh --capture-and-preview[=NAME] [device options] [--limit HH:MM:SS] [pipeline options]
+
 Modes:
-  --vhs                 Treat as interlaced VHS (deint->stabilise->50p)
+  --vhs                 Treat as interlaced VHS (preflight->black-hold->deint->restore->upscale)
   --cine18              Cine @ 18 fps (conform->50p)
   --cine24              Cine @ 24 fps (conform->50p)
   --guess               Heuristic (default): no audio => cine18, else VHS
-Pre-capture / Preview:
-  --preview             Open live preview and exit
-  --capture[=NAME]      Capture to 1_raw_captures/ (NAME optional; default timestamp)
-  --capture-and-preview[=NAME]
-                        Capture to file and live preview (no segmentation in this mode)
-  --only-capture        Stop after capture (do not process further)
-Device/options for preview/capture (forwarded as env to scripts):
-  --dev-video PATH      e.g. /dev/video2
-  --alsa-dev STR        e.g. hw:1,0
-  --framerate N         e.g. 25
-  --video-size WxH      e.g. 720x576
-  --input-fmt STR       e.g. yuyv422
-  --audio-rate N        e.g. 48000
-  --limit HH:MM:SS      Stop capture after duration (e.g. 01:30:00)
-  --split-min N         Segment capture in N-minute chunks (capture-only mode)
+  --fast                Fast direct streaming restore via Python QuickSync/x264
+
+Hardware & Standards:
+  --device=NAME         Device profile: jvc_gr_ax410 (mono) | jvc_hr_d227m (stereo)
+  --standard=STD        Standard override: ntsc | pal | auto
+
 Deinterlace:
-  --qtgmc[=TFF|BFF|AUTO]   Use VapourSynth QTGMC (best; default TFF for PAL)
-  --bwdif                  Use ffmpeg bwdif (fallback)
+  --bwdif               Use ffmpeg bwdif (default, ultra-fast bob 60p/50p)
+  --qtgmc[=TFF|BFF|AUTO] Use VapourSynth QTGMC (best motion quality, requires vspipe)
+
 Enhancements:
-  --trim-black          Remove black frames/gaps with synchronous A/V cut
-  --expcol              Exposure/colour (eq + colorbalance)
+  --trim-black          Neutralize black gaps and freeze middle dropouts (TBC frame-hold)
+  --blackmagic          Optimizations for Blackmagic Intensity Shuttle captures
+  --expcol              Exposure/colour adjustments (eq + colorbalance)
   --denoise             Light hqdn3d denoise
-  --chroma-fix          Reduce chroma bleed
+  --chroma-fix          Correct chroma bleed/shift (chromashift filter)
   --sharpen             Gentle unsharp after upscale
+
 Framing & delivery:
   --fill16x9            Crop/scale to fill 16:9 (default is 4:3 pillarbox)
-  --prores              Final encode as ProRes MOV (default H.264 MP4)
+  --prores              Final encode as ProRes MOV (default H.264 MP4 Rec.709)
   --crf N               CRF for H.264 (default 18)
   --clean-work          Remove intermediate work files after successful final encode
-  -y                    Allow overwriting where underlying steps use -y
+  -y                    Allow overwriting output files
   -h|--help             Show help and exit
-Examples:
-  master.sh --preview --dev-video /dev/video0
-  master.sh --capture="Family_Tape_1998" --limit 01:30:00 --split-min 20 --vhs --qtgmc --denoise
-  master.sh 1_raw_captures/clip.mkv --guess --bwdif --fill16x9 --prores
 EOF
 }
 
 # Defaults
 IN=""
 MODE="guess"
-DEINT="qtgmc"
-FIELD="TFF"
+DEINT="bwdif"
+FIELD="AUTO"
 TRIM_BLACK=0
 APPLY_DENOISE=0
 APPLY_CHROMA=0
@@ -97,16 +99,11 @@ DO_CAPTURE=0
 DO_CAP_PREVIEW=0
 CAPTURE_NAME=""
 ONLY_CAPTURE=0
-DEV_VIDEO=""
-ALSA_DEV=""
-FRAMERATE=""
-VIDEO_SIZE=""
-INPUT_FMT=""
-AUDIO_RATE=""
-CAP_LIMIT=""
-CAP_SPLIT_MIN=""
-CLEAN_WORK=0      # --clean-work: remove intermediários após encode final bem-sucedido
-BLACKMAGIC=0      # --blackmagic: calibração para placas Blackmagic (Intensity / DeckLink)
+FAST_MODE=0
+DEVICE_ID="auto"
+STANDARD_OVERRIDE="auto"
+CLEAN_WORK=0
+BLACKMAGIC=0
 
 # Parse args
 while [[ $# -gt 0 ]]; do
@@ -117,19 +114,16 @@ while [[ $# -gt 0 ]]; do
     --capture-and-preview) DO_CAP_PREVIEW=1;;
     --capture-and-preview=*) DO_CAP_PREVIEW=1; CAPTURE_NAME="${1#--capture-and-preview=}";;
     --only-capture) ONLY_CAPTURE=1;;
-    --dev-video) shift; DEV_VIDEO="${1:?value}";;
-    --alsa-dev) shift; ALSA_DEV="${1:?value}";;
-    --framerate) shift; FRAMERATE="${1:?value}";;
-    --video-size) shift; VIDEO_SIZE="${1:?value}";;
-    --input-fmt) shift; INPUT_FMT="${1:?value}";;
-    --audio-rate) shift; AUDIO_RATE="${1:?value}";;
-    --limit) shift; CAP_LIMIT="${1:?value}";;
-    --split-min) shift; CAP_SPLIT_MIN="${1:?value}";;
+    --fast) FAST_MODE=1;;
+    --device) shift; DEVICE_ID="${1:?value}";;
+    --device=*) DEVICE_ID="${1#--device=}";;
+    --standard) shift; STANDARD_OVERRIDE="${1:?value}";;
+    --standard=*) STANDARD_OVERRIDE="${1#--standard=}";;
     --cine18) MODE="cine18";;
     --cine24) MODE="cine24";;
     --vhs) MODE="vhs";;
     --guess) MODE="guess";;
-    --qtgmc) DEINT="qtgmc"; FIELD="TFF";;
+    --qtgmc) DEINT="qtgmc"; FIELD="AUTO";;
     --qtgmc=*) DEINT="qtgmc"; FIELD="${1#--qtgmc=}";;
     --bwdif) DEINT="bwdif";;
     --trim-black|--remove-black) TRIM_BLACK=1;;
@@ -154,254 +148,176 @@ while [[ $# -gt 0 ]]; do
   shift || true
 done
 
-# Helper to export env vars to child scripts
-build_env() {
-  local e=()
-  [[ -n "$DEV_VIDEO" ]]   && e+=( DEV_VIDEO="$DEV_VIDEO" )
-  [[ -n "$ALSA_DEV" ]]    && e+=( ALSA_DEV="$ALSA_DEV" )
-  [[ -n "$FRAMERATE" ]]   && e+=( FRAMERATE="$FRAMERATE" )
-  [[ -n "$VIDEO_SIZE" ]]  && e+=( VIDEO_SIZE="$VIDEO_SIZE" )
-  [[ -n "$INPUT_FMT" ]]   && e+=( INPUT_FMT="$INPUT_FMT" )
-  [[ -n "$AUDIO_RATE" ]]  && e+=( AUDIO_RATE="$AUDIO_RATE" )
-  [[ -n "$CAP_LIMIT" ]]   && e+=( LIMIT="$CAP_LIMIT" )
-  [[ -n "$CAP_SPLIT_MIN" ]] && e+=( SPLIT_MIN="$CAP_SPLIT_MIN" )
-  echo "${e[@]-}"
-}
-
-# PREVIEW
-if [[ $DO_PREVIEW -eq 1 ]]; then
-  info "Opening live preview..."
-  env $(build_env) "$REPO_ROOT/stages/1_raw_captures/00_live_preview.sh"
-  exit 0
-fi
-
-# CAPTURE & PREVIEW (tee)
-if [[ $DO_CAP_PREVIEW -eq 1 && -n "$CAP_SPLIT_MIN" ]]; then
-  warn "Segmentation (--split-min) is not supported with --capture-and-preview; ignoring."
-fi
-if [[ $DO_CAP_PREVIEW -eq 1 && $DO_CAPTURE -eq 1 ]]; then
-  err "Choose either --capture or --capture-and-preview, not both."; exit 1
-fi
-if [[ $DO_CAP_PREVIEW -eq 1 ]]; then
-  info "Starting capture+preview..."
-  if [[ -n "$CAPTURE_NAME" ]]; then
-    env $(build_env) "$REPO_ROOT/stages/1_raw_captures/00_capture_and_preview.sh" "$CAPTURE_NAME"
-  else
-    env $(build_env) "$REPO_ROOT/stages/1_raw_captures/00_capture_and_preview.sh"
-  fi
-  if [[ -n "$CAPTURE_NAME" ]]; then
-    newest="$(ls -1t "$(stage_dir 1)/${CAPTURE_NAME}"*.mkv 2>/dev/null | head -n1 || true)"
-    if [[ -n "$newest" ]]; then IN="$newest"; else IN="$(stage_dir 1)/${CAPTURE_NAME}.mkv"; fi
-  else
-    IN="$(ls -1t "$(stage_dir 1)"/*.mkv | head -n1)"
-  fi
-  info "Using captured file: $IN"
-  if [[ $ONLY_CAPTURE -eq 1 ]]; then info "ONLY_CAPTURE set; exiting after capture."; exit 0; fi
-fi
-
-# CAPTURE
-if [[ $DO_CAPTURE -eq 1 ]]; then
-  info "Starting capture..."
-  if [[ -n "$CAPTURE_NAME" ]]; then
-    env $(build_env) "$REPO_ROOT/stages/1_raw_captures/00_live_capture.sh" "$CAPTURE_NAME"
-  else
-    env $(build_env) "$REPO_ROOT/stages/1_raw_captures/00_live_capture.sh"
-  fi
-  if [[ -z "$CAPTURE_NAME" ]]; then
-    IN="$(ls -1t "$(stage_dir 1)"/*.mkv | head -n1)"
-  else
-    newest="$(ls -1t "$(stage_dir 1)/${CAPTURE_NAME}"*.mkv 2>/dev/null | head -n1 || true)"
-    if [[ -n "$newest" ]]; then IN="$newest"; else IN="$(stage_dir 1)/${CAPTURE_NAME}.mkv"; fi
-  fi
-  info "Using captured file: $IN"
-  if [[ $ONLY_CAPTURE -eq 1 ]]; then info "ONLY_CAPTURE set; exiting after capture."; exit 0; fi
-fi
-
-# Require input from here if not set
+# Require input file
 if [[ -z "$IN" ]]; then
-  err "No INPUT provided. Use --preview/--capture/--capture-and-preview, or pass an existing file."
+  err "Nenhum arquivo de entrada fornecido. Use --help para instruções."
   exit 1
 fi
 if [[ ! -f "$IN" && -f "$REPO_ROOT/../$IN" ]]; then
   IN="$(cd "$REPO_ROOT/.." && pwd -P)/$IN"
 fi
-[[ -f "$IN" ]] || { err "Input not found: $IN"; exit 1; }
+[[ -f "$IN" ]] || { err "Arquivo de entrada não encontrado: $IN"; exit 1; }
 
-# Heuristic for mode
-HAS_AUDIO=$(ffprobe -v error -select_streams a:0 -show_entries stream=index -of csv=p=0 "$IN" || true)
-if [[ "$MODE" == "guess" ]]; then
-  if [[ -z "$HAS_AUDIO" ]]; then MODE="cine18"; info "Heuristic: no audio -> CINE 18fps"
-  else MODE="vhs"; info "Heuristic: audio present -> VHS"; fi
+# Fast streaming mode dispatch
+if [[ $FAST_MODE -eq 1 ]]; then
+  info "Executando em modo Fast Streaming direto (via direct_restore.py)..."
+  FAST_ARGS=("$IN" "--crf" "$CRF")
+  [[ $APPLY_DENOISE -eq 1 ]] && FAST_ARGS+=("--denoise")
+  [[ $APPLY_CHROMA -eq 1 ]]  && FAST_ARGS+=("--chroma-fix")
+  python "$REPO_ROOT/direct_restore.py" "${FAST_ARGS[@]}"
+  exit $?
 fi
-if [[ -z "$APPLY_STAB" ]]; then
-  if [[ "$MODE" == "vhs" ]]; then
-    APPLY_STAB=0
-  else
-    APPLY_STAB=1
-  fi
+
+WORK_DIR="$(cd "$REPO_ROOT/.." && pwd -P)/media/work"
+mkdir -p "$WORK_DIR"
+MANIFEST_FILE="$WORK_DIR/manifest.json"
+
+# ===========================================================================
+# ESTÁGIO 0: PREFLIGHT E MANIFESTO TÉCNICO
+# ===========================================================================
+info "Executando Estágio 0: Preflight..."
+
+if command -v cygpath >/dev/null 2>&1; then
+  MANIFEST_FILE_PY="$(cygpath -w "$MANIFEST_FILE")"
+else
+  MANIFEST_FILE_PY="$MANIFEST_FILE"
 fi
+
+python "$REPO_ROOT/stages/0_preflight/00_preflight.py" "$(to_win_path "$IN")" \
+  -o "$MANIFEST_FILE_PY" \
+  --device "$DEVICE_ID" \
+  --standard "$STANDARD_OVERRIDE"
+
+# Leitura determinística de propriedades do manifesto
+STANDARD=$(python -c "import json; m=json.load(open(r'$MANIFEST_FILE_PY')); print(m.get('standard','ntsc'))")
+NEEDS_DEINT=$(python -c "import json; m=json.load(open(r'$MANIFEST_FILE_PY')); print('1' if m.get('needs_deinterlace') else '0')")
+PREF_ORDER=$(python -c "import json; m=json.load(open(r'$MANIFEST_FILE_PY')); print(m.get('field_order','bff').upper())")
+NEEDS_CROP=$(python -c "import json; m=json.load(open(r'$MANIFEST_FILE_PY')); print('1' if m.get('needs_vbi_crop') else '0')")
+AUDIO_POLICY=$(python -c "import json; m=json.load(open(r'$MANIFEST_FILE_PY')); print(m.get('audio_policy','stereo_passthrough'))")
+IN_COLOR_MATRIX=$(python -c "import json; m=json.load(open(r'$MANIFEST_FILE_PY')); print(m.get('color_in','smpte170m'))")
+export IN_COLOR_MATRIX
+
 CURRENT="$IN"
-
-# ── Single-pass pre-deinterlace restoration ────────────────────────────────
-# Compõe expcol + denoise + chroma em UM único passo ffmpeg → zero I/O intermediário.
-# Cada filtro habilitado é encadeado com vírgula antes de ser passado ao ffmpeg.
-# shellcheck source=/dev/null
-source "$REPO_ROOT/lib/filters.sh"
-
-# Rastreia todos os intermediários para limpeza opcional ao final
 WORK_FILES=()
 
-PREDEINT_VF="$(build_predeint_filters "$APPLY_EXPCOL" "$APPLY_DENOISE" "$APPLY_CHROMA")"
-
-if [[ -n "$PREDEINT_VF" ]]; then
-  info "Step: pré-deinterlace (single-pass: ${PREDEINT_VF})"
-  PRE_OUT="$(stage_dir 3)/$(basename "${CURRENT%.*}")_pre.mkv"
-  run_ffmpeg "${PRE_OUT%.*}.log" -hide_banner -i "$CURRENT" \
-    -vf "$PREDEINT_VF" \
-    "${ffv1_args[@]}" "$PRE_OUT"
-  CURRENT="$PRE_OUT"
-  validate_video "$CURRENT" "pré-deinterlace"
-  WORK_FILES+=("$CURRENT")
-fi
-
-# Deinterlace
-if [[ "$DEINT" == "qtgmc" ]]; then
-  DEINT_OUT="$(stage_dir 3)/$(basename "${CURRENT%.*}")_qtgmc50p.mkv"
-  if [[ -f "$DEINT_OUT" && $(wc -c < "$DEINT_OUT" 2>/dev/null || echo 0) -gt 1000000 && "${OVERWRITE:-0}" != "1" ]]; then
-    info "Step: QTGMC deinterlace already exists ($DEINT_OUT). Reusing..."
-    CURRENT="$DEINT_OUT"
-  else
-    info "Step: QTGMC deinterlace to 50p (${FIELD})"
-    "$REPO_ROOT/stages/3_motion_and_fps_correction/00_qtgmc_deint.sh" "$CURRENT" "$(stage_dir 3)" "$FIELD"
-    CURRENT="$DEINT_OUT"
-  fi
-else
-  DEINT_OUT="$(stage_dir 3)/$(basename "${CURRENT%.*}")_bwdif.mkv"
-  if [[ -f "$DEINT_OUT" && $(wc -c < "$DEINT_OUT" 2>/dev/null || echo 0) -gt 1000000 && "${OVERWRITE:-0}" != "1" ]]; then
-    info "Step: bwdif deinterlace already exists ($DEINT_OUT). Reusing..."
-    CURRENT="$DEINT_OUT"
-  else
-    info "Step: bwdif deinterlace to 50p"
-    "$REPO_ROOT/stages/3_motion_and_fps_correction/01_deinterlace_bwdif.sh" "$CURRENT" "$(stage_dir 3)"
-    CURRENT="$DEINT_OUT"
-  fi
-fi
-validate_video "$CURRENT" "deinterlace"
-WORK_FILES+=("$CURRENT")
-
-# Trim black frames AFTER deinterlace (progressive 50p) — eliminates jumps at splice points.
-# MUST run before vidstab so the stabiliser never tries to track across edit boundaries.
-#
-# --mode=auto:
-#   - Gaps intermediários (dropouts, falhas de sinal): remove do VÍDEO APENAS.
-#     O áudio continua 100% intacto e contínuo — isso corrige a dessincronização
-#     progressiva causada pelos frames extras inseridos pela capturadora.
-#   - Líder inicial / trailer final: remove de ambos os streams (A/V sync),
-#     pois não há conteúdo útil em nenhum dos dois.
+# ===========================================================================
+# ESTÁGIO 2: TRATAMENTO DE SINAL & SINCRONIA A/V (TBC FRAME-HOLD)
+# Executado ANTES do deinterlace para não perder tempo com pretos
+# ===========================================================================
 if [[ $TRIM_BLACK -eq 1 ]]; then
-  TRIM_OUT="$(stage_dir 3)/$(basename "${CURRENT%.*}")_trimmed.mkv"
-  if [[ -f "$TRIM_OUT" && $(wc -c < "$TRIM_OUT" 2>/dev/null || echo 0) -gt 1000000 && "${OVERWRITE:-0}" != "1" ]]; then
-    info "Step: trim_black already exists ($TRIM_OUT). Reusing..."
-    CURRENT="$TRIM_OUT"
+  info "Executando Estágio 2: Neutralização de perdas de sinal (TBC Frame-Hold)..."
+  STAGE2_DIR="$(stage_dir 2)"
+  HOLD_OUT="$STAGE2_DIR/$(basename "${CURRENT%.*}")_held.mkv"
+  if [[ -f "$HOLD_OUT" && "${OVERWRITE:-0}" != "1" ]]; then
+    info "Etapa de neutralização já processada. Reutilizando: $HOLD_OUT"
+    CURRENT="$HOLD_OUT"
   else
-    info "Step: trim black frames (video-only para gaps, A/V sync para líder/trailer)"
-    TRIM_EXTRA=()
-    [[ $BLACKMAGIC -eq 1 ]] && TRIM_EXTRA+=( "--blackmagic" )
-    python "$REPO_ROOT/stages/2_restoration/00_trim_black_sync.py" \
-      --mode=auto \
-      "${TRIM_EXTRA[@]}" \
-      "$CURRENT" "$TRIM_OUT"
-    CURRENT="$TRIM_OUT"
+    python "$REPO_ROOT/stages/2_restoration/00_black_hold.py" "$(to_win_path "$CURRENT")" -o "$(to_win_path "$HOLD_OUT")" --mode freeze
+    CURRENT="$HOLD_OUT"
   fi
-  validate_video "$CURRENT" "trim_black"
+  validate_video "$CURRENT" "black_hold"
   WORK_FILES+=("$CURRENT")
 fi
 
-# Stabilise
-if [[ $APPLY_STAB -eq 1 ]]; then
-  info "Step: stabilise (detect)"
+# ===========================================================================
+# ESTÁGIO 3: DESENTRELAÇAMENTO INTELIGENTE
+# Pula se o vídeo já estiver progressivo conforme o manifesto
+# ===========================================================================
+if [[ "$NEEDS_DEINT" -eq 1 ]]; then
+  STAGE3_DIR="$(stage_dir 3)"
+  if [[ "$DEINT" == "qtgmc" ]] && command -v vspipe >/dev/null 2>&1; then
+    DEINT_OUT="$STAGE3_DIR/$(basename "${CURRENT%.*}")_qtgmc.mkv"
+    info "Executando Estágio 3: QTGMC Deinterlace (${PREF_ORDER})..."
+    "$REPO_ROOT/stages/3_motion_and_fps_correction/00_qtgmc_deint.sh" "$CURRENT" "$STAGE3_DIR" "$PREF_ORDER"
+    CURRENT="$DEINT_OUT"
+  else
+    DEINT_OUT="$STAGE3_DIR/$(basename "${CURRENT%.*}")_bwdif.mkv"
+    info "Executando Estágio 3: BWDIF Bob Deinterlace 60p/50p..."
+    "$REPO_ROOT/stages/3_motion_and_fps_correction/01_deinterlace_bwdif.sh" "$CURRENT" "$STAGE3_DIR"
+    CURRENT="$DEINT_OUT"
+  fi
+  validate_video "$CURRENT" "deinterlace"
+  WORK_FILES+=("$CURRENT")
+else
+  info "Estágio 3: Vídeo já progressivo (detectado no preflight). Pulando desentrelaçamento."
+fi
+
+# ===========================================================================
+# ESTÁGIO 4: FILTROS DE RESTAURAÇÃO (SINGLE-PASS LOSSLESS)
+# Expcol + Denoise + ChromaShift combinados
+# ===========================================================================
+RESTORE_VF="$(build_predeint_filters "$APPLY_EXPCOL" "$APPLY_DENOISE" "$APPLY_CHROMA")"
+if [[ -n "$RESTORE_VF" ]]; then
+  info "Executando Estágio 4: Filtros de restauração (${RESTORE_VF})..."
+  STAGE4_DIR="$(stage_dir 4)"
+  RESTORE_OUT="$STAGE4_DIR/$(basename "${CURRENT%.*}")_restored.mkv"
+  run_ffmpeg "${RESTORE_OUT%.*}.log" -hide_banner -i "$CURRENT" \
+    -vf "$RESTORE_VF" \
+    "${ffv1_args[@]}" "$RESTORE_OUT"
+  CURRENT="$RESTORE_OUT"
+  validate_video "$CURRENT" "restauração"
+  WORK_FILES+=("$CURRENT")
+fi
+
+# Estabilização (opcional)
+if [[ "${APPLY_STAB:-0}" -eq 1 ]]; then
+  info "Executando estabilização vidstab..."
   "$REPO_ROOT/stages/3_motion_and_fps_correction/02_stab_detect.sh" "$CURRENT" "$(basename "${CURRENT%.*}")"
-  info "Step: stabilise (apply)"
   "$REPO_ROOT/stages/3_motion_and_fps_correction/03_stab_apply.sh" "$CURRENT" "$(stage_dir 3)/$(basename "${CURRENT%.*}").trf" "$(stage_dir 3)"
   CURRENT="$(stage_dir 3)/$(basename "${CURRENT%.*}")_stab.mkv"
   validate_video "$CURRENT" "vidstab"
   WORK_FILES+=("$CURRENT")
-else
-  info "Step: stabilise skipped (use --stab to enable)"
 fi
 
-# Mode-specific timing/interp
-case "$MODE" in
-  cine18)
-    info "Step: conform to 18fps"
-    "$REPO_ROOT/stages/3_motion_and_fps_correction/04_conform_18fps.sh" "$CURRENT" "$(stage_dir 3)"
-    CURRENT="$(stage_dir 3)/$(basename "${CURRENT%.*}")_18fps.mkv"
-    validate_video "$CURRENT" "conform_18fps"
-    WORK_FILES+=("$CURRENT")
-    info "Step: motion interpolate to 50p"
-    "$REPO_ROOT/stages/3_motion_and_fps_correction/06_minterp_50p.sh" "$CURRENT" "$(stage_dir 4)"
-    CURRENT="$(stage_dir 4)/$(basename "${CURRENT%.*}")_50p.mkv"
-    validate_video "$CURRENT" "minterp_50p"
-    WORK_FILES+=("$CURRENT")
-    ;;
-  cine24)
-    info "Step: conform to 24fps"
-    "$REPO_ROOT/stages/3_motion_and_fps_correction/05_conform_24fps.sh" "$CURRENT" "$(stage_dir 3)"
-    CURRENT="$(stage_dir 3)/$(basename "${CURRENT%.*}")_24fps.mkv"
-    validate_video "$CURRENT" "conform_24fps"
-    WORK_FILES+=("$CURRENT")
-    info "Step: motion interpolate to 50p"
-    "$REPO_ROOT/stages/3_motion_and_fps_correction/06_minterp_50p.sh" "$CURRENT" "$(stage_dir 4)"
-    CURRENT="$(stage_dir 4)/$(basename "${CURRENT%.*}")_50p.mkv"
-    validate_video "$CURRENT" "minterp_50p"
-    WORK_FILES+=("$CURRENT")
-    ;;
-  vhs)
-    # VHS deinterlaced via bwdif ou QTGMC já é double-rate (50p).
-    # Pular minterpolate evita optical flow redundante — ~10-20x mais rápido.
-    info "Step: VHS cadence verified at 50/60p (skipping redundant minterpolate)"
-    ;;
-esac
-
-# Accelerated single-pass SAR + 1080p Upscale + Final Encode
-info "Step: single-pass upscale & encode to 1080p master (zero intermediate disk I/O)"
+# ===========================================================================
+# ESTÁGIO 5: GEOMETRIA, UPSCALE 1080P & CODIFICAÇÃO FINAL
+# Crop VBI (se 486) + Rec.709 Master Encoding
+# ===========================================================================
+info "Executando Estágio 5: Upscale 1080p Lanczos e Codificação Final Rec.709..."
 FINAL_DIR="$(stage_dir 5)"
 mkdir -p "$FINAL_DIR"
 
-# Build final video filter chain using filters.sh library
-VFILTER="$(build_final_filters "$FILL16X9" "$APPLY_SHARP")"
+VFILTER="$(build_final_filters "$FILL16X9" "$APPLY_SHARP" "$NEEDS_CROP")"
+
+# Configuração de áudio (duplicação mono se solicitado pelo perfil do aparelho)
+AUDIO_OPTS=(-c:a aac -b:a 192k)
+if [[ "$AUDIO_POLICY" == "duplicate_mono_to_stereo" ]]; then
+  AUDIO_OPTS=(-af "pan=stereo|c0=c0|c1=c0" -c:a aac -b:a 192k)
+fi
 
 if [[ "$FINAL" == "prores" ]]; then
   FINAL_OUT="$FINAL_DIR/$(basename "${CURRENT%.*}")_1080p_prores.mov"
-  info "Encoding ProRes 422 HQ: $FINAL_OUT"
+  info "Codificando Apple ProRes 422 HQ: $FINAL_OUT"
   run_ffmpeg "${FINAL_OUT%.*}.log" -hide_banner -y -i "$CURRENT" \
     -vf "$VFILTER" \
+    -colorspace bt709 -color_primaries bt709 -color_trc bt709 \
     -c:v prores_ks -profile:v 3 -vendor apl0 -bits_per_mb 8000 -pix_fmt yuv422p10le \
-    -c:a copy "$FINAL_OUT"
+    "${AUDIO_OPTS[@]}" "$FINAL_OUT"
 else
-  FINAL_OUT="$FINAL_DIR/$(basename "${CURRENT%.*}")_1080p_h264.mp4"
-  info "Encoding H.264 (CRF=$CRF, preset=slow): $FINAL_OUT"
+  FINAL_OUT="$FINAL_DIR/$(basename "${CURRENT%.*}")_1080p_master.mp4"
+  info "Codificando H.264 Master (CRF=$CRF, Rec.709): $FINAL_OUT"
   run_ffmpeg "${FINAL_OUT%.*}.log" -hide_banner -y -i "$CURRENT" \
     -vf "$VFILTER" \
-    -c:v libx264 -preset slow -crf "$CRF" -pix_fmt yuv420p \
-    -color_primaries bt470bg -color_trc bt470bg -colorspace bt470bg \
-    -c:a aac -b:a 192k "$FINAL_OUT"
+    -c:v libx264 -preset veryfast -crf "$CRF" -pix_fmt yuv420p \
+    -colorspace bt709 -color_primaries bt709 -color_trc bt709 \
+    "${AUDIO_OPTS[@]}" "$FINAL_OUT"
 fi
 
 validate_video "$FINAL_OUT" "encode final"
 
-# ── Limpeza de intermediários (--clean-work) ────────────────────────────────
+# ===========================================================================
+# ESTÁGIO 6: VERIFICAÇÃO DE CONFORMIDADE
+# ===========================================================================
+info "Executando Estágio 6: Verificação de Conformidade..."
+python "$REPO_ROOT/stages/6_verify/verify.py" "$(to_win_path "$FINAL_OUT")"
+
+# Limpeza de intermediários (--clean-work)
 if [[ $CLEAN_WORK -eq 1 ]]; then
-  info "Removendo arquivos intermediários (--clean-work)..."
+  info "Removendo intermediários (--clean-work)..."
   cleanup_work "${WORK_FILES[@]}"
-  # Remove também TRF de vidstab
-  find "$(stage_dir 3)" -name "*.trf" -delete 2>/dev/null || true
-  info "Limpeza concluída."
 fi
 
-# ── Resumo final ─────────────────────────────────────────────────────────────
-info "══════════════════════════════════════════"
-info "Concluído! Master restaurado:"
-info "  $FINAL_OUT"
-info "══════════════════════════════════════════"
-
+info "════════════════════════════════════════════════════════════"
+info "SUCESSO: Processo concluído com êxito!"
+info "Arquivo Master Final: $FINAL_OUT"
+info "════════════════════════════════════════════════════════════"

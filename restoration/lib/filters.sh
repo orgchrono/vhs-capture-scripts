@@ -9,13 +9,13 @@
 # Filtros de restauração (operam melhor sobre vídeo entrelaçado)
 # ---------------------------------------------------------------------------
 
-# Exposure + color balance
+# Exposure + color balance (defaults neutros: 0 alteração sem parâmetros explícitos)
 # Env: BRIGHT CONTRAST SAT GAMMA CB_RS CB_BS
 filter_expcol() {
-  local bright="${BRIGHT:-0.05}"
-  local contrast="${CONTRAST:-1.10}"
-  local sat="${SAT:-1.20}"
-  local gamma="${GAMMA:-1.20}"
+  local bright="${BRIGHT:-0.00}"
+  local contrast="${CONTRAST:-1.00}"
+  local sat="${SAT:-1.00}"
+  local gamma="${GAMMA:-1.00}"
   local cb_rs="${CB_RS:-0.0}"
   local cb_bs="${CB_BS:-0.0}"
   echo "eq=brightness=${bright}:contrast=${contrast}:saturation=${sat}:gamma=${gamma},colorbalance=rs=${cb_rs}:bs=${cb_bs}"
@@ -31,26 +31,33 @@ filter_denoise() {
   echo "hqdn3d=${luma}:${chroma}:${tl}:${tc}"
 }
 
-# Chroma misalignment correction
+# Chroma misalignment correction (FFmpeg chromashift filter)
 # Env: CHROMA_W CHROMA_H
 filter_chroma_shift() {
   local w="${CHROMA_W:-2}"
   local h="${CHROMA_H:-1}"
-  echo "chroma_shift=w=${w}:h=${h}"
+  echo "chromashift=cbh=${w}:cbv=${h}:crh=${w}:crv=${h}:edge=smear"
 }
 
 # ---------------------------------------------------------------------------
-# Filtros de upscale / framing (operam sobre vídeo progressivo pós-deint)
+# Filtros de geometria e upscale / framing (operam sobre vídeo progressivo)
 # ---------------------------------------------------------------------------
 
-# 4:3 pillarbox → 1440x1080 + pad a 1920x1080
+# Crop de VBI (remove 6 linhas de intervalo vertical da Blackmagic 486 -> 480 ativas)
+filter_vbi_crop() {
+  echo "crop=720:480:0:4"
+}
+
+# 4:3 pillarbox → 1440x1080 com conversão de espaço de cores BT.601 -> BT.709 + pad a 1920x1080
 filter_upscale_4x3() {
-  echo "setsar=1,scale=1440:1080:flags=lanczos,pad=1920:1080:(ow-iw)/2:(oh-ih)/2"
+  local in_matrix="${IN_COLOR_MATRIX:-smpte170m}"
+  echo "setsar=1,scale=1440:1080:flags=lanczos:in_color_matrix=${in_matrix}:out_color_matrix=bt709,pad=1920:1080:(ow-iw)/2:(oh-ih)/2"
 }
 
-# Fill 16:9 (crop mínimo, sem stretch)
+# Fill 16:9 (crop mínimo, sem stretch) com conversão BT.601 -> BT.709
 filter_upscale_fill16x9() {
-  echo "setsar=1,scale=1920:1080:flags=lanczos:force_original_aspect_ratio=increase,crop=1920:1080"
+  local in_matrix="${IN_COLOR_MATRIX:-smpte170m}"
+  echo "setsar=1,scale=1920:1080:flags=lanczos:force_original_aspect_ratio=increase:in_color_matrix=${in_matrix}:out_color_matrix=bt709,crop=1920:1080"
 }
 
 # Unsharp mask (sharpen pós-upscale)
@@ -98,7 +105,10 @@ build_predeint_filters() {
 build_final_filters() {
   local fill16x9="${1:-0}"
   local apply_sharp="${2:-0}"
+  local crop_vbi="${3:-0}"
   local parts=()
+
+  [[ "$crop_vbi" -eq 1 ]] && parts+=("$(filter_vbi_crop)")
 
   if [[ "$fill16x9" -eq 1 ]]; then
     parts+=("$(filter_upscale_fill16x9)")

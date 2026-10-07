@@ -12,11 +12,17 @@ set "SCRIPT_DIR=%~dp0"
 set "PROJECT_ROOT=%SCRIPT_DIR%.."
 pushd "%PROJECT_ROOT%"
 
-REM Detect Git Bash
+REM Detect Git Bash (evita invocar o bash.exe do WSL em System32)
 set "BASH_EXE="
 if exist "C:\Program Files\Git\bin\bash.exe" set "BASH_EXE=C:\Program Files\Git\bin\bash.exe"
+if exist "C:\Program Files\Git\usr\bin\bash.exe" if not defined BASH_EXE set "BASH_EXE=C:\Program Files\Git\usr\bin\bash.exe"
+if exist "%LOCALAPPDATA%\Programs\Git\bin\bash.exe" if not defined BASH_EXE set "BASH_EXE=%LOCALAPPDATA%\Programs\Git\bin\bash.exe"
 if not defined BASH_EXE (
-    for %%P in (bash.exe) do set "BASH_EXE=%%~$PATH:P"
+    for %%P in (bash.exe) do (
+        if /i not "%%~$PATH:P"=="C:\Windows\System32\bash.exe" (
+            set "BASH_EXE=%%~$PATH:P"
+        )
+    )
 )
 if not defined BASH_EXE (
     color 0C
@@ -113,7 +119,16 @@ echo.
 echo [SISTEMA] Iniciando restauração master...
 echo ------------------------------------------------------------
 
-python "%SCRIPT_DIR%direct_restore.py" "%INPUT_FILE%"
+set "USE_MASTER_SH=0"
+echo %EXTRA_OPTS% | findstr /i /c:"--master" /c:"--stages" >nul && set "USE_MASTER_SH=1"
+
+if "%USE_MASTER_SH%"=="1" (
+    echo [MODO] Pipeline Master Multi-estágios (via Bash)
+    "%BASH_EXE%" "%SCRIPT_DIR%master.sh" "%INPUT_FILE%" %EXTRA_OPTS%
+) else (
+    echo [MODO] Restauração Direta Frame-Accurate (via Python Streaming)
+    python "%SCRIPT_DIR%direct_restore.py" "%INPUT_FILE%" %EXTRA_OPTS%
+)
 
 set "EXIT_CODE=%ERRORLEVEL%"
 echo ------------------------------------------------------------

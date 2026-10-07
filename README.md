@@ -1,208 +1,183 @@
-# 📼 VHS Studio - Automação de Captura & Restauração Master
+# 📼 VHS Studio — Captura & Restauração Analógica Master
 
-Sistema inteligente e automatizado para digitalização e restauração de fitas VHS e filmadoras com a placa **Blackmagic Intensity Shuttle USB 3.0** e **OBS Studio 64-bit**.
-
----
-
-### 🚀 Como Usar (Fluxo 100% Automático)
-
-1. Conecte sua **Blackmagic Intensity Shuttle** na porta USB 3.0 e plugue os cabos RCA da filmadora/VCR.
-2. Dê dois cliques em **`iniciar_vhs_capture.bat`** na raiz da pasta.
-3. Dê **PLAY** na filmadora:
-   - O OBS detecta o áudio e **inicia a gravação automaticamente** (Auto-Start).
-   - Ao finalizar a fita (ou pausar por 5s), o OBS **interrompe a gravação sozinho** (Auto-Stop).
-   - O terminal de restauração abre sozinho:
-     - **Remove 100% dos frames pretos** (gaps, líderes e quedas de sinal) com sincronia absoluta de áudio.
-     - Aplica desentrelaçamento em double-rate (50/60p), estabilização e upscale 1080p.
-4. O vídeo master restaurado fica pronto diretamente em: **`media/output/`**.
+Sistema automatizado de ponta a ponta para captura e restauração de fitas VHS e VHS-C utilizando **OBS Studio**, **Blackmagic Intensity Shuttle USB 3.0**, estabilização via **TBC Panasonic DMR-EH55**, e pipeline de processamento em software com **FFmpeg** e **Python**.
 
 ---
 
-### 📁 Organização de Pastas
+## 📐 Visão Geral da Arquitetura de Hardware
 
-* **`iniciar_vhs_capture.bat`** — Inicializador principal com perfil e cena da Blackmagic pré-carregados.
-* **`capture/obs/`** — OBS Studio 64-bit Portable isolado + plugin de automação (`vhs_auto_restore.lua`).
-* **`restoration/`** — Scripts do pipeline de restauração (`run_pipeline.bat` e `master.sh`).
-* **`media/raw/`** — Gravações brutas originais capturadas.
-* **`media/work/`** — Arquivos de processamento intermediário (estágios 2 a 4).
-* **`media/output/`** — Arquivos finais entregues (1080p 50/60p Master H.264/ProRes).
+A ligação direta entre VCRs analógicos e a placa Blackmagic Intensity Shuttle é historicamente instável devido a instabilidades de sincronismo horizontal/vertical inerentes à fita magnética. O uso de um **TBC passthrough** resolve completamente este problema:
 
----
-
-# 🎞 VHS & Cine Restoration Workflow (Documentação Técnica)  
-
-Each stage focuses on a logical phase of the restoration pipeline — from capture through to final encoding — while preserving image integrity and providing maximum control over the transformation process.  
-
-Scripts are self-contained and can be run individually or chained via `master.sh` or the `bin/vhs` command. Each script supports `--help` (`-h`) for detailed argument descriptions.
-
----
-
-## 🧭 Workflow Overview
-
-### **Stage 1 – Raw Capture**
-**Folder:** `stages/1_raw_captures/`
-
-Provides live preview and capture tools to obtain footage from an analogue capture device.  
-
-- **`00_live_preview.sh`** – Displays a live preview feed to help with focus, framing, and checking signal stability.  
-- Capture scripts (if present) store lossless masters in a neutral format for later processing.  
-
-**Why this matters:**  
-Analogue sources vary dramatically in colour balance and signal strength. Viewing live helps you avoid crushed blacks or clipped highlights before committing to capture.
-
----
-
-### **Stage 2 – Restoration & Colour Balancing**
-**Folder:** `stages/2_restoration/`
-
-Tools for evaluating and improving the raw capture before any structural alterations (frame rate or resolution).  
-
-Includes utilities for:  
-- **Colour correction and white balance adjustments** (using `eq` and `curves` filters).  
-- **Denoising** (typically with `hqdn3d` or `nlmeans` for temporal/spatial noise reduction).  
-- **Chroma shift correction** (compensating for luma/chroma misalignment on composite captures).  
-- **Preview and histogram display:**  
-  - `preview_hist.sh` – Displays a live histogram overlay to fine-tune brightness and contrast.  
-  - `preview_compare.sh` – Provides side-by-side before/after comparison of filter results.  
-
-**Why this matters:**  
-Restoration at this stage maximises fidelity before changing temporal or spatial properties. Working on the native capture ensures cleaner interpolation and avoids compounding compression artefacts.
-
----
-
-### **Stage 3 – Motion Correction, Conforming & Frame Processing**
-**Folder:** `stages/3_conform/`
-
-Handles temporal transformations and motion integrity.  
-Typical tasks include:  
-- **Deinterlacing:** Converts interlaced 50i or 25i footage to true progressive frames for digital workflows.  
-- **Stabilisation:** Reduces camera shake or jitter (where applicable).  
-- **Speed conforming:**  
-  - `05_conform_18fps.sh` – Converts 25 fps capture to 18 fps for authentic cine playback speed.  
-  - `06_conform_24fps.sh` – Converts 25 fps capture to 24 fps for standard film timing.  
-- **Motion interpolation:** Generates smooth 50 fps output for modern display refresh rates.  
-
-**Why these framerates:**  
-Most consumer PAL equipment runs at 25 fps.  
-Cine film, however, was shot at 16–18 fps or 24 fps.  
-If you replay 18 fps film at 25 fps, it appears unnaturally fast.  
-The conform scripts slow playback by adjusting presentation timestamps (not frame duplication), preserving temporal smoothness and authentic motion cadence.
-
----
-
-### **Stage 4 – Geometry, Upscaling & Enhancement**
-**Folder:** `stages/4_upscale/`
-
-Focuses on spatial transformation — ensuring the image displays correctly on modern screens while preserving original proportions.
-
-Typical steps include:  
-- **Pixel “squaring” / aspect correction:** Converts PAL/NTSC’s non-square pixels to true square pixels.  
-- **Upscaling 4:3 sources to 1080p** with pillarboxing to avoid stretching.  
-- **Sharpening and fine-detail enhancement** after upscaling (using `unsharp` or `deband` filters).  
-
-**Why this matters:**  
-Analogue video uses non-square pixel geometry (e.g. 720×576 @ 4:3).  
-Directly scaling to 1920×1080 without adjustment distorts proportions.  
-By correcting the pixel aspect ratio before scaling, you retain authentic framing and avoid “fat face” or “tall people” artefacts.
-
----
-
-### **Stage 5 – Final Encoding & Mastering**
-**Folder:** `stages/5_encoding/`
-
-Prepares final deliverables for archival and playback.  
-
-Capabilities include:  
-- **Lossless archival encoding** using FFV1 for preservation.  
-- **High-quality delivery encoding** (H.264, ProRes, etc.) for distribution.  
-- **Audio synchronisation tools** to correct or offset tracks if audio drift occurred during capture.  
-
-**Why the audio offset step exists:**  
-Analogue capture chains can introduce frame delays or dropped fields.  
-A small sync correction (e.g. ±0.2 s) ensures lips and sound match perfectly in the final master.
-
----
-
-## ⚙️ Script Execution
-
-Each script can be called directly, for example:
-
-```bash
-stages/3_conform/05_conform_18fps.sh --in source.mkv --out cine18.mkv
 ```
-
-Or invoked through the high-level controller:
-
-```bash
-./master.sh --vhs /path/to/raw_captures
-```
-
-All scripts support:
-- `--in` and `--out` for input/output paths  
-- `--profile` for optional configuration presets  
-- `--help` or `-h` for full usage instructions  
-
----
-
-## 🧩 Shared Components
-
-### **lib/video-lib.sh**
-Central utility library providing:
-- Safe error handling (`err`, `info`)  
-- Output path helpers (`out_path`, `stage_dir`)  
-- Safe ffmpeg invocation wrappers (`run_ffmpeg`, `run_ffplay`)  
-- Preset argument builders (`ffv1_args`, etc.)
-
-### **bin/vhs**
-Convenience launcher mirroring the stage structure, allowing commands like:
-```bash
-bin/vhs conform24 --in input.mkv
-bin/vhs upscale --in cine18.mkv
-```
-
-### **master.sh**
-Top-level orchestration script coordinating multiple stages in sequence.  
-Supports modes like `--vhs`, `--cine18`, and `--cine24` for complete, automated processing pipelines.
-
----
-
-## 🎚️ Key ffmpeg Concepts Used
-
-| Concept | Purpose | Example | Reasoning |
-|----------|----------|----------|-----------|
-| **setpts** | Adjusts playback speed via timestamp scaling | `setpts=PTS*(25/18)` | Maintains fluid motion while matching true filming rate. |
-| **fps filter** | Enforces consistent frame rate | `fps=18` | Prevents fractional or variable-frame output. |
-| **eq filter** | Basic colour and brightness adjustment | `eq=contrast=1.1:brightness=0.05:saturation=1.05` | Fine-tunes tone and exposure. |
-| **hqdn3d / nlmeans** | Denoising filters | `-vf "hqdn3d=1.5:1.5:6:6"` | Reduces analog noise while preserving edges. |
-| **unsharp / deband** | Detail enhancement after upscale | `unsharp=5:5:1.0:5:5:0.0` | Restores crispness lost to denoising. |
-| **scale** | Resizing with aspect correction | `scale=1440:1080:flags=lanczos` | Converts 4:3 PAL to 1080p square pixels. |
-| **ffv1** | Lossless archival codec | `-c:v ffv1 -level 3 -coder 1 -context 1` | Ensures perfect, bit-for-bit preservation. |
-| **aresample / itsoffset** | Audio offset control | `-itsoffset 0.2 -i audio.wav` | Corrects sync drift. |
-
----
-
-## 💡 Practical Notes
-
-- Use preview scripts freely to find ideal levels before processing large files.  
-- The pipeline intentionally avoids destructive re-encodes until the final stage.  
-- Output checks prevent accidental overwriting.  
-- Framerate choices (18 / 24 / 50 fps) are grounded in *source authenticity*, *modern display compatibility*, and *editing flexibility*.  
-- Lossless intermediates (FFV1) ensure you can revisit any stage later without generational loss.
-
----
-
-## 📘 Further Help
-
-Run any script with `--help` for its individual arguments and options.
-
-Example:
-```bash
-stages/4_upscale/07_upscale_1080p.sh --help
+┌─────────────────────────────────┐
+│ Fonte Analógica                 │
+│ • VCR JVC HR-D227M (Estéreo)    │──────┐ S-Video / RCA
+│ • Câmera JVC GR-AX410 (Mono)    │      │ (Vídeo Composto + Áudio L/R)
+└─────────────────────────────────┘      │
+                                         ▼
+                   ┌──────────────────────────────────────────┐
+                   │ Passthrough TBC: Panasonic DMR-EH55      │
+                   │ • Line TBC & Frame Synchronizer          │
+                   │ • Corrige instabilidades de sincronismo  │
+                   │ • Garante sinal contínuo na saída        │
+                   └──────────────────────────────────────────┘
+                                         │ S-Video / Componente
+                                         │ + Áudio Analógico
+                                         ▼
+                   ┌──────────────────────────────────────────┐
+                   │ Captura: Blackmagic Intensity Shuttle    │
+                   │ • USB 3.0 (Conectada direto na placa-mãe)│
+                   │ • Desktop Video Setup: NTSC 525i 59.94   │
+                   └──────────────────────────────────────────┘
+                                         │ USB 3.0 UYVY / Raw
+                                         ▼
+                   ┌──────────────────────────────────────────┐
+                   │ OBS Studio 64-bit (Perfil VHS_Archive)   │
+                   │ • 720x486 @ 29.970 fps (BFF Entrelaçado) │
+                   │ • Gravação Lossless MKV + Áudio PCM      │
+                   └──────────────────────────────────────────┘
+                                         │
+                                         ▼
+                   ┌──────────────────────────────────────────┐
+                   │ Pipeline de Restauração Automatizado    │
+                   │ 1. Preflight (inspeção de paridade/áudio)│
+                   │ 2. TBC Frame-Hold (imita congelamento)   │
+                   │ 3. Desentrelaçamento (BWDIF / QTGMC 60p) │
+                   │ 4. Correção Croma / Crop VBI             │
+                   │ 5. Upscale 1080p Rec.709 Pillarbox 4:3   │
+                   │ 6. Verificação de Integridade A/V        │
+                   └──────────────────────────────────────────┘
+                                         │
+                                         ▼
+                           `media/output/<video_master>.mp4`
 ```
 
 ---
 
-## 🧾 License & Contributions
+## 🚀 Como Usar no Dia a Dia (1 Clique)
 
-Licensed openly for educational and preservation purposes.  
-Feedback, enhancements, or alternative filter suggestions are welcome.
+### 1. Iniciar o Ambiente
+1. Conecte a **Blackmagic Intensity Shuttle** diretamente em uma porta USB 3.0 nativa da placa-mãe.
+2. Ligue o **Panasonic DMR-EH55** e o VCR/Filmadora JVC.
+3. Dê dois cliques em **`iniciar_vhs_capture.bat`** na raiz da pasta.
+   - O script carrega o OBS Studio com o perfil **`VHS_Archive`** e a cena **`VHS_Studio`** configurados para captura pura (sem deinterlace destrutivo).
+
+### 2. Captura Automática
+- Dê **PLAY** no aparelho analógico:
+  - O script inteligente de monitoramento do OBS detecta o início da reprodução e dispara a gravação automaticamente (**Auto-Start**).
+  - Ao término da fita (ou após pausa prolongada de sinal), o OBS encerra a gravação sozinho (**Auto-Stop**).
+- O arquivo bruto sem perdas é salvo em: `media/raw/AAAA-MM-DD HH-MM-SS.mkv`.
+
+### 3. Restauração Automática
+- Imediatamente após a gravação parar, o processo de restauração é disparado em segundo plano:
+  - Remove o líder preto inicial mantendo o áudio sincronizado.
+  - Congela quadros em eventuais perdas de sinal no meio da fita (**TBC Frame-Hold**), impedindo o avanço falso do vídeo e mantendo o áudio rigorosamente alinhado até o final.
+  - Converte os campos para progressivo fluido a 59.94 fps (double-rate).
+  - Corrige deslocamento de croma analógico e remove as 6 linhas de VBI analógico (486 → 480).
+  - Gera o master 1080p em espaço de cor Rec.709 com pillarboxing 4:3.
+  - Valida a conformidade técnica gravando o relatório `_verify_report.json`.
+- O vídeo restaurado final é entregue pronto em: **`media/output/`**.
+
+---
+
+## 🎛️ Modos de Restauração & Perfis de Aparelho
+
+Você pode disparar ou reprocessar qualquer gravação manualmente via linha de comando ou scripts `.bat`:
+
+### Seleção de Aparelhos Suportados
+
+| Parâmetro | Aparelho | Características de Áudio / Sinal |
+| :--- | :--- | :--- |
+| `--device jvc_hr_d227m` | **JVC HR-D227M** | VCR VHS NTSC, áudio estéreo Hi-Fi preservado nos 2 canais (L+R). |
+| `--device jvc_gr_ax410` | **JVC GR-AX410** | Filmadora VHS-C NTSC, áudio mono duplicado de L para L+R sem ruído em canal vazio. |
+
+### Modos de Processamento
+
+#### 1. Modo Rápido (Streaming Single-Pass) — Padrão
+Recomendado para o dia a dia. Executa a cadeia inteira em memória usando pipelines e pipes sem gerar arquivos intermediários gigabytes em disco:
+```bat
+restoration\run_pipeline.bat "media\raw\minha_fita.mkv" --device jvc_hr_d227m
+```
+
+#### 2. Modo Master Completo (Estágios Isolados com FFV1)
+Recomendado para preservação crítica ou ajustes manuais em cada estágio (`media/work/`):
+```bat
+restoration\run_pipeline.bat "media\raw\minha_fita.mkv" --master --device jvc_hr_d227m
+```
+
+---
+
+## 📁 Estrutura de Pastas do Repositório
+
+```
+vhs-capture-scripts-main/
+├── iniciar_vhs_capture.bat     # Launcher de 1 clique para OBS Studio + Perfil correto
+├── restaurar_async.bat         # Disparador assíncrono chamado pelo OBS ao encerrar gravação
+├── capture/
+│   └── obs/                    # Configurações de perfis, cenas e scripts Lua do OBS
+│       ├── config/             # Perfis VHS_Archive e VHS_Studio
+│       ├── vhs_auto_restore.lua# Integração de eventos do OBS Studio
+│       └── vhs_auto_watcher.py # Monitor inteligente de sinal/áudio analógico
+├── restoration/
+│   ├── run_pipeline.bat        # Wrapper Windows que unifica a chamada do pipeline
+│   ├── direct_restore.py       # Engine de restauração em streaming direto
+│   ├── master.sh               # Orquestrador mestre multi-estágios (Git Bash)
+│   ├── config/standards/       # Padrões de sinal (ntsc.env e pal.env)
+│   ├── profiles/devices/       # Perfis de hardware (JVC HR-D227M, JVC GR-AX410)
+│   ├── profiles/chain/         # Perfil de cadeia de TBC (Panasonic DMR-EH55)
+│   ├── lib/                    # Bibliotecas comuns (vhs_common.py, filters.sh, video-lib.sh)
+│   └── stages/                 # Estágios individuais (preflight, black-hold, deint, upscale, verify)
+├── media/
+│   ├── raw/                    # Capturas brutas originais (MKV Lossless)
+│   ├── work/                   # Arquivos temporários de trabalho e manifestos
+│   └── output/                 # Entregáveis finais (Master 1080p MP4)
+└── tests/                      # Gerador sintético de teste e suíte de testes unitários
+```
+
+---
+
+## 🔬 O Segredo da Sincronia A/V: TBC Frame-Hold
+
+### Por que a sincronia se perdia na abordagem antiga?
+Quando uma fita analógica apresenta um trecho danificado ou sem sinal gravado:
+1. O áudio analógico continua sendo lido ininterruptamente pelas cabeças de áudio do VCR.
+2. A placa de captura Blackmagic não recebe pulsos de sincronismo vertical válidos e corta os quadros de vídeo.
+3. Se um script descarta esses quadros pretos intermediários, o vídeo é "encurtado", mas o áudio permanece longo. O resultado é um **desvio labial cumulativo grave**, onde o áudio se atrasa cada vez mais até o final da fita.
+
+### Como a nossa solução resolve:
+O estágio **`00_black_hold.py`** implementa um TBC digital de hardware por software:
+- **No início (líder) e no fim (trailer):** Detecta e corta o preto inicial sincronizando vídeo e áudio exatamente no primeiro frame de conteúdo real.
+- **No meio da fita (quedas momentâneas):** Em vez de apagar os frames, o sistema **congela o último quadro válido** durante os milissegundos da perda de sinal. Isso mantém a contagem absoluta de frames rigorosamente alinhada com os milissegundos do fluxo de áudio PCM, garantindo **0 ms de desvio labial** ao longo de horas de gravação.
+
+---
+
+## 🛠️ Requisitos & Configurações Recomendadas de Hardware
+
+### Blackmagic Intensity Shuttle USB 3.0:
+1. **Controladora USB:** Utilize as portas USB 3.0 azuis nativas do chipset da placa-mãe (Intel ou Renesas/NEC). Evite hubs ou portas frontais de gabinete.
+2. **Plano de Energia do Windows:** Configure o plano de energia do Windows para **Alto Desempenho** e desative a opção "Suspensão seletiva USB".
+3. **Blackmagic Desktop Video Setup:**
+   - Set Video Standard: **NTSC** (525i 59.94)
+   - Input Video Format: S-Video ou Composite (de acordo com a saída do DMR-EH55)
+   - Black Level: **7.5 IRE** para fitas NTSC norte-americanas e brasileiras gravadas nesse padrão.
+
+### Panasonic DMR-EH55 (Configuração do TBC):
+- Conecte o VCR JVC na entrada **Line 1 (Traseira)** ou **Line 2 (Frontal)** via S-Video ou Composto.
+- No menu do gravador Panasonic:
+  - Entrada de Vídeo: S-Video (recomendado) ou Vídeo Composto.
+  - Selecione o canal correspondente (A1 ou A2) para ativar o passthrough ativo com o TBC de linha habilitado.
+- Conecte a saída do DMR-EH55 (S-Video + Áudio L/R) na entrada da Intensity Shuttle.
+
+---
+
+## 🧪 Testes Automatizados
+
+O projeto inclui uma suíte de testes e gerador sintético para validar o ambiente sem precisar de fita física:
+
+```bash
+# 1. Gerar fita sintética com líder, barras SMPTE e queda de sinal:
+python tests/generate_synthetic_test_tape.py
+
+# 2. Executar suíte de testes unitários:
+python -m unittest discover tests
+```

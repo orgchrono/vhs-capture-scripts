@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # lib/video-lib.sh — Biblioteca central do pipeline VHS
 # Inclua com: source "$REPO_ROOT/lib/video-lib.sh"
-set -euo pipefail
 
 # ---------------------------------------------------------------------------
 # Repo root (works when sourced from any depth)
@@ -36,7 +35,7 @@ fi
 
 # Falha rápida se as dependências críticas não estiverem disponíveis
 for _cmd in ffmpeg ffprobe; do
-  command -v "$_cmd" >/dev/null 2>&1 || { err "Missing dependency: $_cmd"; exit 1; }
+  command -v "$_cmd" >/dev/null 2>&1 || { err "Missing dependency: $_cmd"; return 1 2>/dev/null || exit 1; }
 done
 
 # ---------------------------------------------------------------------------
@@ -99,7 +98,7 @@ ensure_dest() {
       rm -f "$out"
     else
       err "Output already exists (use OVERWRITE=1 to force): $out"
-      exit 1
+      return 1
     fi
   fi
 }
@@ -107,7 +106,7 @@ ensure_dest() {
 # ---------------------------------------------------------------------------
 # validate_video — verifica integridade de um intermediário após cada step.
 # Uso: validate_video "/path/file.mkv" "nome do step"
-# Falha com exit 1 se o arquivo não existir, estiver vazio ou duração = 0.
+# Falha se o arquivo não existir, estiver vazio ou duração = 0.
 # ---------------------------------------------------------------------------
 validate_video() {
   local file="$1"
@@ -115,14 +114,14 @@ validate_video() {
 
   if [[ ! -f "$file" ]]; then
     err "Validação falhou — arquivo não encontrado após '$step_name': $file"
-    exit 1
+    return 1
   fi
 
   local size=0
   size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file" 2>/dev/null || echo 0)
   if [[ "${size}" -lt 4096 ]]; then
     err "Validação falhou — arquivo muito pequeno (${size} bytes) após '$step_name': $file"
-    exit 1
+    return 1
   fi
 
   local dur="0"
@@ -130,7 +129,7 @@ validate_video() {
         -of default=noprint_wrappers=1:nokey=1 "$file" 2>/dev/null || echo "0")
   if ! awk -v d="$dur" 'BEGIN{exit !(d+0 > 0.1)}'; then
     err "Validação falhou — duração inválida (${dur}s) após '$step_name': $file"
-    exit 1
+    return 1
   fi
 
   info "✓ $(basename "$file")  (${dur}s)"

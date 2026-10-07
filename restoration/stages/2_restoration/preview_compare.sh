@@ -40,4 +40,4 @@ IN="$1"
 VF1="${2:-eq=brightness=0.05:contrast=1.1:saturation=1.2:gamma=1.2}"
 VF2="${3:-eq=brightness=0.00:contrast=1.0:saturation=1.0:gamma=1.0}"
 
-ffplay -hide_banner -vf "[0:v]${VF1}[a];[0:v]${VF2}[b];[a][b]hstack" "$IN"
+ffplay -hide_banner -vf "split[left][right];[left]${VF1}[l];[right]${VF2}[r];[l][r]hstack" "$IN"

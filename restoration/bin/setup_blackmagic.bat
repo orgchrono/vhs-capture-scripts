@@ -8,35 +8,29 @@ echo   VHS STUDIO - CONFIGURAÇÃO E AJUSTES BLACKMAGIC DESIGN
 echo ============================================================
 echo.
 
-echo [1/3] Verificando dispositivos de captura DirectShow no Windows...
+echo [1/3] Verificando dispositivos de captura Blackmagic / DirectShow...
 echo ------------------------------------------------------------
 ffmpeg -hide_banner -list_devices true -f dshow -i dummy 2>&1 | findstr /I "DeckLink Intensity Blackmagic Video Audio"
 echo ------------------------------------------------------------
 echo.
 
-echo [2/3] Perfis e Cenas Otimizados Criados para o OBS Studio:
+echo [2/3] Cadeia de Equipamentos Calibrada:
 echo.
-echo   ✓ Perfil:           VHS_Blackmagic_PAL
-echo       - Resolução Base: 720x576 (PAL nativo)
-echo       - Taxa de Quadros: 25.00 FPS exatos (elimina drops de 59.94Hz)
-echo       - Espaço de Cor:   Rec. 601 (SD)
-echo       - Formato de Cor:  I422 (4:2:2 nativo da fita)
-echo       - Destino:         media\raw\ (evita bloqueios do OneDrive)
+echo   ✓ VCR/Câmera:     JVC HR-D227M (Estéreo) ou JVC GR-AX410 (VHS-C Mono)
+echo   ✓ TBC Passthrough: Panasonic DMR-EH55 (Linha e Quadro estáveis)
+echo   ✓ Captura:        Blackmagic Intensity Shuttle USB 3.0 (DeckLink)
 echo.
-echo   ✓ Coleção de Cenas: VHS_Blackmagic_PAL
-echo       - Entrada DeckLink travada em "PAL" (sem auto-detecção)
-echo       - Buffering ativado (impede descarte por micro-engasgos)
-echo       - Desentrelaçamento desativado (preserva campos para o QTGMC)
-echo       - Fonte WDM duplicada removida (elimina conflito de driver)
+echo   ✓ Perfil OBS Ativo: VHS Archive
+echo       - Resolução:   720x486 (NTSC analógico completo sem stretch)
+echo       - Taxa:        29.970 FPS (NTSC padrão de fita)
+echo       - Cores:       Rec. 601 (SD)
+echo       - Deinterlace: DESATIVADO no OBS (preserva raw para pipeline)
 echo.
-echo [3/3] Como aplicar no OBS aberto:
-echo   1. No menu superior do OBS, clique em: Perfil -> VHS_Blackmagic_PAL
-echo   2. No menu superior do OBS, clique em: Coleção de Cenas -> VHS_Blackmagic_PAL
-echo.
-echo Para capturar ou visualizar sem o OBS direto pelo nosso script:
-echo   vhs scopes                          (Preview com escopos ao vivo)
-echo   vhs capture "Nome_Da_Fita"          (Captura FFV1 lossless direto)
-echo   vhs master "media\raw\arquivo.mkv" --blackmagic --clean-work
+
+echo [3/3] Comandos úteis da pipeline:
+echo   restoration\run_pipeline.bat                (Restauração direta)
+echo   restoration\run_pipeline.bat --master       (Restauração master multi-estágios)
+echo   restoration\bin\vhs master [arquivo]        (Via Git Bash CLI)
 echo.
 echo ============================================================
 pause

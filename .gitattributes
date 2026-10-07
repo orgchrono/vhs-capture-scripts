@@ -1,0 +1,15 @@
+# Git line ending normalization
+# Shell and VapourSynth scripts must always use LF (breaks in Git Bash if CRLF)
+*.sh text eol=lf
+*.vpy text eol=lf
+*.env text eol=lf
+vhs text eol=lf
+
+# Windows Batch scripts must use CRLF (cmd.exe parser can fail on labels with bare LF)
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Configuration & data
+*.json text
+*.ini text
+*.md text
