@@ -21,7 +21,7 @@ packages = ["vhs_studio", "vhs_studio.core", "vhs_studio.video", "vhs_studio.con
 package-dir = {"" = "src"}
 
 [project.optional-dependencies]
-ai = ["faster-whisper", "scenedetect[opencv]"]
+ai = ["faster-whisper", "scenedetect", "opencv-python"]
 cloud = ["google-api-python-client", "google-auth-httplib2", "google-auth-oauthlib", "keyring", "supabase", "dropbox", "O365", "boto3"]
 dev = ["pytest", "flake8", "black", "isort", "mypy", ]
 
@@ -32,3 +32,4 @@ check_untyped_defs = false
 [tool.flake8]
 max-line-length = 120
 extend-ignore = "E203"
+
