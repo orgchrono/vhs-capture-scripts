@@ -47,3 +47,7 @@ media/output/*
 
 tools/obs/
 tools/obs_installer.zip
+# PyInstaller
+build/
+dist/
+*.spec

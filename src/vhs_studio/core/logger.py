@@ -54,11 +54,12 @@ def get_logger(name="VHSPipeline"):
         logger.setLevel(logging.DEBUG)
         
         # Console Handler
-        ch = logging.StreamHandler(sys.stdout)
-        ch.setLevel(logging.INFO)
-        use_color = sys.stdout.isatty()
-        ch.setFormatter(ColoredFormatter(use_color=use_color))
-        logger.addHandler(ch)
+        if sys.stdout is not None:
+            ch = logging.StreamHandler(sys.stdout)
+            ch.setLevel(logging.INFO)
+            use_color = hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()
+            ch.setFormatter(ColoredFormatter(use_color=use_color))
+            logger.addHandler(ch)
         
         # File Handler (JSONL)
         log_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "media", "work"))
