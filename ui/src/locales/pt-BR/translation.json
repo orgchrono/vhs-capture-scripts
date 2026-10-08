@@ -1,4 +1,4 @@
-﻿{
+{
   "translation": {
     "capture": {
       "start_restore": "Iniciar Restauração",
@@ -14,5 +14,20 @@
       "license_disclaimer": "Este software é distribuído sob a Licença Pública Geral GNU (GPLv3). Você concorda que o software é fornecido \"como está\", sem garantia de qualquer tipo. Ao prosseguir, você consente com o processamento local dos seus arquivos.",
       "accept_btn": "EU CONCORDO E COMPREENDO"
     }
-  }
+  },
+  "Armazenamento & Nuvem": "Armazenamento & Nuvem",
+  "Local / NAS / USB": "Local / NAS / USB",
+  "Supabase Storage": "Supabase Storage",
+  "Google Drive": "Google Drive",
+  "Caminho do Destino (ex: Z:\\Archive ou /mnt/usb)": "Caminho do Destino (ex: Z:\\Archive ou /mnt/usb)",
+  "Pronto! Espaço livre:": "Pronto! Espaço livre:",
+  "Supabase Project URL": "URL do Projeto Supabase",
+  "Anon / Service Role Key": "Chave Anon / Service Role",
+  "Nome do Bucket": "Nome do Bucket",
+  "A integração com Google Drive usa as credenciais armazenadas no Windows Vault.": "A integração com Google Drive usa as credenciais armazenadas no Windows Vault.",
+  "Autenticado e Pronto!": "Autenticado e Pronto!",
+  "Configure o token OAuth localmente usando o script de autenticação.": "Configure o token OAuth localmente usando o script de autenticação.",
+  "Validando...": "Validando...",
+  "Salvar Configuração de Armazenamento": "Salvar Configuração de Armazenamento",
+  "Configuração salva com sucesso!": "Configuração salva com sucesso!"
 }

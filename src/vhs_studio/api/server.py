@@ -105,14 +105,23 @@ def get_status():
             size_mb = os.path.getsize(full_p) / (1024 * 1024)
             raw_files.append({"name": f, "path": full_p, "size_mb": round(size_mb, 1)})
 
+    # Puxar logs internos da UI
+    from vhs_studio.core.logger import log
+    internal_logs = []
+    for h in log.handlers:
+        if type(h).__name__ == "MemoryLogHandler":
+            internal_logs = h.get_logs()
+            break
+            
+    combined_logs = internal_logs + pm.get_logs()
+
     return {
         "encoder": encoder,
         "vapoursynth_available": vs_ok,
         "obs_connected": ensure_obs_running(),
         "raw_files": raw_files,
         "process_running": pm.is_running(),
-        "process_logs": pm.get_logs(),
-        "health": obs_health_stats
+        "process_logs": combined_logs
     }
 
 
