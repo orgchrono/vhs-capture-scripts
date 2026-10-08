@@ -1,4 +1,4 @@
-﻿#!/bin/sh
+#!/bin/sh
 # Hook de Pre-Commit automático do VHS Studio Pro
 echo "[Git Hook] Iniciando validação automática de código (Lint & Types)..."
 
