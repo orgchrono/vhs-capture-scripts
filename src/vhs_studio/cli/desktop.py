@@ -26,51 +26,44 @@ def get_directory_hash(directory):
     return sha1.hexdigest()
 
 def ensure_ui_build():
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+    if hasattr(sys, '_MEIPASS'):
+        log.info("[DESKTOP] Executável empacotado detectado. Pulando checagem de build do Vite.")
+        return get_base_path()
+        
+    project_root = get_base_path()
     ui_src_dir = os.path.join(project_root, "ui", "src")
     ui_dist_dir = os.path.join(project_root, "ui", "dist")
     hash_file = os.path.join(ui_dist_dir, ".build_hash")
     
     if not os.path.exists(ui_src_dir):
-        return
-
-    log.info("[DESKTOP] Verificando integridade da UI (Vite)...")
-    current_hash = get_directory_hash(ui_src_dir)
-    
-    # Adicionar o package.json e tsconfig no hash tambem
-    for f in ["package.json", "package-lock.json", "index.html"]:
-        try:
-            with open(os.path.join(project_root, "ui", f), "rb") as bf:
-                current_hash += hashlib.sha1(bf.read()).hexdigest()
-        except Exception:
-            pass
-
-    current_hash = hashlib.sha1(current_hash.encode()).hexdigest()
-
+        return project_root
+        
+    current_hash = hash_directory(ui_src_dir)
+    # Include package.json in hash
+    pkg_json = os.path.join(project_root, "ui", "package.json")
+    if os.path.exists(pkg_json):
+        with open(pkg_json, 'rb') as f:
+            current_hash += hashlib.sha1(f.read()).hexdigest()
+            
     rebuild_needed = True
-    if os.path.exists(hash_file):
+    if os.path.exists(hash_file) and os.path.exists(os.path.join(ui_dist_dir, "index.html")):
         with open(hash_file, "r") as f:
-            saved_hash = f.read().strip()
-            if saved_hash == current_hash:
+            if f.read().strip() == current_hash:
                 rebuild_needed = False
-
+                
     if rebuild_needed:
         log.warning("[SEGURANÇA] Mudanças detectadas nos arquivos da Interface (UI) ou Hash Mismatch.")
         log.warning("O sistema identificou código novo em 'ui/src'. O build requer execução de 'npm install'.")
-        
-        # INTERACTIVE SECURITY PROMPT
         print("")
         print("=== AVISO DE SEGURANÇA / INTEGRIDADE ===")
         print("Deseja autorizar a compilação do novo código e instalar pacotes Node.js localmente?")
         ans = input("Autorizar build da UI? (Y/n): ").strip().lower()
-        
         if ans == "" or ans == "y" or ans == "yes":
             log.info("[DESKTOP] Autorização concedida. Compilando via Vite...")
             ui_dir = os.path.join(project_root, "ui")
             try:
                 subprocess.run("npm install", cwd=ui_dir, shell=True, check=True)
                 subprocess.run("npm run build", cwd=ui_dir, shell=True, check=True)
-                
                 os.makedirs(ui_dist_dir, exist_ok=True)
                 with open(hash_file, "w") as f:
                     f.write(current_hash)
@@ -81,6 +74,8 @@ def ensure_ui_build():
             log.warning("[DESKTOP] Build rejeitada pelo usuário por razões de segurança. Usando cache anterior.")
     else:
         log.info("[DESKTOP] UI Verificada (Security Hash Match).")
+        
+    return project_root
 
 def run_desktop():
     try:

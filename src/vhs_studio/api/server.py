@@ -28,7 +28,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+import sys
+
+def get_base_path():
+    if hasattr(sys, '_MEIPASS'):
+        return sys._MEIPASS
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+
+REPO_ROOT = get_base_path()
 DIST_DIR = os.path.join(REPO_ROOT, "ui", "dist")
 
 @app.middleware("http")
