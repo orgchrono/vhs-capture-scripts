@@ -56,6 +56,11 @@ def main():
             command=["npm", "run", "lint"],
             cwd=ui_dir,
         ),
+        LintStep(
+            name="Anti-Plágio/Duplicação (JSCPD)",
+            command=["npm", "run", "jscpd"],
+            cwd=ui_dir,
+        ),
     ]
 
     success = True
