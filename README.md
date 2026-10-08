@@ -2,23 +2,22 @@
 
 O **VHS Studio Pro** Ã© uma plataforma unificada (Desktop Web App) projetada para orquestrar a ingestÃ£o, a detecÃ§Ã£o de cenas, o tratamento de Ã¡udio e o upscaling de vÃ­deos analÃ³gicos (VHS, S-VHS, Betamax, Video8, Hi8) de forma cirÃºrgica e automatizada.
 
-O projeto utiliza uma **Arquitetura DAG Paralela** (Grafo Direcionado AcÃ­clico), permitindo que motores assÃ­ncronos operem no mesmo arquivo sem overhead.
+O projeto utiliza uma **Arquitetura DAG Paralela** (Grafo Direcionado AcÃ­clico), permitindo que motores assÃ­ncronos operem no mesmo arquivo sem overhead. A engine possui inteligÃªncia de Auto-Detect de Hardware (CUDA, AMF, QuickSync, VideoToolbox), distribuindo cargas para GPU ou CPU dinamicamente.
 
 ## Requisitos de Hardware (MÃ­nimo e Recomendado)
 
-Como o sistema lida com desentrelaÃ§amento matemÃ¡tico complexo (QTGMC) e modelos de InteligÃªncia Artificial (Whisper e Real-ESRGAN), a performance dependerÃ¡ dos seus componentes:
+O sistema lida com desentrelaÃ§amento matemÃ¡tico complexo (QTGMC) e modelos de IA (Whisper/Real-ESRGAN). O backend farÃ¡ o auto-detect para nÃ£o travar mÃ¡quinas sem placas dedicadas.
 
 ### Hardware MÃ­nimo (ResoluÃ§Ã£o Original / CPU Only)
-- **Processador:** Intel Core i5 (8Âª GeraÃ§Ã£o) ou AMD Ryzen 5
-- **MemÃ³ria RAM:** 16 GB (Importante: Se utilizar Placa de VÃ­deo Integrada / Onboard, a RAM deve ser generosa pois serÃ¡ compartilhada como VRAM).
-- **Placa de VÃ­deo:** Intel UHD Graphics (com suporte a QuickSync) ou superior.
-- **Armazenamento:** SSD NVMe com pelo menos 100GB livres (Arquivos ProRes e FFV1 raw sÃ£o gigantescos).
-- **Captura:** Dispositivo USB UVC ou Blackmagic Intensity.
+- **Processador:** MÃºltiplos nÃºcleos modernos (Intel Core i5 8Âª Ger, Ryzen 5 ou Apple M1)
+- **MemÃ³ria RAM:** 16 GB (Se utilizar GPU Integrada, a RAM serÃ¡ compartilhada).
+- **AceleraÃ§Ã£o de Hardware:** Suporta QuickSync (Intel), AMF (AMD) ou VideoToolbox (Mac) nativamente.
+- **Armazenamento:** SSD NVMe com 100GB livres.
 
 ### Hardware Recomendado (Pipeline "AI Master" 1080p e Whisper Local)
-- **Processador:** Intel Core i7 (12Âª GeraÃ§Ã£o, ex: i7-12700T com 20 threads Ã© ideal para QTGMC) ou superior.
+- **Processador:** 12 NÃºcleos ou mais (ex: Intel Core i7 / Ryzen 7). 
 - **MemÃ³ria RAM:** 32 GB DDR4/DDR5.
-- **Placa de VÃ­deo:** NVIDIA RTX 3060 (12GB VRAM) ou superior para paralelizar CUDA. *Nota: Em setups com GPUs integradas (Intel UHD 770), o motor redirecionarÃ¡ a carga inteligentemente para os 20 lÃ³gicos do processador usando AVX2 e farÃ¡ o encoding por hardware usando o Intel QuickSync.*
+- **Placa de VÃ­deo (Opcional, mas desejada):** NVIDIA RTX (8GB+ VRAM) para rodar o Whisper Pytorch e o ESRGAN via CUDA simultaneamente. Em PCs sem VRAM dedicada (ex: mini-PCs corporativos), a pipeline redireciona inteligentemente a IA para a CPU usando AVX2.
 - **Captura:** Blackmagic DeckLink SDI/HDMI com chip TBC externo.
 
 ## Componentes do Sistema (A Pipeline MÃ¡gica)

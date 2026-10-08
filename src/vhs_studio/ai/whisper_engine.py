@@ -37,8 +37,19 @@ def transcribe_and_generate_vtt(video_path: str, model_size: str = "tiny") -> st
     if not extract_audio(video_path, temp_wav):
         raise RuntimeError("Falha ao extrair audio via FFmpeg")
 
-    print(f"[WHISPER] Carregando modelo {model_size}...")
-    model = WhisperModel(model_size, device="cpu", compute_type="int8")
+    device = "cpu"
+    compute_type = "int8"
+    
+    try:
+        import torch
+        if torch.cuda.is_available():
+            device = "cuda"
+            compute_type = "float16" # CUDA generally prefers float16
+    except ImportError:
+        pass
+        
+    print(f"[WHISPER] Carregando modelo {model_size} (Device: {device}, Compute: {compute_type})...")
+    model = WhisperModel(model_size, device=device, compute_type=compute_type)
 
     print(f"[WHISPER] Transcrevendo {temp_wav}...")
     segments, info = model.transcribe(temp_wav, beam_size=5)
