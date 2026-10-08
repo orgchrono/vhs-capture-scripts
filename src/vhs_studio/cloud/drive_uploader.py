@@ -1,49 +1,66 @@
 ﻿import os
+import json
 from vhs_studio.core.logger import log
 
-def upload_to_drive(file_path):
-    """
-    Upload real para o Google Drive via OAuth2 e google-api-python-client.
-    """
-    if not os.path.exists(file_path):
-        log.error(f"[NUVEM] Arquivo não encontrado: {file_path}")
-        return False
-
-    log.info(f"[NUVEM] Iniciando upload em background: {os.path.basename(file_path)}")
+def get_credentials():
     try:
         from google.oauth2.credentials import Credentials
         from google_auth_oauthlib.flow import InstalledAppFlow
+        import keyring
+    except ImportError:
+        log.warning("[NUVEM ERRO] Dependências não instaladas. Instale: google-api-python-client google-auth-oauthlib keyring")
+        return None
+
+    SCOPES = ['https://www.googleapis.com/auth/drive.file']
+    SERVICE_ID = 'vhs_studio_google_drive'
+    ACCOUNT_ID = 'oauth2_token'
+    
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+    creds_path = os.path.join(project_root, "credentials.json")
+    
+    # Tenta recuperar o token criptografado do Windows Credential Locker / OS Keychain
+    token_json_str = keyring.get_password(SERVICE_ID, ACCOUNT_ID)
+    creds = None
+    
+    if token_json_str:
+        try:
+            token_data = json.loads(token_json_str)
+            creds = Credentials.from_authorized_user_info(token_data, SCOPES)
+        except Exception:
+            pass
+            
+    if not creds or not creds.valid:
+        if not os.path.exists(creds_path):
+            log.warning("[NUVEM ERRO] credentials.json do Google Cloud não encontrado na raiz. Pulei o upload.")
+            return None
+            
+        log.info("[NUVEM OAUTH2] Aguardando autenticação segura do usuário no navegador...")
+        flow = InstalledAppFlow.from_client_secrets_file(creds_path, SCOPES)
+        creds = flow.run_local_server(port=0)
+        
+        # Salva o token de forma criptografada no Cofre do Windows/Mac
+        keyring.set_password(SERVICE_ID, ACCOUNT_ID, creds.to_json())
+        log.info("[NUVEM SECURE] Token OAuth2 criptografado e salvo no Cofre de Credenciais do Sistema Operacional.")
+        
+    return creds
+
+def upload_to_drive(file_path):
+    if not os.path.exists(file_path):
+        return False
+
+    log.info(f"[NUVEM] Iniciando upload seguro em background: {os.path.basename(file_path)}")
+    try:
         from googleapiclient.discovery import build
         from googleapiclient.http import MediaFileUpload
         
-        SCOPES = ['https://www.googleapis.com/auth/drive.file']
-        creds = None
-        
-        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-        token_path = os.path.join(project_root, "token.json")
-        creds_path = os.path.join(project_root, "credentials.json")
-        
-        if os.path.exists(token_path):
-            creds = Credentials.from_authorized_user_file(token_path, SCOPES)
+        creds = get_credentials()
+        if not creds:
+            return False
             
-        if not creds or not creds.valid:
-            if not os.path.exists(creds_path):
-                log.warning("[NUVEM ERRO] credentials.json do Google Cloud não encontrado na raiz do projeto. Pulei o upload.")
-                return False
-                
-            log.info("[NUVEM OAUTH2] Aguardando autenticação do usuário no navegador...")
-            flow = InstalledAppFlow.from_client_secrets_file(creds_path, SCOPES)
-            creds = flow.run_local_server(port=0)
-            
-            with open(token_path, 'w') as token:
-                token.write(creds.to_json())
-                
         service = build('drive', 'v3', credentials=creds)
-        
         file_metadata = {'name': os.path.basename(file_path)}
         media = MediaFileUpload(file_path, resumable=True)
         
-        # Faz o upload com barra de progresso simples no backend
         request = service.files().create(body=file_metadata, media_body=media, fields='id')
         response = None
         while response is None:
@@ -53,9 +70,6 @@ def upload_to_drive(file_path):
                 
         log.info(f"[NUVEM] Upload concluído! File ID: {response.get('id')}")
         return True
-    except ImportError:
-        log.warning("[NUVEM ERRO] Dependências não instaladas. Execute: pip install google-api-python-client google-auth-oauthlib")
-        return False
     except Exception as e:
         log.warning(f"[NUVEM ERRO] Falha durante o upload: {e}")
         return False
