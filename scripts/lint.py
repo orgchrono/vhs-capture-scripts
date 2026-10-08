@@ -65,6 +65,9 @@ def main():
             name="Pytest (Python Tests)", command=[sys.executable, "-m", "pytest", "tests/", "-v", "--tb=short"]
         ),
         LintStep(
+            name="Vitest (React Unit Tests)", command=["npm", "run", "test:unit"], cwd=ui_dir
+        ),
+        LintStep(
             name="Playwright (E2E React)", command=["npx", "playwright", "test"], cwd=ui_dir
         ),
     ]
