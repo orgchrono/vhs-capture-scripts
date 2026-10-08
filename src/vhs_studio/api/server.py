@@ -19,6 +19,10 @@ pm = ProcessManager()
 
 app = FastAPI(title="VHS Studio API")
 
+from vhs_studio.api.oauth_routes import oauth_router
+app.include_router(oauth_router, prefix="/api/oauth")
+
+
 # Setup CORS to only allow localhost
 app.add_middleware(
     CORSMiddleware,
@@ -164,33 +168,7 @@ async def update_storage_config(request: Request):
 
 import webbrowser
 
-@app.get("/api/oauth/login/{provider_id}")
-def oauth_login(provider_id: str):
-    if provider_id == "gdrive":
-        # Placeholder for real oauth URL generation
-        webbrowser.open("http://localhost:8088/api/oauth/placeholder?provider=Google")
-        return {"status": "ok", "message": "Navegador aberto."}
-    elif provider_id == "dropbox":
-        webbrowser.open("http://localhost:8088/api/oauth/placeholder?provider=Dropbox")
-        return {"status": "ok", "message": "Navegador aberto."}
-    elif provider_id == "onedrive":
-        webbrowser.open("http://localhost:8088/api/oauth/placeholder?provider=Microsoft")
-        return {"status": "ok", "message": "Navegador aberto."}
-    return JSONResponse(status_code=400, content={"error": "Provedor desconhecido."})
 
-@app.get("/api/oauth/placeholder")
-def oauth_placeholder(provider: str = ""):
-    # Retorna um HTML bonitinho temporário até conectarmos as libs finais de OAuth
-    html = f'''
-    <html>
-      <body style="font-family: sans-serif; text-align: center; padding-top: 50px;">
-        <h2>Integração {provider} OAuth 2.0 (Em breve)</h2>
-        <p>A arquitetura de rotas foi estabelecida! Aqui será gerado o fluxo de callback nativo.</p>
-        <p>Feche esta janela e volte para o aplicativo.</p>
-      </body>
-    </html>
-    '''
-    return HTMLResponse(content=html)
 
 
 @app.post("/api/action")
