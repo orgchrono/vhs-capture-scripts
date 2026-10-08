@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Cpu, Film, Sparkles, Wrench, Globe, Eye } from 'lucide-react'
+import { Cpu, Film, Sparkles, Wrench, Globe, Eye, Video } from 'lucide-react'
 import { Button } from './ui/button'
 import type { SystemStatus } from '../types'
 import { useTranslation } from 'react-i18next'
@@ -79,7 +79,27 @@ export const Header: React.FC<HeaderProps> = ({ status, onInstallQtgmc, isInstal
             </Button>
           )}
         </div>
-      </div>
+      
+        <div className="flex items-center gap-2 bg-slate-900/80 border border-white/10 px-3 py-1.5 rounded-lg text-xs">
+          <Video className="w-3.5 h-3.5 text-indigo-400" />
+          {status?.obs_connected ? (
+            <span className="flex items-center gap-1 text-emerald-400 font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              OBS
+            </span>
+          ) : (
+            <Button variant="outline" size="sm" onClick={() => {
+              fetch('http://127.0.0.1:8088/api/action', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({action: 'install_obs'})
+              });
+            }} className="h-6 px-2 text-[10px] bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border-indigo-500/40">
+              <Wrench className="w-3 h-3 mr-1" />
+              {t('status.auto_setup', 'Auto-Setup')} OBS
+            </Button>
+          )}
+        </div>
+</div>
     </header>
   )
 }

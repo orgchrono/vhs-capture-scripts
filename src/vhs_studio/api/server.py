@@ -55,6 +55,32 @@ def get_token():
     return {"token": SESSION_TOKEN}
 
 @app.get("/api/status")
+
+def ensure_obs_running():
+    import urllib.request
+    try:
+        # Check if websocket responds
+        req = urllib.request.Request("http://127.0.0.1:4455")
+        urllib.request.urlopen(req, timeout=1)
+        return True
+    except:
+        pass # Not responding
+    
+    # Try to launch portable OBS
+    obs_dir = os.path.join(os.getcwd(), "tools", "obs", "bin", "64bit")
+    obs_exe = os.path.join(obs_dir, "obs64.exe")
+    
+    if os.path.exists(obs_exe):
+        try:
+            subprocess.Popen([obs_exe, "--minimize-to-tray"], cwd=obs_dir)
+            import time
+            time.sleep(3)
+            return True
+        except:
+            return False
+    return False
+
+@app.get("/api/status")
 def get_status():
     encoder = FilterBuilder.detect_best_encoder()
     vs_ok = VapourSynthQTGMC.is_available()
@@ -74,7 +100,7 @@ def get_status():
     return {
         "encoder": encoder,
         "vapoursynth_available": vs_ok,
-        "obs_connected": False, # TODO: integrate OBS client
+        "obs_connected": ensure_obs_running(),
         "raw_files": raw_files,
         "process_running": pm.is_running(),
         "process_logs": pm.get_logs()
@@ -113,6 +139,19 @@ async def perform_action(request: Request):
         else:
             return {"status": "error", "message": msg}
             
+    
+    elif action == "install_obs":
+        if pm.is_running():
+            return {"status": "error", "message": "Aguarde o processo atual terminar."}
+            
+        cmd = [sys.executable, "-m", "vhs_studio.cli.setup_obs"]
+        success, msg = pm.start_process(cmd)
+        
+        if success:
+            return {"status": "started", "message": "Instalador do OBS iniciado!"}
+        else:
+            return {"status": "error", "message": msg}
+
     elif action == "install_vapoursynth":
         if pm.is_running():
             return {"status": "error", "message": "Aguarde o processo atual terminar."}
