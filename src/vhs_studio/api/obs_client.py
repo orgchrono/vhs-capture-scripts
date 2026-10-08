@@ -1,13 +1,15 @@
-"""Module documentation pending."""
+﻿"""Module documentation pending."""
+
 import json
 import base64
 import hashlib
 import time
+import threading
 from vhs_studio.core.logger import log
 
 
 class OBSClient:
-    """Cliente WebSocket robusto para OBS Studio (v5.x)."""
+    """Cliente WebSocket robusto para OBS Studio (v5.x) com reconexao automatica (HAL)."""
 
     def __init__(self, host="127.0.0.1", port=4455, password=None):
         """Documentation for __init__."""
@@ -15,91 +17,100 @@ class OBSClient:
         self.port = port
         self.password = password if password is not None else ""
         self.ws = None
+        self._connected = False
+        self._reconnect_lock = threading.Lock()
+        self._max_retries = 5
+        self._backoff = 2.0
+
+    @property
+    def is_connected(self):
+        """Documentation for is_connected."""
+        return self._connected
 
     def connect(self):
         """Documentation for connect."""
         try:
             import websocket
         except ImportError:
-            log.error("[ERRO] websocket-client não instalado. Use pip install websocket-client")
+            log.error("[ERRO] websocket-client nao instalado. Use pip install websocket-client")
             return False
 
-        try:
-            self.ws = websocket.create_connection(f"ws://{self.host}:{self.port}", timeout=3)
-            # Handshake inicial
-            hello = json.loads(self.ws.recv())
-            auth_info = hello.get("d", {}).get("authentication")
+        with self._reconnect_lock:
+            if self._connected:
+                return True
 
-            identify_payload = {
-                "op": 1,
-                "d": {"rpcVersion": 1, "eventSubscriptions": 33},
-            }
+            for attempt in range(self._max_retries):
+                try:
+                    self.ws = websocket.create_connection(f"ws://{self.host}:{self.port}", timeout=3)
+                    # Handshake inicial
+                    hello = json.loads(self.ws.recv())
+                    auth_info = hello.get("d", {}).get("authentication")
 
-            if auth_info:
-                if not self.password:
-                    log.error("[ERRO] OBS requer senha, mas nenhuma foi configurada.")
-                    return False
+                    identify_payload = {
+                        "op": 1,
+                        "d": {"rpcVersion": 1, "eventSubscriptions": 33},
+                    }
 
-                salt = auth_info["salt"]
-                challenge = auth_info["challenge"]
-                secret = base64.b64encode(hashlib.sha256((self.password + salt).encode("utf-8")).digest()).decode(
-                    "utf-8"
-                )
-                auth_resp = base64.b64encode(hashlib.sha256((secret + challenge).encode("utf-8")).digest()).decode(
-                    "utf-8"
-                )
-                identify_payload["d"]["authentication"] = auth_resp
+                    if auth_info:
+                        if not self.password:
+                            log.error("[ERRO] OBS requer senha, mas nenhuma foi configurada.")
+                            return False
 
-            self.ws.send(json.dumps(identify_payload))
-            identified = json.loads(self.ws.recv())
-            if identified.get("op") != 2:
-                log.error(f"[ERRO] Falha na autenticação com OBS: {identified}")
-                return False
-            return True
+                        salt = auth_info["salt"]
+                        challenge = auth_info["challenge"]
+                        concat1 = (self.password + salt).encode("utf-8")
+                        secret = base64.b64encode(hashlib.sha256(concat1).digest()).decode("utf-8")
+                        concat2 = (secret + challenge).encode("utf-8")
+                        auth_resp = base64.b64encode(hashlib.sha256(concat2).digest()).decode("utf-8")
+                        identify_payload["d"]["authentication"] = auth_resp
 
-        except Exception as e:
-            log.warning(f"Falha ao conectar no OBS: {e}")
+                    self.ws.send(json.dumps(identify_payload))
+                    resp = json.loads(self.ws.recv())
+
+                    if resp.get("op") == 2:
+                        self._connected = True
+                        log.info(f"[HAL] OBS WebSocket Conectado com Sucesso! (Tentativa {attempt + 1})")
+                        return True
+                    else:
+                        log.error(f"[HAL] Falha de auth no OBS: {resp}")
+                        return False
+                except Exception as e:
+                    log.warning(f"[HAL] Falha ao conectar no OBS (Tentativa {attempt + 1}/{self._max_retries}): {e}")
+                    if self.ws:
+                        self.ws.close()
+                    time.sleep(self._backoff * (2 ** attempt))
+
+            log.error("[HAL] Esgotadas as tentativas de conexao com o OBS.")
             return False
 
     def send_request(self, request_type, request_data=None):
         """Documentation for send_request."""
-        if not self.ws:
-            return None
-        req = {
-            "op": 6,
-            "d": {
-                "requestType": request_type,
-                "requestId": f"req_{int(time.time()*1000)}",
-            },
-        }
-        if request_data:
-            req["d"]["requestData"] = request_data
+        if not self._connected or not self.ws:
+            log.warning("[HAL] Conexao perdida, tentando reconectar antes do request...")
+            if not self.connect():
+                return None
 
         try:
-            self.ws.send(json.dumps(req))
+            payload = {
+                "op": 6,
+                "d": {
+                    "requestType": request_type,
+                    "requestId": f"req_{int(time.time()*1000)}",
+                    "requestData": request_data or {}
+                }
+            }
+            self.ws.send(json.dumps(payload))
             resp = json.loads(self.ws.recv())
-            return resp
+            return resp.get("d", {})
         except Exception as e:
-            log.warning(f"Erro ao enviar requisição para OBS: {e}")
+            log.error(f"[HAL] Falha no Request do OBS ({request_type}): {e}")
+            self._connected = False
             return None
 
-    def start_recording(self):
-        """Documentation for start_recording."""
+    def start_record(self):
+        """Documentation for start_record."""
         return self.send_request("StartRecord")
 
-    def stop_recording(self):
-        """Documentation for stop_recording."""
+    def stop_record(self):
+        """Documentation for stop_record."""
         return self.send_request("StopRecord")
-
-    def get_record_status(self):
-        """Documentation for get_record_status."""
-        resp = self.send_request("GetRecordStatus")
-        if resp and resp.get("d", {}).get("responseData"):
-            return resp["d"]["responseData"].get("outputActive", False)
-        return False
-
-    def close(self):
-        """Documentation for close."""
-        if self.ws:
-            self.ws.close()
-            self.ws = None
