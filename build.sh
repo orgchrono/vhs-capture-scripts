@@ -11,11 +11,11 @@ npm ci
 npm run build
 cd ..
 
-echo "[2/3] Instalando dependencias de Build..."
+echo "[2/3] Instalando dependencias de Build e do Projeto..."
 python3 -m pip install --upgrade pip pyinstaller
+python3 -m pip install -e .[ai,cloud]
 
 echo "[3/3] Empacotando Executavel Nativo..."
-# No Unix (Mac/Linux), o separador do add-data e ":" e nao ";"
 pyinstaller --noconfirm --clean \
   --name "VHS_Studio_Pro" \
   --windowed \

@@ -11,8 +11,10 @@ call npm run build
 if %errorlevel% neq 0 exit /b %errorlevel%
 cd ..
 
-echo [2/3] Instalando dependencias de Build...
+echo [2/3] Instalando dependencias de Build e do Projeto...
 python -m pip install --upgrade pip pyinstaller
+if %errorlevel% neq 0 exit /b %errorlevel%
+python -m pip install -e .[ai,cloud]
 if %errorlevel% neq 0 exit /b %errorlevel%
 
 echo [3/3] Empacotando Executavel Nativo...
