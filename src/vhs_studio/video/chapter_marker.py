@@ -1,83 +1,78 @@
-﻿import os
+﻿"""
+chapter_marker.py - Módulo FP/SRP para embutir marcações de capítulo via FFmpeg.
+Seguindo princípios de FP Pure (Pure Functions para transformação de texto) e SRP.
+"""
+import os
 import subprocess
 import csv
+from typing import List, Tuple
 from vhs_studio.core.logger import log
 from vhs_studio.config.advanced import AdvancedConfig
 
-def generate_chapters(input_video: str, output_video: str) -> bool:
+# ==============================================================================
+# PURE FUNCTIONS (Sem Side Effects - FP Pure, SRP)
+# ==============================================================================
+
+def parse_scenedetect_csv(csv_content: str) -> List[Tuple[int, int]]:
     """
-    Roda o PySceneDetect para encontrar cenas no vídeo (sem cortar), 
-    gera um arquivo de metadados FFmpeg e embute as marcações de Capítulo
-    nativamente no arquivo MKV/MP4 sem re-encode (-c copy).
+    [Pure Function] Lê o conteúdo raw do CSV e retorna uma lista de tuplas 
+    (start_ms, end_ms) livre de side-effects.
     """
-    threshold = AdvancedConfig.get("ffmpeg", "scene_threshold", 27.0)
-    
-    # Arquivos temporários
-    base_dir = os.path.dirname(input_video)
-    base_name = os.path.splitext(os.path.basename(input_video))[0]
-    csv_path = os.path.join(base_dir, f"{base_name}-Scenes.csv")
-    ffmeta_path = os.path.join(base_dir, f"{base_name}.ffmeta")
-    
-    log.info(f"[Capítulos] 1/3 - Escaneando cortes de câmera com PySceneDetect (Threshold: {threshold})...")
-    
-    # 1. Roda SceneDetect e cospe um CSV
+    lines = csv_content.strip().splitlines()
+    start_idx = 0
+    for i, line in enumerate(lines):
+        if line.startswith("Scene Number"):
+            start_idx = i + 1
+            break
+            
+    scenes = []
+    reader = csv.reader(lines[start_idx:])
+    for row in reader:
+        if len(row) >= 6:
+            try:
+                start_sec = float(row[3])
+                end_sec = float(row[6])
+                scenes.append((int(start_sec * 1000), int(end_sec * 1000)))
+            except ValueError:
+                continue
+    return scenes
+
+def generate_ffmetadata_text(title: str, scenes: List[Tuple[int, int]]) -> str:
+    """
+    [Pure Function] Recebe metadados e retorna a string no formato FFmetadata.
+    """
+    lines = [";FFMETADATA1", f"title={title}", ""]
+    for i, (start_ms, end_ms) in enumerate(scenes):
+        lines.extend([
+            "[CHAPTER]",
+            "TIMEBASE=1/1000",
+            f"START={start_ms}",
+            f"END={end_ms}",
+            f"title=Cena {i+1}",
+            ""
+        ])
+    return "\n".join(lines)
+
+
+# ==============================================================================
+# I/O BOUND FUNCTIONS (Side Effects contidos - SOC)
+# ==============================================================================
+
+def _run_scenedetect(input_video: str, threshold: float, csv_path: str) -> bool:
+    """[I/O] Executa o PySceneDetect e escreve o CSV no disco."""
     try:
         subprocess.run([
-            "scenedetect", 
-            "-i", input_video, 
+            "scenedetect", "-i", input_video, 
             "detect-content", "-t", str(threshold), 
             "list-scenes", "-f", csv_path
         ], check=True, capture_output=True)
+        return os.path.exists(csv_path)
     except subprocess.CalledProcessError as e:
-        log.error(f"[Capítulos] Falha ao rodar scenedetect: {e.stderr.decode('utf-8', errors='ignore')}")
-        return False
-        
-    if not os.path.exists(csv_path):
-        log.error("[Capítulos] Arquivo CSV de cenas não foi gerado.")
+        log.error(f"[Capítulos] Falha no scenedetect: {e.stderr.decode('utf-8', errors='ignore')}")
         return False
 
-    # 2. Converte CSV do PySceneDetect para formato de Metadados de Capítulo do FFmpeg
-    log.info("[Capítulos] 2/3 - Gerando trilha de metadados FFmpeg...")
-    try:
-        with open(csv_path, "r", encoding="utf-8") as f:
-            lines = f.readlines()
-            
-        # O SceneDetect tem um cabeçalho nas primeiras linhas. Pula até achar "Scene Number"
-        start_idx = 0
-        for i, line in enumerate(lines):
-            if line.startswith("Scene Number"):
-                start_idx = i + 1
-                break
-                
-        scenes = []
-        reader = csv.reader(lines[start_idx:])
-        for row in reader:
-            if len(row) >= 6:
-                # row[3] = Start Timecode, row[4] = End Timecode, row[5] = Start Time (seconds), row[6] = End Time (sec)
-                # Formato PySceneDetect V0.6+: Start Time (seconds) está na coluna 3 ou 5 dependendo da versão
-                # Vamos usar os milissegundos calculando a partir dos frames para precisão se as colunas mudarem, mas o padrão atual:
-                # Scene Number, Start Frame, Start Timecode, Start Time (seconds), End Frame, End Timecode, End Time (seconds), Length (frames), Length (timecode), Length (seconds)
-                start_sec = float(row[3])
-                end_sec = float(row[6])
-                scenes.append((int(start_sec * 1000), int(end_sec * 1000))) # Em milissegundos
-                
-        # Escreve FFMETA
-        with open(ffmeta_path, "w", encoding="utf-8") as f:
-            f.write(";FFMETADATA1\n")
-            f.write(f"title={base_name}\n\n")
-            for i, (start_ms, end_ms) in enumerate(scenes):
-                f.write("[CHAPTER]\n")
-                f.write("TIMEBASE=1/1000\n")
-                f.write(f"START={start_ms}\n")
-                f.write(f"END={end_ms}\n")
-                f.write(f"title=Cena {i+1}\n\n")
-                
-    except Exception as e:
-        log.error(f"[Capítulos] Falha ao processar CSV de cenas: {e}")
-        return False
-        
-    # 3. Mux de Vídeo e Metadados com FFmpeg (-c copy)
-    log.info("[Capítulos] 3/3 - Embutindo capítulos no vídeo final (Lossless)...")
+def _run_ffmpeg_mux(input_video: str, ffmeta_path: str, output_video: str) -> bool:
+    """[I/O] Executa o FFmpeg para embutir os metadados no arquivo final."""
     try:
         subprocess.run([
             "ffmpeg", "-y",
@@ -87,16 +82,51 @@ def generate_chapters(input_video: str, output_video: str) -> bool:
             "-c", "copy",
             output_video
         ], check=True, capture_output=True)
+        return True
     except subprocess.CalledProcessError as e:
-        log.error(f"[Capítulos] Falha no FFmpeg ao embutir metadados: {e.stderr.decode('utf-8', errors='ignore')}")
+        log.error(f"[Capítulos] Falha no FFmpeg: {e.stderr.decode('utf-8', errors='ignore')}")
+        return False
+
+def generate_chapters(input_video: str, output_video: str) -> bool:
+    """
+    [Orquestrador] Função principal que delega I/O e Transformações Puras.
+    """
+    threshold = AdvancedConfig.get("ffmpeg", "scene_threshold", 27.0)
+    base_dir = os.path.dirname(input_video)
+    base_name = os.path.splitext(os.path.basename(input_video))[0]
+    
+    csv_path = os.path.join(base_dir, f"{base_name}-Scenes.csv")
+    ffmeta_path = os.path.join(base_dir, f"{base_name}.ffmeta")
+    
+    log.info(f"[Capítulos] 1/3 - Escaneando cortes de câmera com PySceneDetect...")
+    if not _run_scenedetect(input_video, threshold, csv_path):
+        return False
+
+    log.info("[Capítulos] 2/3 - Extraindo metadados e gerando trilha (FP Pure)...")
+    try:
+        with open(csv_path, "r", encoding="utf-8") as f:
+            csv_content = f.read()
+            
+        # Pure transformations
+        scenes = parse_scenedetect_csv(csv_content)
+        ffmeta_content = generate_ffmetadata_text(base_name, scenes)
+        
+        with open(ffmeta_path, "w", encoding="utf-8") as f:
+            f.write(ffmeta_content)
+    except Exception as e:
+        log.error(f"[Capítulos] Falha ao processar dados puros: {e}")
         return False
         
-    # Limpeza dos temporários
+    log.info("[Capítulos] 3/3 - Embutindo capítulos no vídeo final (Lossless)...")
+    success = _run_ffmpeg_mux(input_video, ffmeta_path, output_video)
+        
+    # Limpeza I/O
     try:
         os.remove(csv_path)
         os.remove(ffmeta_path)
-    except:
+    except OSError:
         pass
         
-    log.info(f"[Capítulos] Concluído! Fita mapeada nativamente salva em: {output_video}")
-    return True
+    if success:
+        log.info(f"[Capítulos] Concluído! Arquivo final gerado: {output_video}")
+    return success
