@@ -1,3 +1,4 @@
+﻿import { PrivacyModal } from './components/PrivacyModal'
 import React from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Play, Loader2 } from 'lucide-react'
@@ -50,7 +51,7 @@ const StudioMain: React.FC = () => {
         {/* LEFT SIDEBAR: Pipeline & Files */}
         <aside className="w-[420px] bg-[#0b0f17] border-r border-white/5 flex flex-col shrink-0 h-full overflow-hidden">
           <div className="p-4 border-b border-white/5 bg-slate-900/30">
-            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">1. Captura e IngestÃ£o</h2>
+            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">1. Captura e Ingestão</h2>
             <CaptureBar />
           </div>
           <div className="p-4 flex-1 overflow-y-auto custom-scrollbar">
@@ -134,6 +135,7 @@ const StudioMain: React.FC = () => {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <PrivacyModal />
       <StudioMain />
     </QueryClientProvider>
   )

@@ -1,60 +1,18 @@
-{
-  "app": {
-    "title": "VHS Professional Restorer",
-    "desktop_badge": "Desktop Pro",
-    "subtitle": "Support for Multiple Devices (DeckLink / USB / Hardware TBC)"
-  },
-  "status": {
-    "encoder": "GPU Encoder",
-    "detecting": "Detecting...",
-    "qtgmc_active": "Active (VapourSynth)",
-    "qtgmc_fallback": "FFmpeg Fallback",
-    "auto_setup": "Auto-Setup",
-    "installing": "Installing...",
-    "obs_ready": "Ready",
-    "obs_recording": "Recording",
-    "obs_disconnected": "Disconnected"
-  },
-  "tabs": {
-    "video": "Video",
-    "audio": "Audio",
-    "filters": "Filters & Colors",
-    "advanced": "Advanced",
-    "ai_subtitles": "AI & Subtitles"
-  },
-  "settings": {
-    "search": "Search setting...",
-    "deinterlacer": "Deinterlacer:",
-    "fps_mode": "FPS Mode:",
-    "resolution": "Resolution / Upscale:",
-    "output_codec": "Output Codec:",
-    "audio_mode": "Audio Mode:",
-    "audio_sync": "Audio Sync (Delay in ms):",
-    "audio_sync_help": "Positive values delay audio. Negative values advance it.",
-    "crf": "CRF Quality (H.264 / HEVC):",
-    "crf_help": "Lower = Better Quality / Larger File. Default: 18-20.",
-    "chroma_fix": "Chroma Shift Correction",
-    "chroma_help": "Aligns bleeding colors shifted to the right (common in old tapes).",
-    "denoise": "Noise Reduction (Denoise)",
-    "denoise_help": "Applies HQDN3D to clean visual noise without destroying texture.",
-    "comb_filter": "Comb Filter (Remove Cross-Color)",
-    "comb_help": "Useful for composite video captures without Line TBC.",
-    "overscan": "Overscan Blanking",
-    "overscan_help": "Paints an 8px black border to hide VHS head switching noise.",
-    "audio_treat": "Broadcast Audio Treatment",
-    "audio_treat_help": "Normalizes to -23 LUFS (TV/YouTube Standard) and cuts low noise."
-  },
-  "capture": {
-    "select_file": "Select a File",
-    "no_file": "None selected",
-    "start_obs": "Start Capture (OBS)",
-    "stop_obs": "Stop Capture",
-    "start_restore": "Restore Now",
-    "stop_restore": "Stop"
-  },
-  "presets": {
-    "title": "Presets",
-    "subtitle": "Automatically adjusts all options below.",
-    "recommended": "Recommended"
+﻿{
+  "translation": {
+    "capture": {
+      "start_restore": "Start Restoration",
+      "no_file": "Select a file to restore first!"
+    },
+    "privacy": {
+      "title": "Privacy & Terms of Use",
+      "subtitle": "Total Transparency (GNU GPLv3)",
+      "local_exec_title": "100% Local Execution",
+      "local_exec_desc": "Artificial Intelligence (Whisper), upscale (QTGMC), and slicing run <b>entirely on your hardware</b>. Your videos and data never leave your PC at any time for processing.",
+      "cloud_title": "Cloud and Security (Opt-In)",
+      "cloud_desc": "The Cloud Upload feature does not send videos to our servers. It connects directly to your personal <b>Google Drive</b> through local credentials kept in your OS Encrypted Vault.",
+      "license_disclaimer": "This software is distributed under the GNU General Public License (GPLv3). You agree that the software is provided \"as is\", without warranty of any kind. By proceeding, you consent to the local processing of your files.",
+      "accept_btn": "I AGREE AND UNDERSTAND"
+    }
   }
 }

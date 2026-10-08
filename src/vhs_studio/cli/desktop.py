@@ -55,20 +55,32 @@ def ensure_ui_build():
                 rebuild_needed = False
 
     if rebuild_needed:
-        log.info("[DESKTOP] Mudanças detectadas na UI. Compilando via Vite...")
-        ui_dir = os.path.join(project_root, "ui")
-        try:
-            subprocess.run("npm install", cwd=ui_dir, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            subprocess.run("npm run build", cwd=ui_dir, shell=True, check=True)
-            
-            os.makedirs(ui_dist_dir, exist_ok=True)
-            with open(hash_file, "w") as f:
-                f.write(current_hash)
-            log.info("[DESKTOP] Build da UI concluída com sucesso!")
-        except Exception as e:
-            log.error(f"[DESKTOP ERRO] Falha ao compilar a UI: {e}")
+        log.warning("[SEGURANÇA] Mudanças detectadas nos arquivos da Interface (UI) ou Hash Mismatch.")
+        log.warning("O sistema identificou código novo em 'ui/src'. O build requer execução de 'npm install'.")
+        
+        # INTERACTIVE SECURITY PROMPT
+        print("")
+        print("=== AVISO DE SEGURANÇA / INTEGRIDADE ===")
+        print("Deseja autorizar a compilação do novo código e instalar pacotes Node.js localmente?")
+        ans = input("Autorizar build da UI? (Y/n): ").strip().lower()
+        
+        if ans == "" or ans == "y" or ans == "yes":
+            log.info("[DESKTOP] Autorização concedida. Compilando via Vite...")
+            ui_dir = os.path.join(project_root, "ui")
+            try:
+                subprocess.run("npm install", cwd=ui_dir, shell=True, check=True)
+                subprocess.run("npm run build", cwd=ui_dir, shell=True, check=True)
+                
+                os.makedirs(ui_dist_dir, exist_ok=True)
+                with open(hash_file, "w") as f:
+                    f.write(current_hash)
+                log.info("[DESKTOP] Build da UI concluída com sucesso e Cache atualizado!")
+            except Exception as e:
+                log.error(f"[DESKTOP ERRO] Falha ao compilar a UI: {e}")
+        else:
+            log.warning("[DESKTOP] Build rejeitada pelo usuário por razões de segurança. Usando cache anterior.")
     else:
-        log.info("[DESKTOP] UI já está na versão mais recente (Cache Match).")
+        log.info("[DESKTOP] UI Verificada (Security Hash Match).")
 
 def run_desktop():
     try:

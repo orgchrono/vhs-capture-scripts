@@ -9,6 +9,16 @@ export function useStudioViewModel() {
   const [isInstallingQtgmc, setIsInstallingQtgmc] = useState(false)
   const [isInstallingObs, setIsInstallingObs] = useState(false)
 
+  
+
+
+  // System Status polling
+  const { data: status, refetch: refetchStatus, isRefetching } = useQuery({
+    queryKey: ['systemStatus'],
+    queryFn: studioApi.getStatus,
+    refetchInterval: 4000,
+  })
+
   const prevDrops = useRef(0)
   useEffect(() => {
     if (status?.health?.dropped_frames !== undefined) {
@@ -18,14 +28,6 @@ export function useStudioViewModel() {
       prevDrops.current = status.health.dropped_frames
     }
   }, [status?.health?.dropped_frames])
-
-
-  // System Status polling
-  const { data: status, refetch: refetchStatus, isRefetching } = useQuery({
-    queryKey: ['systemStatus'],
-    queryFn: studioApi.getStatus,
-    refetchInterval: 4000,
-  })
 
   // Logs polling during restoration or installation
   useQuery({
