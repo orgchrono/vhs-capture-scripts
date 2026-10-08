@@ -26,7 +26,11 @@ class StorageManager:
 from .local import LocalStorageProvider
 from .gdrive import GoogleDriveProvider
 from .supabase_provider import SupabaseStorageProvider
+from .dropbox_provider import DropboxProvider
+from .onedrive_provider import OneDriveProvider
 
 StorageManager.register_provider(LocalStorageProvider)
 StorageManager.register_provider(GoogleDriveProvider)
 StorageManager.register_provider(SupabaseStorageProvider)
+StorageManager.register_provider(DropboxProvider)
+StorageManager.register_provider(OneDriveProvider)

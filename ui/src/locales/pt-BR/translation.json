@@ -29,5 +29,11 @@
   "Configure o token OAuth localmente usando o script de autenticação.": "Configure o token OAuth localmente usando o script de autenticação.",
   "Validando...": "Validando...",
   "Salvar Configuração de Armazenamento": "Salvar Configuração de Armazenamento",
-  "Configuração salva com sucesso!": "Configuração salva com sucesso!"
+  "Configuração salva com sucesso!": "Configuração salva com sucesso!",
+  "Dropbox": "Dropbox",
+  "OneDrive / SharePoint": "OneDrive / SharePoint",
+  "Dropbox Access Token": "Token de Acesso Dropbox",
+  "OneDrive Client ID": "ID do Cliente (App) OneDrive",
+  "OneDrive Client Secret": "Segredo do Cliente (Secret)",
+  "OneDrive Tenant ID": "Tenant ID (opcional)"
 }
