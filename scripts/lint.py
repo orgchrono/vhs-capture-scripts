@@ -14,7 +14,6 @@ class LintStep:
 def run_step(step: LintStep) -> bool:
     print(f"[{step.name}] Iniciando...")
     try:
-        # Use shell=True for npm commands on Windows to find npm.cmd correctly if needed
         shell = step.command[0] == "npm" and os.name == "nt"
         
         result = subprocess.run(
@@ -47,11 +46,11 @@ def main():
     steps = [
         LintStep(
             name="Flake8 (Python Style)",
-            command=["flake8", "src", "scripts"]
+            command=[sys.executable, "-m", "flake8", "src", "scripts"]
         ),
         LintStep(
             name="Mypy (Python Types)",
-            command=["mypy", "src"]
+            command=[sys.executable, "-m", "mypy", "src"]
         ),
         LintStep(
             name="TSC (TypeScript Types)",
