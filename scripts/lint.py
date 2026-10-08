@@ -1,6 +1,7 @@
 import os
 import sys
 import subprocess
+import shutil
 from dataclasses import dataclass
 from typing import List, Optional
 
@@ -16,16 +17,18 @@ class LintStep:
 def run_step(step: LintStep) -> bool:
     print(f"[{step.name}] Iniciando...")
     try:
-        shell = step.command[0] == "npm" and os.name == "nt"
+        # Achata a chamada do execut?vel usando shutil.which (resolve .exe/.cmd nativamente sem condicionais de SO)
+        cmd = step.command.copy()
+        resolved_exe = shutil.which(cmd[0])
+        if resolved_exe:
+            cmd[0] = resolved_exe
 
         result = subprocess.run(
-            step.command,
+            cmd,
             cwd=step.cwd,
             text=True,
             capture_output=True,
-            shell=shell,
-            encoding="utf-8",
-            errors="replace",  # <-- Corre??o para o UnicodeDecodeError no Windows
+            errors="replace",
         )
 
         if result.returncode == 0:
