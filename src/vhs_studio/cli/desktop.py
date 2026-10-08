@@ -12,6 +12,11 @@ import subprocess
 from vhs_studio.core.logger import log
 from vhs_studio.api.server import run_server
 
+def get_base_path():
+    if hasattr(sys, '_MEIPASS'):
+        return sys._MEIPASS
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+
 def get_directory_hash(directory):
     sha1 = hashlib.sha1()
     for root, dirs, files in os.walk(directory):
@@ -38,7 +43,7 @@ def ensure_ui_build():
     if not os.path.exists(ui_src_dir):
         return project_root
         
-    current_hash = hash_directory(ui_src_dir)
+    current_hash = get_directory_hash(ui_src_dir)
     # Include package.json in hash
     pkg_json = os.path.join(project_root, "ui", "package.json")
     if os.path.exists(pkg_json):
