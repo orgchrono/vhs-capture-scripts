@@ -3,7 +3,6 @@ import shutil
 import subprocess
 import urllib.request
 import zipfile
-import sys
 from vhs_studio.core.logger import log
 from vhs_studio.cli.setup_obs import install_obs
 
