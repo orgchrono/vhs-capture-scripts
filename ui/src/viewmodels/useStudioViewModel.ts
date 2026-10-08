@@ -18,13 +18,13 @@ export function useStudioViewModel() {
   useQuery({
     queryKey: ['logs'],
     queryFn: studioApi.getLogs,
-    refetchInterval: store.isRestoring ? 1000 : false,
-    enabled: store.isRestoring,
+    refetchInterval: (store.isRestoring || isInstallingQtgmc) ? 1000 : false,
+    enabled: store.isRestoring || isInstallingQtgmc,
     onSuccess: (data: { active: boolean; logs: string[] }) => {
       if (data?.logs?.length) {
         data.logs.forEach((l) => store.addLog(l))
       }
-      if (!data?.active && store.isRestoring) {
+      if (!data?.active && (store.isRestoring || isInstallingQtgmc)) {
         store.setIsRestoring(false)
         store.addLog('[RESTAURAÇÃO] Processo de restauração concluído com sucesso!')
       }

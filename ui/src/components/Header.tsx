@@ -1,5 +1,5 @@
-import React from 'react'
-import { Cpu, Film, Sparkles, Wrench, Video } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Cpu, Film, Sparkles, Wrench, Globe, Eye } from 'lucide-react'
 import { Button } from './ui/button'
 import type { SystemStatus } from '../types'
 import { useTranslation } from 'react-i18next'
@@ -11,65 +11,73 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ status, onInstallQtgmc, isInstallingQtgmc }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const [highContrast, setHighContrast] = useState(false);
+
+  useEffect(() => {
+    if (highContrast) {
+      document.body.classList.add('high-contrast');
+    } else {
+      document.body.classList.remove('high-contrast');
+    }
+  }, [highContrast]);
+
+  const toggleLanguage = () => {
+    const nextLang = i18n.language === 'pt-BR' ? 'en-US' : 'pt-BR';
+    i18n.changeLanguage(nextLang);
+  };
+
   return (
-    <header className="border-b border-white/10 bg-[#0b0f17]/80 backdrop-blur-md px-6 py-4 sticky top-0 z-50 flex items-center justify-between">
+    <header className="border-b border-white/10 bg-[#0b0f17] px-6 py-4 flex items-center justify-between shrink-0 h-[72px]">
       <div className="flex items-center gap-3">
-        <div className="bg-gradient-to-br from-red-600 via-orange-500 to-amber-500 text-white font-extrabold text-xs px-2.5 py-1 rounded-md tracking-wider uppercase shadow-md shadow-orange-500/20 flex items-center gap-1.5">
-          <Film className="w-3.5 h-3.5" />
+        <div className="bg-gradient-to-br from-red-600 via-orange-500 to-amber-500 text-white font-extrabold text-xs px-2.5 py-1 rounded-md tracking-wider uppercase shadow-md flex items-center gap-1.5">
+          <Film className="w-4 h-4" />
           VHS Studio
         </div>
         <div>
           <h1 className="text-lg font-bold tracking-tight text-white flex items-center gap-2">
-            Restauração Profissional
+            VHS Studio Pro
             <span className="text-[10px] bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded-full font-mono font-medium">
-              {t('app.desktop_badge')}
+              NEXTGEN
             </span>
           </h1>
-          <p className="text-xs text-slate-400">Suporte a Múltiplos Dispositivos (DeckLink / USB / Hardware TBC)</p>
         </div>
       </div>
 
-      <div className="flex items-center gap-2.5">
-        {/* Encoder Badge */}
-        <div className="flex items-center gap-2 bg-slate-900/80 border border-white/10 px-3 py-1.5 rounded-full text-xs">
+      <div className="flex items-center gap-3">
+        {/* UI Controls */}
+        <div className="flex items-center gap-1 bg-slate-900/80 border border-white/10 rounded-lg p-1">
+          <Button variant="ghost" size="icon" className="w-8 h-8 rounded-md hover:bg-slate-800 text-slate-300" onClick={toggleLanguage} title="Change Language / Mudar Idioma">
+            <Globe className="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className={`w-8 h-8 rounded-md hover:bg-slate-800 ${highContrast ? 'text-amber-400' : 'text-slate-300'}`} onClick={() => setHighContrast(!highContrast)} title="Acessibilidade: Alto Contraste">
+            <Eye className="w-4 h-4" />
+          </Button>
+        </div>
+
+        <div className="w-px h-6 bg-white/10 mx-1"></div>
+
+        {/* Badges */}
+        <div className="flex items-center gap-2 bg-slate-900/80 border border-white/10 px-3 py-1.5 rounded-lg text-xs">
           <Cpu className="w-3.5 h-3.5 text-sky-400" />
-          <span className="text-slate-400">{t('status.encoder')}:</span>
           <strong className="text-white font-mono uppercase">
             {status?.encoder || t('status.detecting')}
           </strong>
         </div>
 
-        {/* QTGMC Badge */}
-        <div className="flex items-center gap-2 bg-slate-900/80 border border-white/10 px-3 py-1.5 rounded-full text-xs">
+        <div className="flex items-center gap-2 bg-slate-900/80 border border-white/10 px-3 py-1.5 rounded-lg text-xs">
           <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-          <span className="text-slate-400">QTGMC:</span>
           {status?.vapoursynth_available ? (
             <span className="flex items-center gap-1 text-emerald-400 font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]"></span>
-              {t('status.qtgmc_active')}
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              QTGMC
             </span>
           ) : (
-            <div className="flex items-center gap-1.5">
-              <span className="text-amber-400">{t('status.qtgmc_fallback')}</span>
-              <Button variant="outline" size="sm"
-                onClick={onInstallQtgmc}
-                disabled={isInstallingQtgmc}
-                className="h-6 px-2 text-[10px] font-semibold bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border-sky-500/40"
-                title="Executa instalador automático do VapourSynth + QTGMC"
-              >
-                <Wrench className="w-3 h-3" />
-                {isInstallingQtgmc ? t('status.installing') : t('status.auto_setup')}
-              </Button>
-            </div>
+            <Button variant="outline" size="sm" onClick={onInstallQtgmc} disabled={isInstallingQtgmc} className="h-6 px-2 text-[10px] bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border-sky-500/40">
+              <Wrench className="w-3 h-3 mr-1" />
+              {isInstallingQtgmc ? t('status.installing') : t('status.auto_setup')}
+            </Button>
           )}
-        </div>
-
-        {/* OBS Status */}
-        <div className="flex items-center gap-1.5 bg-slate-900/80 border border-white/10 px-3 py-1.5 rounded-full text-xs">
-          <Video className="w-3.5 h-3.5 text-indigo-400" />
-          <span className="text-slate-400">OBS:</span>
-          <span className="text-slate-300 font-mono">{t('status.obs_ready')}</span>
         </div>
       </div>
     </header>

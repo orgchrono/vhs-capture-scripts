@@ -32,52 +32,82 @@ const StudioMain: React.FC = () => {
   }
 
   return (
-    <div className="h-screen overflow-hidden bg-[#080c14] text-slate-100 flex flex-col">
+    <div className="h-screen w-screen overflow-hidden bg-[#05080f] text-slate-100 flex flex-col font-sans">
       <Header
         status={status}
         onInstallQtgmc={handleInstallQtgmc}
         isInstallingQtgmc={isInstallingQtgmc}
       />
 
-      <main className="flex-1 max-w-full w-full mx-auto p-4 flex flex-col lg:flex-row gap-6 overflow-hidden">
-        {/* Coluna da Esquerda (Controles & Configurações) */}
-        <div className="lg:w-7/12 flex flex-col h-full gap-4 overflow-hidden">
-          <div className="overflow-y-auto pr-2 custom-scrollbar flex-1 pb-4">
+      {/* DASHBOARD LAYOUT */}
+      <main className="flex-1 flex overflow-hidden">
+        
+        {/* LEFT SIDEBAR: Pipeline & Files */}
+        <aside className="w-80 bg-[#0b0f17] border-r border-white/5 flex flex-col shrink-0 h-full overflow-hidden">
+          <div className="p-4 border-b border-white/5 bg-slate-900/30">
+            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">1. Captura e IngestÃ£o</h2>
             <CaptureBar />
-            <PresetSelector />
+          </div>
+          <div className="p-4 flex-1 overflow-y-auto custom-scrollbar">
+            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">2. Biblioteca de Fitas</h2>
             <FileSelector
               files={status?.raw_files || []}
               onRefresh={refetchStatus}
               isRefetching={isRefetching}
             />
-            <RestorationSettings />
+          </div>
+        </aside>
+
+        {/* MIDDLE: Settings & Console */}
+        <section className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
+          
+          {/* Top Half: Settings */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-gradient-to-br from-[#080c14] to-[#0a0e16]">
+            <div className="max-w-4xl mx-auto">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <span className="bg-sky-500 w-2 h-6 rounded-full"></span>
+                  3. Motor de Processamento
+                </h2>
+                <div className="w-64">
+                  <PresetSelector />
+                </div>
+              </div>
+              <RestorationSettings />
+            </div>
           </div>
 
-          <div className="pt-2 border-t border-white/5">
-            <Button
-              onClick={onStart}
-              disabled={isRestoring}
-              className="w-full bg-gradient-to-r from-sky-500 via-sky-400 to-cyan-400 hover:from-sky-400 hover:to-cyan-300 text-slate-950 font-bold py-6 px-6 shadow-lg shadow-sky-500/25 transition-all text-sm rounded-xl"
-            >
-              {isRestoring ? (
-                <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  <span>{t('capture.start_restore')} (Em andamento...)</span>
-                </>
-              ) : (
-                <>
-                  <Play className="w-5 h-5 mr-2 fill-current" />
-                  <span>{t('capture.start_restore')}</span>
-                </>
-              )}
-            </Button>
+          {/* Bottom Half: Console & Action */}
+          <div className="h-72 border-t border-white/5 bg-[#0b0f17] flex flex-col shrink-0">
+            <div className="flex items-center justify-between p-3 border-b border-white/5 bg-black/20">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                Monitoramento do Processo
+              </h3>
+              <Button
+                onClick={onStart}
+                disabled={isRestoring}
+                className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold py-1.5 px-6 shadow-lg shadow-emerald-500/20 transition-all text-sm rounded-md"
+              >
+                {isRestoring ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <span>Processando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4 mr-2 fill-current" />
+                    <span>{t('capture.start_restore')}</span>
+                  </>
+                )}
+              </Button>
+            </div>
+            <div className="flex-1 overflow-hidden p-2">
+              <ConsoleViewer />
+            </div>
           </div>
-        </div>
+          
+        </section>
 
-        {/* Coluna da Direita (Console em Tempo Real) */}
-        <div className="lg:w-5/12 flex flex-col h-full bg-black/40 border border-white/10 rounded-xl overflow-hidden">
-          <ConsoleViewer />
-        </div>
       </main>
     </div>
   )
