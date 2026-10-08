@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 desktop.py - Lançador Desktop Nativo do VHS Studio via PyWebView (WebView2 no Windows)
 Inicia o servidor de API local e abre uma janela de aplicativo dedicada com a interface React.

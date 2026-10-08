@@ -1,4 +1,5 @@
-﻿import os
+import sys
+import os
 
 # Compatibilidade de import para tomllib (Nativo no Python 3.11+, tomli no 3.10)
 try:
@@ -7,7 +8,8 @@ except ImportError:
     try:
         import tomli as tomllib  # type: ignore
     except ImportError:
-        tomllib = None  # type: ignore
+        print("FATAL: tomllib e tomli ausentes.")
+        sys.exit(1)
 
 
 class AdvancedConfig:
@@ -16,10 +18,6 @@ class AdvancedConfig:
     @classmethod
     def load(cls):
         if cls._config is not None:
-            return cls._config
-
-        if tomllib is None:
-            cls._config = {}
             return cls._config
 
         base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))

@@ -1,4 +1,4 @@
-﻿"""
+"""
 chapter_marker.py - Módulo FP/SRP para embutir marcações de capítulo via FFmpeg.
 Seguindo princípios de FP Pure (Pure Functions para transformação de texto) e SRP.
 """

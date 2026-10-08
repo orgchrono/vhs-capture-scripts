@@ -1,4 +1,4 @@
-﻿import os
+import os
 from typing import Dict, Any
 from .base import StorageProvider
 from vhs_studio.core.logger import log

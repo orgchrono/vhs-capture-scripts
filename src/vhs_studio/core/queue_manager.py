@@ -1,4 +1,4 @@
-﻿import sqlite3
+import sqlite3
 import os
 import json
 from vhs_studio.core.logger import log

@@ -1,4 +1,4 @@
-﻿# flake8: noqa
+# flake8: noqa
 from vhs_studio.core.jobs import JobManager
 
 #!/usr/bin/env python3

@@ -1,4 +1,4 @@
-﻿import time
+import time
 from vhs_studio.core.logger import log
 
 

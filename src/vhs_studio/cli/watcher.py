@@ -1,4 +1,4 @@
-﻿"""
+"""
 VHS Studio - Monitor Inteligente de Captura (OBS WebSocket 5.x)
 Monitoramento em tempo real de ÁUDIO e VÍDEO da Blackmagic Intensity Shuttle:
 - AUTO-START IMEDIATO (< 100ms): Dispara assim que a fita começa (áudio detectado OU imagem ativa). Zero quadros perdidos!  # noqa: E501

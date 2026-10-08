@@ -1,4 +1,4 @@
-﻿export interface RawFile {
+export interface RawFile {
   name: string;
   path: string;
   size_mb: number;

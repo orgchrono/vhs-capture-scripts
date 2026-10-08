@@ -1,4 +1,4 @@
-﻿@echo off
+@echo off
 echo ========================================================
 echo   VHS Studio Pro - Build Pipeline (Windows)
 echo ========================================================

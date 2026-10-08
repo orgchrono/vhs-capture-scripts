@@ -1,4 +1,4 @@
-﻿from vhs_studio.core.logger import log
+from vhs_studio.core.logger import log
 import os
 import subprocess
 

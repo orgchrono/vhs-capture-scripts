@@ -1,14 +1,21 @@
 import os
 import shutil
+import subprocess
 
 
 def run_preflight_checks():
     issues = []
 
-    # Check OBS Version
+    # Check OBS Version via Caminho Absoluto
     obs_path = r"C:\Program Files\obs-studio\bin\64bit\obs64.exe"
     if not os.path.exists(obs_path):
         issues.append("OBS Studio não encontrado em C:\\Program Files\\obs-studio")
+
+    # Check FFmpeg via subprocess
+    try:
+        subprocess.run(["ffmpeg", "-version"], capture_output=True, check=True)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        issues.append("FFmpeg não encontrado no PATH do sistema. Necessário para capítulos e processamento.")
 
     # Check Disk Space
     raw_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "media", "raw"))

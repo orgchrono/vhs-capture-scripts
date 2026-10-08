@@ -1,4 +1,4 @@
-﻿import time
+import time
 import os
 from vhs_studio.core.logger import log
 from vhs_studio.core.queue_manager import get_next_job, complete_job, fail_job

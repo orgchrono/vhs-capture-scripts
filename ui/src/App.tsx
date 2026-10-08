@@ -1,4 +1,4 @@
-﻿import { PrivacyModal } from './components/PrivacyModal'
+import { PrivacyModal } from './components/PrivacyModal'
 import React from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Play, Loader2 } from 'lucide-react'

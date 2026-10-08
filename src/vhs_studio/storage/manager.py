@@ -1,4 +1,4 @@
-﻿# flake8: noqa
+# flake8: noqa
 from typing import Dict, Optional, Type
 from .base import StorageProvider
 from vhs_studio.core.logger import log

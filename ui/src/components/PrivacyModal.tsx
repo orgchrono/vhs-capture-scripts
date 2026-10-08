@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShieldCheck, ServerOff, Lock } from 'lucide-react';
 import { Button } from './ui/button';
 import { useTranslation } from 'react-i18next';
