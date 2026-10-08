@@ -61,6 +61,12 @@ def main():
             command=["npm", "run", "jscpd"],
             cwd=ui_dir,
         ),
+        LintStep(
+            name="Pytest (Python Tests)", command=[sys.executable, "-m", "pytest", "tests/", "-v", "--tb=short"]
+        ),
+        LintStep(
+            name="Playwright (E2E React)", command=["npx", "playwright", "test"], cwd=ui_dir
+        ),
     ]
 
     success = True

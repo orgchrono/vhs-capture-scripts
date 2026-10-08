@@ -19,8 +19,8 @@ if RESTORATION_DIR not in sys.path:
 if LIB_DIR not in sys.path:
     sys.path.insert(0, LIB_DIR)
 
-import vhs_common
-from filter_builder import FilterBuilder
+from vhs_studio.core import vhs_common
+from vhs_studio.core.filter_builder import FilterBuilder
 import argparse
 
 class TestCharacterization(unittest.TestCase):

@@ -18,7 +18,7 @@ if RESTORATION_DIR not in sys.path:
 if LIB_DIR not in sys.path:
     sys.path.insert(0, LIB_DIR)
 
-import vhs_common
+from vhs_studio.core import vhs_common
 
 
 class TestVHSCommon(unittest.TestCase):
@@ -127,14 +127,14 @@ class TestVHSCommon(unittest.TestCase):
 
     def test_filter_builder_hardware_encoder(self):
         """Testa se o FilterBuilder detecta um encoder válido (QSV, NVENC, AMF ou libx264)."""
-        from lib.filter_builder import FilterBuilder
+        from vhs_studio.core.filter_builder import FilterBuilder
         builder = FilterBuilder()
         self.assertIn(builder.encoder, ["h264_qsv", "h264_nvenc", "h264_amf", "libx264"])
 
     def test_stream_runner_passthrough_mode(self):
         """Testa se o StreamRunner em modo passthrough não descarta nenhum frame."""
         from unittest.mock import MagicMock
-        from lib.stream_runner import StreamRunner
+        from vhs_studio.video.stream_runner import StreamRunner
 
         runner = StreamRunner(mode="passthrough", frame_bytes=100, y_bytes=50)
         p_in = MagicMock()
