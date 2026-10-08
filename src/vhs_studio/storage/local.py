@@ -1,4 +1,5 @@
 """Module documentation pending."""
+
 import os
 import shutil
 from typing import Dict
@@ -22,13 +23,17 @@ class LocalStorageProvider(StorageProvider):
         """Documentation for configure."""
         path = str(config.get("path", ""))
         if not path:
-            log.error("[LocalStorage] Caminho de destino não fornecido na configuração.")
+            log.error(
+                "[LocalStorage] Caminho de destino não fornecido na configuração."
+            )
             return False
         if not os.path.exists(path):
             try:
                 os.makedirs(path, exist_ok=True)
             except Exception as e:
-                log.error(f"[LocalStorage] Falha ao criar/acessar diretório NAS/USB: {e}")
+                log.error(
+                    f"[LocalStorage] Falha ao criar/acessar diretório NAS/USB: {e}"
+                )
                 return False
         self.base_path = path
         self.is_ready = True

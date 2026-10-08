@@ -1,4 +1,5 @@
 """Module documentation pending."""
+
 import os
 import sys
 import subprocess
@@ -10,6 +11,7 @@ import json
 
 class PipelineOrchestrator:
     """Documentation for PipelineOrchestrator."""
+
     def __init__(self, raw_file, output_path, opts, params):
         """Documentation for __init__."""
         self.raw_file = os.path.abspath(raw_file)
@@ -172,6 +174,7 @@ def main(unknown_args):
     params = json.loads(args.params_json)
 
     from vhs_studio.core.paths import RESTORED_MEDIA_DIR
+
     base_name = os.path.splitext(os.path.basename(args.input))[0]
 
     # Criar pasta pro projeto!

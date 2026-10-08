@@ -1,4 +1,5 @@
 """Module documentation pending."""
+
 import sys
 import shutil
 import subprocess
@@ -9,6 +10,7 @@ from vhs_studio.core.paths import get_ffmpeg_executable_path
 
 class Toolchain:
     """Documentation for Toolchain."""
+
     @staticmethod
     def require_executable(name):
         # 1. Checa no SSOT (Portable ou Sistema adaptativo)
@@ -44,10 +46,14 @@ class Toolchain:
         encoders = ""
         filters = ""
         try:
-            res_enc = subprocess.run([ffmpeg, "-encoders"], capture_output=True, text=True)
+            res_enc = subprocess.run(
+                [ffmpeg, "-encoders"], capture_output=True, text=True
+            )
             encoders = res_enc.stdout
 
-            res_flt = subprocess.run([ffmpeg, "-filters"], capture_output=True, text=True)
+            res_flt = subprocess.run(
+                [ffmpeg, "-filters"], capture_output=True, text=True
+            )
             filters = res_flt.stdout
         except Exception as e:
             log.warning(f"Falha ao obter capacidades do ffmpeg: {e}")
@@ -58,7 +64,10 @@ class Toolchain:
     def has_encoder(encoder_name):
         """Documentation for has_encoder."""
         caps = Toolchain.get_ffmpeg_capabilities()
-        return f" {encoder_name} " in caps["encoders"] or f"V..... {encoder_name} " in caps["encoders"]
+        return (
+            f" {encoder_name} " in caps["encoders"]
+            or f"V..... {encoder_name} " in caps["encoders"]
+        )
 
     @staticmethod
     def has_filter(filter_name):

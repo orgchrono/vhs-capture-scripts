@@ -96,14 +96,18 @@ def analyze_visual_frame(img_b64, prev_pixels=None):
         is_blue = b_avg > 90 and b_avg > (r_avg + g_avg) * 1.4
 
         # Variância interna da imagem (mede se é tela lisa ou se contém texturas/conteúdo)
-        variance = sum((p[0] - r_avg) ** 2 + (p[1] - g_avg) ** 2 + (p[2] - b_avg) ** 2 for p in pixels) / (n * 3)
+        variance = sum(
+            (p[0] - r_avg) ** 2 + (p[1] - g_avg) ** 2 + (p[2] - b_avg) ** 2
+            for p in pixels
+        ) / (n * 3)
         is_solid = variance < 15.0
 
         # Diferença entre quadros consecutivos (mede movimento / ruído analógico de fita)
         diff = 0.0
         if prev_pixels and len(prev_pixels) == n:
             diff = sum(
-                abs(p1[0] - p2[0]) + abs(p1[1] - p2[1]) + abs(p1[2] - p2[2]) for p1, p2 in zip(pixels, prev_pixels)
+                abs(p1[0] - p2[0]) + abs(p1[1] - p2[1]) + abs(p1[2] - p2[2])
+                for p1, p2 in zip(pixels, prev_pixels)
             ) / (n * 3)
 
         is_blank = is_black or is_blue or (is_solid and (r_avg < 35 or b_avg > 80))
@@ -129,15 +133,29 @@ def analyze_visual_frame(img_b64, prev_pixels=None):
 def run_watcher():
     """Documentation for run_watcher."""
     os.system("title VHS Studio - Monitor Inteligente de Gravacao")
-    log.info("==============================================================================")
+    log.info(
+        "=============================================================================="
+    )
     log.info("       📼 VHS STUDIO - SERVIÇO DE CAPTURA INTELIGENTE (ÁUDIO + VÍDEO) 📼")
-    log.info("==============================================================================")
+    log.info(
+        "=============================================================================="
+    )
     log.info(f"Limiar de Áudio    : {THRESHOLD_DB:.1f} dB")
-    log.info(f"Gatilho de Início  : IMEDIATO (< {START_CONFIRM_SEC*1000:.0f}ms de áudio ou vídeo ativo)")
-    log.info(f"Gatilho de Parada  : {STOP_BLANK_CONFIRM_SEC:.1f}s (Silêncio + Tela de Parada Azul/Preta)")
-    log.info("Proteção de Cena   : Cenas silenciosas com vídeo ativo mantêm gravação ativa!")
-    log.info(f"Análise Visual     : {'Ativa (Pillow 16x12)' if HAS_PIL else 'Básica (Apenas Áudio)'}")
-    log.info("------------------------------------------------------------------------------")
+    log.info(
+        f"Gatilho de Início  : IMEDIATO (< {START_CONFIRM_SEC*1000:.0f}ms de áudio ou vídeo ativo)"
+    )
+    log.info(
+        f"Gatilho de Parada  : {STOP_BLANK_CONFIRM_SEC:.1f}s (Silêncio + Tela de Parada Azul/Preta)"
+    )
+    log.info(
+        "Proteção de Cena   : Cenas silenciosas com vídeo ativo mantêm gravação ativa!"
+    )
+    log.info(
+        f"Análise Visual     : {'Ativa (Pillow 16x12)' if HAS_PIL else 'Básica (Apenas Áudio)'}"
+    )
+    log.info(
+        "------------------------------------------------------------------------------"
+    )
 
     while True:
         import websocket
@@ -152,7 +170,9 @@ def run_watcher():
             except Exception:
                 retries += 1
                 if retries > 10 and not is_obs_running():
-                    log.info("[VHS Studio] OBS Studio não está em execução. Encerrando monitor.")
+                    log.info(
+                        "[VHS Studio] OBS Studio não está em execução. Encerrando monitor."
+                    )
                     return
                 time.sleep(1.5)
 
@@ -168,7 +188,11 @@ def run_watcher():
             # 2. Envia Identify (OpCode 1)
             # EventSubscription: General (1) + Outputs (4) + InputVolumeMeters (65536)
             sub_mask = 1 | 4 | 65536
-            ws.send(json.dumps({"op": 1, "d": {"rpcVersion": 1, "eventSubscriptions": sub_mask}}))
+            ws.send(
+                json.dumps(
+                    {"op": 1, "d": {"rpcVersion": 1, "eventSubscriptions": sub_mask}}
+                )
+            )
 
             # 3. Recebe Identified (OpCode 2)
             ws.recv()
@@ -253,7 +277,9 @@ def run_watcher():
                                     ]
                                 ):
                                     target_input_name = name
-                                    log.info(f"\n[Fonte] Vinculado com sucesso à entrada: '{target_input_name}'")
+                                    log.info(
+                                        f"\n[Fonte] Vinculado com sucesso à entrada: '{target_input_name}'"
+                                    )
                                     break
                             if not target_input_name and inputs:
                                 target_input_name = inputs[0].get("inputName", "")
@@ -273,7 +299,13 @@ def run_watcher():
                         has_audio = current_max_mul >= THRESHOLD_MUL
 
                         # Solicita miniatura visual periodicamente para análise visual
-                        if HAS_PIL and target_input_name and (now - last_shot_request_time >= SCREENSHOT_INTERVAL_SEC):
+                        if (
+                            HAS_PIL
+                            and target_input_name
+                            and (
+                                now - last_shot_request_time >= SCREENSHOT_INTERVAL_SEC
+                            )
+                        ):
                             last_shot_request_time = now
                             ws.send(
                                 json.dumps(
@@ -329,9 +361,17 @@ def run_watcher():
                                 if signal_start_time is None:
                                     signal_start_time = now
                                 elif now - signal_start_time >= START_CONFIRM_SEC:
-                                    cause = "Áudio detectado" if has_audio else "Vídeo ativo detectado"
-                                    log.info(f"\n[Auto-Start] ▶ SINAL DETECTADO ({cause})!")
-                                    log.info("[Auto-Start] Disparando gravação no OBS imediatamente...")
+                                    cause = (
+                                        "Áudio detectado"
+                                        if has_audio
+                                        else "Vídeo ativo detectado"
+                                    )
+                                    log.info(
+                                        f"\n[Auto-Start] ▶ SINAL DETECTADO ({cause})!"
+                                    )
+                                    log.info(
+                                        "[Auto-Start] Disparando gravação no OBS imediatamente..."
+                                    )
                                     ws.send(
                                         json.dumps(
                                             {
@@ -366,10 +406,21 @@ def run_watcher():
                                     quiet_scene_start_time = None
                                     if blank_silence_start_time is None:
                                         blank_silence_start_time = now
-                                    elif now - blank_silence_start_time >= STOP_BLANK_CONFIRM_SEC:
-                                        stop_reason = f"Silêncio + {visual_label}" if HAS_PIL else "Silêncio contínuo"
-                                        log.info(f"\n[Auto-Stop] ⏹ FIM DE FITA / STOP DETECTADO ({stop_reason})!")
-                                        log.info("[Auto-Stop] Encerrando gravação no OBS...")
+                                    elif (
+                                        now - blank_silence_start_time
+                                        >= STOP_BLANK_CONFIRM_SEC
+                                    ):
+                                        stop_reason = (
+                                            f"Silêncio + {visual_label}"
+                                            if HAS_PIL
+                                            else "Silêncio contínuo"
+                                        )
+                                        log.info(
+                                            f"\n[Auto-Stop] ⏹ FIM DE FITA / STOP DETECTADO ({stop_reason})!"
+                                        )
+                                        log.info(
+                                            "[Auto-Stop] Encerrando gravação no OBS..."
+                                        )
                                         ws.send(
                                             json.dumps(
                                                 {
@@ -389,7 +440,10 @@ def run_watcher():
                                     blank_silence_start_time = None
                                     if quiet_scene_start_time is None:
                                         quiet_scene_start_time = now
-                                    elif now - quiet_scene_start_time >= STOP_QUIET_SCENE_SEC:
+                                    elif (
+                                        now - quiet_scene_start_time
+                                        >= STOP_QUIET_SCENE_SEC
+                                    ):
                                         # Apenas corta se ficar em silêncio absoluto por mais de 20s seguidos
                                         log.info(
                                             f"\n[Auto-Stop] ⏹ Silêncio prolongado ({STOP_QUIET_SCENE_SEC}s). Encerrando gravação..."  # noqa: E501
@@ -415,7 +469,9 @@ def run_watcher():
 
         time.sleep(1.0)
         if not is_obs_running():
-            log.info("[VHS Studio] OBS Studio foi finalizado. Encerrando monitor de gravação.")
+            log.info(
+                "[VHS Studio] OBS Studio foi finalizado. Encerrando monitor de gravação."
+            )
             return
         time.sleep(1.5)
 

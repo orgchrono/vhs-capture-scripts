@@ -1,4 +1,5 @@
 """Module documentation pending."""
+
 import os
 import hashlib
 import json
@@ -6,6 +7,7 @@ import json
 
 class AtomicIO:
     """Documentation for AtomicIO."""
+
     @staticmethod
     def generate_hash(params_dict):
         """Gera um hash curto para diferenciar saídas com parâmetros de filtros diferentes."""

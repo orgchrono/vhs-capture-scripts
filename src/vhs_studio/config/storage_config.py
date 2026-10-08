@@ -1,4 +1,5 @@
 """Module documentation pending."""
+
 import json
 import os
 import keyring
@@ -25,7 +26,9 @@ def load_storage_config():
     if not os.path.exists(STORAGE_CONFIG_PATH):
         return {
             "provider": "local_nas_usb",
-            "config": {"path": os.path.join(os.path.expanduser("~"), "Videos", "VHS_Archive")},
+            "config": {
+                "path": os.path.join(os.path.expanduser("~"), "Videos", "VHS_Archive")
+            },
         }
 
     try:

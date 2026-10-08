@@ -1,4 +1,5 @@
 """Module documentation pending."""
+
 import subprocess
 import shutil
 from vhs_studio.core.logger import log

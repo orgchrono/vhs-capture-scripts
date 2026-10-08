@@ -1,9 +1,11 @@
 """Module documentation pending."""
+
 import hashlib
 
 
 class FixityChecker:
     """Documentation for FixityChecker."""
+
     @staticmethod
     def calculate_sha256(filepath, chunk_size=8192):
         """Documentation for calculate_sha256."""

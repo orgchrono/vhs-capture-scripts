@@ -1,4 +1,5 @@
 """Module documentation pending."""
+
 import uuid
 from typing import Optional, Dict
 from fastapi import APIRouter, Request, HTTPException
@@ -97,11 +98,16 @@ async def oauth_callback(
         log.error(f"[OAuth] Erro retornado pelo provedor: {error}")
         raise HTTPException(status_code=400, detail=error)
     if not code or not state:
-        raise HTTPException(status_code=400, detail="Código de autorização ou state ausente.")
+        raise HTTPException(
+            status_code=400, detail="Código de autorização ou state ausente."
+        )
 
     provider = oauth_sessions.pop(state, None)
     if not provider:
-        raise HTTPException(status_code=400, detail="Sessão OAuth inválida ou expirada (state mismatch).")
+        raise HTTPException(
+            status_code=400,
+            detail="Sessão OAuth inválida ou expirada (state mismatch).",
+        )
 
     p_config = OAUTH_CONFIG[provider]
     config_data = load_storage_config()
@@ -112,7 +118,10 @@ async def oauth_callback(
     redirect_uri = get_redirect_uri(request)
 
     if not client_id or not client_secret:
-        raise HTTPException(status_code=400, detail="Credenciais de aplicativo ausentes no servidor local.")
+        raise HTTPException(
+            status_code=400,
+            detail="Credenciais de aplicativo ausentes no servidor local.",
+        )
 
     data = {
         "grant_type": "authorization_code",
@@ -130,8 +139,12 @@ async def oauth_callback(
             response_data = response.json()
 
             if response.status_code != 200:
-                err_desc = response_data.get("error_description", response_data.get("error", "Erro desconhecido"))
-                log.error(f"[OAuth] Falha ao obter token. HTTP {response.status_code}: {err_desc}")
+                err_desc = response_data.get(
+                    "error_description", response_data.get("error", "Erro desconhecido")
+                )
+                log.error(
+                    f"[OAuth] Falha ao obter token. HTTP {response.status_code}: {err_desc}"
+                )
                 return HTMLResponse(
                     content=f"<html><body><h2>Falha na Autenticação</h2><p>{err_desc}</p></body></html>"
                 )
@@ -146,12 +159,16 @@ async def oauth_callback(
             if token_to_save:
                 current_config[p_config["token_key"]] = token_to_save
                 save_storage_config(provider, current_config)
-                log.info(f"[OAuth] Tokens para {provider} obtidos e salvos no Cofre Seguro nativo com sucesso.")
+                log.info(
+                    f"[OAuth] Tokens para {provider} obtidos e salvos no Cofre Seguro nativo com sucesso."
+                )
                 return HTMLResponse(
                     content=f"<html><body><h2>Autenticação Bem-Sucedida!</h2><p>VHS Studio foi conectado ao {provider}. Você pode fechar esta janela.</p></body></html>"  # noqa: E501
                 )
             else:
-                log.warning("[OAuth] A resposta foi 200 OK, mas nenhum token foi encontrado no payload.")
+                log.warning(
+                    "[OAuth] A resposta foi 200 OK, mas nenhum token foi encontrado no payload."
+                )
                 return HTMLResponse(
                     content="<html><body><h2>Falha Estranha</h2><p>Nenhum token retornado pelo servidor.</p></body></html>"  # noqa: E501
                 )

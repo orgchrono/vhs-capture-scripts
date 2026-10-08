@@ -1,4 +1,5 @@
 """Module documentation pending."""
+
 import os
 import hashlib
 import xml.etree.ElementTree as ET
@@ -7,6 +8,7 @@ import shutil
 
 class Packaging:
     """Documentation for Packaging."""
+
     @staticmethod
     def create_bagit(directory: str) -> bool:
         """Estrutura a pasta no padrao BagIt."""
@@ -51,12 +53,16 @@ class Packaging:
                 sha256_hash.update(chunk)
         hexdigest = sha256_hash.hexdigest()
 
-        premis = ET.Element("premis", xmlns="http://www.loc.gov/premis/v3", version="3.0")
+        premis = ET.Element(
+            "premis", xmlns="http://www.loc.gov/premis/v3", version="3.0"
+        )
         obj = ET.SubElement(premis, "object", {"xsi:type": "file"})
 
         id_elem = ET.SubElement(obj, "objectIdentifier")
         ET.SubElement(id_elem, "objectIdentifierType").text = "local"
-        ET.SubElement(id_elem, "objectIdentifierValue").text = os.path.basename(filepath)
+        ET.SubElement(id_elem, "objectIdentifierValue").text = os.path.basename(
+            filepath
+        )
 
         chars = ET.SubElement(obj, "objectCharacteristics")
         ET.SubElement(chars, "size").text = str(size)
@@ -72,7 +78,7 @@ class Packaging:
 
         premis_path = f"{filepath}.premis.xml"
         with open(premis_path, "w", encoding="utf-8") as f:
-            f.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
+            f.write('<?xml version="1.0" encoding="UTF-8"?>\n')
             f.write(xml_str)
 
         return premis_path

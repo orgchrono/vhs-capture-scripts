@@ -1,4 +1,5 @@
 """Module documentation pending."""
+
 # flake8: noqa
 from vhs_studio.core.toolchain import Toolchain
 
@@ -33,11 +34,17 @@ def probe_media(file_path):
     ]
     res = subprocess.run(cmd, capture_output=True, text=True)
     if res.returncode != 0:
-        raise RuntimeError(f"ffprobe falhou ao inspecionar '{file_path}': {res.stderr.strip()}")
+        raise RuntimeError(
+            f"ffprobe falhou ao inspecionar '{file_path}': {res.stderr.strip()}"
+        )
 
     data = json.loads(res.stdout)
-    v_stream = next((s for s in data.get("streams", []) if s.get("codec_type") == "video"), {})
-    a_stream = next((s for s in data.get("streams", []) if s.get("codec_type") == "audio"), {})
+    v_stream = next(
+        (s for s in data.get("streams", []) if s.get("codec_type") == "video"), {}
+    )
+    a_stream = next(
+        (s for s in data.get("streams", []) if s.get("codec_type") == "audio"), {}
+    )
 
     w = int(v_stream.get("width", 720))
     h = int(v_stream.get("height", 480))
@@ -140,7 +147,9 @@ def detect_interlace_status(file_path, num_frames=300, start_sec=None):
         if total > 0:
             # Se a grande maioria for undetermined (ex: clipe curto estático), tenta fallback no frame 0 se não foi
             if undet > total * 0.85 and start_sec > 0:
-                return detect_interlace_status(file_path, num_frames=num_frames, start_sec=0.0)
+                return detect_interlace_status(
+                    file_path, num_frames=num_frames, start_sec=0.0
+                )
 
             is_interlaced = (tff + bff) > prog
             order = "bff" if bff >= tff else "tff"
@@ -189,8 +198,12 @@ def detect_audio_layout(file_path, sample_sec=15.0, sample_duration=5.0):
     res = subprocess.run(cmd, capture_output=True, text=True)
     stderr = res.stderr
 
-    ch1_match = re.search(r"Channel: 1.*?RMS level dB:\s*(-?[\d\.]+)", stderr, re.DOTALL)
-    ch2_match = re.search(r"Channel: 2.*?RMS level dB:\s*(-?[\d\.]+)", stderr, re.DOTALL)
+    ch1_match = re.search(
+        r"Channel: 1.*?RMS level dB:\s*(-?[\d\.]+)", stderr, re.DOTALL
+    )
+    ch2_match = re.search(
+        r"Channel: 2.*?RMS level dB:\s*(-?[\d\.]+)", stderr, re.DOTALL
+    )
 
     if ch1_match and ch2_match:
         rms1 = float(ch1_match.group(1))
@@ -280,7 +293,9 @@ def resolve_pipeline_strategy(
         ambiguity_reasons.append(f"FPS incomum detectado: {raw_fps:.2f}")
 
     if user_deint:
-        need_deinterlace = (user_deint == "force") or (user_deint == "auto" and is_interlaced)
+        need_deinterlace = (user_deint == "force") or (
+            user_deint == "auto" and is_interlaced
+        )
     else:
         # Se o FPS já for >= 45.0 e o container marcar progressivo, não deve desentrelaçar
         if raw_fps >= 45.0 and not is_interlaced:
@@ -288,7 +303,9 @@ def resolve_pipeline_strategy(
         elif raw_fps < 35.0 and is_interlaced:
             need_deinterlace = True
         elif raw_fps >= 45.0 and is_interlaced:
-            ambiguity_reasons.append(f"Conflito: Taxa alta ({raw_fps:.2f} fps) mas idet aponta entrelaçamento.")
+            ambiguity_reasons.append(
+                f"Conflito: Taxa alta ({raw_fps:.2f} fps) mas idet aponta entrelaçamento."
+            )
             need_deinterlace = False
         else:
             need_deinterlace = is_interlaced
@@ -310,7 +327,9 @@ def resolve_pipeline_strategy(
         log.info("============================================================")
         log.info("[AUDIT / DECISÃO INTERATIVA DA PIPELINE]")
         log.info(f"  Arquivo: {meta.get('file_path')}")
-        log.info(f"  FPS Nativo: {raw_fps:.3f} | Resolução: {meta.get('width')}x{meta.get('height')}")
+        log.info(
+            f"  FPS Nativo: {raw_fps:.3f} | Resolução: {meta.get('width')}x{meta.get('height')}"
+        )
         log.info(f"  Status idet: {interlace_info.get('summary')}")
         log.info(f"  Áudio: {audio_info.get('reason')}")
         if ambiguity_reasons:
@@ -322,7 +341,9 @@ def resolve_pipeline_strategy(
             f"  [1] Recomendado: FPS {target_fps:.3f} | Desentrelaçamento: {'Sim' if need_deinterlace else 'Não'} | Áudio: {audio_policy}"
         )
         log.info("  [2] Forçar NTSC 29.97i -> 59.94p (Double-Rate BWDIF/QTGMC)")
-        log.info("  [3] Forçar Progressivo Direto (Pular desentrelaçamento, manter FPS nativo)")
+        log.info(
+            "  [3] Forçar Progressivo Direto (Pular desentrelaçamento, manter FPS nativo)"
+        )
         log.info("  [4] Forçar PAL 25i -> 50p")
         try:
             choice = input("Escolha uma opção [1-4] (Enter para 1): ").strip()

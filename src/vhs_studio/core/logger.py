@@ -1,11 +1,17 @@
 """Module documentation pending."""
+
 import logging
 import sys
+import os
+import json
+from datetime import datetime
 from typing import List
+from logging.handlers import RotatingFileHandler
 
 
 class ColoredFormatter(logging.Formatter):
     """Documentation for ColoredFormatter."""
+
     COLORS = {
         "WARNING": "\033[93m",
         "INFO": "\033[94m",
@@ -26,6 +32,24 @@ class ColoredFormatter(logging.Formatter):
         if self.use_color and record.levelname in self.COLORS:
             log_message = f"{self.COLORS[record.levelname]}{log_message}{self.RESET}"
         return log_message
+
+
+class JsonFormatter(logging.Formatter):
+    """Format logs as structured JSON lines for easy parsing and analytics."""
+
+    def format(self, record):
+        log_record = {
+            "time": datetime.utcnow().isoformat() + "Z",
+            "level": record.levelname,
+            "name": record.name,
+            "message": record.getMessage(),
+            "module": record.module,
+            "funcName": record.funcName,
+            "lineNo": record.lineno,
+        }
+        if record.exc_info:
+            log_record["exception"] = self.formatException(record.exc_info)
+        return json.dumps(log_record)
 
 
 class MemoryLogHandler(logging.Handler):
@@ -50,46 +74,32 @@ class MemoryLogHandler(logging.Handler):
         return self.logs
 
 
-def get_logger(name):
-    """Documentation for get_logger."""
-    logger = logging.getLogger(name)
-    if not logger.handlers:
-        logger.setLevel(logging.DEBUG)
+def setup_logger():
+    os.makedirs("logs", exist_ok=True)
 
-        # Handler em Memoria para a UI (Sempre ativo)
-        mem_handler = MemoryLogHandler()
-        logger.addHandler(mem_handler)
+    logger = logging.getLogger("vhs_studio")
+    logger.setLevel(logging.DEBUG)
 
-        # File Handler
-        try:
-            fh = logging.FileHandler("vhs_studio.log", encoding="utf-8")
-            fh.setLevel(logging.DEBUG)
-            fh.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
-            logger.addHandler(fh)
-        except Exception:
-            pass
+    # 1. Console Handler (Colorido)
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setLevel(logging.INFO)
+    ch.setFormatter(ColoredFormatter())
 
-        # Console Handler (Protegido de forma robusta contra Wrappers Nulos no Windowed Mode)
-        try:
-            if sys.stdout:
-                ch = logging.StreamHandler(sys.stdout)
-                ch.setLevel(logging.INFO)
+    # 2. Memory Handler (Para a UI do React via WS ou Endpoint)
+    mh = MemoryLogHandler()
+    mh.setLevel(logging.INFO)
 
-                # Wrappers (ex: colorama) no pyinstaller windowed env podem ter o metodo isatty
-                # mas lancam erro ao delegar para a stream base que eh None.
-                use_color = False
-                try:
-                    if hasattr(sys.stdout, "isatty"):
-                        use_color = sys.stdout.isatty()
-                except Exception:
-                    use_color = False
+    # 3. File Handler Rotativo (JSONL Estruturado para Data Analytics)
+    fh = RotatingFileHandler(
+        "logs/runtime.jsonl", maxBytes=5 * 1024 * 1024, backupCount=5, encoding="utf-8"
+    )
+    fh.setLevel(logging.DEBUG)
+    fh.setFormatter(JsonFormatter())
 
-                ch.setFormatter(ColoredFormatter(use_color=use_color))
-                logger.addHandler(ch)
-        except Exception:
-            pass
-
-    return logger
+    logger.addHandler(ch)
+    logger.addHandler(mh)
+    logger.addHandler(fh)
+    return logger, mh
 
 
-log = get_logger("vhs_studio")
+log, memory_handler = setup_logger()

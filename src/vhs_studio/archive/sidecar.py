@@ -1,4 +1,5 @@
 """Module documentation pending."""
+
 import json
 import os
 import time
@@ -6,6 +7,7 @@ import time
 
 class SidecarManager:
     """Documentation for SidecarManager."""
+
     @staticmethod
     def generate_sidecar(video_path, metadata):
         """Gera um arquivo sidecar .vhs.json com metadados da fita."""

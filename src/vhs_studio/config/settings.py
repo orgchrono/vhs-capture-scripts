@@ -8,6 +8,7 @@ from dataclasses import dataclass
 @dataclass
 class VideoConfig:
     """Documentation for VideoConfig."""
+
     DEFAULT_WIDTH: int = 720
     DEFAULT_HEIGHT: int = 480
     DEFAULT_FPS: float = 29.97
@@ -19,6 +20,7 @@ class VideoConfig:
 @dataclass
 class Filters:
     """Documentation for Filters."""
+
     CHROMA_SHIFT: str = "chromashift=cbh=2:cbv=1:crh=2:crv=1:edge=smear"
     DENOISE: str = "hqdn3d=4.0:3.0:6.0:4.5"
 
@@ -36,6 +38,7 @@ class Filters:
 @dataclass
 class AudioConfig:
     """Documentation for AudioConfig."""
+
     PAN_MONO_LEFT: str = "pan=stereo|c0=c0|c1=c0"
     PAN_MONO_RIGHT: str = "pan=stereo|c0=c1|c1=c1"
     CODEC: str = "aac"
@@ -45,6 +48,7 @@ class AudioConfig:
 @dataclass
 class OutputConfig:
     """Documentation for OutputConfig."""
+
     COLOR_PRIMARIES: str = "bt709"
     COLOR_TRC: str = "bt709"
     COLOR_SPACE: str = "bt709"

@@ -1,4 +1,5 @@
 """Module documentation pending."""
+
 # flake8: noqa
 from typing import Dict, Optional, Type
 from .base import StorageProvider
@@ -7,6 +8,7 @@ from vhs_studio.core.logger import log
 
 class StorageManager:
     """Documentation for StorageManager."""
+
     _providers: Dict[str, Type[StorageProvider]] = {}
     _active_instances: Dict[str, StorageProvider] = {}
 

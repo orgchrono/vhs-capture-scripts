@@ -9,6 +9,7 @@ from vhs_studio.ai.whisper_engine import transcribe_and_generate_vtt
 
 class PipelineOrchestrator:
     """Documentation for PipelineOrchestrator."""
+
     def __init__(self, max_workers=3):
         """Documentation for __init__."""
         self.executor = ThreadPoolExecutor(max_workers=max_workers)
@@ -37,7 +38,9 @@ class PipelineOrchestrator:
                 results[task_name] = future.result()
                 log.info(f"[PIPELINE] Tarefa concluida: {task_name}")
             except Exception as exc:
-                log.error(f"[PIPELINE ERRO] A tarefa {task_name} gerou uma excecao: {exc}")
+                log.error(
+                    f"[PIPELINE ERRO] A tarefa {task_name} gerou uma excecao: {exc}"
+                )
 
         # 3. Tarefas dependentes (Sincronas, super rapidas)
         if "Restoration" in results and "SceneDetect" in results:
@@ -62,6 +65,7 @@ class PipelineOrchestrator:
         log.info("[SCENE_DETECT] Buscando cortes na fita...")
         try:
             from scenedetect import detect, ContentDetector
+
             scene_list = detect(file_path, ContentDetector())
             timestamps = [scene[0].get_seconds() for scene in scene_list]
             log.info(f"[SCENE_DETECT] {len(timestamps)} cenas detectadas.")
@@ -87,6 +91,8 @@ class PipelineOrchestrator:
 
     def _task_split_clips(self, _master_video, _timestamps):
         """Documentation for _task_split_clips."""
-        log.info(f"[SPLIT] Cortando video master em {len(_timestamps)} clipes baseados nos timestamps...")
+        log.info(
+            f"[SPLIT] Cortando video master em {len(_timestamps)} clipes baseados nos timestamps..."
+        )
         time.sleep(1)
         return True

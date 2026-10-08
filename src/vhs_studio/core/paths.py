@@ -1,9 +1,12 @@
 """Module documentation pending."""
+
 import os
 import platform
 
 # Root of the vhs-capture-scripts repository
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+PROJECT_ROOT = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "..")
+)
 
 # Directories
 TOOLS_DIR = os.path.join(PROJECT_ROOT, "tools")

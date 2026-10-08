@@ -84,7 +84,9 @@ def _run_scenedetect(input_video: str, threshold: float, csv_path: str) -> bool:
         )
         return os.path.exists(csv_path)
     except subprocess.CalledProcessError as e:
-        log.error(f"[Capítulos] Falha no scenedetect: {e.stderr.decode('utf-8', errors='ignore')}")
+        log.error(
+            f"[Capítulos] Falha no scenedetect: {e.stderr.decode('utf-8', errors='ignore')}"
+        )
         return False
 
 
@@ -110,7 +112,9 @@ def _run_ffmpeg_mux(input_video: str, ffmeta_path: str, output_video: str) -> bo
         )
         return True
     except subprocess.CalledProcessError as e:
-        log.error(f"[Capítulos] Falha no FFmpeg: {e.stderr.decode('utf-8', errors='ignore')}")
+        log.error(
+            f"[Capítulos] Falha no FFmpeg: {e.stderr.decode('utf-8', errors='ignore')}"
+        )
         return False
 
 

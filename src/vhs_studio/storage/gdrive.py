@@ -1,13 +1,16 @@
 """Module documentation pending."""
+
 import os
 from typing import Dict
 from .base import StorageProvider
 from vhs_studio.core.logger import log
+
 try:
     from googleapiclient.discovery import build
     from googleapiclient.http import MediaFileUpload
     from google.oauth2.credentials import Credentials
     import keyring
+
     HAS_GDRIVE = True
 except ImportError:
     HAS_GDRIVE = False
@@ -15,6 +18,7 @@ except ImportError:
 
 class GoogleDriveProvider(StorageProvider):
     """Documentation for GoogleDriveProvider."""
+
     def __init__(self):
         """Documentation for __init__."""
         self.service = None
@@ -35,6 +39,7 @@ class GoogleDriveProvider(StorageProvider):
                 log.warning("[GDrive] Nenhum token OAuth salvo no keyring.")
                 return False
             import json
+
             creds_data = json.loads(token)
             creds = Credentials.from_authorized_user_info(creds_data)
             self.service = build("drive", "v3", credentials=creds)
@@ -54,7 +59,11 @@ class GoogleDriveProvider(StorageProvider):
                 file_metadata["parents"] = [self.folder_id]
             media = MediaFileUpload(local_filepath, resumable=True)
             log.info(f"[GDrive] Iniciando upload: {local_filepath} ...")
-            file = self.service.files().create(body=file_metadata, media_body=media, fields="id").execute()
+            file = (
+                self.service.files()
+                .create(body=file_metadata, media_body=media, fields="id")
+                .execute()
+            )
             log.info(f"[GDrive] Upload concluído. File ID: {file.get('id')}")
             return True
         except Exception as e:

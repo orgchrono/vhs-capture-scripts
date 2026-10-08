@@ -1,4 +1,5 @@
 """Module documentation pending."""
+
 import sys
 import argparse
 from vhs_studio.cli.desktop import run_desktop
@@ -19,7 +20,9 @@ def main():
     subparsers.add_parser("api", help="Inicia o servidor de API FastAPI")
 
     # Comando: subtitles
-    sub_parser = subparsers.add_parser("subtitles", help="Gera legendas offline via IA (Whisper)")
+    sub_parser = subparsers.add_parser(
+        "subtitles", help="Gera legendas offline via IA (Whisper)"
+    )
     sub_parser.add_argument("input", help="Caminho do vÃ­deo de entrada")
     sub_parser.add_argument(
         "--model-size",

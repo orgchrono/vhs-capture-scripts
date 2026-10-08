@@ -1,4 +1,5 @@
 """Module documentation pending."""
+
 from vhs_studio.core.logger import log
 import os
 import subprocess
@@ -21,7 +22,9 @@ def extract_audio(video_path: str, output_wav: str) -> bool:
         output_wav,
     ]
     try:
-        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(
+            cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        )
         return True
     except subprocess.CalledProcessError:
         return False
@@ -64,13 +67,17 @@ def transcribe_and_generate_vtt(video_path: str, model_size: str = "tiny") -> st
     except ImportError:
         pass
 
-    log.info(f"[WHISPER] Carregando modelo {model_size} (Device: {device}, Compute: {compute_type})...")
+    log.info(
+        f"[WHISPER] Carregando modelo {model_size} (Device: {device}, Compute: {compute_type})..."
+    )
     model = WhisperModel(model_size, device=device, compute_type=compute_type)
 
     log.info(f"[WHISPER] Transcrevendo {temp_wav}...")
     segments, info = model.transcribe(temp_wav, beam_size=5)
 
-    log.info(f"[WHISPER] Idioma detectado: {info.language} (probabilidade {info.language_probability:.2f})")
+    log.info(
+        f"[WHISPER] Idioma detectado: {info.language} (probabilidade {info.language_probability:.2f})"
+    )
 
     with open(vtt_path, "w", encoding="utf-8") as f:
         f.write("WEBVTT\n\n")

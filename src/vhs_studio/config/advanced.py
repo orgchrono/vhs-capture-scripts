@@ -1,4 +1,5 @@
 """Module documentation pending."""
+
 import sys
 import os
 from vhs_studio.core.paths import ADVANCED_CONFIG_PATH
@@ -16,6 +17,7 @@ except ImportError:
 
 class AdvancedConfig:
     """Documentation for AdvancedConfig."""
+
     _config = None
 
     @classmethod

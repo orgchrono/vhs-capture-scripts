@@ -1,4 +1,5 @@
 """Module documentation pending."""
+
 import threading
 import subprocess
 
@@ -58,7 +59,9 @@ class ProcessManager:
     def is_running(self):
         """Documentation for is_running."""
         with self._lock:
-            return self.active_process is not None and self.active_process.poll() is None
+            return (
+                self.active_process is not None and self.active_process.poll() is None
+            )
 
     def terminate(self):
         """Documentation for terminate."""

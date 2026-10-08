@@ -1,10 +1,12 @@
 """Module documentation pending."""
+
 import time
 from vhs_studio.core.logger import log
 
 
 class StreamRunner:
     """Documentation for StreamRunner."""
+
     def __init__(self, mode, frame_bytes, y_bytes, luma_threshold=18.0):
         """Documentation for __init__."""
         self.mode = mode
@@ -70,12 +72,18 @@ class StreamRunner:
                         f"  -> Frames: {total_frames:,} | Mantidos: {kept_frames:,} (Passthrough Puro 100%) | Velocidade: {fps_proc:.0f} fps"  # noqa: E501
                     )
                 elif self.mode == "freeze":
-                    pct_elim = ((frozen_frames + dropped_frames) / total_frames) * 100 if total_frames > 0 else 0
+                    pct_elim = (
+                        ((frozen_frames + dropped_frames) / total_frames) * 100
+                        if total_frames > 0
+                        else 0
+                    )
                     log.info(
                         f"  -> Frames: {total_frames:,} | Válidos: {kept_frames:,} | Congelados TBC: {frozen_frames:,} | Pretos neutralizados: {frozen_frames+dropped_frames:,} ({pct_elim:.1f}%) | Velocidade: {fps_proc:.0f} fps"  # noqa: E501
                     )
                 else:
-                    pct_dropped = (dropped_frames / total_frames) * 100 if total_frames > 0 else 0
+                    pct_dropped = (
+                        (dropped_frames / total_frames) * 100 if total_frames > 0 else 0
+                    )
                     log.info(
                         f"  -> Frames: {total_frames:,} | Mantidos: {kept_frames:,} | Pretos descartados: {dropped_frames:,} ({pct_dropped:.1f}%) | Velocidade: {fps_proc:.0f} fps"  # noqa: E501
                     )
@@ -86,7 +94,9 @@ class StreamRunner:
                 if bad_streak > fps * 1.5:  # 1.5 seconds of static/black = new scene
                     scene_sec = total_frames / fps
                     chapters.append(scene_sec)
-                    log.info(f"[SCENE DETECT] Nova cena detectada em {scene_sec:.2f}s (após corte de câmera)")
+                    log.info(
+                        f"[SCENE DETECT] Nova cena detectada em {scene_sec:.2f}s (após corte de câmera)"
+                    )
                 bad_streak = 0
 
         t1 = time.time()

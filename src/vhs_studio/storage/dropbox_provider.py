@@ -1,4 +1,5 @@
 """Module documentation pending."""
+
 from typing import Dict
 from .base import StorageProvider
 from vhs_studio.core.logger import log
@@ -14,6 +15,7 @@ except ImportError:
 
 class DropboxProvider(StorageProvider):
     """Documentation for DropboxProvider."""
+
     def __init__(self):
         """Documentation for __init__."""
         self.dbx = None
@@ -52,7 +54,9 @@ class DropboxProvider(StorageProvider):
             if not destination_path.startswith("/"):
                 destination_path = "/" + destination_path
 
-            log.info(f"[Dropbox] Iniciando upload de {local_filepath} para {destination_path}...")
+            log.info(
+                f"[Dropbox] Iniciando upload de {local_filepath} para {destination_path}..."
+            )
 
             # Para arquivos grandes, usar upload session
             file_size = os.path.getsize(local_filepath)
@@ -66,18 +70,26 @@ class DropboxProvider(StorageProvider):
                         mode=dropbox.files.WriteMode.overwrite,
                     )
                 else:
-                    upload_session_start_result = self.dbx.files_upload_session_start(f.read(CHUNK_SIZE))
+                    upload_session_start_result = self.dbx.files_upload_session_start(
+                        f.read(CHUNK_SIZE)
+                    )
                     cursor = dropbox.files.UploadSessionCursor(
                         session_id=upload_session_start_result.session_id,
                         offset=f.tell(),
                     )
-                    commit = dropbox.files.CommitInfo(path=destination_path, mode=dropbox.files.WriteMode.overwrite)
+                    commit = dropbox.files.CommitInfo(
+                        path=destination_path, mode=dropbox.files.WriteMode.overwrite
+                    )
 
                     while f.tell() < file_size:
                         if (file_size - f.tell()) <= CHUNK_SIZE:
-                            self.dbx.files_upload_session_finish(f.read(CHUNK_SIZE), cursor, commit)
+                            self.dbx.files_upload_session_finish(
+                                f.read(CHUNK_SIZE), cursor, commit
+                            )
                         else:
-                            self.dbx.files_upload_session_append_v2(f.read(CHUNK_SIZE), cursor)
+                            self.dbx.files_upload_session_append_v2(
+                                f.read(CHUNK_SIZE), cursor
+                            )
                             cursor.offset = f.tell()
 
             log.info("[Dropbox] Upload concluído com sucesso.")

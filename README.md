@@ -4,39 +4,40 @@ O **VHS Studio Pro** é uma plataforma unificada (Desktop Web App) projetada par
 
 O projeto utiliza uma **Arquitetura DAG Paralela** (Grafo Direcionado Acíclico), permitindo que motores assíncronos operem no mesmo arquivo sem overhead. A engine possui inteligência de Auto-Detect de Hardware (CUDA, AMF, QuickSync, VideoToolbox), distribuindo cargas para GPU ou CPU dinamicamente.
 
-## Requisitos de Hardware (Mínimo e Recomendado)
+## Componentes do Sistema e Arquitetura
 
-O sistema lida com desentrelaçamento matemático complexo (QTGMC) e modelos de IA (Whisper/Real-ESRGAN). O backend fará o auto-detect para não travar máquinas sem placas dedicadas.
+O ecossistema adota os mais rigorosos padrões da indústria de desenvolvimento:
 
-### Hardware Mínimo (Resolução Original / CPU Only)
-- **Processador:** Múltiplos núcleos modernos (Intel Core i5 8ª Ger, Ryzen 5 ou Apple M1)
-- **Memória RAM:** 16 GB (Se utilizar GPU Integrada, a RAM será compartilhada).
-- **Aceleração de Hardware:** Suporta QuickSync (Intel), AMF (AMD) ou VideoToolbox (Mac) nativamente.
-- **Armazenamento:** SSD NVMe com 100GB livres.
+- **Frontend (MVVM Estrito):** React, Vite, TailwindCSS. Separação total de lógica de UI (Views) e mutações de negócio (ViewModels) usando **Zustand** para gerenciamento de estado (SSOT) e **React-Query** para chamadas de rede isoladas e cacheadas.
+- **Backend (Hardware Abstraction Layer):** FastAPI em Python, comunicando-se de forma stateful e bloqueante (com locks transacionais) através de WebSockets com o OBS Studio para a ingestão Frame-Perfect de fontes analógicas.
+- **Inteligência Artificial Paralela:** Uso do *faster-whisper* para transcrição VTT e detecção multilíngue nativa, além de segmentação com *PySceneDetect* operando concorrentemente enquanto a captura corre.
+
+## Observabilidade e Relatórios
+
+### Runtime Logging Estruturado (JSON Lines)
+O backend Python substituiu logs efêmeros de console por uma infraestrutura robusta.
+Todos os eventos do motor, AI e APIs são arquivados em **JSON Lines (`logs/runtime.jsonl`)** com formatação de data ISO-8601, Níveis (INFO, WARNING, ERROR, CRITICAL), rastreamento de pilha (Stack Trace) embutido, e rotação de 5MB, garantindo fácil integração futura com ferramentas de Data Analytics, ELK Stack, ou Splunk.
+
+### Relatórios de Build Automatizados
+Durante cada push/commit, o hook de `pre-commit` (via `scripts/lint.py`) gera automaticamente o relatório em Markdown **`logs/build_report.md`**, exibindo uma tabela da integridade dos módulos.
+
+## Suite de Testes (TDD & E2E)
+
+- **Vitest & React-Testing-Library:** Testa cada ViewModel com Wrappers do QueryClient e valida alterações do Zustand.
+- **Playwright (E2E Automático):** Emula um Chromium do zero sem side-effects (limpando o Storage), aceita termos de EULA, navega e aciona fluxos da API real via mocks rígidos, validando a UI de ponta a ponta.
+- **PyTest:** Efetua o mock de sub-processos do FFmpeg e bibliotecas PyTorch, validando formatação de Timestamps, extratores de áudio e geradores de XML PREMIS.
+
+## Requisitos de Hardware
 
 ### Hardware Recomendado (Pipeline "AI Master" 1080p e Whisper Local)
 - **Processador:** 12 Núcleos ou mais (ex: Intel Core i7 / Ryzen 7). 
 - **Memória RAM:** 32 GB DDR4/DDR5.
-- **Placa de Vídeo (Opcional, mas desejada):** NVIDIA RTX (8GB+ VRAM) para rodar o Whisper Pytorch e o ESRGAN via CUDA simultaneamente. Em PCs sem VRAM dedicada (ex: mini-PCs corporativos), a pipeline redireciona inteligentemente a IA para a CPU usando AVX2.
+- **Placa de Vídeo:** NVIDIA RTX (8GB+ VRAM) para rodar o Whisper Pytorch e o ESRGAN via CUDA.
 - **Captura:** Blackmagic DeckLink SDI/HDMI com chip TBC externo.
-
-## Componentes do Sistema (A Pipeline Mágica)
-
-O ecossistema consolida diversas ferramentas em passos paralelos:
-1. **Auto-Captura:** Comunicação WebSocket com o OBS Studio para acionar placas DeckLink sem perda de quadros.
-2. **Monitor Nativo:** Live View em zero-latency direto na tela do App via Virtual Camera, poupando CPU.
-3. **Filtro Nativo FFmpeg / VapourSynth:** Limpa head-switching noise e desentrelaça em 60fps lisos via QTGMC.
-4. **Inteligência Artificial Paralela:** Enquanto o vídeo renderiza, o backend roda o *OpenAI Whisper* para gerar legendas (`.vtt`) e o *PySceneDetect* para fatiar as mudanças de cenas abruptas (cortes de câmera do casamento, por exemplo).
-5. **Nuvem:** Upload automático para o Google Drive nativo na nuvem, com paralelização de arquivos.
 
 ## Instalação e Uso
 
-Para iniciar, basta executar o launcher inteligente do Windows:
+Para iniciar a pipeline completa (com live reload do backend e frontend):
 ```cmd
 vhs.cmd
 ```
-O script irá:
-1. Compilar automaticamente as mudanças da UI via Vite (se houver alterações).
-2. Detectar o Python e dependências.
-3. Abrir o Servidor FastAPI e a Janela do Aplicativo.
-4. (Dentro do App) Os botões do Header realizarão os setups automáticos de OBS Portable e QTGMC.

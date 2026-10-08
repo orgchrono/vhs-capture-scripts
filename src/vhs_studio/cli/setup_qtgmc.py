@@ -1,4 +1,5 @@
 """Module documentation pending."""
+
 import sys
 import subprocess
 import os
@@ -24,7 +25,9 @@ def setup_vapoursynth_windows():
     print_step("Verificando instalação do vspipe...")
     vspipe_check = run_cmd(["where", "vspipe"])
     if vspipe_check.returncode == 0:
-        print_success(f"VapourSynth já está instalado: {vspipe_check.stdout.strip().split(chr(10))[0]}")
+        print_success(
+            f"VapourSynth já está instalado: {vspipe_check.stdout.strip().split(chr(10))[0]}"
+        )
     else:
         print_step("vspipe não encontrado. Tentando instalar via WinGet...")
         winget_res = run_cmd(
@@ -41,13 +44,15 @@ def setup_vapoursynth_windows():
             print_success("VapourSynth instalado com sucesso via WinGet!")
         else:
             print_error("Falha ao instalar via WinGet. Baixando instalador oficial...")
-            installer_url = (
-                "https://github.com/vapoursynth/vapoursynth/releases/latest/download/VapourSynth65-Setup.exe"
+            installer_url = "https://github.com/vapoursynth/vapoursynth/releases/latest/download/VapourSynth65-Setup.exe"
+            installer_path = os.path.join(
+                tempfile.gettempdir(), "VapourSynth-Setup.exe"
             )
-            installer_path = os.path.join(tempfile.gettempdir(), "VapourSynth-Setup.exe")
             try:
                 urllib.request.urlretrieve(installer_url, installer_path)  # nosec
-                print_step("Executando instalador (isso pode exigir permissão de Administrador)...")
+                print_step(
+                    "Executando instalador (isso pode exigir permissão de Administrador)..."
+                )
                 subprocess.run([installer_path, "/S"])
                 print_success("Instalador oficial executado.")
             except Exception as e:
@@ -56,7 +61,9 @@ def setup_vapoursynth_windows():
 
     # 2. Install python deps
     print_step("Instalando bibliotecas Python para QTGMC (havsfunc)...")
-    pip_res = run_cmd([sys.executable, "-m", "pip", "install", "vapoursynth", "havsfunc"])
+    pip_res = run_cmd(
+        [sys.executable, "-m", "pip", "install", "vapoursynth", "havsfunc"]
+    )
     if pip_res.returncode == 0:
         print_success("Bibliotecas instaladas com sucesso!")
     else:
@@ -87,4 +94,6 @@ if __name__ == "__main__":
     if sys.platform == "win32":
         setup_vapoursynth_windows()
     else:
-        print_error("Setup automático não suportado neste SO. Instale VapourSynth manualmente.")
+        print_error(
+            "Setup automático não suportado neste SO. Instale VapourSynth manualmente."
+        )

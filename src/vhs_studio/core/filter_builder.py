@@ -1,4 +1,5 @@
 """Module documentation pending."""
+
 from vhs_studio.config.settings import Filters, AudioConfig, OutputConfig
 from vhs_studio.core.logger import log
 import sys
@@ -9,6 +10,7 @@ from vhs_studio.core.toolchain import Toolchain
 
 class FilterBuilder:
     """Documentation for FilterBuilder."""
+
     def __init__(self, target_1080p=True, crf=20, mode="freeze", output_codec="h264"):
         """Documentation for __init__."""
         self.output_codec = output_codec
@@ -81,7 +83,9 @@ class FilterBuilder:
             if self.check_filter_support("dedot"):
                 vf_filters.append("dedot=m=comb")
             else:
-                log.warning("[AVISO] Filtro 3D Comb (dedot) não encontrado no FFmpeg local. Omitindo.")
+                log.warning(
+                    "[AVISO] Filtro 3D Comb (dedot) não encontrado no FFmpeg local. Omitindo."
+                )
 
         if apply_chroma:
             vf_filters.append(Filters.CHROMA_SHIFT)
@@ -96,7 +100,9 @@ class FilterBuilder:
             if self.check_filter_support("znedi3"):
                 vf_filters.append(Filters.DEINT_ZNEDI3)
             elif self.check_filter_support("nnedi"):
-                log.info("[DEINTERLACE] Usando filtro de rede neural 'nnedi' nativo do FFmpeg.")
+                log.info(
+                    "[DEINTERLACE] Usando filtro de rede neural 'nnedi' nativo do FFmpeg."
+                )
                 vf_filters.append(Filters.DEINT_NNEDI)
             else:
                 log.warning(
@@ -107,7 +113,9 @@ class FilterBuilder:
             if self.check_filter_support("nnedi"):
                 vf_filters.append(Filters.DEINT_NNEDI)
             else:
-                log.warning("[AVISO] Filtro 'nnedi' não encontrado neste FFmpeg. Fazendo fallback para 'bwdif'!")
+                log.warning(
+                    "[AVISO] Filtro 'nnedi' não encontrado neste FFmpeg. Fazendo fallback para 'bwdif'!"
+                )
                 vf_filters.append(Filters.DEINT_BWDIF_BOB)
         elif deinterlacer == "yadif":
             vf_filters.append(Filters.DEINT_YADIF)

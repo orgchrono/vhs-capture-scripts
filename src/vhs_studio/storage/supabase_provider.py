@@ -1,9 +1,12 @@
 """Module documentation pending."""
+
 from typing import Dict
 from .base import StorageProvider
 from vhs_studio.core.logger import log
+
 try:
     from supabase import create_client
+
     HAS_SUPABASE = True
 except ImportError:
     HAS_SUPABASE = False
@@ -49,7 +52,9 @@ class SupabaseStorageProvider(StorageProvider):
         if not self.client:
             return False
         try:
-            log.info(f"[Supabase] Fazendo upload de {local_filepath} para o bucket {self.bucket_name}...")
+            log.info(
+                f"[Supabase] Fazendo upload de {local_filepath} para o bucket {self.bucket_name}..."
+            )
             with open(local_filepath, "rb") as f:
                 self.client.storage.from_(self.bucket_name).upload(
                     file=f,

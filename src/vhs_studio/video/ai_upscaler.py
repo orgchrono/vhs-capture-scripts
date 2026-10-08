@@ -1,4 +1,5 @@
 """Module documentation pending."""
+
 import os
 import subprocess
 import multiprocessing
@@ -7,6 +8,7 @@ from vhs_studio.core.logger import log
 
 class AIUpscaler:
     """Documentation for AIUpscaler."""
+
     def __init__(self, model_name="realesrgan-x4plus", gpu_id="auto"):
         """Documentation for __init__."""
         self.model_name = model_name

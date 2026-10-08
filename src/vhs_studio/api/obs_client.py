@@ -32,7 +32,9 @@ class OBSClient:
         try:
             import websocket
         except ImportError:
-            log.error("[ERRO] websocket-client nao instalado. Use pip install websocket-client")
+            log.error(
+                "[ERRO] websocket-client nao instalado. Use pip install websocket-client"
+            )
             return False
 
         with self._reconnect_lock:
@@ -41,7 +43,9 @@ class OBSClient:
 
             for attempt in range(self._max_retries):
                 try:
-                    self.ws = websocket.create_connection(f"ws://{self.host}:{self.port}", timeout=3)
+                    self.ws = websocket.create_connection(
+                        f"ws://{self.host}:{self.port}", timeout=3
+                    )
                     # Handshake inicial
                     hello = json.loads(self.ws.recv())
                     auth_info = hello.get("d", {}).get("authentication")
@@ -53,15 +57,21 @@ class OBSClient:
 
                     if auth_info:
                         if not self.password:
-                            log.error("[ERRO] OBS requer senha, mas nenhuma foi configurada.")
+                            log.error(
+                                "[ERRO] OBS requer senha, mas nenhuma foi configurada."
+                            )
                             return False
 
                         salt = auth_info["salt"]
                         challenge = auth_info["challenge"]
                         concat1 = (self.password + salt).encode("utf-8")
-                        secret = base64.b64encode(hashlib.sha256(concat1).digest()).decode("utf-8")
+                        secret = base64.b64encode(
+                            hashlib.sha256(concat1).digest()
+                        ).decode("utf-8")
                         concat2 = (secret + challenge).encode("utf-8")
-                        auth_resp = base64.b64encode(hashlib.sha256(concat2).digest()).decode("utf-8")
+                        auth_resp = base64.b64encode(
+                            hashlib.sha256(concat2).digest()
+                        ).decode("utf-8")
                         identify_payload["d"]["authentication"] = auth_resp
 
                     self.ws.send(json.dumps(identify_payload))
@@ -69,16 +79,20 @@ class OBSClient:
 
                     if resp.get("op") == 2:
                         self._connected = True
-                        log.info(f"[HAL] OBS WebSocket Conectado com Sucesso! (Tentativa {attempt + 1})")
+                        log.info(
+                            f"[HAL] OBS WebSocket Conectado com Sucesso! (Tentativa {attempt + 1})"
+                        )
                         return True
                     else:
                         log.error(f"[HAL] Falha de auth no OBS: {resp}")
                         return False
                 except Exception as e:
-                    log.warning(f"[HAL] Falha ao conectar no OBS (Tentativa {attempt + 1}/{self._max_retries}): {e}")
+                    log.warning(
+                        f"[HAL] Falha ao conectar no OBS (Tentativa {attempt + 1}/{self._max_retries}): {e}"
+                    )
                     if self.ws:
                         self.ws.close()
-                    time.sleep(self._backoff * (2 ** attempt))
+                    time.sleep(self._backoff * (2**attempt))
 
             log.error("[HAL] Esgotadas as tentativas de conexao com o OBS.")
             return False
@@ -86,7 +100,9 @@ class OBSClient:
     def send_request(self, request_type, request_data=None):
         """Documentation for send_request."""
         if not self._connected or not self.ws:
-            log.warning("[HAL] Conexao perdida, tentando reconectar antes do request...")
+            log.warning(
+                "[HAL] Conexao perdida, tentando reconectar antes do request..."
+            )
             if not self.connect():
                 return None
 
@@ -96,8 +112,8 @@ class OBSClient:
                 "d": {
                     "requestType": request_type,
                     "requestId": f"req_{int(time.time()*1000)}",
-                    "requestData": request_data or {}
-                }
+                    "requestData": request_data or {},
+                },
             }
             self.ws.send(json.dumps(payload))
             resp = json.loads(self.ws.recv())

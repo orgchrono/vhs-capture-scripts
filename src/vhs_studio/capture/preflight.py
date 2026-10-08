@@ -1,4 +1,5 @@
 """Module documentation pending."""
+
 import os
 import shutil
 import subprocess
@@ -43,7 +44,9 @@ def ensure_obs():
         log.info("[Preflight] OBS detectado via PATH (macOS).")
         return True
 
-    log.warning(f"[Preflight] OBS não encontrado no {sys_name}. Iniciando fallback de instalação...")
+    log.warning(
+        f"[Preflight] OBS não encontrado no {sys_name}. Iniciando fallback de instalação..."
+    )
     try:
         success = install_obs()
         if success:
@@ -74,7 +77,9 @@ def ensure_ffmpeg():
         return True
 
     # 3. Fallback Multiplataforma
-    log.warning(f"[Preflight] FFmpeg ausente. Iniciando instalação fallback para {sys_name}...")
+    log.warning(
+        f"[Preflight] FFmpeg ausente. Iniciando instalação fallback para {sys_name}..."
+    )
 
     try:
         if sys_name == "Linux":
@@ -109,7 +114,9 @@ def ensure_ffmpeg():
             log.info("[Preflight] FFmpeg Portable instalado no Windows.")
             return True
         else:
-            log.error(f"[Preflight] Sistema não suportado para instalação automática de FFmpeg: {sys_name}")
+            log.error(
+                f"[Preflight] Sistema não suportado para instalação automática de FFmpeg: {sys_name}"
+            )
             return False
 
     except Exception as e:
@@ -131,7 +138,9 @@ def run_preflight_checks():
     total, used, free = shutil.disk_usage(RAW_MEDIA_DIR)
     free_gb = free / (1024**3)
     if free_gb < 50:
-        issues.append(f"Espaço em disco insuficiente em media/raw: {free_gb:.1f}GB livre (Recomendado > 50GB)")
+        issues.append(
+            f"Espaço em disco insuficiente em media/raw: {free_gb:.1f}GB livre (Recomendado > 50GB)"
+        )
 
     return {
         "status": "pass" if len(issues) == 0 else "fail",
