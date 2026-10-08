@@ -1,12 +1,15 @@
 import React, { useState } from 'react'
-import { Sliders, Search, Video, Music, Settings2, Image as ImageIcon } from 'lucide-react'
+import { Sliders, Search, Video, Music, Settings2, Image as ImageIcon, Sparkles } from 'lucide-react'
 import { useStudioStore } from '../store/useStudioStore'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 import { Switch } from './ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 import { Input } from './ui/input'
+import { useTranslation } from 'react-i18next'
+import { DEINTERLACER_OPTIONS, VIDEO_MODE_OPTIONS, AUDIO_MODE_OPTIONS, OUTPUT_CODEC_OPTIONS, RESOLUTION_OPTIONS } from '../lib/constants'
 
 export const RestorationSettings: React.FC = () => {
+  const { t } = useTranslation();
   const {
     mode, setMode,
     deinterlacer, setDeinterlacer,
@@ -48,7 +51,7 @@ export const RestorationSettings: React.FC = () => {
       </div>
 
       <Tabs defaultValue="video" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 mb-4">
+        <TabsList className="grid w-full grid-cols-5 mb-4">
           <TabsTrigger value="video" className="flex items-center gap-2"><Video className="w-4 h-4"/>Vídeo</TabsTrigger>
           <TabsTrigger value="audio" className="flex items-center gap-2"><Music className="w-4 h-4"/>Áudio</TabsTrigger>
           <TabsTrigger value="filters" className="flex items-center gap-2"><ImageIcon className="w-4 h-4"/>Filtros</TabsTrigger>
@@ -65,10 +68,8 @@ export const RestorationSettings: React.FC = () => {
     <SelectValue placeholder="Selecione..." />
   </SelectTrigger>
   <SelectContent>
-    <SelectItem value="bwdif">BWDIF (Rápido / CPU Leve)</SelectItem>
-<SelectItem value="qtgmc_fast">QTGMC Fast (VapourSynth / GPU)</SelectItem>
-<SelectItem value="qtgmc_slow">QTGMC Slow (VapourSynth / Max Quality)</SelectItem>
-  </SelectContent>
+      {DEINTERLACER_OPTIONS.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+    </SelectContent>
 </Select>
                 <p className="text-[10px] text-slate-500">O QTGMC é o padrão ouro, mas requer VapourSynth instalado.</p>
               </div>
@@ -76,15 +77,14 @@ export const RestorationSettings: React.FC = () => {
             
             {matches(['modo', 'fps', 'video', 'interlaced']) && (
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-slate-400 block">Modo de FPS:</label>
+                <label className="text-xs font-medium text-slate-400 block">{t('settings.fps_mode')}</label>
                 <Select value={mode} onValueChange={(val) => setMode(val as any)}>
   <SelectTrigger className="w-full bg-slate-950 border-slate-800 text-white">
     <SelectValue placeholder="Selecione..." />
   </SelectTrigger>
   <SelectContent>
-    <SelectItem value="double">60fps / 50fps (Smooth / Padrão)</SelectItem>
-<SelectItem value="single">30fps / 25fps (Original Film)</SelectItem>
-  </SelectContent>
+      {VIDEO_MODE_OPTIONS.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+    </SelectContent>
 </Select>
               </div>
             )}
@@ -97,9 +97,8 @@ export const RestorationSettings: React.FC = () => {
     <SelectValue placeholder="Selecione..." />
   </SelectTrigger>
   <SelectContent>
-    <SelectItem value="original">Original (480p / 576p)</SelectItem>
-<SelectItem value="1080p">Upscale Lanczos (1440x1080)</SelectItem>
-  </SelectContent>
+      {RESOLUTION_OPTIONS.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+    </SelectContent>
 </Select>
               </div>
             )}
@@ -112,10 +111,8 @@ export const RestorationSettings: React.FC = () => {
     <SelectValue placeholder="Selecione..." />
   </SelectTrigger>
   <SelectContent>
-    <SelectItem value="h264">H.264 (Compatibilidade Máxima)</SelectItem>
-<SelectItem value="hevc">H.265 / HEVC (Tamanho Menor, Alta Qualidade)</SelectItem>
-<SelectItem value="prores">ProRes (Arquivo Master GIGANTE)</SelectItem>
-  </SelectContent>
+      {OUTPUT_CODEC_OPTIONS.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+    </SelectContent>
 </Select>
               </div>
             )}
@@ -132,11 +129,8 @@ export const RestorationSettings: React.FC = () => {
     <SelectValue placeholder="Selecione..." />
   </SelectTrigger>
   <SelectContent>
-    <SelectItem value="stereo">Estéreo (Original do Capturador)</SelectItem>
-<SelectItem value="mono">Forçar Mono (Fitas Antigas Sem Hi-Fi)</SelectItem>
-<SelectItem value="left_only">Canal Esquerdo Apenas (Para trilha suja na direita)</SelectItem>
-<SelectItem value="right_only">Canal Direito Apenas (Para trilha suja na esquerda)</SelectItem>
-  </SelectContent>
+      {AUDIO_MODE_OPTIONS.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+    </SelectContent>
 </Select>
               </div>
             )}
@@ -197,7 +191,7 @@ export const RestorationSettings: React.FC = () => {
             {matches(['overscan', 'bordas', 'filtros']) && (
               <div className="flex items-center justify-between bg-slate-950 p-4 rounded-lg border border-slate-800">
                 <div className="space-y-0.5">
-                  <label className="text-sm font-medium text-slate-200">Overscan Blanking</label>
+                  <label className="text-sm font-medium text-slate-200">{t('settings.overscan')}</label>
                   <p className="text-xs text-slate-500">Cobre bordas ruidosas (Head Switching Noise) com tarjas pretas.</p>
                 </div>
                 <Switch checked={overscanBlanking} onCheckedChange={setOverscanBlanking} />
@@ -232,7 +226,46 @@ export const RestorationSettings: React.FC = () => {
             )}
           </div>
         </TabsContent>
-      </Tabs>
+      
+        <TabsContent value="ai" className="space-y-4">
+          <div className="bg-slate-900/50 p-4 border border-indigo-500/20 rounded-xl">
+            <h3 className="text-sm font-semibold text-indigo-400 flex items-center gap-2 mb-2">
+              <Sparkles className="w-4 h-4" /> Inteligência Artificial (Local)
+            </h3>
+            <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+              Utilize o <strong>Whisper</strong> (OpenAI) rodando 100% offline no seu computador para extrair o áudio do arquivo bruto selecionado e gerar legendas precisas no formato <code>.vtt</code>. O vídeo em si não é alterado.
+            </p>
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <label className="text-xs font-medium text-slate-400 block mb-1.5">Tamanho do Modelo:</label>
+                <Select defaultValue="tiny" onValueChange={(val) => window.localStorage.setItem('whisper_model', val)}>
+                  <SelectTrigger className="w-full bg-slate-950 border-slate-800 text-white">
+                    <SelectValue placeholder="Tiny (Rápido)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="tiny">Tiny (Rápido, ~40MB RAM)</SelectItem>
+                    <SelectItem value="base">Base (Equilibrado, ~75MB RAM)</SelectItem>
+                    <SelectItem value="small">Small (Preciso, ~250MB RAM)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex-1 flex items-end">
+                <button 
+                  onClick={() => {
+                    const file = useStudioStore.getState().selectedFile;
+                    const model = window.localStorage.getItem('whisper_model') || 'tiny';
+                    if (!file) { alert('Selecione um arquivo de vídeo acima primeiro!'); return; }
+                    window.dispatchEvent(new CustomEvent('WHISPER_START', { detail: { input: file, model_size: model } }));
+                  }}
+                  className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs py-2.5 rounded-lg transition"
+                >
+                  Gerar Legendas
+                </button>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+</Tabs>
     </div>
   )
 }

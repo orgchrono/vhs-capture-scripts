@@ -2,7 +2,7 @@ import { Button } from "./ui/button";
 import React from 'react'
 import { Award, Zap, ShieldCheck, Wand2 } from 'lucide-react'
 import { useStudioStore } from '../store/useStudioStore'
-import type { RestorationPreset } from '../store/useStudioStore'
+import type { RestorationPreset } from '../types'
 import { cn } from '../lib/utils'
 
 export const PresetSelector: React.FC = () => {

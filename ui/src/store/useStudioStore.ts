@@ -1,15 +1,15 @@
 import { create } from 'zustand'
+import type { RestorationPreset, VideoMode, DeinterlacerType, AudioMode, OutputCodec, ResolutionMode } from '../types'
 
-export type RestorationPreset = 'gold' | 'speed' | 'tbc_hold' | 'ai_master' | 'custom'
 
 export interface StudioState {
   selectedFile: string
   preset: RestorationPreset
-  mode: 'double' | 'single' | 'freeze' | 'passthrough' | 'drop'
-  deinterlacer: 'qtgmc_fast' | 'qtgmc_slow' | 'qtgmc' | 'bwdif' | 'znedi3' | 'nnedi' | 'none'
-  audioMode: 'auto' | 'stereo' | 'mono_l' | 'mono_r' | 'mono' | 'left_only' | 'right_only'
-  outputCodec: 'h264' | 'hevc' | 'prores' | 'ffv1'
-  resolution: '1080p' | 'original'
+  mode: VideoMode
+  deinterlacer: DeinterlacerType
+  audioMode: AudioMode
+  outputCodec: OutputCodec
+  resolution: ResolutionMode
   crf: number
   audioOffset: number
   chromaFix: boolean
@@ -25,7 +25,7 @@ export interface StudioState {
   setSelectedFile: (file: string) => void
   setPreset: (preset: RestorationPreset) => void
   applyPreset: (preset: RestorationPreset) => void
-  setMode: (mode: 'double' | 'single' | 'freeze' | 'passthrough' | 'drop') => void
+  setMode: (mode: VideoMode) => void
   setDeinterlacer: (deint: 'qtgmc_fast' | 'qtgmc_slow' | 'qtgmc' | 'bwdif' | 'znedi3' | 'nnedi' | 'none') => void
   setAudioMode: (audio: 'auto' | 'stereo' | 'mono_l' | 'mono_r' | 'mono' | 'left_only' | 'right_only') => void
   setOutputCodec: (codec: 'h264' | 'hevc' | 'prores' | 'ffv1') => void

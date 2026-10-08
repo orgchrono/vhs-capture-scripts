@@ -1,0 +1,60 @@
+{
+  "app": {
+    "title": "Restaurador Profissional VHS",
+    "desktop_badge": "Desktop Pro",
+    "subtitle": "Suporte a Múltiplos Dispositivos (DeckLink / USB / Hardware TBC)"
+  },
+  "status": {
+    "encoder": "GPU Encoder",
+    "detecting": "Detectando...",
+    "qtgmc_active": "Ativo (VapourSynth)",
+    "qtgmc_fallback": "FFmpeg Fallback",
+    "auto_setup": "Auto-Setup",
+    "installing": "Instalando...",
+    "obs_ready": "Pronto",
+    "obs_recording": "Gravando",
+    "obs_disconnected": "Desconectado"
+  },
+  "tabs": {
+    "video": "Vídeo",
+    "audio": "Áudio",
+    "filters": "Filtros e Cores",
+    "advanced": "Avançado",
+    "ai_subtitles": "IA e Legendas"
+  },
+  "settings": {
+    "search": "Buscar configuração...",
+    "deinterlacer": "Desentrelaçamento:",
+    "fps_mode": "Modo de FPS:",
+    "resolution": "Resolução / Upscale:",
+    "output_codec": "Codec de Saída:",
+    "audio_mode": "Modo de Áudio:",
+    "audio_sync": "Sincronização de Áudio (Atraso em ms):",
+    "audio_sync_help": "Valores positivos atrasam o áudio. Valores negativos adiantam.",
+    "crf": "Qualidade CRF (H.264 / HEVC):",
+    "crf_help": "Menor = Melhor Qualidade / Maior Arquivo. Padrão: 18-20.",
+    "chroma_fix": "Correção de Chroma (Vazamento de Cor)",
+    "chroma_help": "Alinha as cores que 'vazam' para a direita (comum em fitas velhas).",
+    "denoise": "Redução de Ruído (Denoise)",
+    "denoise_help": "Aplica HQDN3D para limpar chiado visual sem destruir textura.",
+    "comb_filter": "Filtro Comb (Remover Cross-Color)",
+    "comb_help": "Útil para fitas capturadas via vídeo composto sem TBC de linha.",
+    "overscan": "Overscan Blanking",
+    "overscan_help": "Pinta 8px de borda preta para esconder ruído de cabeçote no VHS.",
+    "audio_treat": "Tratamento de Áudio Broadcast",
+    "audio_treat_help": "Normaliza para -23 LUFS (Padrão TV/YouTube) e corta ruído baixo."
+  },
+  "capture": {
+    "select_file": "Selecione um Arquivo",
+    "no_file": "Nenhum selecionado",
+    "start_obs": "Iniciar Captura (OBS)",
+    "stop_obs": "Parar Captura",
+    "start_restore": "Restaurar Agora",
+    "stop_restore": "Parar"
+  },
+  "presets": {
+    "title": "Perfis Prontos",
+    "subtitle": "Ajustam todas as opções abaixo automaticamente.",
+    "recommended": "Recomendado"
+  }
+}

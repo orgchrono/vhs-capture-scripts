@@ -1,7 +1,7 @@
 import React from 'react'
 import { Folder, HardDrive, RefreshCw } from 'lucide-react'
 import { useStudioStore } from '../store/useStudioStore'
-import type { RawFile } from '../api/studioApi'
+import type { RawFile } from '../types'
 
 interface FileSelectorProps {
   files: RawFile[]

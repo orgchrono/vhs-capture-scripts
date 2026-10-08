@@ -1,7 +1,8 @@
 import React from 'react'
 import { Cpu, Film, Sparkles, Wrench, Video } from 'lucide-react'
 import { Button } from './ui/button'
-import type { SystemStatus } from '../api/studioApi'
+import type { SystemStatus } from '../types'
+import { useTranslation } from 'react-i18next'
 
 interface HeaderProps {
   status?: SystemStatus
@@ -10,6 +11,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ status, onInstallQtgmc, isInstallingQtgmc }) => {
+  const { t } = useTranslation();
   return (
     <header className="border-b border-white/10 bg-[#0b0f17]/80 backdrop-blur-md px-6 py-4 sticky top-0 z-50 flex items-center justify-between">
       <div className="flex items-center gap-3">
@@ -21,7 +23,7 @@ export const Header: React.FC<HeaderProps> = ({ status, onInstallQtgmc, isInstal
           <h1 className="text-lg font-bold tracking-tight text-white flex items-center gap-2">
             Restauração Profissional
             <span className="text-[10px] bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded-full font-mono font-medium">
-              Desktop Pro
+              {t('app.desktop_badge')}
             </span>
           </h1>
           <p className="text-xs text-slate-400">Suporte a Múltiplos Dispositivos (DeckLink / USB / Hardware TBC)</p>
@@ -32,9 +34,9 @@ export const Header: React.FC<HeaderProps> = ({ status, onInstallQtgmc, isInstal
         {/* Encoder Badge */}
         <div className="flex items-center gap-2 bg-slate-900/80 border border-white/10 px-3 py-1.5 rounded-full text-xs">
           <Cpu className="w-3.5 h-3.5 text-sky-400" />
-          <span className="text-slate-400">GPU Encoder:</span>
+          <span className="text-slate-400">{t('status.encoder')}:</span>
           <strong className="text-white font-mono uppercase">
-            {status?.encoder || 'Detectando...'}
+            {status?.encoder || t('status.detecting')}
           </strong>
         </div>
 
@@ -45,11 +47,11 @@ export const Header: React.FC<HeaderProps> = ({ status, onInstallQtgmc, isInstal
           {status?.vapoursynth_available ? (
             <span className="flex items-center gap-1 text-emerald-400 font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]"></span>
-              Ativo (VapourSynth)
+              {t('status.qtgmc_active')}
             </span>
           ) : (
             <div className="flex items-center gap-1.5">
-              <span className="text-amber-400">FFmpeg Fallback</span>
+              <span className="text-amber-400">{t('status.qtgmc_fallback')}</span>
               <Button variant="outline" size="sm"
                 onClick={onInstallQtgmc}
                 disabled={isInstallingQtgmc}
@@ -57,7 +59,7 @@ export const Header: React.FC<HeaderProps> = ({ status, onInstallQtgmc, isInstal
                 title="Executa instalador automático do VapourSynth + QTGMC"
               >
                 <Wrench className="w-3 h-3" />
-                {isInstallingQtgmc ? 'Instalando...' : 'Auto-Setup'}
+                {isInstallingQtgmc ? t('status.installing') : t('status.auto_setup')}
               </Button>
             </div>
           )}
@@ -67,7 +69,7 @@ export const Header: React.FC<HeaderProps> = ({ status, onInstallQtgmc, isInstal
         <div className="flex items-center gap-1.5 bg-slate-900/80 border border-white/10 px-3 py-1.5 rounded-full text-xs">
           <Video className="w-3.5 h-3.5 text-indigo-400" />
           <span className="text-slate-400">OBS:</span>
-          <span className="text-slate-300 font-mono">Pronto</span>
+          <span className="text-slate-300 font-mono">{t('status.obs_ready')}</span>
         </div>
       </div>
     </header>

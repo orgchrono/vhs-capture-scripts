@@ -125,6 +125,22 @@ async def perform_action(request: Request):
         else:
             return {"status": "error", "message": msg}
             
+    elif action == "generate_subtitles":
+        if pm.is_running():
+            return {"status": "error", "message": "Aguarde o processo atual terminar."}
+            
+        input_file = params.get("input")
+        model_size = params.get("model_size", "tiny")
+        
+        # Call an inline python script using ProcessManager so it streams logs to UI
+        cmd = [sys.executable, "-c", f"from vhs_studio.ai.whisper_engine import transcribe_and_generate_vtt; transcribe_and_generate_vtt(r'{input_file}', '{model_size}')"]
+            
+        success, msg = pm.start_process(cmd)
+        if success:
+            return {"status": "ok", "message": "Geração de legendas iniciada!"}
+        else:
+            return {"status": "error", "message": msg}
+            
     elif action == "stop_process":
         if pm.terminate():
             return {"status": "ok", "message": "Processo encerrado via API."}

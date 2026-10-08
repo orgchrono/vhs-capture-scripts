@@ -9,10 +9,13 @@ import { RestorationSettings } from './components/RestorationSettings'
 import { ConsoleViewer } from './components/ConsoleViewer'
 import { studioApi } from './api/studioApi'
 import { useStudioStore } from './store/useStudioStore'
+import { useTranslation } from 'react-i18next'
+import { Button } from './components/ui/button'
 
 const queryClient = new QueryClient()
 
 const StudioMain: React.FC = () => {
+  const { t } = useTranslation()
   const {
     selectedFile,
     deinterlacer,
@@ -69,9 +72,29 @@ const StudioMain: React.FC = () => {
     },
   })
 
+  
+    React.useEffect(() => {
+    const handleWhisper = (e: any) => {
+      const { input, model_size } = e.detail;
+      addLog(`[WHISPER] Preparando extração de áudio e transcrição...`);
+      setIsRestoring(true);
+      studioApi.generateSubtitles(input, model_size).then(res => {
+        if (res.status !== 'ok') {
+          addLog(`[WHISPER ERRO] ${res.message}`);
+          setIsRestoring(false);
+        }
+      }).catch(err => {
+        addLog(`[WHISPER ERRO] ${err.message}`);
+        setIsRestoring(false);
+      });
+    };
+    window.addEventListener('WHISPER_START', handleWhisper);
+    return () => window.removeEventListener('WHISPER_START', handleWhisper);
+  }, []);
+
   const handleStartRestoration = () => {
     if (!selectedFile) {
-      alert('Por favor, selecione um arquivo de vídeo capturado em media/raw/ antes de iniciar!')
+      alert(t('capture.no_file'))
       return
     }
 
@@ -107,16 +130,17 @@ const StudioMain: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#080c14] text-slate-100 flex flex-col">
+    <div className="h-screen overflow-hidden bg-[#080c14] text-slate-100 flex flex-col">
       <Header
         status={status}
         onInstallQtgmc={handleInstallQtgmc}
         isInstallingQtgmc={isInstallingQtgmc}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <main className="flex-1 max-w-full w-full mx-auto p-4 flex flex-col lg:flex-row gap-6 overflow-hidden">
         {/* Coluna da Esquerda (Controles & Configurações) */}
-        <div className="lg:col-span-7 flex flex-col">
+        <div className="lg:w-7/12 flex flex-col h-full gap-4 overflow-hidden">
+<div className="overflow-y-auto pr-2 custom-scrollbar flex-1 pb-4">
           <CaptureBar />
           <PresetSelector />
           <FileSelector
@@ -127,10 +151,11 @@ const StudioMain: React.FC = () => {
           <RestorationSettings />
 
           {/* Botão de Disparo */}
-          <button
+          </div><div className="pt-2 border-t border-white/5">
+<Button
             onClick={handleStartRestoration}
             disabled={isRestoring || restoreMutation.isPending}
-            className="w-full bg-gradient-to-r from-sky-500 via-sky-400 to-cyan-400 hover:from-sky-400 hover:to-cyan-300 text-slate-950 font-bold py-3.5 px-6 rounded-xl shadow-lg shadow-sky-500/25 transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="w-full bg-gradient-to-r from-sky-500 via-sky-400 to-cyan-400 hover:from-sky-400 hover:to-cyan-300 text-slate-950 font-bold py-6 px-6 shadow-lg shadow-sky-500/25 transition-all text-sm rounded-xl"
           >
             {isRestoring || restoreMutation.isPending ? (
               <>
@@ -143,11 +168,12 @@ const StudioMain: React.FC = () => {
                 <span>Iniciar Restauração Direta</span>
               </>
             )}
-          </button>
+          </Button>
+</div>
         </div>
 
         {/* Coluna da Direita (Console em Tempo Real) */}
-        <div className="lg:col-span-5 h-[calc(100vh-140px)] sticky top-24">
+        <div className="lg:w-5/12 flex flex-col h-full bg-black/40 border border-white/10 rounded-xl overflow-hidden">
           <ConsoleViewer />
         </div>
       </main>

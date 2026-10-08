@@ -1,32 +1,4 @@
-export interface RawFile {
-  name: string
-  path: string
-  size_mb: number
-}
-
-export interface SystemStatus {
-  encoder: string
-  vapoursynth_available: boolean
-  obs_connected?: boolean
-  obs_recording?: boolean
-  raw_files: RawFile[]
-}
-
-export interface RestorationPayload {
-  input: string
-  deinterlacer: string
-  mode: string
-  audio_mode: string
-  no_1080p: boolean
-  crf: number
-  audio_offset: number
-  chroma_fix: boolean
-  denoise: boolean
-  comb_filter?: boolean
-  overscan_blanking?: boolean
-  audio_treatment?: boolean
-  output_codec?: string
-}
+import type { SystemStatus, RestorationPayload } from '../types'
 
 export const studioApi = {
   async getStatus(): Promise<SystemStatus> {
@@ -62,6 +34,15 @@ export const studioApi = {
 
   async stopObsCapture(): Promise<{ status: string; path?: string }> {
     const res = await fetch('/api/obs/stop', { method: 'POST' })
+    return res.json()
+  },
+
+  async generateSubtitles(input: string, model_size: string): Promise<{ status: string; message?: string }> {
+    const res = await fetch('/api/action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'generate_subtitles', params: { input, model_size } })
+    })
     return res.json()
   },
 }
