@@ -136,7 +136,7 @@ async def perform_action(request: Request):
             return {"status": "error", "message": "Caminho de arquivo inválido ou inseguro."}
             
         params_json = json.dumps(params)
-          cmd = [sys.executable, "-m", "vhs_studio", "pipeline", input_file, "--params-json", params_json]
+        cmd = [sys.executable, "-m", "vhs_studio", "pipeline", input_file, "--params-json", params_json]
         
         success, msg = pm.start_process(cmd)
         if success:

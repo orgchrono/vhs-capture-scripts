@@ -1,13 +1,74 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 desktop.py - Lançador Desktop Nativo do VHS Studio via PyWebView (WebView2 no Windows)
 Inicia o servidor de API local e abre uma janela de aplicativo dedicada com a interface React.
 """
 
 import sys
+import os
+import hashlib
 import threading
+import subprocess
 from vhs_studio.core.logger import log
 from vhs_studio.api.server import run_server
+
+def get_directory_hash(directory):
+    sha1 = hashlib.sha1()
+    for root, dirs, files in os.walk(directory):
+        for name in sorted(files):
+            filepath = os.path.join(root, name)
+            try:
+                with open(filepath, "rb") as f:
+                    while chunk := f.read(8192):
+                        sha1.update(chunk)
+            except Exception:
+                pass
+    return sha1.hexdigest()
+
+def ensure_ui_build():
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+    ui_src_dir = os.path.join(project_root, "ui", "src")
+    ui_dist_dir = os.path.join(project_root, "ui", "dist")
+    hash_file = os.path.join(ui_dist_dir, ".build_hash")
+    
+    if not os.path.exists(ui_src_dir):
+        return
+
+    log.info("[DESKTOP] Verificando integridade da UI (Vite)...")
+    current_hash = get_directory_hash(ui_src_dir)
+    
+    # Adicionar o package.json e tsconfig no hash tambem
+    for f in ["package.json", "package-lock.json", "index.html"]:
+        try:
+            with open(os.path.join(project_root, "ui", f), "rb") as bf:
+                current_hash += hashlib.sha1(bf.read()).hexdigest()
+        except Exception:
+            pass
+
+    current_hash = hashlib.sha1(current_hash.encode()).hexdigest()
+
+    rebuild_needed = True
+    if os.path.exists(hash_file):
+        with open(hash_file, "r") as f:
+            saved_hash = f.read().strip()
+            if saved_hash == current_hash:
+                rebuild_needed = False
+
+    if rebuild_needed:
+        log.info("[DESKTOP] Mudanças detectadas na UI. Compilando via Vite...")
+        ui_dir = os.path.join(project_root, "ui")
+        try:
+            subprocess.run("npm install", cwd=ui_dir, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run("npm run build", cwd=ui_dir, shell=True, check=True)
+            
+            os.makedirs(ui_dist_dir, exist_ok=True)
+            with open(hash_file, "w") as f:
+                f.write(current_hash)
+            log.info("[DESKTOP] Build da UI concluída com sucesso!")
+        except Exception as e:
+            log.error(f"[DESKTOP ERRO] Falha ao compilar a UI: {e}")
+    else:
+        log.info("[DESKTOP] UI já está na versão mais recente (Cache Match).")
 
 def run_desktop():
     try:
@@ -15,6 +76,8 @@ def run_desktop():
     except ImportError:
         log.error("[DESKTOP] pywebview não encontrado. Por favor, execute: pip install pywebview fastapi uvicorn")
         sys.exit(1)
+
+    ensure_ui_build()
 
     port = 8088
     t = threading.Thread(target=run_server, args=(port,), daemon=True)

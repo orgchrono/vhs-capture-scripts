@@ -35,6 +35,11 @@ class PipelineOrchestrator:
                 
         self._task_scenedetect_and_split()
         log.info(f"[PIPELINE ORQUESTRADA] Sucesso Absoluto!")
+        
+        # FASE 4.3 - Cloud Upload
+        if self.params.get("auto_upload"):
+            from vhs_studio.cloud.drive_uploader import upload_project_folder
+            upload_project_folder(os.path.dirname(self.output_path))
 
     def _task_restoration(self):
         cmd = [sys.executable, "-m", "vhs_studio.cli.main", "restore", self.raw_file, "--output", self.output_path]

@@ -38,4 +38,5 @@ export interface RestorationPayload {
   overscan_blanking?: boolean;
   audio_treatment?: boolean;
   output_codec?: OutputCodec;
+  auto_upload?: boolean;
 }
