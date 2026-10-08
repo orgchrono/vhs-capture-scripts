@@ -4,7 +4,7 @@ echo   VHS Studio Pro - Ambiente de Desenvolvimento
 echo ========================================================
 
 if not exist ".venv" (
-    echo [*] Criando ambiente virtual isolado (.venv)...
+    echo [*] Criando ambiente virtual isolado
     python -m venv .venv
 )
 
@@ -15,14 +15,13 @@ echo [*] Garantindo que todas as dependencias estao atualizadas...
 python -m pip install --upgrade pip > nul
 python -m pip install -e .[dev,ai,cloud] > nul
 
-echo [*] Rodando Linter e Type Checking (Flake8, Mypy, TSC)...
+echo [*] Rodando Linter e Type Checking...
 python scripts\lint.py
-if %errorlevel% neq 0 (
+if %ERRORLEVEL% NEQ 0 (
     echo.
-    echo [ERRO] O codigo nao passou no crivo de qualidade! 
-    echo Corrija os erros listados acima antes de iniciar o servidor.
+    echo [ERRO] O codigo nao passou no crivo de qualidade.
     pause
-    exit /b %errorlevel%
+    exit /b %ERRORLEVEL%
 )
 
 echo [*] Qualidade Aprovada! Iniciando o Servidor e a Interface...
