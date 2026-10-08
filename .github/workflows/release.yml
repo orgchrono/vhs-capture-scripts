@@ -16,7 +16,7 @@ jobs:
           - os: windows-latest
             artifact_name: VHS_Studio_Pro-Windows
             sep: ";"
-          - os: ubuntu-24.04
+          - os: ubuntu-latest
             artifact_name: VHS_Studio_Pro-Linux
             sep: ":"
           - os: macos-latest
@@ -60,7 +60,7 @@ jobs:
   release:
     name: Publish Release
     needs: build
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Download Artifacts
