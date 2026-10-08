@@ -1,0 +1,48 @@
+﻿# =======================================================
+# VHS STUDIO PRO - ADVANCED CONFIGURATION (TOML)
+# =======================================================
+# Este arquivo substitui os "Magic Numbers" internos por uma 
+# configuração rigorosa e arquitetural. Ideal para usuários
+# avançados e engenheiros de vídeo que precisam tunar a engine.
+# =======================================================
+
+[capture]
+# Limiar de ruído de fundo da fita (Gate de Áudio). Abaixo disso é silêncio.
+audio_threshold_db = -50.0
+
+# Tempo (em segundos) que o silêncio deve ser quebrado para iniciar a gravação.
+# Valor ultra-baixo (0.10) garante zero quadros perdidos ao dar Play.
+start_confirm_sec = 0.10
+
+# Tempo (em segundos) que a fita precisa estar parada (silêncio + tela azul/preta)
+# para que o motor corte a gravação automaticamente.
+stop_blank_confirm_sec = 3.5
+
+# Tolerância para cenas silenciosas. Se houver movimento no vídeo, mas
+# o áudio estiver em absoluto silêncio, ele aguarda esse tempo antes de cortar.
+stop_quiet_scene_sec = 25.0
+
+# Frequência (em segundos) que o motor varre a tela para detectar a placa de captura.
+screenshot_interval_sec = 0.25
+
+
+[vapoursynth]
+# Tuning avançado do QTGMC (Desentrelaçamento Mágico via AI / Interpolação)
+# Se você sabe o que está fazendo, pode forçar parâmetros de Sharpness, Denoise, etc.
+# presets validos: "Placebo", "Very Slow", "Slower", "Slow", "Medium", "Fast", "Faster", "Very Fast", "Super Fast", "Ultra Fast", "Draft"
+qtgmc_preset_gold = "Slower"
+qtgmc_preset_speed = "Faster"
+
+# Reparo avançado de croma espacial (Remoção de ruído de cor VHS)
+chroma_shift_x = -2
+chroma_shift_y = 0
+
+[ffmpeg]
+# Níveis matemáticos de compressão CRF para H264/H265
+# (Quanto menor, maior a qualidade e o peso em Gigabytes)
+crf_gold = 18
+crf_speed = 22
+crf_ai_master = 16
+
+# Limiar de detecção visual de silêncio/corte de cena (SceneDetect)
+scene_threshold = 27.0

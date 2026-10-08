@@ -16,6 +16,7 @@ import time
 from vhs_studio.core.logger import log
 import math
 import sys
+from vhs_studio.config.advanced import AdvancedConfig
 import subprocess
 import io
 
@@ -26,15 +27,15 @@ except ImportError:
     HAS_PIL = False
 
 # Limiares de áudio
-THRESHOLD_DB = -50.0
+THRESHOLD_DB = AdvancedConfig.get("capture", "audio_threshold_db", -50.0)
 # Multiplicador correspondente a -50 dB: 10^(-50/20) ≈ 0.00316
 THRESHOLD_MUL = 10.0 ** (THRESHOLD_DB / 20.0)
 
 # Tempos de confirmação ultrarrápidos e inteligentes
-START_CONFIRM_SEC = 0.10      # 100ms (apenas 2 pacotes de áudio): disparo imediato ao dar play!
-STOP_BLANK_CONFIRM_SEC = 3.5  # 3.5s quando confirmada tela de parada (silêncio + azul/preto) para evitar corte em pausas entre takes
-STOP_QUIET_SCENE_SEC = 25.0   # Tolerância estendida se o áudio estiver quieto mas a imagem estiver ativa!
-SCREENSHOT_INTERVAL_SEC = 0.25 # Captura miniatura a cada 250ms (4x/seg) para análise visual instantânea
+START_CONFIRM_SEC = AdvancedConfig.get("capture", "start_confirm_sec", 0.10)      # 100ms (apenas 2 pacotes de áudio): disparo imediato ao dar play!
+STOP_BLANK_CONFIRM_SEC = AdvancedConfig.get("capture", "stop_blank_confirm_sec", 3.5)  # 3.5s quando confirmada tela de parada (silêncio + azul/preto) para evitar corte em pausas entre takes
+STOP_QUIET_SCENE_SEC = AdvancedConfig.get("capture", "stop_quiet_scene_sec", 25.0)   # Tolerância estendida se o áudio estiver quieto mas a imagem estiver ativa!
+SCREENSHOT_INTERVAL_SEC = AdvancedConfig.get("capture", "screenshot_interval_sec", 0.25) # Captura miniatura a cada 250ms (4x/seg) para análise visual instantânea
 
 def mul_to_db(mul):
     if mul <= 0.000001:
