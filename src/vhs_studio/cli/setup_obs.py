@@ -10,23 +10,9 @@ import subprocess
 from vhs_studio.core.paths import TOOLS_DIR, OBS_DIR
 
 
-# jscpd:ignore-start
-def print_step(msg):
-    """Documentation for print_step."""
-    print(f"[*] {msg}", flush=True)
+from vhs_studio.cli.utils import print_step, print_success, print_error
 
 
-def print_success(msg):
-    """Documentation for print_success."""
-    print(f"[+] {msg}", flush=True)
-
-
-def print_error(msg):
-    """Documentation for print_error."""
-    print(f"[!] {msg}", flush=True)
-
-
-# jscpd:ignore-end
 def setup_windows_portable():
     """Documentation for setup_windows_portable."""
     if os.path.exists(OBS_DIR):
