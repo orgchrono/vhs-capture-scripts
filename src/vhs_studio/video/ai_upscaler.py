@@ -51,7 +51,9 @@ class AIUpscaler:
         Localiza ou instrui o download do realesrgan-ncnn-vulkan, que é a forma
         mais eficiente, rápida e gratuita de rodar ESRGAN em qualquer placa de vídeo (AMD/NVIDIA/Intel).
         """
-        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "tools", "realesrgan"))
+        from vhs_studio.core.paths import REALESRGAN_DIR
+
+        base_dir = REALESRGAN_DIR
         exe_path = os.path.join(base_dir, "realesrgan-ncnn-vulkan.exe")
 
         if not os.path.exists(exe_path):

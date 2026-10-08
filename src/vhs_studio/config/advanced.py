@@ -1,5 +1,6 @@
-import sys
+﻿import sys
 import os
+from vhs_studio.core.paths import ADVANCED_CONFIG_PATH
 
 # Compatibilidade de import para tomllib (Nativo no Python 3.11+, tomli no 3.10)
 try:
@@ -20,12 +21,9 @@ class AdvancedConfig:
         if cls._config is not None:
             return cls._config
 
-        base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-        toml_path = os.path.join(base_path, "vhs_advanced_config.toml")
-
-        if os.path.exists(toml_path):
+        if os.path.exists(ADVANCED_CONFIG_PATH):
             try:
-                with open(toml_path, "rb") as f:
+                with open(ADVANCED_CONFIG_PATH, "rb") as f:
                     cls._config = tomllib.load(f)
             except Exception:
                 cls._config = {}

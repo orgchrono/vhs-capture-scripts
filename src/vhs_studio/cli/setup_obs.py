@@ -1,4 +1,4 @@
-import sys
+﻿import sys
 import os
 import urllib.request
 import json
@@ -6,9 +6,7 @@ import zipfile
 import shutil
 import platform
 import subprocess
-
-TOOLS_DIR = os.path.join(os.getcwd(), "tools")
-OBS_DIR = os.path.join(TOOLS_DIR, "obs")
+from vhs_studio.core.paths import TOOLS_DIR, OBS_DIR
 
 
 def print_step(msg):
@@ -25,13 +23,13 @@ def print_error(msg):
 
 def setup_windows_portable():
     if os.path.exists(OBS_DIR):
-        print_success("OBS Studio (Portable) jÃ¡ estÃ¡ instalado no Windows.")
+        print_success("OBS Studio (Portable) já está instalado no Windows.")
         return True
 
     os.makedirs(TOOLS_DIR, exist_ok=True)
 
     # 1. Obter URL do OBS via GitHub API
-    print_step("Consultando versÃ£o mais recente do OBS Studio...")
+    print_step("Consultando versão mais recente do OBS Studio...")
     req = urllib.request.Request(
         "https://api.github.com/repos/obsproject/obs-studio/releases/latest",
         headers={"User-Agent": "VHS-Studio"},
@@ -45,7 +43,7 @@ def setup_windows_portable():
                 zip_url = asset["browser_download_url"]
                 break
         if not zip_url:
-            print_error("NÃ£o foi possÃ­vel encontrar o ZIP do OBS para Windows.")
+            print_error("Não foi possível encontrar o ZIP do OBS para Windows.")
             return False
     except Exception as e:
         print_error(f"Erro na API do GitHub: {e}")
@@ -67,8 +65,8 @@ def setup_windows_portable():
 
     os.remove(zip_path)
 
-    # 4. Ativar Modo PortÃ¡til
-    print_step("Configurando Modo PortÃ¡til e WebSocket...")
+    # 4. Ativar Modo Portátil
+    print_step("Configurando Modo Portátil e WebSocket...")
     open(os.path.join(OBS_DIR, "obs_portable_mode.txt"), "w").close()
 
     # 5. Configurar WebSocket
@@ -93,7 +91,7 @@ def setup_windows_portable():
 def setup_linux():
     print_step("Verificando OBS Studio no Linux...")
     if shutil.which("obs"):
-        print_success("OBS Studio jÃ¡ estÃ¡ instalado.")
+        print_success("OBS Studio já está instalado.")
         return True
 
     print_step("Tentando instalar OBS via APT...")
@@ -110,7 +108,7 @@ def setup_linux():
 def setup_mac():
     print_step("Verificando OBS Studio no macOS...")
     if shutil.which("obs") or os.path.exists("/Applications/OBS.app"):
-        print_success("OBS Studio jÃ¡ estÃ¡ instalado.")
+        print_success("OBS Studio já está instalado.")
         return True
 
     print_step("Tentando instalar via Homebrew...")
@@ -132,7 +130,7 @@ def install_obs():
     elif sys_name == "Darwin":
         return setup_mac()
     else:
-        print_error(f"Sistema Operacional {sys_name} nÃ£o suportado.")
+        print_error(f"Sistema Operacional {sys_name} não suportado.")
         return False
 
 

@@ -2,8 +2,7 @@
 import os
 import keyring
 from vhs_studio.core.logger import log
-
-CONFIG_PATH = os.path.join(os.path.expanduser("~"), ".vhs_studio", "storage.json")
+from vhs_studio.core.paths import STORAGE_CONFIG_PATH
 
 # Campos que JAMAIS devem ser salvos em texto plano
 SENSITIVE_KEYS = {
@@ -21,14 +20,14 @@ SENSITIVE_KEYS = {
 
 
 def load_storage_config():
-    if not os.path.exists(CONFIG_PATH):
+    if not os.path.exists(STORAGE_CONFIG_PATH):
         return {
             "provider": "local_nas_usb",
             "config": {"path": os.path.join(os.path.expanduser("~"), "Videos", "VHS_Archive")},
         }
 
     try:
-        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+        with open(STORAGE_CONFIG_PATH, "r", encoding="utf-8") as f:
             data = json.load(f)
 
         provider = data.get("provider", "local_nas_usb")
@@ -51,7 +50,7 @@ def load_storage_config():
 
 
 def save_storage_config(provider: str, config: dict):
-    os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
+    os.makedirs(os.path.dirname(STORAGE_CONFIG_PATH), exist_ok=True)
 
     public_config = {}
 
@@ -64,7 +63,6 @@ def save_storage_config(provider: str, config: dict):
                 except Exception as e:
                     log.error(f"[StorageConfig] Falha ao salvar no cofre seguro: {e}")
             else:
-                # Se vier vazio, talvez o user apagou, então removemos do cofre
                 try:
                     keyring.delete_password("vhs_studio", f"{provider}_{k}")
                 except Exception:
@@ -75,7 +73,7 @@ def save_storage_config(provider: str, config: dict):
     data = {"provider": provider, "config": public_config}
 
     try:
-        with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+        with open(STORAGE_CONFIG_PATH, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4)
         return True
     except Exception as e:

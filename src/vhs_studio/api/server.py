@@ -83,19 +83,20 @@ def ensure_obs_running():
     except:
         pass  # Not responding
 
-    # Try to launch portable OBS
-    obs_dir = os.path.join(os.getcwd(), "tools", "obs", "bin", "64bit")
-    obs_exe = os.path.join(obs_dir, "obs64.exe")
+    # Try to launch OBS (Portable or System)
+    from vhs_studio.core.paths import get_obs_executable_paths
+    import time
+    import platform
 
-    if os.path.exists(obs_exe):
-        try:
-            subprocess.Popen([obs_exe, "--minimize-to-tray"], cwd=obs_dir)
-            import time
-
-            time.sleep(3)
-            return True
-        except:
-            return False
+    for obs_exe in get_obs_executable_paths():
+        if os.path.exists(obs_exe):
+            cwd = os.path.dirname(obs_exe) if platform.system() == "Windows" else None
+            try:
+                subprocess.Popen([obs_exe, "--minimize-to-tray"], cwd=cwd)
+                time.sleep(3)
+                return True
+            except:
+                pass
     return False
 
 

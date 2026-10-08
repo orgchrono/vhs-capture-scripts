@@ -6,9 +6,13 @@ import zipfile
 import platform
 from vhs_studio.core.logger import log
 from vhs_studio.cli.setup_obs import install_obs
-
-TOOLS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "tools"))
-FFMPEG_DIR = os.path.join(TOOLS_DIR, "ffmpeg")
+from vhs_studio.core.paths import (
+    TOOLS_DIR,
+    FFMPEG_DIR,
+    RAW_MEDIA_DIR,
+    get_obs_executable_paths,
+    get_ffmpeg_executable_path,
+)
 
 
 def is_ffmpeg_in_path():
@@ -22,24 +26,23 @@ def is_ffmpeg_in_path():
 def ensure_obs():
     sys_name = platform.system()
 
-    if sys_name == "Windows":
-        obs_system = r"C:\Program Files\obs-studio\bin\64bit\obs64.exe"
-        obs_portable = os.path.join(TOOLS_DIR, "obs", "bin", "64bit", "obs64.exe")
-        if os.path.exists(obs_system) or os.path.exists(obs_portable):
-            log.info("[Preflight] OBS detectado no sistema (Windows).")
+    # 1. Checa a partir dos paths centralizados SSOT
+    obs_paths = get_obs_executable_paths()
+    for obs_path in obs_paths:
+        if os.path.exists(obs_path):
+            log.info(f"[Preflight] OBS detectado no sistema ({sys_name}): {obs_path}")
             return True
-    elif sys_name == "Linux":
-        if shutil.which("obs"):
-            log.info("[Preflight] OBS detectado no sistema (Linux).")
-            return True
-    elif sys_name == "Darwin":  # macOS
-        if shutil.which("obs") or os.path.exists("/Applications/OBS.app"):
-            log.info("[Preflight] OBS detectado no sistema (macOS).")
-            return True
+
+    if sys_name == "Linux" and shutil.which("obs"):
+        log.info("[Preflight] OBS detectado no sistema (Linux).")
+        return True
+    if sys_name == "Darwin" and shutil.which("obs"):
+        log.info("[Preflight] OBS detectado via PATH (macOS).")
+        return True
 
     log.warning(f"[Preflight] OBS não encontrado no {sys_name}. Iniciando fallback de instalação...")
     try:
-        success = install_obs()  # setup_obs.py já é nativamente multiplataforma!
+        success = install_obs()
         if success:
             log.info("[Preflight] OBS instalado/configurado com sucesso.")
             return True
@@ -59,13 +62,12 @@ def ensure_ffmpeg():
 
     sys_name = platform.system()
 
-    # 2. Verifica instalação portátil local (Apenas Windows)
-    if sys_name == "Windows":
-        ffmpeg_exe = os.path.join(FFMPEG_DIR, "bin", "ffmpeg.exe")
-        if os.path.exists(ffmpeg_exe):
-            os.environ["PATH"] += os.pathsep + os.path.join(FFMPEG_DIR, "bin")
-            log.info("[Preflight] FFmpeg Portable injetado no PATH do Windows.")
-            return True
+    # 2. Verifica instalação portátil local (via SSOT)
+    portable_ffmpeg = get_ffmpeg_executable_path("ffmpeg")
+    if portable_ffmpeg and os.path.exists(portable_ffmpeg):
+        os.environ["PATH"] += os.pathsep + os.path.dirname(portable_ffmpeg)
+        log.info("[Preflight] FFmpeg Portable injetado no PATH.")
+        return True
 
     # 3. Fallback Multiplataforma
     log.warning(f"[Preflight] FFmpeg ausente. Iniciando instalação fallback para {sys_name}...")
@@ -120,9 +122,8 @@ def run_preflight_checks():
     if not ensure_ffmpeg():
         issues.append("FFmpeg ausente e instalação falhou.")
 
-    raw_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "media", "raw"))
-    os.makedirs(raw_dir, exist_ok=True)
-    total, used, free = shutil.disk_usage(raw_dir)
+    os.makedirs(RAW_MEDIA_DIR, exist_ok=True)
+    total, used, free = shutil.disk_usage(RAW_MEDIA_DIR)
     free_gb = free / (1024**3)
     if free_gb < 50:
         issues.append(f"Espaço em disco insuficiente em media/raw: {free_gb:.1f}GB livre (Recomendado > 50GB)")

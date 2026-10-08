@@ -1,37 +1,35 @@
-import os
-import sys
+﻿import sys
 import shutil
 import subprocess
 from functools import lru_cache
 from vhs_studio.core.logger import log
+from vhs_studio.core.paths import get_ffmpeg_executable_path
 
 
 class Toolchain:
     @staticmethod
-    def require_executable(name, winget_path=None):
-        if winget_path and os.path.exists(winget_path):
-            return winget_path
+    def require_executable(name):
+        # 1. Checa no SSOT (Portable ou Sistema adaptativo)
+        path = get_ffmpeg_executable_path(name)
+        if path:
+            return path
+
+        # 2. Checa via shutil no PATH atual
         if shutil.which(name):
             return name
 
-        log.error(f"[ERRO FATAL] Dependência '{name}' não encontrada no sistema.")
-        if winget_path:
-            log.error(f"Por favor, instale o {name} e adicione-o ao PATH do Windows, ou instale via WinGet.")
-        else:
-            log.error(f"Por favor, instale o {name} e adicione-o ao PATH do Windows.")
+        log.error(f"[ERRO FATAL] Dependência '{name}' não encontrada.")
         sys.exit(1)
 
     @staticmethod
     @lru_cache(maxsize=1)
     def get_ffmpeg_path():
-        winget_path = os.path.expandvars(r"%LOCALAPPDATA%\Microsoft\WinGet\Links\ffmpeg.exe")
-        return Toolchain.require_executable("ffmpeg", winget_path)
+        return Toolchain.require_executable("ffmpeg")
 
     @staticmethod
     @lru_cache(maxsize=1)
     def get_ffprobe_path():
-        winget_path = os.path.expandvars(r"%LOCALAPPDATA%\Microsoft\WinGet\Links\ffprobe.exe")
-        return Toolchain.require_executable("ffprobe", winget_path)
+        return Toolchain.require_executable("ffprobe")
 
     @staticmethod
     @lru_cache(maxsize=1)
