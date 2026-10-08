@@ -2,6 +2,7 @@ import os
 import sys
 import subprocess
 import shutil
+import concurrent.futures
 from dataclasses import dataclass
 from typing import List, Optional
 
@@ -14,10 +15,9 @@ class LintStep:
     allow_failure: bool = False
 
 
-def run_step(step: LintStep) -> bool:
-    print(f"[{step.name}] Iniciando...")
+def run_step(step: LintStep):
+    # print(f"[{step.name}] Iniciando...") # Removed parallel print spam
     try:
-        # Achata a chamada do execut?vel usando shutil.which (resolve .exe/.cmd nativamente sem condicionais de SO)
         cmd = step.command.copy()
         resolved_exe = shutil.which(cmd[0])
         if resolved_exe:
@@ -31,17 +31,9 @@ def run_step(step: LintStep) -> bool:
             errors="replace",
         )
 
-        if result.returncode == 0:
-            print(f"[{step.name}] \033[92mPASSOU\033[0m")
-            return True
-        else:
-            print(f"[{step.name}] \033[91mFALHOU\033[0m")
-            print(result.stdout)
-            print(result.stderr)
-            return step.allow_failure
+        return step, result
     except Exception as e:
-        print(f"[{step.name}] \033[91mERRO INESPERADO\033[0m: {e}")
-        return step.allow_failure
+        return step, e
 
 
 def main():
@@ -67,9 +59,25 @@ def main():
     ]
 
     success = True
-    for step in steps:
-        if not run_step(step):
-            success = False
+    print("\n[*] Rodando Linter e Type Checking (Paralelizado)...")
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(steps)) as executor:
+        futures = {executor.submit(run_step, step): step for step in steps}
+
+        for future in concurrent.futures.as_completed(futures):
+            step, result = future.result()
+            if isinstance(result, Exception):
+                print(f"[{step.name}] \033[91mERRO INESPERADO\033[0m: {result}")
+                if not step.allow_failure:
+                    success = False
+            elif result.returncode == 0:
+                print(f"[{step.name}] \033[92mPASSOU\033[0m")
+            else:
+                print(f"[{step.name}] \033[91mFALHOU\033[0m")
+                print(result.stdout)
+                print(result.stderr)
+                if not step.allow_failure:
+                    success = False
 
     if success:
         print("\n\033[92m=== TODOS OS TESTES PASSARAM. O CODIGO ESTA LIMPO! ===\033[0m")
