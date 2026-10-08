@@ -50,7 +50,7 @@ export const RestorationSettings: React.FC = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="video" className="w-full">
+      <Tabs defaultValue="video" className="w-full" aria-label="Settings Tabs">
         <TabsList className="grid w-full grid-cols-5 mb-4">
           <TabsTrigger value="video" className="flex items-center gap-2"><Video className="w-4 h-4"/>Vídeo</TabsTrigger>
           <TabsTrigger value="audio" className="flex items-center gap-2"><Music className="w-4 h-4"/>Áudio</TabsTrigger>
@@ -150,7 +150,7 @@ export const RestorationSettings: React.FC = () => {
                   <label className="text-sm font-medium text-slate-200">Tratamento de Áudio EBU R128</label>
                   <p className="text-xs text-slate-500">Normalização de volume padrão TV/Streaming (-23 LUFS).</p>
                 </div>
-                <Switch checked={audioTreatment} onCheckedChange={setAudioTreatment} />
+                <Switch aria-label="Audio Treatment" checked={audioTreatment} onCheckedChange={setAudioTreatment} />
               </div>
             )}
           </div>
@@ -164,7 +164,7 @@ export const RestorationSettings: React.FC = () => {
                   <label className="text-sm font-medium text-slate-200">Chroma Shift Fix</label>
                   <p className="text-xs text-slate-500">Corrige vazamento vermelho (Red Bleed) de fitas VHS.</p>
                 </div>
-                <Switch checked={chromaFix} onCheckedChange={setChromaFix} />
+                <Switch aria-label="Chroma Fix" checked={chromaFix} onCheckedChange={setChromaFix} />
               </div>
             )}
 
@@ -174,7 +174,7 @@ export const RestorationSettings: React.FC = () => {
                   <label className="text-sm font-medium text-slate-200">Redução de Ruído (Denoise)</label>
                   <p className="text-xs text-slate-500">Aplica nlmeans/hqdn3d para limpar ruído analógico.</p>
                 </div>
-                <Switch checked={denoise} onCheckedChange={setDenoise} />
+                <Switch aria-label="Denoise" checked={denoise} onCheckedChange={setDenoise} />
               </div>
             )}
 
@@ -184,7 +184,7 @@ export const RestorationSettings: React.FC = () => {
                   <label className="text-sm font-medium text-slate-200">Dot Crawl / Comb Filter</label>
                   <p className="text-xs text-slate-500">Remove artefatos coloridos de conexão RCA (Composite).</p>
                 </div>
-                <Switch checked={combFilter} onCheckedChange={setCombFilter} />
+                <Switch aria-label="Comb Filter" checked={combFilter} onCheckedChange={setCombFilter} />
               </div>
             )}
 
@@ -194,7 +194,7 @@ export const RestorationSettings: React.FC = () => {
                   <label className="text-sm font-medium text-slate-200">{t('settings.overscan')}</label>
                   <p className="text-xs text-slate-500">Cobre bordas ruidosas (Head Switching Noise) com tarjas pretas.</p>
                 </div>
-                <Switch checked={overscanBlanking} onCheckedChange={setOverscanBlanking} />
+                <Switch aria-label="Overscan Blanking" checked={overscanBlanking} onCheckedChange={setOverscanBlanking} />
               </div>
             )}
           </div>
