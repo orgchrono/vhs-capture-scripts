@@ -17,6 +17,7 @@ from vhs_studio.core.logger import log
 import math
 import sys
 from vhs_studio.config.advanced import AdvancedConfig
+from vhs_studio.core.queue_manager import enqueue_job
 import subprocess
 import io
 
@@ -200,12 +201,22 @@ def run_watcher():
                         is_recording = event_data.get("outputActive", False)
                         state_str = event_data.get("outputState", "")
                         if is_recording:
-                            log.info(f"\n[OBS] 🔴 GRAVAÇÃO EM ANDAMENTO ({state_str})")
+                            log.info(f"
+[OBS] 🔴 GRAVAÇÃO EM ANDAMENTO ({state_str})")
                         else:
-                            log.info(f"\n[OBS] ⏹ GRAVAÇÃO FINALIZADA ({state_str})")
+                            log.info(f"
+[OBS] ⏹ GRAVAÇÃO FINALIZADA ({state_str})")
                             signal_start_time = None
                             blank_silence_start_time = None
                             quiet_scene_start_time = None
+                            
+                            # Adiciona fita na Fila do Pipeline para Pós-Processamento!
+                            out_path = event_data.get("outputPath")
+                            if out_path and os.path.exists(out_path):
+                                log.info(f"[OBS] Arquivo bruto salvo em: {out_path}")
+                                enqueue_job(out_path)
+                            else:
+                                log.warning(f"[OBS] Aviso: Gravação finalizada mas 'outputPath' não foi encontrado ou arquivo não existe: {out_path}")
 
                     # Monitor de Níveis de Áudio (dispara a cada 50ms)
                     elif event_type == "InputVolumeMeters":
