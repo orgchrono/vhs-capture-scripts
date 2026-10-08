@@ -18,7 +18,15 @@ def run_step(step: LintStep) -> bool:
     try:
         shell = step.command[0] == "npm" and os.name == "nt"
 
-        result = subprocess.run(step.command, cwd=step.cwd, text=True, capture_output=True, shell=shell)
+        result = subprocess.run(
+            step.command,
+            cwd=step.cwd,
+            text=True,
+            capture_output=True,
+            shell=shell,
+            encoding="utf-8",
+            errors="replace",  # <-- Corre??o para o UnicodeDecodeError no Windows
+        )
 
         if result.returncode == 0:
             print(f"[{step.name}] \033[92mPASSOU\033[0m")
@@ -38,10 +46,21 @@ def main():
     ui_dir = os.path.join(base_dir, "ui")
 
     steps = [
-        LintStep(name="Flake8 (Python Style)", command=[sys.executable, "-m", "flake8", "src", "scripts"]),
-        LintStep(name="Mypy (Python Types)", command=[sys.executable, "-m", "mypy", "src"]),
-        LintStep(name="TSC (TypeScript Types)", command=["npm", "run", "build"], cwd=ui_dir),
-        LintStep(name="UI Linter (Oxlint / ESLint)", command=["npm", "run", "lint"], cwd=ui_dir),
+        LintStep(
+            name="Flake8 (Python Style)",
+            command=[sys.executable, "-m", "flake8", "src", "scripts"],
+        ),
+        LintStep(
+            name="Mypy (Python Types)", command=[sys.executable, "-m", "mypy", "src"]
+        ),
+        LintStep(
+            name="TSC (TypeScript Types)", command=["npm", "run", "build"], cwd=ui_dir
+        ),
+        LintStep(
+            name="UI Linter (Oxlint / ESLint)",
+            command=["npm", "run", "lint"],
+            cwd=ui_dir,
+        ),
     ]
 
     success = True
@@ -53,7 +72,9 @@ def main():
         print("\n\033[92m=== TODOS OS TESTES PASSARAM. O CODIGO ESTA LIMPO! ===\033[0m")
         sys.exit(0)
     else:
-        print("\n\033[91m=== REPROVADO. CORRIJA OS ERROS ANTES DE CONTINUAR. ===\033[0m")
+        print(
+            "\n\033[91m=== REPROVADO. CORRIJA OS ERROS ANTES DE CONTINUAR. ===\033[0m"
+        )
         sys.exit(1)
 
 
