@@ -18,7 +18,7 @@ class PipelineOrchestrator:
 
     def start(self):
         log.info("============================================================")
-        log.info("[PIPELINE ORQUESTRADA] Iniciando MÃºltiplos Motores (DAG)")
+        log.info("[PIPELINE ORQUESTRADA] Iniciando M????ltiplos Motores (DAG)")
         log.info(f"  Fonte: {self.raw_file}")
 
         f_restoration = self.executor.submit(self._task_restoration)
@@ -30,7 +30,7 @@ class PipelineOrchestrator:
             task_name = futures[future]
             try:
                 self.results[task_name] = future.result()
-                log.info(f"[{task_name.upper()}] ConcluÃ­do.")
+                log.info(f"[{task_name.upper()}] Conclu????do.")
             except Exception as exc:
                 log.error(f"[{task_name.upper()} ERRO] Falha na tarefa: {exc}")
 
@@ -93,7 +93,7 @@ class PipelineOrchestrator:
                 shutil.move(vtt, new_vtt)
             return new_vtt
         except ImportError:
-            log.warning("[WHISPER] faster-whisper nÃ£o estÃ¡ instalado. Pulei.")
+            log.warning("[WHISPER] faster-whisper n????o est???? instalado. Pulei.")
             return None
         except Exception as e:
             log.warning(f"[WHISPER ERRO] {e}")
@@ -107,17 +107,25 @@ class PipelineOrchestrator:
         try:
             from scenedetect import detect, ContentDetector
         except ImportError:
-            log.warning("[SCENE DETECT] scenedetect nÃ£o estÃ¡ instalado. Pulei os cortes mÃ¡gicos.")
+            log.warning(
+                "[SCENE DETECT] scenedetect n????o est???? instalado. Pulei os cortes m????gicos."
+            )
             return
 
-        log.info("[SCENE DETECT] Procurando cortes secos (Flash/Camera Cuts) no VÃ­deo Master...")
+        log.info(
+            "[SCENE DETECT] Procurando cortes secos (Flash/Camera Cuts) no V????deo Master..."
+        )
         scene_list = detect(master_file, ContentDetector(threshold=27.0))
 
         if len(scene_list) <= 1:
-            log.info("[SCENE DETECT] Nenhum corte abrupto detectado. Arquivo mantido Ã­ntegro.")
+            log.info(
+                "[SCENE DETECT] Nenhum corte abrupto detectado. Arquivo mantido ????ntegro."
+            )
             return
 
-        log.info(f"[SCENE DETECT] {len(scene_list)} Cenas Detectadas! Fatiando arquivo mestre...")
+        log.info(
+            f"[SCENE DETECT] {len(scene_list)} Cenas Detectadas! Fatiando arquivo mestre..."
+        )
 
         base_dir = os.path.dirname(master_file)
         base_name, ext = os.path.splitext(os.path.basename(master_file))
@@ -144,7 +152,7 @@ class PipelineOrchestrator:
                 out_clip,
             ]
             subprocess.run(cmd)
-            log.info(f"  -> Gerado: Cena_{i:03d}{ext} ({start_time} atÃ© {end_time})")
+            log.info(f"  -> Gerado: Cena_{i:03d}{ext} ({start_time} at???? {end_time})")
 
 
 def main(unknown_args):
@@ -155,11 +163,11 @@ def main(unknown_args):
 
     params = json.loads(args.params_json)
 
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    from vhs_studio.core.paths import RESTORED_MEDIA_DIR
     base_name = os.path.splitext(os.path.basename(args.input))[0]
 
     # Criar pasta pro projeto!
-    output_dir = os.path.join(project_root, "media", "restored", base_name)
+    output_dir = os.path.join(RESTORED_MEDIA_DIR, base_name)
     os.makedirs(output_dir, exist_ok=True)
 
     suffix = "1080p" if not params.get("no_1080p") else "480p"

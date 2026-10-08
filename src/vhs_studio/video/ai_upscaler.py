@@ -1,7 +1,6 @@
 import os
 import subprocess
 import multiprocessing
-import numpy as np
 from vhs_studio.core.logger import log
 
 

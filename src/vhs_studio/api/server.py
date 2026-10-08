@@ -35,14 +35,7 @@ app.add_middleware(
 import sys
 
 
-def get_base_path():
-    if hasattr(sys, "_MEIPASS"):
-        return sys._MEIPASS
-    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-
-
-REPO_ROOT = get_base_path()
-DIST_DIR = os.path.join(REPO_ROOT, "ui", "dist")
+from vhs_studio.core.paths import RAW_MEDIA_DIR, UI_DIST_DIR as DIST_DIR
 
 
 @app.middleware("http")
@@ -55,12 +48,19 @@ async def verify_origin(request: Request, call_next):
 
         if request.method == "POST":
             origin = request.headers.get("origin")
-            if origin and not (origin.startswith("http://127.0.0.1") or origin.startswith("http://localhost")):
-                return JSONResponse(status_code=403, content={"error": "Origem inválida."})
+            if origin and not (
+                origin.startswith("http://127.0.0.1")
+                or origin.startswith("http://localhost")
+            ):
+                return JSONResponse(
+                    status_code=403, content={"error": "Origem inv??lida."}
+                )
 
         token = request.headers.get("X-Session-Token")
         if token and token != SESSION_TOKEN:
-            return JSONResponse(status_code=403, content={"error": "Token de sessão inválido."})
+            return JSONResponse(
+                status_code=403, content={"error": "Token de sess??o inv??lido."}
+            )
 
     response = await call_next(request)
     return response
@@ -105,7 +105,7 @@ def get_status():
     encoder = FilterBuilder.detect_best_encoder()
     vs_ok = VapourSynthQTGMC.is_available()
 
-    raw_dir = os.path.join(REPO_ROOT, "media", "raw")
+    raw_dir = RAW_MEDIA_DIR
     os.makedirs(raw_dir, exist_ok=True)
 
     valid_exts = {".mkv", ".mp4", ".mov", ".avi", ".ts", ".m2ts"}
@@ -170,7 +170,9 @@ async def update_storage_config(request: Request):
         save_storage_config(provider_id, config)
         return {"status": "ok", "message": "Configuracao salva e validada!"}
     else:
-        return JSONResponse(status_code=400, content={"error": "Falha ao validar configuracao."})
+        return JSONResponse(
+            status_code=400, content={"error": "Falha ao validar configuracao."}
+        )
 
 
 @app.post("/api/action")
@@ -183,7 +185,7 @@ async def perform_action(request: Request):
         if pm.is_running():
             return {
                 "status": "error",
-                "message": "JÃ¡ existe um processo em andamento.",
+                "message": "J???? existe um processo em andamento.",
             }
 
         # Pipeline Auto-Install
@@ -195,16 +197,19 @@ async def perform_action(request: Request):
                 pm.start_process(cmd)
                 return {
                     "status": "started",
-                    "message": "DependÃªncias do QTGMC estÃ£o sendo instaladas. A restauraÃ§Ã£o iniciarÃ¡ apÃ³s a conclusÃ£o automÃ¡tica (veja o log).",
+                    "message": "Depend????ncias do QTGMC est????o sendo instaladas. A restaura????????o iniciar???? ap????s a conclus????o autom????tica (veja o log).",
                 }
 
-            return {"status": "error", "message": "Já existe um processo em andamento."}
+            return {
+                "status": "error",
+                "message": "J?? existe um processo em andamento.",
+            }
 
         input_file = params.get("input")
         if not input_file or "media" not in input_file:
             return {
                 "status": "error",
-                "message": "Caminho de arquivo inválido ou inseguro.",
+                "message": "Caminho de arquivo inv??lido ou inseguro.",
             }
 
         params_json = json.dumps(params)
@@ -220,7 +225,7 @@ async def perform_action(request: Request):
 
         success, msg = pm.start_process(cmd)
         if success:
-            return {"status": "ok", "message": "Restauração iniciada!"}
+            return {"status": "ok", "message": "Restaura????o iniciada!"}
         else:
             return {"status": "error", "message": msg}
 
@@ -244,7 +249,7 @@ async def perform_action(request: Request):
 
         success, msg = pm.start_process(cmd)
         if success:
-            return {"status": "ok", "message": "Instalação do VapourSynth iniciada!"}
+            return {"status": "ok", "message": "Instala????o do VapourSynth iniciada!"}
         else:
             return {"status": "error", "message": msg}
 
@@ -264,7 +269,7 @@ async def perform_action(request: Request):
 
         success, msg = pm.start_process(cmd)
         if success:
-            return {"status": "ok", "message": "Geração de legendas iniciada!"}
+            return {"status": "ok", "message": "Gera????o de legendas iniciada!"}
         else:
             return {"status": "error", "message": msg}
 
@@ -273,7 +278,7 @@ async def perform_action(request: Request):
             return {"status": "ok", "message": "Processo encerrado via API."}
         return {"status": "error", "message": "Nenhum processo rodando."}
 
-    return {"status": "error", "message": "Ação desconhecida"}
+    return {"status": "error", "message": "A????o desconhecida"}
 
 
 # Mount frontend
@@ -283,7 +288,7 @@ else:
 
     @app.get("/")
     def index():
-        return {"error": "UI não buildada. Execute 'npm run build' na pasta ui/"}
+        return {"error": "UI n??o buildada. Execute 'npm run build' na pasta ui/"}
 
 
 def run_server(port=8088):

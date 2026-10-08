@@ -8,6 +8,9 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..
 TOOLS_DIR = os.path.join(PROJECT_ROOT, "tools")
 MEDIA_DIR = os.path.join(PROJECT_ROOT, "media")
 RAW_MEDIA_DIR = os.path.join(MEDIA_DIR, "raw")
+WORK_MEDIA_DIR = os.path.join(MEDIA_DIR, "work")
+RESTORED_MEDIA_DIR = os.path.join(MEDIA_DIR, "restored")
+UI_DIST_DIR = os.path.join(PROJECT_ROOT, "ui", "dist")
 
 # Tool paths
 FFMPEG_DIR = os.path.join(TOOLS_DIR, "ffmpeg")
@@ -22,7 +25,6 @@ ADVANCED_CONFIG_PATH = os.path.join(PROJECT_ROOT, "vhs_advanced_config.toml")
 
 
 def get_obs_executable_paths():
-    """Retorna uma lista de caminhos prováveis para o OBS Studio executável, priorizando a instalação portátil."""
     sys_name = platform.system()
     paths = []
 
@@ -36,7 +38,6 @@ def get_obs_executable_paths():
 
 
 def get_obs_cwd():
-    """Retorna o working directory ideal para rodar o OBS (geralmente a pasta bin/64bit no windows)."""
     sys_name = platform.system()
     if sys_name == "Windows":
         return os.path.join(OBS_DIR, "bin", "64bit")
@@ -44,7 +45,6 @@ def get_obs_cwd():
 
 
 def get_ffmpeg_executable_path(binary_name="ffmpeg"):
-    """Retorna o caminho exato do ffmpeg/ffprobe portable, ou None se for usar o do sistema."""
     sys_name = platform.system()
     if sys_name == "Windows":
         portable_path = os.path.join(FFMPEG_DIR, "bin", f"{binary_name}.exe")

@@ -1,5 +1,3 @@
-import os
-import sys
 import subprocess
 import shutil
 from vhs_studio.core.logger import log
@@ -17,7 +15,6 @@ class VapourSynthQTGMC:
     @staticmethod
     def check_python_vapoursynth():
         try:
-            pass
             return True
         except ImportError:
             return False
