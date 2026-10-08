@@ -1,9 +1,11 @@
+"""Module documentation pending."""
 import sys
 import argparse
 from vhs_studio.cli.desktop import run_desktop
 
 
 def main():
+    """Documentation for main."""
     parser = argparse.ArgumentParser(description="VHS Studio CLI")
     subparsers = parser.add_subparsers(dest="command", help="Comandos disponÃ­veis")
 

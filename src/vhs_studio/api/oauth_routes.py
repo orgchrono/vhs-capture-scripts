@@ -1,3 +1,4 @@
+"""Module documentation pending."""
 import uuid
 from typing import Optional, Dict
 from fastapi import APIRouter, Request, HTTPException
@@ -39,11 +40,13 @@ OAUTH_CONFIG = {
 
 def get_redirect_uri(request: Request) -> str:
     # Retorna o callback baseando-se na URL do request
+    """Documentation for get_redirect_uri."""
     return str(request.url_for("oauth_callback"))
 
 
 @oauth_router.get("/login/{provider}")
 async def oauth_login(provider: str, request: Request):
+    """Documentation for oauth_login."""
     if provider not in OAUTH_CONFIG:
         raise HTTPException(status_code=404, detail="Provedor OAuth não suportado")
 
@@ -89,6 +92,7 @@ async def oauth_callback(
     state: Optional[str] = None,
     error: Optional[str] = None,
 ):
+    """Documentation for oauth_callback."""
     if error:
         log.error(f"[OAuth] Erro retornado pelo provedor: {error}")
         raise HTTPException(status_code=400, detail=error)

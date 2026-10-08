@@ -1,3 +1,4 @@
+"""Module documentation pending."""
 from typing import Dict
 from .base import StorageProvider
 from vhs_studio.core.logger import log
@@ -12,14 +13,18 @@ except ImportError:
 
 
 class OneDriveProvider(StorageProvider):
+    """Documentation for OneDriveProvider."""
     def __init__(self):
+        """Documentation for __init__."""
         self.account = None
         self.drive = None
 
     def get_id(self) -> str:
+        """Documentation for get_id."""
         return "onedrive"
 
     def configure(self, config: Dict[str, object]) -> bool:
+        """Documentation for configure."""
         if not HAS_ONEDRIVE:
             log.error("[OneDrive] Biblioteca 'O365' não instalada.")
             return False
@@ -59,6 +64,7 @@ class OneDriveProvider(StorageProvider):
             return False
 
     def upload_video(self, local_filepath: str, destination_path: str) -> bool:
+        """Documentation for upload_video."""
         if not self.drive:
             return False
 
@@ -75,4 +81,5 @@ class OneDriveProvider(StorageProvider):
             return False
 
     def get_status(self) -> Dict[str, object]:
+        """Documentation for get_status."""
         return {"ready": self.drive is not None}

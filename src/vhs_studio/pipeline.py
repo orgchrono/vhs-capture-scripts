@@ -1,3 +1,4 @@
+"""Module documentation pending."""
 import os
 import sys
 import subprocess
@@ -8,7 +9,9 @@ import json
 
 
 class PipelineOrchestrator:
+    """Documentation for PipelineOrchestrator."""
     def __init__(self, raw_file, output_path, opts, params):
+        """Documentation for __init__."""
         self.raw_file = os.path.abspath(raw_file)
         self.output_path = os.path.abspath(output_path)
         self.opts = opts
@@ -17,6 +20,7 @@ class PipelineOrchestrator:
         self.results = {}
 
     def start(self):
+        """Documentation for start."""
         log.info("============================================================")
         log.info("[PIPELINE ORQUESTRADA] Iniciando M????ltiplos Motores (DAG)")
         log.info(f"  Fonte: {self.raw_file}")
@@ -44,6 +48,7 @@ class PipelineOrchestrator:
             upload_project_folder(os.path.dirname(self.output_path))
 
     def _task_restoration(self):
+        """Documentation for _task_restoration."""
         cmd = [
             sys.executable,
             "-m",
@@ -76,6 +81,7 @@ class PipelineOrchestrator:
         return self.output_path
 
     def _task_whisper(self):
+        """Documentation for _task_whisper."""
         try:
             from vhs_studio.ai.whisper_engine import transcribe_and_generate_vtt
 
@@ -100,6 +106,7 @@ class PipelineOrchestrator:
             return None
 
     def _task_scenedetect_and_split(self):
+        """Documentation for _task_scenedetect_and_split."""
         master_file = self.results.get("Restoration")
         if not master_file or not os.path.exists(master_file):
             return
@@ -156,6 +163,7 @@ class PipelineOrchestrator:
 
 
 def main(unknown_args):
+    """Documentation for main."""
     parser = argparse.ArgumentParser()
     parser.add_argument("input", help="Arquivo raw")
     parser.add_argument("--params-json", required=True, help="JSON de parametros")

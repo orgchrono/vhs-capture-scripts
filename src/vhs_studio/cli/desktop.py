@@ -14,12 +14,14 @@ from vhs_studio.api.server import run_server
 
 
 def get_base_path():
+    """Documentation for get_base_path."""
     if hasattr(sys, "_MEIPASS"):
         return sys._MEIPASS
     return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
 
 def get_directory_hash(directory):
+    """Documentation for get_directory_hash."""
     sha1 = hashlib.sha256()
     for root, dirs, files in os.walk(directory):
         for name in sorted(files):
@@ -34,6 +36,7 @@ def get_directory_hash(directory):
 
 
 def ensure_ui_build():
+    """Documentation for ensure_ui_build."""
     if hasattr(sys, "_MEIPASS"):
         log.info("[DESKTOP] Executável empacotado detectado. Pulando checagem de build do Vite.")
         return get_base_path()
@@ -87,6 +90,7 @@ def ensure_ui_build():
 
 
 def run_desktop():
+    """Documentation for run_desktop."""
     try:
         import webview
     except ImportError:

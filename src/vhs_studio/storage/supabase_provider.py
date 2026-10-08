@@ -1,3 +1,4 @@
+"""Module documentation pending."""
 from typing import Dict
 from .base import StorageProvider
 from vhs_studio.core.logger import log
@@ -12,13 +13,16 @@ class SupabaseStorageProvider(StorageProvider):
     """Integração com Supabase Storage (Object Storage acoplado ao Postgres)."""
 
     def __init__(self):
+        """Documentation for __init__."""
         self.client = None
         self.bucket_name = "vhs-archive"
 
     def get_id(self) -> str:
+        """Documentation for get_id."""
         return "supabase"
 
     def configure(self, config: Dict[str, object]) -> bool:
+        """Documentation for configure."""
         if not HAS_SUPABASE:
             log.error("[Supabase] Biblioteca 'supabase' não instalada.")
             return False
@@ -41,6 +45,7 @@ class SupabaseStorageProvider(StorageProvider):
             return False
 
     def upload_video(self, local_filepath: str, destination_path: str) -> bool:
+        """Documentation for upload_video."""
         if not self.client:
             return False
         try:
@@ -58,4 +63,5 @@ class SupabaseStorageProvider(StorageProvider):
             return False
 
     def get_status(self) -> Dict[str, object]:
+        """Documentation for get_status."""
         return {"ready": self.client is not None, "bucket": self.bucket_name}

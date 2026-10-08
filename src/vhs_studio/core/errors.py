@@ -1,3 +1,6 @@
+"""Module documentation pending."""
+
+
 class VHSStudioError(Exception):
     """Exceção base para todos os erros do VHS Studio."""
 

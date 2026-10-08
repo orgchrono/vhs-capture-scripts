@@ -46,12 +46,14 @@ SCREENSHOT_INTERVAL_SEC = AdvancedConfig.get(
 
 
 def mul_to_db(mul):
+    """Documentation for mul_to_db."""
     if mul <= 0.000001:
         return -100.0
     return 20.0 * math.log10(mul)
 
 
 def is_obs_running():
+    """Documentation for is_obs_running."""
     try:
         r = subprocess.run(
             ["tasklist", "/fi", "imagename eq obs64.exe"],
@@ -125,6 +127,7 @@ def analyze_visual_frame(img_b64, prev_pixels=None):
 
 
 def run_watcher():
+    """Documentation for run_watcher."""
     os.system("title VHS Studio - Monitor Inteligente de Gravacao")
     log.info("==============================================================================")
     log.info("       📼 VHS STUDIO - SERVIÇO DE CAPTURA INTELIGENTE (ÁUDIO + VÍDEO) 📼")

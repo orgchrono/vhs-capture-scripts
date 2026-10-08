@@ -1,3 +1,4 @@
+"""Module documentation pending."""
 from typing import Dict
 from .base import StorageProvider
 from vhs_studio.core.logger import log
@@ -12,14 +13,18 @@ except ImportError:
 
 
 class S3Provider(StorageProvider):
+    """Documentation for S3Provider."""
     def __init__(self):
+        """Documentation for __init__."""
         self.s3_client = None
         self.bucket_name = None
 
     def get_id(self) -> str:
+        """Documentation for get_id."""
         return "s3_generic"
 
     def configure(self, config: Dict[str, object]) -> bool:
+        """Documentation for configure."""
         if not HAS_BOTO3:
             log.error("[S3] Biblioteca 'boto3' não instalada.")
             return False
@@ -62,6 +67,7 @@ class S3Provider(StorageProvider):
             return False
 
     def upload_video(self, local_filepath: str, destination_path: str) -> bool:
+        """Documentation for upload_video."""
         if not self.s3_client:
             return False
 
@@ -76,4 +82,5 @@ class S3Provider(StorageProvider):
             return False
 
     def get_status(self) -> Dict[str, object]:
+        """Documentation for get_status."""
         return {"ready": self.s3_client is not None, "bucket": self.bucket_name}

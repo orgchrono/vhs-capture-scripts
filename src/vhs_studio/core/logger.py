@@ -1,9 +1,11 @@
+"""Module documentation pending."""
 import logging
 import sys
 from typing import List
 
 
 class ColoredFormatter(logging.Formatter):
+    """Documentation for ColoredFormatter."""
     COLORS = {
         "WARNING": "\033[93m",
         "INFO": "\033[94m",
@@ -14,10 +16,12 @@ class ColoredFormatter(logging.Formatter):
     RESET = "\033[0m"
 
     def __init__(self, use_color=True):
+        """Documentation for __init__."""
         super().__init__("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
         self.use_color = use_color
 
     def format(self, record):
+        """Documentation for format."""
         log_message = super().format(record)
         if self.use_color and record.levelname in self.COLORS:
             log_message = f"{self.COLORS[record.levelname]}{log_message}{self.RESET}"
@@ -28,22 +32,26 @@ class MemoryLogHandler(logging.Handler):
     """Armazena logs em memoria para serem consumidos pela interface web do React."""
 
     def __init__(self, capacity=1000):
+        """Documentation for __init__."""
         super().__init__()
         self.capacity = capacity
         self.logs: List[str] = []
         self.setFormatter(logging.Formatter("[%(levelname)s] %(message)s"))
 
     def emit(self, record):
+        """Documentation for emit."""
         msg = self.format(record)
         self.logs.append(msg)
         if len(self.logs) > self.capacity:
             self.logs.pop(0)
 
     def get_logs(self):
+        """Documentation for get_logs."""
         return self.logs
 
 
 def get_logger(name):
+    """Documentation for get_logger."""
     logger = logging.getLogger(name)
     if not logger.handlers:
         logger.setLevel(logging.DEBUG)

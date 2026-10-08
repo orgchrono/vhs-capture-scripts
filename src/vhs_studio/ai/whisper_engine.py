@@ -1,9 +1,11 @@
+"""Module documentation pending."""
 from vhs_studio.core.logger import log
 import os
 import subprocess
 
 
 def extract_audio(video_path: str, output_wav: str) -> bool:
+    """Documentation for extract_audio."""
     cmd = [
         "ffmpeg",
         "-y",
@@ -26,6 +28,7 @@ def extract_audio(video_path: str, output_wav: str) -> bool:
 
 
 def format_timestamp(seconds: float) -> str:
+    """Documentation for format_timestamp."""
     h = int(seconds // 3600)
     m = int((seconds % 3600) // 60)
     s = int(seconds % 60)

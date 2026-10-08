@@ -1,3 +1,4 @@
+"""Module documentation pending."""
 from abc import ABC, abstractmethod
 from typing import Dict
 

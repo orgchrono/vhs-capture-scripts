@@ -1,3 +1,4 @@
+"""Module documentation pending."""
 import sys
 import shutil
 import subprocess
@@ -7,9 +8,11 @@ from vhs_studio.core.paths import get_ffmpeg_executable_path
 
 
 class Toolchain:
+    """Documentation for Toolchain."""
     @staticmethod
     def require_executable(name):
         # 1. Checa no SSOT (Portable ou Sistema adaptativo)
+        """Documentation for require_executable."""
         path = get_ffmpeg_executable_path(name)
         if path:
             return path
@@ -24,11 +27,13 @@ class Toolchain:
     @staticmethod
     @lru_cache(maxsize=1)
     def get_ffmpeg_path():
+        """Documentation for get_ffmpeg_path."""
         return Toolchain.require_executable("ffmpeg")
 
     @staticmethod
     @lru_cache(maxsize=1)
     def get_ffprobe_path():
+        """Documentation for get_ffprobe_path."""
         return Toolchain.require_executable("ffprobe")
 
     @staticmethod
@@ -51,11 +56,13 @@ class Toolchain:
 
     @staticmethod
     def has_encoder(encoder_name):
+        """Documentation for has_encoder."""
         caps = Toolchain.get_ffmpeg_capabilities()
         return f" {encoder_name} " in caps["encoders"] or f"V..... {encoder_name} " in caps["encoders"]
 
     @staticmethod
     def has_filter(filter_name):
+        """Documentation for has_filter."""
         caps = Toolchain.get_ffmpeg_capabilities()
         return (
             f" {filter_name} " in caps["filters"]

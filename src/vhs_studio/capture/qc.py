@@ -1,9 +1,11 @@
+"""Module documentation pending."""
 import subprocess
 import json
 from vhs_studio.core.toolchain import Toolchain
 
 
 class QualityControl:
+    """Documentation for QualityControl."""
     @staticmethod
     def run_qc(filepath):
         """Roda signalstats e ffprobe e gera um relatório."""

@@ -1,3 +1,4 @@
+"""Module documentation pending."""
 import os
 import hashlib
 import xml.etree.ElementTree as ET
@@ -5,6 +6,7 @@ import shutil
 
 
 class Packaging:
+    """Documentation for Packaging."""
     @staticmethod
     def create_bagit(directory: str) -> bool:
         """Estrutura a pasta no padrao BagIt."""

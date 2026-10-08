@@ -1,3 +1,4 @@
+"""Module documentation pending."""
 import subprocess
 import shutil
 from vhs_studio.core.logger import log
@@ -10,10 +11,12 @@ class VapourSynthQTGMC:
 
     @staticmethod
     def is_available():
+        """Documentation for is_available."""
         return shutil.which("vspipe") is not None
 
     @staticmethod
     def check_python_vapoursynth():
+        """Documentation for check_python_vapoursynth."""
         try:
             return True
         except ImportError:
@@ -29,6 +32,7 @@ class VapourSynthQTGMC:
         fps_mode=2,
         apply_comb_filter=False,
     ):
+        """Documentation for generate_qtgmc_script."""
         escaped_input = input_path.replace("\\", "/")
         tff_bool = "True" if field_order.lower() == "tff" else "False"
 
@@ -77,6 +81,7 @@ clip.set_output()
 
     @classmethod
     def run_vspipe_ffmpeg(cls, vpy_path, ffmpeg_output_args):
+        """Documentation for run_vspipe_ffmpeg."""
         if not cls.is_available():
             raise RuntimeError("vspipe nao encontrado.")
 

@@ -1,3 +1,4 @@
+"""Module documentation pending."""
 from typing import Dict
 from .base import StorageProvider
 from vhs_studio.core.logger import log
@@ -12,13 +13,17 @@ except ImportError:
 
 
 class DropboxProvider(StorageProvider):
+    """Documentation for DropboxProvider."""
     def __init__(self):
+        """Documentation for __init__."""
         self.dbx = None
 
     def get_id(self) -> str:
+        """Documentation for get_id."""
         return "dropbox"
 
     def configure(self, config: Dict[str, object]) -> bool:
+        """Documentation for configure."""
         if not HAS_DROPBOX:
             log.error("[Dropbox] Biblioteca 'dropbox' não instalada.")
             return False
@@ -38,6 +43,7 @@ class DropboxProvider(StorageProvider):
             return False
 
     def upload_video(self, local_filepath: str, destination_path: str) -> bool:
+        """Documentation for upload_video."""
         if not self.dbx:
             return False
 
@@ -81,4 +87,5 @@ class DropboxProvider(StorageProvider):
             return False
 
     def get_status(self) -> Dict[str, object]:
+        """Documentation for get_status."""
         return {"ready": self.dbx is not None}

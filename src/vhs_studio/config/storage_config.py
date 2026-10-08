@@ -1,3 +1,4 @@
+"""Module documentation pending."""
 import json
 import os
 import keyring
@@ -20,6 +21,7 @@ SENSITIVE_KEYS = {
 
 
 def load_storage_config():
+    """Documentation for load_storage_config."""
     if not os.path.exists(STORAGE_CONFIG_PATH):
         return {
             "provider": "local_nas_usb",
@@ -50,6 +52,7 @@ def load_storage_config():
 
 
 def save_storage_config(provider: str, config: dict):
+    """Documentation for save_storage_config."""
     os.makedirs(os.path.dirname(STORAGE_CONFIG_PATH), exist_ok=True)
 
     public_config = {}

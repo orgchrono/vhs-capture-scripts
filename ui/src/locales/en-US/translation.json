@@ -1,19 +1,17 @@
 {
-  "translation": {
-    "capture": {
-      "start_restore": "Start Restoration",
-      "no_file": "Select a file to restore first!"
-    },
-    "privacy": {
-      "title": "Privacy & Terms of Use",
-      "subtitle": "Total Transparency (GNU GPLv3)",
-      "local_exec_title": "100% Local Execution",
-      "local_exec_desc": "Artificial Intelligence (Whisper), upscale (QTGMC), and slicing run <b>entirely on your hardware</b>. Your videos and data never leave your PC at any time for processing.",
-      "cloud_title": "Cloud and Security (Opt-In)",
-      "cloud_desc": "The Cloud Upload feature does not send videos to our servers. It connects directly to your personal <b>Google Drive</b> through local credentials kept in your OS Encrypted Vault.",
-      "license_disclaimer": "This software is distributed under the GNU General Public License (GPLv3). You agree that the software is provided \"as is\", without warranty of any kind. By proceeding, you consent to the local processing of your files.",
-      "accept_btn": "I AGREE AND UNDERSTAND"
-    }
+  "capture": {
+    "start_restore": "Start Restoration",
+    "no_file": "Select a file to restore first!"
+  },
+  "privacy": {
+    "title": "Privacy & Terms of Use",
+    "subtitle": "Total Transparency (GNU GPLv3)",
+    "local_exec_title": "100% Local Execution",
+    "local_exec_desc": "Artificial Intelligence (Whisper), upscale (QTGMC), and slicing run <b>entirely on your hardware</b>. Your videos and data never leave your PC at any time for processing.",
+    "cloud_title": "Cloud and Security (Opt-In)",
+    "cloud_desc": "The Cloud Upload feature does not send videos to our servers. It connects directly to your personal <b>Google Drive</b> through local credentials kept in your OS Encrypted Vault.",
+    "license_disclaimer": "This software is distributed under the GNU General Public License (GPLv3). You agree that the software is provided \"as is\", without warranty of any kind. By proceeding, you consent to the local processing of your files.",
+    "accept_btn": "I AGREE AND UNDERSTAND"
   },
   "Armazenamento & Nuvem": "Storage & Cloud",
   "Local / NAS / USB": "Local / NAS / USB",

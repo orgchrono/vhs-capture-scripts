@@ -1,3 +1,4 @@
+"""Module documentation pending."""
 # flake8: noqa
 import json
 import os
@@ -8,6 +9,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 import secrets
 
+from vhs_studio.core.constants import DEFAULT_API_HOST, DEFAULT_API_PORT
+from vhs_studio.core.constants import DEFAULT_API_HOST, DEFAULT_API_PORT
 from vhs_studio.core.filter_builder import FilterBuilder
 from vhs_studio.video.vapoursynth_qtgmc import VapourSynthQTGMC
 from vhs_studio.api.process_manager import ProcessManager
@@ -50,6 +53,7 @@ from vhs_studio.core.constants import (
 @app.middleware("http")
 async def verify_origin(request: Request, call_next):
     # Protect API routes
+    """Documentation for verify_origin."""
     if request.url.path.startswith("/api/"):
         host = request.headers.get("host", "")
         if not host.startswith("127.0.0.1") and not host.startswith("localhost"):
@@ -77,11 +81,13 @@ async def verify_origin(request: Request, call_next):
 
 @app.get("/api/token")
 def get_token():
+    """Documentation for get_token."""
     return {"token": SESSION_TOKEN}
 
 
 @app.get("/api/status")
 def ensure_obs_running():
+    """Documentation for ensure_obs_running."""
     import urllib.request
 
     try:
@@ -113,6 +119,7 @@ def ensure_obs_running():
 
 @app.get("/api/status")
 def get_status():
+    """Documentation for get_status."""
     encoder = FilterBuilder.detect_best_encoder()
     vs_ok = VapourSynthQTGMC.is_available()
 
@@ -155,6 +162,7 @@ from vhs_studio.storage.manager import StorageManager
 
 @app.get("/api/storage/config")
 def get_storage_config():
+    """Documentation for get_storage_config."""
     data = load_storage_config()
     provider = StorageManager.get_provider(data["provider"])
     status = provider.get_status() if provider else {"ready": False}
@@ -168,6 +176,7 @@ def get_storage_config():
 
 @app.post("/api/storage/config")
 async def update_storage_config(request: Request):
+    """Documentation for update_storage_config."""
     data = await request.json()
     provider_id = data.get("provider")
     config = data.get("config", {})
@@ -188,6 +197,7 @@ async def update_storage_config(request: Request):
 
 @app.post("/api/action")
 async def perform_action(request: Request):
+    """Documentation for perform_action."""
     data = await request.json()
     action = data.get("action")
     params = data.get("params", {})
@@ -299,10 +309,12 @@ else:
 
     @app.get("/")
     def index():
+        """Documentation for index."""
         return {"error": "UI n??o buildada. Execute 'npm run build' na pasta ui/"}
 
 
 def run_server(port=DEFAULT_API_PORT):
+    """Documentation for run_server."""
     import uvicorn
 
     uvicorn.run(app, host=DEFAULT_API_HOST, port=port, log_level="warning")

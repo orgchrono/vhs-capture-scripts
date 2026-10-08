@@ -1,3 +1,4 @@
+"""Module documentation pending."""
 # flake8: noqa
 from vhs_studio.core.jobs import JobManager
 
@@ -32,6 +33,7 @@ from vhs_studio.video.vapoursynth_qtgmc import VapourSynthQTGMC
 
 
 def get_stream_info(input_file):
+    """Documentation for get_stream_info."""
     cmd = [
         Toolchain.get_ffprobe_path(),
         "-v",
@@ -132,6 +134,7 @@ def find_first_video_frame(input_file, max_scan_sec=VideoConfig.MAX_SCAN_SECONDS
 
 
 def print_log_tail(log_path, lines=20):
+    """Documentation for print_log_tail."""
     if not os.path.exists(log_path):
         return
     try:
@@ -147,6 +150,7 @@ def print_log_tail(log_path, lines=20):
 
 
 def restore_stream(args):
+    """Documentation for restore_stream."""
     w, h, detected_fps, _, _ = get_stream_info(args.input_path)
     fps = args.target_fps if args.target_fps else detected_fps
     if fps <= 0:
@@ -356,6 +360,7 @@ def restore_stream(args):
 
 
 def main():
+    """Documentation for main."""
     JobManager.acquire_lock()
     parser = argparse.ArgumentParser(description="Restauração direta ultra-rápida sem perda de sincronia A/V para VHS")
     parser.add_argument("input", help="Arquivo raw de entrada")

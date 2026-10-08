@@ -1,3 +1,4 @@
+"""Module documentation pending."""
 from vhs_studio.config.settings import Filters, AudioConfig, OutputConfig
 from vhs_studio.core.logger import log
 import sys
@@ -7,7 +8,9 @@ from vhs_studio.core.toolchain import Toolchain
 
 
 class FilterBuilder:
+    """Documentation for FilterBuilder."""
     def __init__(self, target_1080p=True, crf=20, mode="freeze", output_codec="h264"):
+        """Documentation for __init__."""
         self.output_codec = output_codec
         self.encoder = self.detect_best_encoder() if output_codec == "h264" else None
         self.target_1080p = target_1080p
@@ -16,10 +19,12 @@ class FilterBuilder:
 
     @staticmethod
     def check_filter_support(filter_name):
+        """Documentation for check_filter_support."""
         return Toolchain.has_filter(filter_name)
 
     @staticmethod
     def check_encoder_support(encoder_name):
+        """Documentation for check_encoder_support."""
         try:
             # Testa se o hardware e driver realmente aceitam codificar um frame
             cmd = [
@@ -42,6 +47,7 @@ class FilterBuilder:
     @classmethod
     def detect_best_encoder(cls):
         # 1. macOS (Apple Silicon M1/M2/M3/M4 e Macs Intel)
+        """Documentation for detect_best_encoder."""
         if sys.platform == "darwin":
             if cls.check_encoder_support("h264_videotoolbox"):
                 return "h264_videotoolbox"
@@ -67,6 +73,7 @@ class FilterBuilder:
         apply_comb_filter=False,
         overscan_blanking=False,
     ):
+        """Documentation for build_video_filters."""
         vf_filters = []
         if overscan_blanking:
             vf_filters.append("drawbox=y=ih-12:color=black:width=iw:height=12:t=fill")
@@ -124,6 +131,7 @@ class FilterBuilder:
         audio_mode,
         audio_treatment=False,
     ):
+        """Documentation for build_ffmpeg_output_args."""
         cmd_out = [
             Toolchain.get_ffmpeg_path(),
             "-hide_banner",

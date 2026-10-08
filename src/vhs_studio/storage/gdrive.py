@@ -1,3 +1,4 @@
+"""Module documentation pending."""
 import os
 from typing import Dict
 from .base import StorageProvider
@@ -13,13 +14,17 @@ except ImportError:
 
 
 class GoogleDriveProvider(StorageProvider):
+    """Documentation for GoogleDriveProvider."""
     def __init__(self):
+        """Documentation for __init__."""
         self.service = None
 
     def get_id(self) -> str:
+        """Documentation for get_id."""
         return "gdrive"
 
     def configure(self, config: Dict[str, object]) -> bool:
+        """Documentation for configure."""
         self.folder_id = str(config.get("folder_id", ""))
         if not HAS_GDRIVE:
             log.error("[GDrive] Dependências do Google não instaladas.")
@@ -39,6 +44,7 @@ class GoogleDriveProvider(StorageProvider):
             return False
 
     def upload_video(self, local_filepath: str, destination_path: str) -> bool:
+        """Documentation for upload_video."""
         if not self.service:
             log.error("[GDrive] Serviço não inicializado.")
             return False
@@ -56,4 +62,5 @@ class GoogleDriveProvider(StorageProvider):
             return False
 
     def get_status(self) -> Dict[str, object]:
+        """Documentation for get_status."""
         return {"ready": self.service is not None}

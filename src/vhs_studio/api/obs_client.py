@@ -1,3 +1,4 @@
+"""Module documentation pending."""
 import json
 import base64
 import hashlib
@@ -9,12 +10,14 @@ class OBSClient:
     """Cliente WebSocket robusto para OBS Studio (v5.x)."""
 
     def __init__(self, host="127.0.0.1", port=4455, password=None):
+        """Documentation for __init__."""
         self.host = host
         self.port = port
         self.password = password if password is not None else ""
         self.ws = None
 
     def connect(self):
+        """Documentation for connect."""
         try:
             import websocket
         except ImportError:
@@ -59,6 +62,7 @@ class OBSClient:
             return False
 
     def send_request(self, request_type, request_data=None):
+        """Documentation for send_request."""
         if not self.ws:
             return None
         req = {
@@ -80,18 +84,22 @@ class OBSClient:
             return None
 
     def start_recording(self):
+        """Documentation for start_recording."""
         return self.send_request("StartRecord")
 
     def stop_recording(self):
+        """Documentation for stop_recording."""
         return self.send_request("StopRecord")
 
     def get_record_status(self):
+        """Documentation for get_record_status."""
         resp = self.send_request("GetRecordStatus")
         if resp and resp.get("d", {}).get("responseData"):
             return resp["d"]["responseData"].get("outputActive", False)
         return False
 
     def close(self):
+        """Documentation for close."""
         if self.ws:
             self.ws.close()
             self.ws = None

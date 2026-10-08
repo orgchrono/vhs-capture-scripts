@@ -1,3 +1,4 @@
+"""Module documentation pending."""
 # flake8: noqa
 from vhs_studio.core.toolchain import Toolchain
 

@@ -1,3 +1,4 @@
+"""Module documentation pending."""
 import os
 import subprocess
 import multiprocessing
@@ -5,7 +6,9 @@ from vhs_studio.core.logger import log
 
 
 class AIUpscaler:
+    """Documentation for AIUpscaler."""
     def __init__(self, model_name="realesrgan-x4plus", gpu_id="auto"):
+        """Documentation for __init__."""
         self.model_name = model_name
         self.use_ncnn = True
         self.ncnn_path = self._find_or_download_ncnn()
@@ -16,6 +19,7 @@ class AIUpscaler:
             self.gpu_id = gpu_id
 
     def _detect_best_gpu(self):
+        """Documentation for _detect_best_gpu."""
         try:
             res = subprocess.run(
                 ["vulkaninfo", "--summary"], capture_output=True, text=True, timeout=5
@@ -44,6 +48,7 @@ class AIUpscaler:
         return 0
 
     def _find_or_download_ncnn(self):
+        """Documentation for _find_or_download_ncnn."""
         from vhs_studio.core.paths import REALESRGAN_DIR
 
         base_dir = REALESRGAN_DIR
@@ -54,6 +59,7 @@ class AIUpscaler:
         return exe_path
 
     def process_video(self, input_video, output_video):
+        """Documentation for process_video."""
         if not self.ncnn_path:
             raise RuntimeError("Motor ESRGAN ausente.")
 
@@ -90,6 +96,7 @@ class AIUpscaler:
             log.error(f"[AI UPSCALER] Falha ao executar RealESRGAN: {e}")
 
     def process_frame_in_memory(self, rgb_frame_bytes, width, height):
+        """Documentation for process_frame_in_memory."""
         pass
 
 

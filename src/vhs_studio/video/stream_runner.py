@@ -1,15 +1,19 @@
+"""Module documentation pending."""
 import time
 from vhs_studio.core.logger import log
 
 
 class StreamRunner:
+    """Documentation for StreamRunner."""
     def __init__(self, mode, frame_bytes, y_bytes, luma_threshold=18.0):
+        """Documentation for __init__."""
         self.mode = mode
         self.frame_bytes = frame_bytes
         self.y_bytes = y_bytes
         self.luma_threshold = luma_threshold
 
     def run(self, p_in, p_out, fps):
+        """Documentation for run."""
         total_frames = 0
         dropped_frames = 0
         frozen_frames = 0

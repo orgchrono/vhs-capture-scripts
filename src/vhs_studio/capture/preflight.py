@@ -1,3 +1,4 @@
+"""Module documentation pending."""
 import os
 import shutil
 import subprocess
@@ -16,6 +17,7 @@ from vhs_studio.core.paths import (
 
 
 def is_ffmpeg_in_path():
+    """Documentation for is_ffmpeg_in_path."""
     try:
         subprocess.run(["ffmpeg", "-version"], capture_output=True, check=True)
         return True
@@ -24,6 +26,7 @@ def is_ffmpeg_in_path():
 
 
 def ensure_obs():
+    """Documentation for ensure_obs."""
     sys_name = platform.system()
 
     # 1. Checa a partir dos paths centralizados SSOT
@@ -56,6 +59,7 @@ def ensure_obs():
 
 def ensure_ffmpeg():
     # 1. Tenta achar no PATH nativo (Funciona em Win/Mac/Linux)
+    """Documentation for ensure_ffmpeg."""
     if is_ffmpeg_in_path():
         log.info("[Preflight] FFmpeg detectado nativamente no PATH do sistema.")
         return True
@@ -114,6 +118,7 @@ def ensure_ffmpeg():
 
 
 def run_preflight_checks():
+    """Documentation for run_preflight_checks."""
     issues = []
 
     if not ensure_obs():

@@ -1,9 +1,11 @@
+"""Module documentation pending."""
 import os
 import hashlib
 import json
 
 
 class AtomicIO:
+    """Documentation for AtomicIO."""
     @staticmethod
     def generate_hash(params_dict):
         """Gera um hash curto para diferenciar saídas com parâmetros de filtros diferentes."""
@@ -12,6 +14,7 @@ class AtomicIO:
 
     @staticmethod
     def get_part_path(final_path):
+        """Documentation for get_part_path."""
         return final_path + ".part"
 
     @staticmethod

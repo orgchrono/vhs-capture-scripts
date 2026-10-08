@@ -1,19 +1,17 @@
 {
-  "translation": {
-    "capture": {
-      "start_restore": "Iniciar Restauração",
-      "no_file": "Selecione um arquivo para restaurar primeiro!"
-    },
-    "privacy": {
-      "title": "Privacidade & Termos de Uso",
-      "subtitle": "Transparência Total (GNU GPLv3)",
-      "local_exec_title": "Execução 100% Local",
-      "local_exec_desc": "A inteligência artificial (Whisper), upscale (QTGMC) e fatiamento rodam <b>inteiramente no seu hardware</b>. Seus vídeos e dados não deixam o seu PC em momento algum para processamento.",
-      "cloud_title": "Nuvem e Segurança (Opt-In)",
-      "cloud_desc": "A função de Upload em Nuvem não envia os vídeos para nossos servidores. Ela conecta diretamente ao seu <b>Google Drive pessoal</b> através de credenciais locais mantidas no Cofre Criptografado do seu Sistema Operacional.",
-      "license_disclaimer": "Este software é distribuído sob a Licença Pública Geral GNU (GPLv3). Você concorda que o software é fornecido \"como está\", sem garantia de qualquer tipo. Ao prosseguir, você consente com o processamento local dos seus arquivos.",
-      "accept_btn": "EU CONCORDO E COMPREENDO"
-    }
+  "capture": {
+    "start_restore": "Iniciar Restauração",
+    "no_file": "Selecione um arquivo para restaurar primeiro!"
+  },
+  "privacy": {
+    "title": "Privacidade & Termos de Uso",
+    "subtitle": "Transparência Total (GNU GPLv3)",
+    "local_exec_title": "Execução 100% Local",
+    "local_exec_desc": "A inteligência artificial (Whisper), upscale (QTGMC) e fatiamento rodam <b>inteiramente no seu hardware</b>. Seus vídeos e dados não deixam o seu PC em momento algum para processamento.",
+    "cloud_title": "Nuvem e Segurança (Opt-In)",
+    "cloud_desc": "A função de Upload em Nuvem não envia os vídeos para nossos servidores. Ela conecta diretamente ao seu <b>Google Drive pessoal</b> através de credenciais locais mantidas no Cofre Criptografado do seu Sistema Operacional.",
+    "license_disclaimer": "Este software é distribuído sob a Licença Pública Geral GNU (GPLv3). Você concorda que o software é fornecido \"como está\", sem garantia de qualquer tipo. Ao prosseguir, você consente com o processamento local dos seus arquivos.",
+    "accept_btn": "EU CONCORDO E COMPREENDO"
   },
   "Armazenamento & Nuvem": "Armazenamento & Nuvem",
   "Local / NAS / USB": "Local / NAS / USB",

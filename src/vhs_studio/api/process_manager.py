@@ -1,3 +1,4 @@
+"""Module documentation pending."""
 import threading
 import subprocess
 
@@ -9,6 +10,7 @@ class ProcessManager:
     _lock = threading.Lock()
 
     def __new__(cls):
+        """Documentation for __new__."""
         with cls._lock:
             if cls._instance is None:
                 cls._instance = super(ProcessManager, cls).__new__(cls)
@@ -17,6 +19,7 @@ class ProcessManager:
         return cls._instance
 
     def start_process(self, cmd):
+        """Documentation for start_process."""
         with self._lock:
             if self.active_process is not None and self.active_process.poll() is None:
                 return False, "Processo já em andamento"
@@ -40,6 +43,7 @@ class ProcessManager:
             return True, "Processo iniciado"
 
     def _log_reader_thread(self, pipe):
+        """Documentation for _log_reader_thread."""
         for line in pipe:
             with self._lock:
                 self.process_logs.append(line.strip())
@@ -47,14 +51,17 @@ class ProcessManager:
                     self.process_logs.pop(0)
 
     def get_logs(self):
+        """Documentation for get_logs."""
         with self._lock:
             return list(self.process_logs)
 
     def is_running(self):
+        """Documentation for is_running."""
         with self._lock:
             return self.active_process is not None and self.active_process.poll() is None
 
     def terminate(self):
+        """Documentation for terminate."""
         with self._lock:
             if self.active_process:
                 self.active_process.terminate()

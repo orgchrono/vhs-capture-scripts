@@ -1,3 +1,4 @@
+"""Module documentation pending."""
 import sys
 import subprocess
 import os
@@ -7,23 +8,28 @@ import time
 
 
 def print_step(msg):
+    """Documentation for print_step."""
     print(f"[*] {msg}", flush=True)
 
 
 def print_success(msg):
+    """Documentation for print_success."""
     print(f"[+] {msg}", flush=True)
 
 
 def print_error(msg):
+    """Documentation for print_error."""
     print(f"[!] {msg}", flush=True)
 
 
 def run_cmd(cmd, shell=False):
+    """Documentation for run_cmd."""
     result = subprocess.run(cmd, shell=shell, capture_output=True, text=True)  # nosec
     return result
 
 
 def setup_vapoursynth_windows():
+    """Documentation for setup_vapoursynth_windows."""
     print_step("Iniciando setup automático do VapourSynth + QTGMC para Windows...")
 
     # 1. Check vspipe

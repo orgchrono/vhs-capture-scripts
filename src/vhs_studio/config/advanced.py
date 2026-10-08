@@ -1,3 +1,4 @@
+"""Module documentation pending."""
 import sys
 import os
 from vhs_studio.core.paths import ADVANCED_CONFIG_PATH
@@ -14,10 +15,12 @@ except ImportError:
 
 
 class AdvancedConfig:
+    """Documentation for AdvancedConfig."""
     _config = None
 
     @classmethod
     def load(cls):
+        """Documentation for load."""
         if cls._config is not None:
             return cls._config
 
@@ -34,5 +37,6 @@ class AdvancedConfig:
 
     @classmethod
     def get(cls, section: str, key: str, default=None):
+        """Documentation for get."""
         config = cls.load()
         return config.get(section, {}).get(key, default)

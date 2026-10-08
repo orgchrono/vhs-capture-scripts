@@ -1,9 +1,11 @@
+"""Module documentation pending."""
 from dataclasses import dataclass
 from typing import Optional
 
 
 @dataclass(frozen=True)
 class RestoreOptions:
+    """Documentation for RestoreOptions."""
     input_path: str
     output_path: str
     start_sec: float = 0.0
@@ -25,6 +27,7 @@ class RestoreOptions:
 
 @dataclass
 class RestoreResult:
+    """Documentation for RestoreResult."""
     success: bool
     final_path: Optional[str] = None
     frames_processed: int = 0

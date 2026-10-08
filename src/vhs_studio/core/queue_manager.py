@@ -1,3 +1,4 @@
+"""Module documentation pending."""
 import sqlite3
 import os
 import json
@@ -7,6 +8,7 @@ DB_PATH = os.path.join(os.path.expanduser("~"), ".vhs_studio", "pipeline.db")
 
 
 def _get_conn():
+    """Documentation for _get_conn."""
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.execute("""
@@ -24,6 +26,7 @@ def _get_conn():
 
 
 def enqueue_job(raw_path: str, metadata: dict | None = None):
+    """Documentation for enqueue_job."""
     conn = _get_conn()
     meta_str = json.dumps(metadata) if metadata else "{}"
     conn.execute(
@@ -36,6 +39,7 @@ def enqueue_job(raw_path: str, metadata: dict | None = None):
 
 
 def get_next_job():
+    """Documentation for get_next_job."""
     conn = _get_conn()
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
@@ -52,6 +56,7 @@ def get_next_job():
 
 
 def complete_job(job_id: int):
+    """Documentation for complete_job."""
     conn = _get_conn()
     conn.execute(
         "UPDATE jobs SET status = 'completed', updated_at = CURRENT_TIMESTAMP WHERE id = ?",
@@ -62,6 +67,7 @@ def complete_job(job_id: int):
 
 
 def fail_job(job_id: int, error_msg: str):
+    """Documentation for fail_job."""
     conn = _get_conn()
     conn.execute(
         "UPDATE jobs SET status = 'failed', updated_at = CURRENT_TIMESTAMP, metadata = ? WHERE id = ?",

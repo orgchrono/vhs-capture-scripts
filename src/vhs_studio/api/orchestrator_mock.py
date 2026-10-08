@@ -1,14 +1,18 @@
+"""Module documentation pending."""
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from vhs_studio.core.logger import log
 
 
 class PipelineOrchestrator:
+    """Documentation for PipelineOrchestrator."""
     def __init__(self, max_workers=3):
+        """Documentation for __init__."""
         self.executor = ThreadPoolExecutor(max_workers=max_workers)
         self.futures = {}
 
     def run_dag(self, raw_file, config):
+        """Documentation for run_dag."""
         log.info(f"[PIPELINE] Iniciando processamento paralelo para: {raw_file}")
 
         # 1. Disparar tarefas paralelas
@@ -42,16 +46,20 @@ class PipelineOrchestrator:
 
     def _task_whisper(self, file_path):
         # Fake task
+        """Documentation for _task_whisper."""
         time.sleep(5)
         return "subs.vtt"
 
     def _task_scenedetect(self, file_path):
+        """Documentation for _task_scenedetect."""
         time.sleep(3)
         return ["00:05:00", "00:10:00"]
 
     def _task_restoration(self, file_path, config):
+        """Documentation for _task_restoration."""
         time.sleep(10)
         return "restored.mp4"
 
     def _task_split_clips(self, master, timestamps):
+        """Documentation for _task_split_clips."""
         pass

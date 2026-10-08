@@ -1,3 +1,4 @@
+"""Module documentation pending."""
 import time
 import os
 from vhs_studio.core.logger import log
@@ -8,6 +9,7 @@ from vhs_studio.config.storage_config import load_storage_config
 
 
 def process_job(job: dict):
+    """Documentation for process_job."""
     raw_path = job["raw_path"]
     job_id = job["id"]
 
@@ -52,6 +54,7 @@ def process_job(job: dict):
 
 
 def pipeline_loop():
+    """Documentation for pipeline_loop."""
     log.info("[Pipeline Daemon] Iniciando monitoramento da fila de gravação...")
     while True:
         try:

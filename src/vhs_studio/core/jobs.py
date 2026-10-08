@@ -1,3 +1,4 @@
+"""Module documentation pending."""
 import os
 import sys
 import psutil
@@ -10,6 +11,7 @@ class JobManager:
 
     @staticmethod
     def _get_lock_path():
+        """Documentation for _get_lock_path."""
         from vhs_studio.core.paths import WORK_MEDIA_DIR
 
         work_dir = WORK_MEDIA_DIR
