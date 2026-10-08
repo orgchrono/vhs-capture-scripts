@@ -105,25 +105,7 @@ export function useStudioViewModel() {
     }
   }
 
-  // Whisper event listener logic
-  useEffect(() => {
-    const handleWhisper = (e: any) => {
-      const { input, model_size } = e.detail;
-      store.addLog(`[WHISPER] Preparando extraÃ§Ã£o de Ã¡udio e transcriÃ§Ã£o...`);
-      store.setIsRestoring(true);
-      studioApi.generateSubtitles(input, model_size).then(res => {
-        if (res.status !== 'ok') {
-          store.addLog(`[WHISPER ERRO] ${res.message}`);
-          store.setIsRestoring(false);
-        }
-      }).catch(err => {
-        store.addLog(`[WHISPER ERRO] ${err.message}`);
-        store.setIsRestoring(false);
-      });
-    };
-    window.addEventListener('WHISPER_START', handleWhisper);
-    return () => window.removeEventListener('WHISPER_START', handleWhisper);
-  }, [store]);
+  
 
   return {
     store,

@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 import threading
@@ -133,18 +134,8 @@ async def perform_action(request: Request):
         if not input_file or "media" not in input_file:
             return {"status": "error", "message": "Caminho de arquivo inválido ou inseguro."}
             
-        cmd = [sys.executable, "-m", "vhs_studio", "restore", input_file]
-        
-        # Add boolean flags
-        if params.get("denoise"): cmd.append("--denoise")
-        if params.get("chroma_fix"): cmd.append("--chroma-fix")
-        if params.get("comb_filter"): cmd.append("--comb-filter")
-        if params.get("overscan_blanking"): cmd.append("--overscan-blanking")
-        if params.get("audio_treatment"): cmd.append("--audio-treatment")
-        
-        if params.get("deinterlacer"): cmd.extend(["--deinterlacer", params["deinterlacer"]])
-        if params.get("audio_mode"): cmd.extend(["--audio-mode", params["audio_mode"]])
-        if params.get("output_codec"): cmd.extend(["--output-codec", params["output_codec"]])
+        params_json = json.dumps(params)
+          cmd = [sys.executable, "-m", "vhs_studio", "pipeline", input_file, "--params-json", params_json]
         
         success, msg = pm.start_process(cmd)
         if success:

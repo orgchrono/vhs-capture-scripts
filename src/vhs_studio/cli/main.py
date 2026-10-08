@@ -38,6 +38,9 @@ def main():
         sys.argv = [sys.argv[0]] + unknown
         import vhs_studio.video.direct_restore
         vhs_studio.video.direct_restore.main()
+    elif args.command == "pipeline":
+        import vhs_studio.pipeline
+        vhs_studio.pipeline.main(unknown)
     else:
         parser.print_help()
 

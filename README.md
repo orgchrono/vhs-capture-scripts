@@ -1,183 +1,43 @@
-# 📼 VHS Studio — Captura & Restauração Analógica Master
+﻿# VHS Studio Pro - Sistema de Captura e RestauraÃ§Ã£o AnalÃ³gica
 
-Sistema automatizado de ponta a ponta para captura e restauração de fitas VHS e VHS-C utilizando **OBS Studio**, **Blackmagic Intensity Shuttle USB 3.0**, estabilização via **TBC Panasonic DMR-EH55**, e pipeline de processamento em software com **FFmpeg** e **Python**.
+O **VHS Studio Pro** Ã© uma plataforma unificada (Desktop Web App) projetada para orquestrar a ingestÃ£o, a detecÃ§Ã£o de cenas, o tratamento de Ã¡udio e o upscaling de vÃ­deos analÃ³gicos (VHS, S-VHS, Betamax, Video8, Hi8) de forma cirÃºrgica e automatizada.
 
----
+O projeto utiliza uma **Arquitetura DAG Paralela** (Grafo Direcionado AcÃ­clico), permitindo que motores assÃ­ncronos operem no mesmo arquivo sem overhead.
 
-## 📐 Visão Geral da Arquitetura de Hardware
+## Requisitos de Hardware (MÃ­nimo e Recomendado)
 
-A ligação direta entre VCRs analógicos e a placa Blackmagic Intensity Shuttle é historicamente instável devido a instabilidades de sincronismo horizontal/vertical inerentes à fita magnética. O uso de um **TBC passthrough** resolve completamente este problema:
+Como o sistema lida com desentrelaÃ§amento matemÃ¡tico complexo (QTGMC) e modelos de InteligÃªncia Artificial (Whisper e Real-ESRGAN), a performance dependerÃ¡ dos seus componentes:
 
+### Hardware MÃ­nimo (ResoluÃ§Ã£o Original / CPU Only)
+- **Processador:** Intel Core i5 (8Âª GeraÃ§Ã£o) ou AMD Ryzen 5
+- **MemÃ³ria RAM:** 16 GB (Importante: Se utilizar Placa de VÃ­deo Integrada / Onboard, a RAM deve ser generosa pois serÃ¡ compartilhada como VRAM).
+- **Placa de VÃ­deo:** Intel UHD Graphics (com suporte a QuickSync) ou superior.
+- **Armazenamento:** SSD NVMe com pelo menos 100GB livres (Arquivos ProRes e FFV1 raw sÃ£o gigantescos).
+- **Captura:** Dispositivo USB UVC ou Blackmagic Intensity.
+
+### Hardware Recomendado (Pipeline "AI Master" 1080p e Whisper Local)
+- **Processador:** Intel Core i7 (12Âª GeraÃ§Ã£o, ex: i7-12700T com 20 threads Ã© ideal para QTGMC) ou superior.
+- **MemÃ³ria RAM:** 32 GB DDR4/DDR5.
+- **Placa de VÃ­deo:** NVIDIA RTX 3060 (12GB VRAM) ou superior para paralelizar CUDA. *Nota: Em setups com GPUs integradas (Intel UHD 770), o motor redirecionarÃ¡ a carga inteligentemente para os 20 lÃ³gicos do processador usando AVX2 e farÃ¡ o encoding por hardware usando o Intel QuickSync.*
+- **Captura:** Blackmagic DeckLink SDI/HDMI com chip TBC externo.
+
+## Componentes do Sistema (A Pipeline MÃ¡gica)
+
+O ecossistema consolida diversas ferramentas em passos paralelos:
+1. **Auto-Captura:** ComunicaÃ§Ã£o WebSocket com o OBS Studio para acionar placas DeckLink sem perda de quadros.
+2. **Monitor Nativo:** Live View em zero-latency direto na tela do App via Virtual Camera, poupando CPU.
+3. **Filtro Nativo FFmpeg / VapourSynth:** Limpa head-switching noise e desentrelaÃ§a em 60fps lisos via QTGMC.
+4. **InteligÃªncia Artificial Paralela:** Enquanto o vÃ­deo renderiza, o backend roda o *OpenAI Whisper* para gerar legendas (`.vtt`) e o *PySceneDetect* para fatiar as mudanÃ§as de cenas abruptas (cortes de cÃ¢mera do casamento, por exemplo).
+5. **Nuvem:** (Em construÃ§Ã£o) Upload para o Google Drive nativo.
+
+## InstalaÃ§Ã£o e Uso
+
+Para iniciar, basta executar o launcher inteligente do Windows:
+```cmd
+vhs.cmd
 ```
-┌─────────────────────────────────┐
-│ Fonte Analógica                 │
-│ • VCR JVC HR-D227M (Estéreo)    │──────┐ S-Video / RCA
-│ • Câmera JVC GR-AX410 (Mono)    │      │ (Vídeo Composto + Áudio L/R)
-└─────────────────────────────────┘      │
-                                         ▼
-                   ┌──────────────────────────────────────────┐
-                   │ Passthrough TBC: Panasonic DMR-EH55      │
-                   │ • Line TBC & Frame Synchronizer          │
-                   │ • Corrige instabilidades de sincronismo  │
-                   │ • Garante sinal contínuo na saída        │
-                   └──────────────────────────────────────────┘
-                                         │ S-Video / Componente
-                                         │ + Áudio Analógico
-                                         ▼
-                   ┌──────────────────────────────────────────┐
-                   │ Captura: Blackmagic Intensity Shuttle    │
-                   │ • USB 3.0 (Conectada direto na placa-mãe)│
-                   │ • Desktop Video Setup: NTSC 525i 59.94   │
-                   └──────────────────────────────────────────┘
-                                         │ USB 3.0 UYVY / Raw
-                                         ▼
-                   ┌──────────────────────────────────────────┐
-                   │ OBS Studio 64-bit (Perfil VHS_Archive)   │
-                   │ • 720x486 @ 29.970 fps (BFF Entrelaçado) │
-                   │ • Gravação Lossless MKV + Áudio PCM      │
-                   └──────────────────────────────────────────┘
-                                         │
-                                         ▼
-                   ┌──────────────────────────────────────────┐
-                   │ Pipeline de Restauração Automatizado    │
-                   │ 1. Preflight (inspeção de paridade/áudio)│
-                   │ 2. TBC Frame-Hold (imita congelamento)   │
-                   │ 3. Desentrelaçamento (BWDIF / QTGMC 60p) │
-                   │ 4. Correção Croma / Crop VBI             │
-                   │ 5. Upscale 1080p Rec.709 Pillarbox 4:3   │
-                   │ 6. Verificação de Integridade A/V        │
-                   └──────────────────────────────────────────┘
-                                         │
-                                         ▼
-                           `media/output/<video_master>.mp4`
-```
-
----
-
-## 🚀 Como Usar no Dia a Dia (1 Clique)
-
-### 1. Iniciar o Ambiente
-1. Conecte a **Blackmagic Intensity Shuttle** diretamente em uma porta USB 3.0 nativa da placa-mãe.
-2. Ligue o **Panasonic DMR-EH55** e o VCR/Filmadora JVC.
-3. Dê dois cliques em **`iniciar_vhs_capture.bat`** na raiz da pasta.
-   - O script carrega o OBS Studio com o perfil **`VHS_Archive`** e a cena **`VHS_Studio`** configurados para captura pura (sem deinterlace destrutivo).
-
-### 2. Captura Automática
-- Dê **PLAY** no aparelho analógico:
-  - O script inteligente de monitoramento do OBS detecta o início da reprodução e dispara a gravação automaticamente (**Auto-Start**).
-  - Ao término da fita (ou após pausa prolongada de sinal), o OBS encerra a gravação sozinho (**Auto-Stop**).
-- O arquivo bruto sem perdas é salvo em: `media/raw/AAAA-MM-DD HH-MM-SS.mkv`.
-
-### 3. Restauração Automática
-- Imediatamente após a gravação parar, o processo de restauração é disparado em segundo plano:
-  - Remove o líder preto inicial mantendo o áudio sincronizado.
-  - Congela quadros em eventuais perdas de sinal no meio da fita (**TBC Frame-Hold**), impedindo o avanço falso do vídeo e mantendo o áudio rigorosamente alinhado até o final.
-  - Converte os campos para progressivo fluido a 59.94 fps (double-rate).
-  - Corrige deslocamento de croma analógico e remove as 6 linhas de VBI analógico (486 → 480).
-  - Gera o master 1080p em espaço de cor Rec.709 com pillarboxing 4:3.
-  - Valida a conformidade técnica gravando o relatório `_verify_report.json`.
-- O vídeo restaurado final é entregue pronto em: **`media/output/`**.
-
----
-
-## 🎛️ Modos de Restauração & Perfis de Aparelho
-
-Você pode disparar ou reprocessar qualquer gravação manualmente via linha de comando ou scripts `.bat`:
-
-### Seleção de Aparelhos Suportados
-
-| Parâmetro | Aparelho | Características de Áudio / Sinal |
-| :--- | :--- | :--- |
-| `--device jvc_hr_d227m` | **JVC HR-D227M** | VCR VHS NTSC, áudio estéreo Hi-Fi preservado nos 2 canais (L+R). |
-| `--device jvc_gr_ax410` | **JVC GR-AX410** | Filmadora VHS-C NTSC, áudio mono duplicado de L para L+R sem ruído em canal vazio. |
-
-### Modos de Processamento
-
-#### 1. Modo Rápido (Streaming Single-Pass) — Padrão
-Recomendado para o dia a dia. Executa a cadeia inteira em memória usando pipelines e pipes sem gerar arquivos intermediários gigabytes em disco:
-```bat
-restoration\run_pipeline.bat "media\raw\minha_fita.mkv" --device jvc_hr_d227m
-```
-
-#### 2. Modo Master Completo (Estágios Isolados com FFV1)
-Recomendado para preservação crítica ou ajustes manuais em cada estágio (`media/work/`):
-```bat
-restoration\run_pipeline.bat "media\raw\minha_fita.mkv" --master --device jvc_hr_d227m
-```
-
----
-
-## 📁 Estrutura de Pastas do Repositório
-
-```
-vhs-capture-scripts-main/
-├── iniciar_vhs_capture.bat     # Launcher de 1 clique para OBS Studio + Perfil correto
-├── restaurar_async.bat         # Disparador assíncrono chamado pelo OBS ao encerrar gravação
-├── capture/
-│   └── obs/                    # Configurações de perfis, cenas e scripts Lua do OBS
-│       ├── config/             # Perfis VHS_Archive e VHS_Studio
-│       ├── vhs_auto_restore.lua# Integração de eventos do OBS Studio
-│       └── vhs_auto_watcher.py # Monitor inteligente de sinal/áudio analógico
-├── restoration/
-│   ├── run_pipeline.bat        # Wrapper Windows que unifica a chamada do pipeline
-│   ├── direct_restore.py       # Engine de restauração em streaming direto
-│   ├── master.sh               # Orquestrador mestre multi-estágios (Git Bash)
-│   ├── config/standards/       # Padrões de sinal (ntsc.env e pal.env)
-│   ├── profiles/devices/       # Perfis de hardware (JVC HR-D227M, JVC GR-AX410)
-│   ├── profiles/chain/         # Perfil de cadeia de TBC (Panasonic DMR-EH55)
-│   ├── lib/                    # Bibliotecas comuns (vhs_common.py, filters.sh, video-lib.sh)
-│   └── stages/                 # Estágios individuais (preflight, black-hold, deint, upscale, verify)
-├── media/
-│   ├── raw/                    # Capturas brutas originais (MKV Lossless)
-│   ├── work/                   # Arquivos temporários de trabalho e manifestos
-│   └── output/                 # Entregáveis finais (Master 1080p MP4)
-└── tests/                      # Gerador sintético de teste e suíte de testes unitários
-```
-
----
-
-## 🔬 O Segredo da Sincronia A/V: TBC Frame-Hold
-
-### Por que a sincronia se perdia na abordagem antiga?
-Quando uma fita analógica apresenta um trecho danificado ou sem sinal gravado:
-1. O áudio analógico continua sendo lido ininterruptamente pelas cabeças de áudio do VCR.
-2. A placa de captura Blackmagic não recebe pulsos de sincronismo vertical válidos e corta os quadros de vídeo.
-3. Se um script descarta esses quadros pretos intermediários, o vídeo é "encurtado", mas o áudio permanece longo. O resultado é um **desvio labial cumulativo grave**, onde o áudio se atrasa cada vez mais até o final da fita.
-
-### Como a nossa solução resolve:
-O estágio **`00_black_hold.py`** implementa um TBC digital de hardware por software:
-- **No início (líder) e no fim (trailer):** Detecta e corta o preto inicial sincronizando vídeo e áudio exatamente no primeiro frame de conteúdo real.
-- **No meio da fita (quedas momentâneas):** Em vez de apagar os frames, o sistema **congela o último quadro válido** durante os milissegundos da perda de sinal. Isso mantém a contagem absoluta de frames rigorosamente alinhada com os milissegundos do fluxo de áudio PCM, garantindo **0 ms de desvio labial** ao longo de horas de gravação.
-
----
-
-## 🛠️ Requisitos & Configurações Recomendadas de Hardware
-
-### Blackmagic Intensity Shuttle USB 3.0:
-1. **Controladora USB:** Utilize as portas USB 3.0 azuis nativas do chipset da placa-mãe (Intel ou Renesas/NEC). Evite hubs ou portas frontais de gabinete.
-2. **Plano de Energia do Windows:** Configure o plano de energia do Windows para **Alto Desempenho** e desative a opção "Suspensão seletiva USB".
-3. **Blackmagic Desktop Video Setup:**
-   - Set Video Standard: **NTSC** (525i 59.94)
-   - Input Video Format: S-Video ou Composite (de acordo com a saída do DMR-EH55)
-   - Black Level: **7.5 IRE** para fitas NTSC norte-americanas e brasileiras gravadas nesse padrão.
-
-### Panasonic DMR-EH55 (Configuração do TBC):
-- Conecte o VCR JVC na entrada **Line 1 (Traseira)** ou **Line 2 (Frontal)** via S-Video ou Composto.
-- No menu do gravador Panasonic:
-  - Entrada de Vídeo: S-Video (recomendado) ou Vídeo Composto.
-  - Selecione o canal correspondente (A1 ou A2) para ativar o passthrough ativo com o TBC de linha habilitado.
-- Conecte a saída do DMR-EH55 (S-Video + Áudio L/R) na entrada da Intensity Shuttle.
-
----
-
-## 🧪 Testes Automatizados
-
-O projeto inclui uma suíte de testes e gerador sintético para validar o ambiente sem precisar de fita física:
-
-```bash
-# 1. Gerar fita sintética com líder, barras SMPTE e queda de sinal:
-python tests/generate_synthetic_test_tape.py
-
-# 2. Executar suíte de testes unitários:
-python -m unittest discover tests
-```
+O script irÃ¡:
+1. Detectar o Python (e sugerir instalaÃ§Ã£o automÃ¡tica via Microsoft Winget caso nÃ£o encontre).
+2. Criar o ambiente isolado (`.venv`).
+3. Abrir o Servidor FastAPI e a Janela do Aplicativo.
+4. (Dentro do App) Os botÃµes do Header realizarÃ£o os setups automÃ¡ticos de OBS Portable e QTGMC.
