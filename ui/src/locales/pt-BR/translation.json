@@ -35,5 +35,10 @@
   "Dropbox Access Token": "Token de Acesso Dropbox",
   "OneDrive Client ID": "ID do Cliente (App) OneDrive",
   "OneDrive Client Secret": "Segredo do Cliente (Secret)",
-  "OneDrive Tenant ID": "Tenant ID (opcional)"
+  "OneDrive Tenant ID": "Tenant ID (opcional)",
+  "AWS S3 Compatível": "AWS S3 / R2 / MinIO",
+  "S3 Endpoint URL (Opcional)": "S3 Endpoint URL (Opcional)",
+  "S3 Access Key ID": "Access Key ID",
+  "S3 Secret Access Key": "Secret Access Key",
+  "S3 Region": "Região (ex: us-east-1)"
 }

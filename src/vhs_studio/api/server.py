@@ -3,7 +3,7 @@ import os
 import sys
 import threading
 from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 import secrets
@@ -159,6 +159,38 @@ async def update_storage_config(request: Request):
         return {"status": "ok", "message": "Configuracao salva e validada!"}
     else:
         return JSONResponse(status_code=400, content={"error": "Falha ao validar configuracao."})
+
+
+
+import webbrowser
+
+@app.get("/api/oauth/login/{provider_id}")
+def oauth_login(provider_id: str):
+    if provider_id == "gdrive":
+        # Placeholder for real oauth URL generation
+        webbrowser.open("http://localhost:8088/api/oauth/placeholder?provider=Google")
+        return {"status": "ok", "message": "Navegador aberto."}
+    elif provider_id == "dropbox":
+        webbrowser.open("http://localhost:8088/api/oauth/placeholder?provider=Dropbox")
+        return {"status": "ok", "message": "Navegador aberto."}
+    elif provider_id == "onedrive":
+        webbrowser.open("http://localhost:8088/api/oauth/placeholder?provider=Microsoft")
+        return {"status": "ok", "message": "Navegador aberto."}
+    return JSONResponse(status_code=400, content={"error": "Provedor desconhecido."})
+
+@app.get("/api/oauth/placeholder")
+def oauth_placeholder(provider: str = ""):
+    # Retorna um HTML bonitinho temporário até conectarmos as libs finais de OAuth
+    html = f'''
+    <html>
+      <body style="font-family: sans-serif; text-align: center; padding-top: 50px;">
+        <h2>Integração {provider} OAuth 2.0 (Em breve)</h2>
+        <p>A arquitetura de rotas foi estabelecida! Aqui será gerado o fluxo de callback nativo.</p>
+        <p>Feche esta janela e volte para o aplicativo.</p>
+      </body>
+    </html>
+    '''
+    return HTMLResponse(content=html)
 
 
 @app.post("/api/action")

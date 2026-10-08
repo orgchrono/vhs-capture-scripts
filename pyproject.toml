@@ -22,5 +22,5 @@ package-dir = {"" = "src"}
 
 [project.optional-dependencies]
 ai = ["faster-whisper", "scenedetect[opencv]"]
-cloud = ["google-api-python-client", "google-auth-httplib2", "google-auth-oauthlib", "keyring", "supabase", "dropbox", "O365"]
+cloud = ["google-api-python-client", "google-auth-httplib2", "google-auth-oauthlib", "keyring", "supabase", "dropbox", "O365", "boto3"]
 dev = ["pytest", "flake8", "black", "isort"]
