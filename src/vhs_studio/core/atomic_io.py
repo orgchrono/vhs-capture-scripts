@@ -21,4 +21,3 @@ class AtomicIO:
             if os.path.exists(final_path):
                 os.remove(final_path)
             os.rename(part_path, final_path)
-

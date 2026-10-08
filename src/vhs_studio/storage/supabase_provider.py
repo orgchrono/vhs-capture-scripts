@@ -1,10 +1,8 @@
 from typing import Dict
 from .base import StorageProvider
 from vhs_studio.core.logger import log
-
 try:
     from supabase import create_client
-
     HAS_SUPABASE = True
 except ImportError:
     HAS_SUPABASE = False
@@ -24,15 +22,12 @@ class SupabaseStorageProvider(StorageProvider):
         if not HAS_SUPABASE:
             log.error("[Supabase] Biblioteca 'supabase' não instalada.")
             return False
-
-        url = config.get("SUPABASE_URL")
-        key = config.get("SUPABASE_KEY")
-        bucket = config.get("SUPABASE_BUCKET", self.bucket_name)
-
+        url = str(config.get("SUPABASE_URL", ""))
+        key = str(config.get("SUPABASE_KEY", ""))
+        bucket = str(config.get("SUPABASE_BUCKET", self.bucket_name))
         if not url or not key:
             log.error("[Supabase] Credenciais URL ou KEY ausentes.")
             return False
-
         try:
             self.client = create_client(url, key)
             self.bucket_name = bucket
@@ -48,7 +43,6 @@ class SupabaseStorageProvider(StorageProvider):
     def upload_video(self, local_filepath: str, destination_path: str) -> bool:
         if not self.client:
             return False
-
         try:
             log.info(f"[Supabase] Fazendo upload de {local_filepath} para o bucket {self.bucket_name}...")
             with open(local_filepath, "rb") as f:

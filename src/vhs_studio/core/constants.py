@@ -1,6 +1,6 @@
 """
 Central de constantes da aplicacao.
-Evita 'Magic Numbers' e 'Magic Strings' espalhados pela base de codigo, 
+Evita 'Magic Numbers' e 'Magic Strings' espalhados pela base de codigo,
 garantindo um Single Source of Truth (SSOT).
 """
 

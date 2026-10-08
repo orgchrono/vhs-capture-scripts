@@ -16,18 +16,16 @@ class LocalStorageProvider(StorageProvider):
         return "local_nas_usb"
 
     def configure(self, config: Dict[str, object]) -> bool:
-        path = config.get("path")
+        path = str(config.get("path", ""))
         if not path:
             log.error("[LocalStorage] Caminho de destino não fornecido na configuração.")
             return False
-
         if not os.path.exists(path):
             try:
                 os.makedirs(path, exist_ok=True)
             except Exception as e:
                 log.error(f"[LocalStorage] Falha ao criar/acessar diretório NAS/USB: {e}")
                 return False
-
         self.base_path = path
         self.is_ready = True
         return True
@@ -36,10 +34,8 @@ class LocalStorageProvider(StorageProvider):
         if not self.is_ready:
             log.error("[LocalStorage] Provedor não está configurado.")
             return False
-
         dest = os.path.join(self.base_path, destination_path)
         dest_dir = os.path.dirname(dest)
-
         try:
             os.makedirs(dest_dir, exist_ok=True)
             log.info(f"[LocalStorage] Copiando {local_filepath} para {dest} ...")
@@ -53,7 +49,6 @@ class LocalStorageProvider(StorageProvider):
     def get_status(self) -> Dict[str, object]:
         if not self.is_ready or not os.path.exists(self.base_path):
             return {"ready": False, "free_space_gb": 0}
-
         total, used, free = shutil.disk_usage(self.base_path)
         free_gb = free // (2**30)
         return {"ready": True, "free_space_gb": free_gb, "path": self.base_path}
