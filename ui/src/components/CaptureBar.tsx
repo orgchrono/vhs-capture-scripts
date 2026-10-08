@@ -40,13 +40,13 @@ export const CaptureBar: React.FC = () => {
   }
 
   return (
-    <div className="bg-gradient-to-r from-slate-900/80 via-slate-900/50 to-slate-900/80 border border-white/10 rounded-xl p-4 mb-6 flex items-center justify-between">
-      <div className="flex items-center gap-3">
+    <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-white/10 rounded-xl p-4 mb-4 flex flex-col gap-4">
+      <div className="flex items-start gap-3">
         <div className={`p-2 rounded-lg ${isCapturing ? 'bg-red-500/20 text-red-400 animate-pulse' : 'bg-slate-800 text-slate-400'}`}>
           <Radio className="w-5 h-5" />
         </div>
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-semibold text-white">Captura Automatizada OBS Studio</span>
             <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">
               DeckLink / Intensity Shuttle SDK

@@ -37,6 +37,16 @@ export const studioApi = {
     return res.json()
   },
 
+  async toggleVirtualCam(enable: boolean): Promise<{ status: string; message?: string }> {
+    const res = await fetch('/api/obs/virtualcam', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enable })
+    })
+    return res.json()
+  },
+
+
   async generateSubtitles(input: string, model_size: string): Promise<{ status: string; message?: string }> {
     const res = await fetch('/api/action', {
       method: 'POST',

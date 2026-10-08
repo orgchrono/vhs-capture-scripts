@@ -106,6 +106,9 @@ def get_status():
         "process_logs": pm.get_logs()
     }
 
+
+
+
 @app.post("/api/action")
 async def perform_action(request: Request):
     data = await request.json()
@@ -114,6 +117,16 @@ async def perform_action(request: Request):
     
     if action == "start_restore":
         if pm.is_running():
+            return {"status": "error", "message": "JÃ¡ existe um processo em andamento."}
+            
+        # Pipeline Auto-Install
+        if params.get("deinterlacer") and "qtgmc" in params.get("deinterlacer"):
+            from vhs_studio.video.vapoursynth_qtgmc import VapourSynthQTGMC
+            if not VapourSynthQTGMC.is_available():
+                cmd = [sys.executable, "-m", "vhs_studio.cli.setup_qtgmc"]
+                pm.start_process(cmd)
+                return {"status": "started", "message": "DependÃªncias do QTGMC estÃ£o sendo instaladas. A restauraÃ§Ã£o iniciarÃ¡ apÃ³s a conclusÃ£o automÃ¡tica (veja o log)."}
+
             return {"status": "error", "message": "Já existe um processo em andamento."}
             
         input_file = params.get("input")
