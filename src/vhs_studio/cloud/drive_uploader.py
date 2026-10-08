@@ -18,16 +18,16 @@ def get_credentials():
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
     creds_path = os.path.join(project_root, "credentials.json")
     
-    # Tenta recuperar o token criptografado do Windows Credential Locker / OS Keychain
-    token_json_str = keyring.get_password(SERVICE_ID, ACCOUNT_ID)
     creds = None
     
-    if token_json_str:
-        try:
+    # 1. Tenta recuperar o token criptografado do OS Keychain (GNOME Keyring/KWallet/Windows/Mac)
+    try:
+        token_json_str = keyring.get_password(SERVICE_ID, ACCOUNT_ID)
+        if token_json_str:
             token_data = json.loads(token_json_str)
             creds = Credentials.from_authorized_user_info(token_data, SCOPES)
-        except Exception:
-            pass
+    except Exception as e:
+        log.warning(f"[NUVEM AVISO] OS Keyring indisponível (Linux Headless?): {e}")
             
     if not creds or not creds.valid:
         if not os.path.exists(creds_path):
@@ -38,9 +38,12 @@ def get_credentials():
         flow = InstalledAppFlow.from_client_secrets_file(creds_path, SCOPES)
         creds = flow.run_local_server(port=0)
         
-        # Salva o token de forma criptografada no Cofre do Windows/Mac
-        keyring.set_password(SERVICE_ID, ACCOUNT_ID, creds.to_json())
-        log.info("[NUVEM SECURE] Token OAuth2 criptografado e salvo no Cofre de Credenciais do Sistema Operacional.")
+        # 2. Salva o token de forma criptografada
+        try:
+            keyring.set_password(SERVICE_ID, ACCOUNT_ID, creds.to_json())
+            log.info("[NUVEM SECURE] Token OAuth2 criptografado e salvo no Cofre de Credenciais do Sistema Operacional.")
+        except Exception as e:
+            log.warning(f"[NUVEM AVISO] Falha ao salvar no Keyring do OS ({e}). O token não foi persistido.")
         
     return creds
 
