@@ -1,71 +1,81 @@
-﻿#!/usr/bin/env python3
-"""
-Cross-platform linting and type checking script for VHS Studio Pro.
-Replaces OS-specific scripts (like .ps1 or .sh) to ensure 100% 
-compatibility across Windows, macOS, and Linux.
-"""
-
-import subprocess
+﻿import os
 import sys
-import os
+import subprocess
+from dataclasses import dataclass
+from typing import List, Optional
 
-def run_step(name: str, cmd: list, cwd: str = None) -> bool:
-    print(f"\n=======================================================")
-    print(f"[*] Executando: {name}")
-    print(f"=======================================================")
+@dataclass
+class LintStep:
+    name: str
+    command: List[str]
+    cwd: Optional[str] = None
+    allow_failure: bool = False
+
+def run_step(step: LintStep) -> bool:
+    print(f"[{step.name}] Iniciando...")
     try:
-        # shell=True is needed on Windows for npx/npm if not using absolute paths, 
-        # but cross-platform we can just use shell=True for node commands safely here
-        is_shell = os.name == 'nt' and cmd[0] in ['npm', 'npx']
+        # Use shell=True for npm commands on Windows to find npm.cmd correctly if needed
+        shell = step.command[0] == "npm" and os.name == "nt"
         
-        result = subprocess.run(cmd, cwd=cwd, shell=is_shell)
-        if result.returncode != 0:
-            print(f"\n[X] FALHA: {name} retornou código {result.returncode}")
-            return False
+        result = subprocess.run(
+            step.command,
+            cwd=step.cwd,
+            text=True,
+            capture_output=True,
+            shell=shell
+        )
         
-        print(f"[V] SUCESSO: {name}")
-        return True
+        if result.returncode == 0:
+            print(f"[{step.name}] \033[92mPASSOU\033[0m")
+            return True
+        else:
+            print(f"[{step.name}] \033[91mFALHOU\033[0m")
+            print(result.stdout)
+            print(result.stderr)
+            return step.allow_failure
     except FileNotFoundError:
-        print(f"\n[X] FALHA: Comando não encontrado -> {cmd[0]}")
-        return False
+        print(f"[{step.name}] \033[91mERRO FATAL\033[0m: Comando nao encontrado -> {' '.join(step.command)}")
+        return step.allow_failure
     except Exception as e:
-        print(f"\n[X] FALHA INESPERADA: {e}")
-        return False
+        print(f"[{step.name}] \033[91mERRO INESPERADO\033[0m: {e}")
+        return step.allow_failure
 
 def main():
-    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    ui_dir = os.path.join(repo_root, "ui")
-    
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    ui_dir = os.path.join(base_dir, "ui")
+
     steps = [
-        {
-            "name": "Python Linter (Flake8)",
-            "cmd": [sys.executable, "-m", "flake8", "src/vhs_studio", "--count", "--select=E9,F63,F7,F82", "--show-source", "--statistics"],
-            "cwd": repo_root
-        },
-        {
-            "name": "Python Type Checker (MyPy)",
-            "cmd": [sys.executable, "-m", "mypy", "src/vhs_studio", "--ignore-missing-imports"],
-            "cwd": repo_root
-        },
-        {
-            "name": "TypeScript Type Checker (tsc)",
-            "cmd": ["npx", "tsc", "--noEmit"],
-            "cwd": ui_dir
-        }
+        LintStep(
+            name="Flake8 (Python Style)",
+            command=["flake8", "src", "scripts"]
+        ),
+        LintStep(
+            name="Mypy (Python Types)",
+            command=["mypy", "src"]
+        ),
+        LintStep(
+            name="TSC (TypeScript Types)",
+            command=["npm", "run", "build"],
+            cwd=ui_dir
+        ),
+        LintStep(
+            name="UI Linter (Oxlint / ESLint)",
+            command=["npm", "run", "lint"],
+            cwd=ui_dir
+        )
     ]
-    
-    failed = False
+
+    success = True
     for step in steps:
-        if not run_step(step["name"], step["cmd"], step["cwd"]):
-            failed = True
-            
-    print("\n=======================================================")
-    if failed:
-        print("[!] STATUS FINAL: REPROVADO. Corrija os erros acima antes de fazer o commit.")
-        sys.exit(1)
-    else:
-        print("[*] STATUS FINAL: APROVADO. Código limpo e tipado perfeitamente!")
+        if not run_step(step):
+            success = False
+
+    if success:
+        print("\n\033[92m=== TODOS OS TESTES PASSARAM. O CODIGO ESTA LIMPO! ===\033[0m")
         sys.exit(0)
+    else:
+        print("\n\033[91m=== REPROVADO. CORRIJA OS ERROS ANTES DE CONTINUAR. ===\033[0m")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

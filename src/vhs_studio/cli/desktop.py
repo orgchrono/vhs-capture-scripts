@@ -107,5 +107,5 @@ def run_desktop():
     )
     webview.start(debug=False)
 
-if __name__ == "__main__":
+if __name__ == "main":
     run_desktop()

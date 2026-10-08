@@ -2,6 +2,29 @@ websocket-client>=1.0.0
 fastapi
 uvicorn
 pywebview
+requests
 
 [:python_version < "3.11"]
 tomli
+
+[ai]
+faster-whisper
+scenedetect[opencv]
+
+[cloud]
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+keyring
+supabase
+dropbox
+O365
+boto3
+
+[dev]
+pytest
+flake8
+black
+isort
+mypy
+types-requests
