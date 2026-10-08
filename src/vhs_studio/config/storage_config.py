@@ -1,4 +1,4 @@
-import json
+﻿import json
 import os
 import keyring
 from vhs_studio.core.logger import log
@@ -12,8 +12,11 @@ SENSITIVE_KEYS = {
     "S3_SECRET_KEY",
     "DROPBOX_ACCESS_TOKEN",
     "DROPBOX_APP_SECRET",
+    "DROPBOX_REFRESH_TOKEN",
     "ONEDRIVE_CLIENT_SECRET",
+    "ONEDRIVE_REFRESH_TOKEN",
     "GDRIVE_CLIENT_SECRET",
+    "GDRIVE_REFRESH_TOKEN",
 }
 
 
