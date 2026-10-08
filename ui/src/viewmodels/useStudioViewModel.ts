@@ -6,6 +6,7 @@ import { useStudioStore } from '../store/useStudioStore'
 export function useStudioViewModel() {
   const store = useStudioStore()
   const [isInstallingQtgmc, setIsInstallingQtgmc] = useState(false)
+  const [isInstallingObs, setIsInstallingObs] = useState(false)
 
   // System Status polling
   const { data: status, refetch: refetchStatus, isRefetching } = useQuery({
@@ -14,19 +15,21 @@ export function useStudioViewModel() {
     refetchInterval: 4000,
   })
 
-  // Logs polling during restoration
+  // Logs polling during restoration or installation
   useQuery({
     queryKey: ['logs'],
     queryFn: studioApi.getLogs,
-    refetchInterval: (store.isRestoring || isInstallingQtgmc) ? 1000 : false,
-    enabled: store.isRestoring || isInstallingQtgmc,
+    refetchInterval: (store.isRestoring || isInstallingQtgmc || isInstallingObs) ? 1000 : false,
+    enabled: store.isRestoring || isInstallingQtgmc || isInstallingObs,
     onSuccess: (data: { active: boolean; logs: string[] }) => {
       if (data?.logs?.length) {
         data.logs.forEach((l) => store.addLog(l))
       }
-      if (!data?.active && (store.isRestoring || isInstallingQtgmc)) {
-        store.setIsRestoring(false)
-        store.addLog('[RESTAURAÇÃO] Processo de restauração concluído com sucesso!')
+      if (!data?.active && (store.isRestoring || isInstallingQtgmc || isInstallingObs)) {
+        if (store.isRestoring) {
+            store.setIsRestoring(false)
+            store.addLog('[RESTAURAÃ‡ÃƒO] Processo de restauraÃ§Ã£o concluÃ­do com sucesso!')
+        }
       }
     },
   } as any)
@@ -37,13 +40,13 @@ export function useStudioViewModel() {
     onSuccess: (data) => {
       if (data.status === 'started') {
         store.setIsRestoring(true)
-        store.addLog('[RESTAURAÇÃO] Processo streaming iniciado!')
+        store.addLog('[RESTAURAÃ‡ÃƒO] Processo streaming iniciado!')
       } else {
         alert(data.message || 'Erro ao iniciar')
       }
     },
     onError: (err: any) => {
-      alert(`Erro na requisição: ${err.message}`)
+      alert(`Erro na requisiÃ§Ã£o: ${err.message}`)
     },
   })
 
@@ -52,7 +55,7 @@ export function useStudioViewModel() {
       return false // Handled in View
     }
 
-    store.addLog(`[RESTAURAÇÃO] Preparando restauração do arquivo: ${store.selectedFile}`)
+    store.addLog(`[RESTAURAÃ‡ÃƒO] Preparando restauraÃ§Ã£o do arquivo: ${store.selectedFile}`)
     restoreMutation.mutate({
       input: store.selectedFile,
       deinterlacer: store.deinterlacer,
@@ -71,16 +74,34 @@ export function useStudioViewModel() {
     return true
   }
 
+  const handleInstallObs = async () => {
+    setIsInstallingObs(true)
+    store.addLog('[OBS] Disparando instalador automatizado do OBS Portable...')
+    try {
+      await fetch('http://127.0.0.1:8088/api/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'install_obs' })
+      })
+      store.addLog('[OBS] Instalador iniciado em segundo plano. Acompanhe a instalaÃ§Ã£o no Console.')
+      refetchStatus()
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setTimeout(() => setIsInstallingObs(false), 3000)
+    }
+  }
+
   const handleInstallQtgmc = async () => {
     setIsInstallingQtgmc(true)
     store.addLog('[QTGMC] Disparando instalador automatizado do VapourSynth + QTGMC...')
     try {
       await studioApi.installQtgmc()
-      store.addLog('[QTGMC] Instalador iniciado em segundo plano. Acompanhe a instalação no Console Integrado abaixo.')
+      store.addLog('[QTGMC] Instalador iniciado em segundo plano. Acompanhe a instalaÃ§Ã£o no Console.')
     } catch (e) {
       store.addLog(`[QTGMC ERRO] Falha ao iniciar instalador: ${e}`)
     } finally {
-      setIsInstallingQtgmc(false)
+      setTimeout(() => setIsInstallingQtgmc(false), 3000)
     }
   }
 
@@ -88,7 +109,7 @@ export function useStudioViewModel() {
   useEffect(() => {
     const handleWhisper = (e: any) => {
       const { input, model_size } = e.detail;
-      store.addLog(`[WHISPER] Preparando extração de áudio e transcrição...`);
+      store.addLog(`[WHISPER] Preparando extraÃ§Ã£o de Ã¡udio e transcriÃ§Ã£o...`);
       store.setIsRestoring(true);
       studioApi.generateSubtitles(input, model_size).then(res => {
         if (res.status !== 'ok') {
@@ -110,6 +131,8 @@ export function useStudioViewModel() {
     refetchStatus,
     isRefetching,
     isInstallingQtgmc,
+    isInstallingObs,
+    handleInstallObs,
     isRestoring: store.isRestoring || restoreMutation.isPending,
     handleStartRestoration,
     handleInstallQtgmc,

@@ -24,8 +24,9 @@ def run_desktop():
     window = webview.create_window(
         title="VHS Studio",
         url=f"http://127.0.0.1:{port}",
-        width=1280,
-        height=860,
+        width=1440,
+        height=900,
+        maximized=True,
         min_size=(1024, 700),
         background_color="#080c14"
     )

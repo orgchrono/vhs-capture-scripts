@@ -59,7 +59,7 @@ export const RestorationSettings: React.FC = () => {
         </TabsList>
 
         <TabsContent value="video" className="space-y-4">
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-4">
             {matches(['desentrelaçamento', 'deinterlacer', 'bwdif', 'qtgmc', 'video']) && (
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-slate-400 block">Desentrelaçamento:</label>
@@ -120,7 +120,7 @@ export const RestorationSettings: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="audio" className="space-y-4">
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-4">
             {matches(['áudio', 'audio', 'stereo', 'mono']) && (
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-slate-400 block">Modo de Áudio:</label>
@@ -201,7 +201,7 @@ export const RestorationSettings: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="advanced" className="space-y-4">
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-4">
             {matches(['crf', 'qualidade', 'avançado', 'bitrate']) && (
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-slate-400 block">Qualidade de Compressão (CRF):</label>

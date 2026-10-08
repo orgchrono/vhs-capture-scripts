@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react'
-import { Terminal, Trash2 } from 'lucide-react'
+import { Terminal, Trash2, Download } from 'lucide-react'
 import { useStudioStore } from '../store/useStudioStore'
 
 export const ConsoleViewer: React.FC = () => {
@@ -47,14 +47,32 @@ export const ConsoleViewer: React.FC = () => {
           )}
         </div>
 
-        <button
-          onClick={clearLogs}
-          className="text-slate-500 hover:text-slate-300 transition text-xs flex items-center gap-1 cursor-pointer"
-          title="Limpar console"
-        >
-          <Trash2 className="w-3 h-3" />
-          Limpar
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => {
+                const logs = useStudioStore.getState().logs.join('\n');
+                const blob = new Blob([logs], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `vhs_studio_log_${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
+                a.click();
+            }}
+            className="text-slate-500 hover:text-sky-300 transition text-xs flex items-center gap-1 cursor-pointer"
+            title="Exportar Console"
+          >
+            <Download className="w-3 h-3" />
+            Exportar
+          </button>
+          <button
+            onClick={clearLogs}
+            className="text-slate-500 hover:text-red-400 transition text-xs flex items-center gap-1 cursor-pointer"
+            title="Limpar console"
+          >
+            <Trash2 className="w-3 h-3" />
+            Limpar
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 p-4 overflow-y-auto font-mono text-xs select-text">

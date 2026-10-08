@@ -44,3 +44,6 @@ media/work/*
 !media/work/.gitkeep
 media/output/*
 !media/output/.gitkeep
+
+tools/obs/
+tools/obs_installer.zip

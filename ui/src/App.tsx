@@ -24,6 +24,8 @@ const StudioMain: React.FC = () => {
     isRestoring,
     handleStartRestoration,
     handleInstallQtgmc,
+    isInstallingObs,
+    handleInstallObs,
   } = useStudioViewModel()
 
   const onStart = () => {
@@ -38,6 +40,8 @@ const StudioMain: React.FC = () => {
         status={status}
         onInstallQtgmc={handleInstallQtgmc}
         isInstallingQtgmc={isInstallingQtgmc}
+          isInstallingObs={isInstallingObs}
+          onInstallObs={handleInstallObs}
       />
 
       {/* DASHBOARD LAYOUT */}

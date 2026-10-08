@@ -8,9 +8,11 @@ interface HeaderProps {
   status?: SystemStatus
   onInstallQtgmc: () => void
   isInstallingQtgmc: boolean
+  isInstallingObs?: boolean
+  onInstallObs?: () => void
 }
 
-export const Header: React.FC<HeaderProps> = ({ status, onInstallQtgmc, isInstallingQtgmc }) => {
+export const Header: React.FC<HeaderProps> = ({ status, onInstallQtgmc, isInstallingQtgmc , isInstallingObs, onInstallObs }) => {
   const { t, i18n } = useTranslation();
   const [highContrast, setHighContrast] = useState(false)
   const [largeText, setLargeText] = useState(false);
@@ -87,7 +89,7 @@ export const Header: React.FC<HeaderProps> = ({ status, onInstallQtgmc, isInstal
           ) : (
             <Button variant="outline" size="sm" onClick={onInstallQtgmc} disabled={isInstallingQtgmc} className="h-6 px-2 text-[10px] bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border-sky-500/40">
               <Wrench className="w-3 h-3 mr-1" />
-              {isInstallingQtgmc ? t('status.installing') : t('status.auto_setup')}
+              {isInstallingQtgmc ? "Instalando..." : "Instalar QTGMC"}
             </Button>
           )}
         </div>
@@ -100,14 +102,9 @@ export const Header: React.FC<HeaderProps> = ({ status, onInstallQtgmc, isInstal
               OBS
             </span>
           ) : (
-            <Button variant="outline" size="sm" onClick={() => {
-              fetch('http://127.0.0.1:8088/api/action', {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({action: 'install_obs'})
-              });
-            }} className="h-6 px-2 text-[10px] bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border-indigo-500/40">
+            <Button variant="outline" size="sm" onClick={onInstallObs} disabled={isInstallingObs} className="h-6 px-2 text-[10px] bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border-indigo-500/40">
               <Wrench className="w-3 h-3 mr-1" />
-              {t('status.auto_setup', 'Auto-Setup')} OBS
+              {isInstallingObs ? "Instalando..." : "Instalar OBS"}
             </Button>
           )}
         </div>

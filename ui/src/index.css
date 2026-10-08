@@ -74,8 +74,7 @@ body {
   background: rgba(56, 189, 248, 0.5);
 }
 body.high-contrast {
-  filter: contrast(1.5) saturate(1.2);
-  font-weight: 500;
+  filter: contrast(1.3);
 }
 body.high-contrast * {
   border-color: rgba(255, 255, 255, 0.3) !important;
