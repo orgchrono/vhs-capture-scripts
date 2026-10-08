@@ -23,7 +23,7 @@ class ColoredFormatter(logging.Formatter):
         return log_message
 
 class MemoryLogHandler(logging.Handler):
-    """Armazena logs em memÃ³ria para serem consumidos pela interface web do React."""
+    """Armazena logs em memoria para serem consumidos pela interface web do React."""
     def __init__(self, capacity=1000):
         super().__init__()
         self.capacity = capacity
@@ -44,7 +44,7 @@ def get_logger(name):
     if not logger.handlers:
         logger.setLevel(logging.DEBUG)
         
-        # Handler em MemÃ³ria para a UI (Sempre ativo)
+        # Handler em Memoria para a UI (Sempre ativo)
         mem_handler = MemoryLogHandler()
         logger.addHandler(mem_handler)
 
@@ -57,13 +57,25 @@ def get_logger(name):
         except Exception:
             pass
 
-        # Console Handler (Protegido contra Windowed Mode)
-        if sys.stdout is not None:
-            ch = logging.StreamHandler(sys.stdout)
-            ch.setLevel(logging.INFO)
-            use_color = hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()
-            ch.setFormatter(ColoredFormatter(use_color=use_color))
-            logger.addHandler(ch)
+        # Console Handler (Protegido de forma robusta contra Wrappers Nulos no Windowed Mode)
+        try:
+            if sys.stdout:
+                ch = logging.StreamHandler(sys.stdout)
+                ch.setLevel(logging.INFO)
+                
+                # Wrappers (ex: colorama) no pyinstaller windowed env podem ter o metodo isatty
+                # mas lancam erro ao delegar para a stream base que eh None.
+                use_color = False
+                try:
+                    if hasattr(sys.stdout, 'isatty'):
+                        use_color = sys.stdout.isatty()
+                except Exception:
+                    use_color = False
+                    
+                ch.setFormatter(ColoredFormatter(use_color=use_color))
+                logger.addHandler(ch)
+        except Exception:
+            pass
 
     return logger
 
