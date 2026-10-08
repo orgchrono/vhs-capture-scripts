@@ -117,13 +117,7 @@ async def perform_action(request: Request):
         if pm.is_running():
             return {"status": "error", "message": "Aguarde o processo atual terminar."}
             
-        bin_dir = os.path.abspath(os.path.join(REPO_ROOT, "restoration", "bin"))
-        if sys.platform == "win32":
-            script = os.path.join(bin_dir, "setup_vapoursynth.ps1")
-            cmd = ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script]
-        else:
-            script = os.path.join(bin_dir, "setup_vapoursynth.sh")
-            cmd = ["bash", script]
+        cmd = [sys.executable, "-m", "vhs_studio.cli.setup_qtgmc"]
             
         success, msg = pm.start_process(cmd)
         if success:

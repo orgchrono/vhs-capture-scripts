@@ -22,7 +22,7 @@ def run_desktop():
 
     log.info(f"[DESKTOP] Iniciando janela nativa Desktop Pro em http://127.0.0.1:{port}")
     window = webview.create_window(
-        title="VHS Studio - Padrão Ouro Desktop",
+        title="VHS Studio",
         url=f"http://127.0.0.1:{port}",
         width=1280,
         height=860,

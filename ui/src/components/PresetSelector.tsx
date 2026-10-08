@@ -11,7 +11,7 @@ export const PresetSelector: React.FC = () => {
   const presets: { id: RestorationPreset; name: string; desc: string; icon: any; badge?: string }[] = [
     {
       id: 'gold',
-      name: 'Padrão Ouro Broadcast',
+      name: 'Padrão Broadcast',
       desc: 'DMR-EH55 Passthrough, QTGMC duplo 60p, áudio bit-perfect intacto.',
       icon: Award,
       badge: 'Recomendado',

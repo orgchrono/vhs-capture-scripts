@@ -98,7 +98,7 @@ const StudioMain: React.FC = () => {
     addLog('[QTGMC] Disparando instalador automatizado do VapourSynth + QTGMC...')
     try {
       await studioApi.installQtgmc()
-      addLog('[QTGMC] Instalador iniciado em segundo plano. Acompanhe a instalação no terminal.')
+      addLog('[QTGMC] Instalador iniciado em segundo plano. Acompanhe a instalação no Console Integrado abaixo.')
     } catch (e) {
       addLog(`[QTGMC ERRO] Falha ao iniciar instalador: ${e}`)
     } finally {
@@ -140,7 +140,7 @@ const StudioMain: React.FC = () => {
             ) : (
               <>
                 <Play className="w-5 h-5 fill-current" />
-                <span>Iniciar Restauração Direta (Padrão Ouro)</span>
+                <span>Iniciar Restauração Direta</span>
               </>
             )}
           </button>
