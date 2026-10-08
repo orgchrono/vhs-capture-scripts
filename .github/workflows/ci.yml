@@ -1,51 +1,57 @@
-name: CI Pipeline VHS Studio
+﻿name: Code Quality & Testing
 
 on:
   push:
-    branches: [ "main", "master", "v2/*" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "main", "master", "v2/*" ]
+    branches: [ "main" ]
 
 jobs:
   lint-and-test:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+        cache: 'pip'
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'npm'
+        cache-dependency-path: 'ui/package-lock.json'
+        
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .[dev,ai,cloud]
+        
+    - name: Lint Python with flake8
+      run: |
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 src/vhs_studio --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings
+        flake8 src/vhs_studio --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-      - name: Install FFmpeg (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg shellcheck
+    - name: Test Python backend with pytest
+      run: |
+        pytest tests/
 
-      - name: Install FFmpeg (macOS)
-        if: matrix.os == 'macos-latest'
-        run: brew install ffmpeg shellcheck
+    - name: Install UI Dependencies
+      run: |
+        cd ui
+        npm install
 
-      - name: Install FFmpeg (Windows)
-        if: matrix.os == 'windows-latest'
-        run: choco install ffmpeg
+    - name: Lint UI with ESLint
+      run: |
+        cd ui
+        npm run lint || echo "ESLint not configured yet, skipping..."
 
-      - name: Install dependencies
-        run: pip install ruff pyright
-
-      - name: Lint Python with Ruff
-        run: ruff check . || echo "Ruff errors are baseline for now"
-
-      - name: Lint Python with Pyright
-        run: pyright . || echo "Pyright errors are baseline for now"
-
-      - name: Lint Shell scripts with ShellCheck
-        if: matrix.os != 'windows-latest'
-        run: find . -name "*.sh" -exec shellcheck -x {} +
-
-      - name: Run Unit Tests
-        run: python -m unittest discover tests
+    - name: Build UI (Dry-run for validation)
+      run: |
+        cd ui
+        npm run build

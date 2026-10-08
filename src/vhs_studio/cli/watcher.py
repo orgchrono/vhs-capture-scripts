@@ -13,6 +13,7 @@ import json
 import base64
 import os
 import time
+from vhs_studio.core.logger import log
 import math
 import sys
 import subprocess
@@ -105,20 +106,20 @@ def analyze_visual_frame(img_b64, prev_pixels=None):
 
 def run_watcher():
     os.system("title VHS Studio - Monitor Inteligente de Gravacao")
-    print("=" * 78)
-    print("       📼 VHS STUDIO - SERVIÇO DE CAPTURA INTELIGENTE (ÁUDIO + VÍDEO) 📼")
-    print("=" * 78)
-    print(f"Limiar de Áudio    : {THRESHOLD_DB:.1f} dB")
-    print(f"Gatilho de Início  : IMEDIATO (< {START_CONFIRM_SEC*1000:.0f}ms de áudio ou vídeo ativo)")
-    print(f"Gatilho de Parada  : {STOP_BLANK_CONFIRM_SEC:.1f}s (Silêncio + Tela de Parada Azul/Preta)")
-    print(f"Proteção de Cena   : Cenas silenciosas com vídeo ativo mantêm gravação ativa!")
-    print(f"Análise Visual     : {'Ativa (Pillow 16x12)' if HAS_PIL else 'Básica (Apenas Áudio)'}")
-    print("-" * 78)
+    log.info("==============================================================================")
+    log.info("       📼 VHS STUDIO - SERVIÇO DE CAPTURA INTELIGENTE (ÁUDIO + VÍDEO) 📼")
+    log.info("==============================================================================")
+    log.info(f"Limiar de Áudio    : {THRESHOLD_DB:.1f} dB")
+    log.info(f"Gatilho de Início  : IMEDIATO (< {START_CONFIRM_SEC*1000:.0f}ms de áudio ou vídeo ativo)")
+    log.info(f"Gatilho de Parada  : {STOP_BLANK_CONFIRM_SEC:.1f}s (Silêncio + Tela de Parada Azul/Preta)")
+    log.info(f"Proteção de Cena   : Cenas silenciosas com vídeo ativo mantêm gravação ativa!")
+    log.info(f"Análise Visual     : {'Ativa (Pillow 16x12)' if HAS_PIL else 'Básica (Apenas Áudio)'}")
+    log.info("------------------------------------------------------------------------------")
 
     while True:
         import websocket
         ws = websocket.WebSocket()
-        print('\n[Conexão] Aguardando OBS Studio iniciar...')
+        log.info('\n[Conexão] Aguardando OBS Studio iniciar...')
         retries = 0
         while True:
             try:
@@ -127,11 +128,11 @@ def run_watcher():
             except Exception:
                 retries += 1
                 if retries > 10 and not is_obs_running():
-                    print("[VHS Studio] OBS Studio não está em execução. Encerrando monitor.")
+                    log.info("[VHS Studio] OBS Studio não está em execução. Encerrando monitor.")
                     return
                 time.sleep(1.5)
 
-        print("[Conexão] OBS Studio conectado via WebSocket nativo!")
+        log.info("[Conexão] OBS Studio conectado via WebSocket nativo!")
 
         try:
             # 1. Recebe Hello (OpCode 0)
@@ -153,7 +154,7 @@ def run_watcher():
 
             # 3. Recebe Identified (OpCode 2)
             ws.recv()
-            print("[Pronto] Monitoramento inteligente ativo de áudio e vídeo.")
+            log.info("[Pronto] Monitoramento inteligente ativo de áudio e vídeo.")
 
             is_recording = False
             signal_start_time = None
@@ -198,9 +199,9 @@ def run_watcher():
                         is_recording = event_data.get("outputActive", False)
                         state_str = event_data.get("outputState", "")
                         if is_recording:
-                            print(f"\n[OBS] 🔴 GRAVAÇÃO EM ANDAMENTO ({state_str})")
+                            log.info(f"\n[OBS] 🔴 GRAVAÇÃO EM ANDAMENTO ({state_str})")
                         else:
-                            print(f"\n[OBS] ⏹ GRAVAÇÃO FINALIZADA ({state_str})")
+                            log.info(f"\n[OBS] ⏹ GRAVAÇÃO FINALIZADA ({state_str})")
                             signal_start_time = None
                             blank_silence_start_time = None
                             quiet_scene_start_time = None
@@ -215,7 +216,7 @@ def run_watcher():
                                 name = inp.get("inputName", "")
                                 if any(k in name.lower() for k in ["blackmagic", "intensity", "decklink", "captura", "video"]):
                                     target_input_name = name
-                                    print(f"\n[Fonte] Vinculado com sucesso à entrada: '{target_input_name}'")
+                                    log.info(f"\n[Fonte] Vinculado com sucesso à entrada: '{target_input_name}'")
                                     break
                             if not target_input_name and inputs:
                                 target_input_name = inputs[0].get("inputName", "")
@@ -276,7 +277,7 @@ def run_watcher():
                         if now - last_feedback_time > 3.0:
                             last_feedback_time = now
                             status_label = "🔴 GRAVANDO" if is_recording else "⏹ ESPERANDO PLAY"
-                            print(f"[Status] {status_label} | Áudio: {current_db:5.1f} dB | Vídeo: {visual_label}        ", end="\r")
+                            pass
 
                         # =========================================================
                         # 1. LÓGICA DE AUTO-START INTELIGENTE (< 100ms)
@@ -290,8 +291,8 @@ def run_watcher():
                                     signal_start_time = now
                                 elif (now - signal_start_time >= START_CONFIRM_SEC):
                                     cause = "Áudio detectado" if has_audio else "Vídeo ativo detectado"
-                                    print(f"\n[Auto-Start] ▶ SINAL DETECTADO ({cause})!")
-                                    print(f"[Auto-Start] Disparando gravação no OBS imediatamente...")
+                                    log.info(f"\n[Auto-Start] ▶ SINAL DETECTADO ({cause})!")
+                                    log.info(f"[Auto-Start] Disparando gravação no OBS imediatamente...")
                                     ws.send(json.dumps({
                                         "op": 6,
                                         "d": {
@@ -324,8 +325,8 @@ def run_watcher():
                                         blank_silence_start_time = now
                                     elif now - blank_silence_start_time >= STOP_BLANK_CONFIRM_SEC:
                                         stop_reason = f"Silêncio + {visual_label}" if HAS_PIL else "Silêncio contínuo"
-                                        print(f"\n[Auto-Stop] ⏹ FIM DE FITA / STOP DETECTADO ({stop_reason})!")
-                                        print("[Auto-Stop] Encerrando gravação no OBS...")
+                                        log.info(f"\n[Auto-Stop] ⏹ FIM DE FITA / STOP DETECTADO ({stop_reason})!")
+                                        log.info("[Auto-Stop] Encerrando gravação no OBS...")
                                         ws.send(json.dumps({
                                             "op": 6,
                                             "d": {
@@ -343,7 +344,7 @@ def run_watcher():
                                         quiet_scene_start_time = now
                                     elif now - quiet_scene_start_time >= STOP_QUIET_SCENE_SEC:
                                         # Apenas corta se ficar em silêncio absoluto por mais de 20s seguidos
-                                        print(f"\n[Auto-Stop] ⏹ Silêncio prolongado ({STOP_QUIET_SCENE_SEC}s). Encerrando gravação...")
+                                        log.info(f"\n[Auto-Stop] ⏹ Silêncio prolongado ({STOP_QUIET_SCENE_SEC}s). Encerrando gravação...")
                                         ws.send(json.dumps({
                                             "op": 6,
                                             "d": {
@@ -355,13 +356,13 @@ def run_watcher():
                                         is_recording = False
 
         except Exception as e:
-            print(f"\n[Aviso] Conexão com OBS interrompida ({e}).")
+            log.info(f"\n[Aviso] Conexão com OBS interrompida ({e}).")
         finally:
             ws.close()
 
         time.sleep(1.0)
         if not is_obs_running():
-            print("[VHS Studio] OBS Studio foi finalizado. Encerrando monitor de gravação.")
+            log.info("[VHS Studio] OBS Studio foi finalizado. Encerrando monitor de gravação.")
             return
         time.sleep(1.5)
 
@@ -369,4 +370,4 @@ if __name__ == "__main__":
     try:
         run_watcher()
     except KeyboardInterrupt:
-        print("\nEncerrando monitoramento.")
+        log.info("\nEncerrando monitoramento.")

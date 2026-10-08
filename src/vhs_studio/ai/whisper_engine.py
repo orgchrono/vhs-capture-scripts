@@ -33,7 +33,7 @@ def transcribe_and_generate_vtt(video_path: str, model_size: str = "tiny") -> st
     temp_wav = os.path.join(base_dir, f"{base_name}_temp.wav")
     vtt_path = os.path.join(base_dir, f"{base_name}.vtt")
 
-    print(f"[WHISPER] Extraindo audio temporario de {video_path}...")
+    log.info(f"[WHISPER] Extraindo audio temporario de {video_path}...")
     if not extract_audio(video_path, temp_wav):
         raise RuntimeError("Falha ao extrair audio via FFmpeg")
 
@@ -48,13 +48,13 @@ def transcribe_and_generate_vtt(video_path: str, model_size: str = "tiny") -> st
     except ImportError:
         pass
         
-    print(f"[WHISPER] Carregando modelo {model_size} (Device: {device}, Compute: {compute_type})...")
+    log.info(f"[WHISPER] Carregando modelo {model_size} (Device: {device}, Compute: {compute_type})...")
     model = WhisperModel(model_size, device=device, compute_type=compute_type)
 
-    print(f"[WHISPER] Transcrevendo {temp_wav}...")
+    log.info(f"[WHISPER] Transcrevendo {temp_wav}...")
     segments, info = model.transcribe(temp_wav, beam_size=5)
 
-    print(f"[WHISPER] Idioma detectado: {info.language} (probabilidade {info.language_probability:.2f})")
+    log.info(f"[WHISPER] Idioma detectado: {info.language} (probabilidade {info.language_probability:.2f})")
 
     with open(vtt_path, "w", encoding="utf-8") as f:
         f.write("WEBVTT\n\n")
@@ -68,5 +68,5 @@ def transcribe_and_generate_vtt(video_path: str, model_size: str = "tiny") -> st
     if os.path.exists(temp_wav):
         os.remove(temp_wav)
 
-    print(f"[WHISPER] Legenda salva em {vtt_path}")
+    log.info(f"[WHISPER] Legenda salva em {vtt_path}")
     return vtt_path
