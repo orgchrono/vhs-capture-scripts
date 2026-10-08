@@ -1,3 +1,4 @@
+import { Button } from "./ui/button";
 import React from 'react'
 import { Award, Zap, ShieldCheck, Wand2 } from 'lucide-react'
 import { useStudioStore } from '../store/useStudioStore'
@@ -42,7 +43,7 @@ export const PresetSelector: React.FC = () => {
         const isActive = preset === p.id
 
         return (
-          <button
+          <Button variant="outline"
             key={p.id}
             onClick={() => applyPreset(p.id)}
             className={cn(
@@ -71,7 +72,7 @@ export const PresetSelector: React.FC = () => {
               </span>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">{p.desc}</p>
-          </button>
+          </Button>
         )
       })}
     </div>

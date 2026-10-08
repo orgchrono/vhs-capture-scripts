@@ -1,3 +1,4 @@
+import { Button } from "./ui/button";
 import React from 'react'
 import { Radio, Square, HelpCircle } from 'lucide-react'
 import { useStudioStore } from '../store/useStudioStore'
@@ -57,21 +58,21 @@ export const CaptureBar: React.FC = () => {
 
       <div className="flex items-center gap-2">
         {!isCapturing ? (
-          <button
+          <Button
             onClick={handleStartCapture}
             className="bg-red-600/90 hover:bg-red-500 text-white font-semibold text-xs px-3.5 py-2 rounded-lg shadow-md shadow-red-600/20 transition flex items-center gap-1.5 cursor-pointer"
           >
             <Radio className="w-3.5 h-3.5 animate-pulse" />
             Iniciar Gravação OBS
-          </button>
+          </Button>
         ) : (
-          <button
+          <Button
             onClick={handleStopCapture}
             className="bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs px-3.5 py-2 rounded-lg shadow-md shadow-amber-600/20 transition flex items-center gap-1.5 cursor-pointer"
           >
             <Square className="w-3.5 h-3.5" />
             Parar & Processar Fita
-          </button>
+          </Button>
         )}
 
         <div className="relative group">

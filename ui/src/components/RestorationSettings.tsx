@@ -3,6 +3,7 @@ import { Sliders, Search, Video, Music, Settings2, Image as ImageIcon } from 'lu
 import { useStudioStore } from '../store/useStudioStore'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 import { Switch } from './ui/switch'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 import { Input } from './ui/input'
 
 export const RestorationSettings: React.FC = () => {
@@ -59,12 +60,16 @@ export const RestorationSettings: React.FC = () => {
             {matches(['desentrelaçamento', 'deinterlacer', 'bwdif', 'qtgmc', 'video']) && (
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-slate-400 block">Desentrelaçamento:</label>
-                <select value={deinterlacer} onChange={(e) => setDeinterlacer(e.target.value as any)}
-                  className="w-full bg-slate-950 border border-slate-800 text-white text-sm rounded-lg p-2.5 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none">
-                  <option value="bwdif">BWDIF (Rápido / CPU Leve)</option>
-                  <option value="qtgmc_fast">QTGMC Fast (VapourSynth / GPU)</option>
-                  <option value="qtgmc_slow">QTGMC Slow (VapourSynth / Max Quality)</option>
-                </select>
+                <Select value={deinterlacer} onValueChange={(val) => setDeinterlacer(val as any)}>
+  <SelectTrigger className="w-full bg-slate-950 border-slate-800 text-white">
+    <SelectValue placeholder="Selecione..." />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="bwdif">BWDIF (Rápido / CPU Leve)</SelectItem>
+<SelectItem value="qtgmc_fast">QTGMC Fast (VapourSynth / GPU)</SelectItem>
+<SelectItem value="qtgmc_slow">QTGMC Slow (VapourSynth / Max Quality)</SelectItem>
+  </SelectContent>
+</Select>
                 <p className="text-[10px] text-slate-500">O QTGMC é o padrão ouro, mas requer VapourSynth instalado.</p>
               </div>
             )}
@@ -72,34 +77,46 @@ export const RestorationSettings: React.FC = () => {
             {matches(['modo', 'fps', 'video', 'interlaced']) && (
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-slate-400 block">Modo de FPS:</label>
-                <select value={mode} onChange={(e) => setMode(e.target.value as any)}
-                  className="w-full bg-slate-950 border border-slate-800 text-white text-sm rounded-lg p-2.5 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none">
-                  <option value="double">60fps / 50fps (Smooth / Padrão)</option>
-                  <option value="single">30fps / 25fps (Original Film)</option>
-                </select>
+                <Select value={mode} onValueChange={(val) => setMode(val as any)}>
+  <SelectTrigger className="w-full bg-slate-950 border-slate-800 text-white">
+    <SelectValue placeholder="Selecione..." />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="double">60fps / 50fps (Smooth / Padrão)</SelectItem>
+<SelectItem value="single">30fps / 25fps (Original Film)</SelectItem>
+  </SelectContent>
+</Select>
               </div>
             )}
             
             {matches(['resolução', 'upscale', '1080p', 'video']) && (
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-slate-400 block">Resolução / Upscale:</label>
-                <select value={resolution} onChange={(e) => setResolution(e.target.value as any)}
-                  className="w-full bg-slate-950 border border-slate-800 text-white text-sm rounded-lg p-2.5 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none">
-                  <option value="original">Original (480p / 576p)</option>
-                  <option value="1080p">Upscale Lanczos (1440x1080)</option>
-                </select>
+                <Select value={resolution} onValueChange={(val) => setResolution(val as any)}>
+  <SelectTrigger className="w-full bg-slate-950 border-slate-800 text-white">
+    <SelectValue placeholder="Selecione..." />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="original">Original (480p / 576p)</SelectItem>
+<SelectItem value="1080p">Upscale Lanczos (1440x1080)</SelectItem>
+  </SelectContent>
+</Select>
               </div>
             )}
 
             {matches(['codec', 'h264', 'h265', 'hevc', 'video']) && (
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-slate-400 block">Codec de Saída:</label>
-                <select value={outputCodec} onChange={(e) => setOutputCodec(e.target.value as any)}
-                  className="w-full bg-slate-950 border border-slate-800 text-white text-sm rounded-lg p-2.5 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none">
-                  <option value="h264">H.264 (Compatibilidade Máxima)</option>
-                  <option value="hevc">H.265 / HEVC (Tamanho Menor, Alta Qualidade)</option>
-                  <option value="prores">ProRes (Arquivo Master GIGANTE)</option>
-                </select>
+                <Select value={outputCodec} onValueChange={(val) => setOutputCodec(val as any)}>
+  <SelectTrigger className="w-full bg-slate-950 border-slate-800 text-white">
+    <SelectValue placeholder="Selecione..." />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="h264">H.264 (Compatibilidade Máxima)</SelectItem>
+<SelectItem value="hevc">H.265 / HEVC (Tamanho Menor, Alta Qualidade)</SelectItem>
+<SelectItem value="prores">ProRes (Arquivo Master GIGANTE)</SelectItem>
+  </SelectContent>
+</Select>
               </div>
             )}
           </div>
@@ -110,13 +127,17 @@ export const RestorationSettings: React.FC = () => {
             {matches(['áudio', 'audio', 'stereo', 'mono']) && (
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-slate-400 block">Modo de Áudio:</label>
-                <select value={audioMode} onChange={(e) => setAudioMode(e.target.value as any)}
-                  className="w-full bg-slate-950 border border-slate-800 text-white text-sm rounded-lg p-2.5 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none">
-                  <option value="stereo">Estéreo (Original do Capturador)</option>
-                  <option value="mono">Forçar Mono (Fitas Antigas Sem Hi-Fi)</option>
-                  <option value="left_only">Canal Esquerdo Apenas (Para trilha suja na direita)</option>
-                  <option value="right_only">Canal Direito Apenas (Para trilha suja na esquerda)</option>
-                </select>
+                <Select value={audioMode} onValueChange={(val) => setAudioMode(val as any)}>
+  <SelectTrigger className="w-full bg-slate-950 border-slate-800 text-white">
+    <SelectValue placeholder="Selecione..." />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="stereo">Estéreo (Original do Capturador)</SelectItem>
+<SelectItem value="mono">Forçar Mono (Fitas Antigas Sem Hi-Fi)</SelectItem>
+<SelectItem value="left_only">Canal Esquerdo Apenas (Para trilha suja na direita)</SelectItem>
+<SelectItem value="right_only">Canal Direito Apenas (Para trilha suja na esquerda)</SelectItem>
+  </SelectContent>
+</Select>
               </div>
             )}
 

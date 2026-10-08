@@ -1,5 +1,6 @@
 import React from 'react'
 import { Cpu, Film, Sparkles, Wrench, Video } from 'lucide-react'
+import { Button } from './ui/button'
 import type { SystemStatus } from '../api/studioApi'
 
 interface HeaderProps {
@@ -49,15 +50,15 @@ export const Header: React.FC<HeaderProps> = ({ status, onInstallQtgmc, isInstal
           ) : (
             <div className="flex items-center gap-1.5">
               <span className="text-amber-400">FFmpeg Fallback</span>
-              <button
+              <Button variant="outline" size="sm"
                 onClick={onInstallQtgmc}
                 disabled={isInstallingQtgmc}
-                className="bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/40 px-2 py-0.5 rounded text-[10px] font-semibold transition cursor-pointer flex items-center gap-1"
+                className="h-6 px-2 text-[10px] font-semibold bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border-sky-500/40"
                 title="Executa instalador automático do VapourSynth + QTGMC"
               >
                 <Wrench className="w-3 h-3" />
                 {isInstallingQtgmc ? 'Instalando...' : 'Auto-Setup'}
-              </button>
+              </Button>
             </div>
           )}
         </div>
