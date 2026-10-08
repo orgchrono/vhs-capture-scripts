@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
     "tomli; python_version < '3.11'",
-    "websocket-client>=1.0.0", "fastapi", "uvicorn", "pywebview",
+    "websocket-client>=1.0.0", "fastapi", "uvicorn", "pywebview", "requests"
 ]
 
 [project.scripts]
@@ -23,4 +23,4 @@ package-dir = {"" = "src"}
 [project.optional-dependencies]
 ai = ["faster-whisper", "scenedetect[opencv]"]
 cloud = ["google-api-python-client", "google-auth-httplib2", "google-auth-oauthlib", "keyring", "supabase", "dropbox", "O365", "boto3"]
-dev = ["pytest", "flake8", "black", "isort"]
+dev = ["pytest", "flake8", "black", "isort", "mypy", "types-requests"]

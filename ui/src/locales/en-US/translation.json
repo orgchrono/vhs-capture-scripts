@@ -40,5 +40,9 @@
   "S3 Endpoint URL (Opcional)": "S3 Endpoint URL (Optional)",
   "S3 Access Key ID": "Access Key ID",
   "S3 Secret Access Key": "Secret Access Key",
-  "S3 Region": "Region (e.g., us-east-1)"
+  "S3 Region": "Region (e.g., us-east-1)",
+  "Google Client ID": "Google Client ID",
+  "Google Client Secret": "Google Client Secret",
+  "Dropbox App Key": "Dropbox App Key",
+  "Dropbox App Secret": "Dropbox App Secret"
 }

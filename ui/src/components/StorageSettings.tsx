@@ -148,10 +148,18 @@ export function StorageSettings() {
         {provider === "gdrive" && (
           <div>
             <p className="text-sm text-slate-600 mb-2">{t("A integração com Google Drive usa as credenciais armazenadas no Windows Vault.")}</p>
+            <div>
+              <label className="block text-sm font-medium mb-1">{t("Google Client ID")}</label>
+              <input type="text" value={config.GDRIVE_CLIENT_ID || ""} onChange={e => setConfig({...config, GDRIVE_CLIENT_ID: e.target.value})} className="w-full p-2 border rounded-lg dark:bg-slate-900 dark:border-slate-700" />
+            </div>
+            <div className="mt-2">
+              <label className="block text-sm font-medium mb-1">{t("Google Client Secret")}</label>
+              <input type="password" value={config.GDRIVE_CLIENT_SECRET || ""} onChange={e => setConfig({...config, GDRIVE_CLIENT_SECRET: e.target.value})} className="w-full p-2 border rounded-lg dark:bg-slate-900 dark:border-slate-700" />
+            </div>
             {status.ready ? (
-              <p className="text-sm text-emerald-600 font-medium">{t("Autenticado e Pronto!")}</p>
+              <p className="text-sm text-emerald-600 font-medium mt-4">{t("Autenticado e Pronto!")}</p>
             ) : (
-              <div className="flex gap-2">
+              <div className="flex gap-2 mt-4">
                 <Button onClick={() => initiateOAuth("gdrive")} variant="outline" className="w-full text-blue-600 border-blue-200 hover:bg-blue-50">
                   Faça Login com o Google
                 </Button>
@@ -162,10 +170,19 @@ export function StorageSettings() {
 
         {provider === "dropbox" && (
           <div>
-            <label className="block text-sm font-medium mb-1">{t("Dropbox Access Token")}</label>
-            <input type="password" value={config.DROPBOX_ACCESS_TOKEN || ""} onChange={e => setConfig({...config, DROPBOX_ACCESS_TOKEN: e.target.value})} className="w-full p-2 border rounded-lg dark:bg-slate-900 dark:border-slate-700" />
+            <div>
+              <label className="block text-sm font-medium mb-1">{t("Dropbox App Key")}</label>
+              <input type="text" value={config.DROPBOX_APP_KEY || ""} onChange={e => setConfig({...config, DROPBOX_APP_KEY: e.target.value})} className="w-full p-2 border rounded-lg dark:bg-slate-900 dark:border-slate-700" />
+            </div>
+            <div className="mt-2">
+              <label className="block text-sm font-medium mb-1">{t("Dropbox App Secret")}</label>
+              <input type="password" value={config.DROPBOX_APP_SECRET || ""} onChange={e => setConfig({...config, DROPBOX_APP_SECRET: e.target.value})} className="w-full p-2 border rounded-lg dark:bg-slate-900 dark:border-slate-700" />
+            </div>
+            <div className="mt-2">
+              <label className="block text-sm font-medium mb-1">{t("Dropbox Access Token")} (Manual)</label>
+              <input type="password" value={config.DROPBOX_ACCESS_TOKEN || ""} onChange={e => setConfig({...config, DROPBOX_ACCESS_TOKEN: e.target.value})} className="w-full p-2 border rounded-lg dark:bg-slate-900 dark:border-slate-700" placeholder="Ou deixe em branco e faça login pelo navegador..." />
+            </div>
             <div className="mt-4">
-               <p className="text-xs text-slate-500 mb-2">Ou conecte automaticamente:</p>
                <Button onClick={() => initiateOAuth("dropbox")} variant="outline" className="w-full text-sky-600 border-sky-200 hover:bg-sky-50">
                   Login via Navegador
                </Button>
