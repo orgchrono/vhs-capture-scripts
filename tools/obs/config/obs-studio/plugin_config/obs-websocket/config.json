@@ -1,0 +1,7 @@
+{
+    "DebugEnabled": false,
+    "ServerPort": 4455,
+    "ServerEnabled": true,
+    "AuthRequired": false,
+    "AuthSecret": ""
+}

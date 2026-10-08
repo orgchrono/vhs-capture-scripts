@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Cpu, Film, Sparkles, Wrench, Globe, Eye, Video } from 'lucide-react'
+import { Cpu, Film, Sparkles, Wrench, Globe, Eye, Video, Type } from 'lucide-react'
 import { Button } from './ui/button'
 import type { SystemStatus } from '../types'
 import { useTranslation } from 'react-i18next'
@@ -12,7 +12,8 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ status, onInstallQtgmc, isInstallingQtgmc }) => {
   const { t, i18n } = useTranslation();
-  const [highContrast, setHighContrast] = useState(false);
+  const [highContrast, setHighContrast] = useState(false)
+  const [largeText, setLargeText] = useState(false);
 
   useEffect(() => {
     if (highContrast) {
@@ -52,6 +53,17 @@ export const Header: React.FC<HeaderProps> = ({ status, onInstallQtgmc, isInstal
           </Button>
           <Button variant="ghost" size="icon" className={`w-8 h-8 rounded-md hover:bg-slate-800 ${highContrast ? 'text-amber-400' : 'text-slate-300'}`} onClick={() => setHighContrast(!highContrast)} title="Acessibilidade: Alto Contraste">
             <Eye className="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className={`w-8 h-8 rounded-md hover:bg-slate-800 ${largeText ? 'text-indigo-400' : 'text-slate-300'}`} onClick={() => {
+            const next = !largeText;
+            setLargeText(next);
+            if (next) {
+              document.documentElement.classList.add('large-text');
+            } else {
+              document.documentElement.classList.remove('large-text');
+            }
+          }} title="Acessibilidade: Aumentar Texto">
+            <Type className="w-4 h-4" />
           </Button>
         </div>
 
