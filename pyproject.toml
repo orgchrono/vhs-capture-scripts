@@ -17,10 +17,10 @@ dependencies = [
 vhs-studio = "vhs_studio.cli.main:main"
 
 [tool.setuptools]
-packages = ["vhs_studio", "vhs_studio.core", "vhs_studio.video", "vhs_studio.config", "vhs_studio.cli"]
+packages = ["vhs_studio", "vhs_studio.core", "vhs_studio.video", "vhs_studio.config", "vhs_studio.cli", "vhs_studio.storage"]
 package-dir = {"" = "src"}
 
 [project.optional-dependencies]
 ai = ["faster-whisper", "scenedetect[opencv]"]
-cloud = ["google-api-python-client", "google-auth-httplib2", "google-auth-oauthlib", "keyring"]
+cloud = ["google-api-python-client", "google-auth-httplib2", "google-auth-oauthlib", "keyring", "supabase"]
 dev = ["pytest", "flake8", "black", "isort"]
