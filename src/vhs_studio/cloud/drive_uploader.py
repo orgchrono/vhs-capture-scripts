@@ -1,10 +1,9 @@
-import os
+﻿import os
 from vhs_studio.core.logger import log
 
 def upload_to_drive(file_path):
     """
-    Mock do Upload para o Google Drive via google-api-python-client.
-    Na versão de produção, aqui usaremos o OAuth2 e o MediaFileUpload.
+    Upload real para o Google Drive via OAuth2 e google-api-python-client.
     """
     if not os.path.exists(file_path):
         log.error(f"[NUVEM] Arquivo não encontrado: {file_path}")
@@ -12,16 +11,54 @@ def upload_to_drive(file_path):
 
     log.info(f"[NUVEM] Iniciando upload em background: {os.path.basename(file_path)}")
     try:
-        # Ponto de injeção para o google-api-python-client no futuro
-        # creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-        # service = build('drive', 'v3', credentials=creds)
-        pass
-    except Exception as e:
-        log.warning(f"[NUVEM ERRO] Não foi possível conectar: {e}")
-        return False
+        from google.oauth2.credentials import Credentials
+        from google_auth_oauthlib.flow import InstalledAppFlow
+        from googleapiclient.discovery import build
+        from googleapiclient.http import MediaFileUpload
         
-    log.info(f"[NUVEM] Upload concluído: {os.path.basename(file_path)}")
-    return True
+        SCOPES = ['https://www.googleapis.com/auth/drive.file']
+        creds = None
+        
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+        token_path = os.path.join(project_root, "token.json")
+        creds_path = os.path.join(project_root, "credentials.json")
+        
+        if os.path.exists(token_path):
+            creds = Credentials.from_authorized_user_file(token_path, SCOPES)
+            
+        if not creds or not creds.valid:
+            if not os.path.exists(creds_path):
+                log.warning("[NUVEM ERRO] credentials.json do Google Cloud não encontrado na raiz do projeto. Pulei o upload.")
+                return False
+                
+            log.info("[NUVEM OAUTH2] Aguardando autenticação do usuário no navegador...")
+            flow = InstalledAppFlow.from_client_secrets_file(creds_path, SCOPES)
+            creds = flow.run_local_server(port=0)
+            
+            with open(token_path, 'w') as token:
+                token.write(creds.to_json())
+                
+        service = build('drive', 'v3', credentials=creds)
+        
+        file_metadata = {'name': os.path.basename(file_path)}
+        media = MediaFileUpload(file_path, resumable=True)
+        
+        # Faz o upload com barra de progresso simples no backend
+        request = service.files().create(body=file_metadata, media_body=media, fields='id')
+        response = None
+        while response is None:
+            status, response = request.next_chunk()
+            if status:
+                log.info(f"  -> Uploading... {int(status.progress() * 100)}%")
+                
+        log.info(f"[NUVEM] Upload concluído! File ID: {response.get('id')}")
+        return True
+    except ImportError:
+        log.warning("[NUVEM ERRO] Dependências não instaladas. Execute: pip install google-api-python-client google-auth-oauthlib")
+        return False
+    except Exception as e:
+        log.warning(f"[NUVEM ERRO] Falha durante o upload: {e}")
+        return False
 
 def upload_project_folder(folder_path):
     log.info(f"============================================================")

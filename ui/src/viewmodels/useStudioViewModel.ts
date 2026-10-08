@@ -1,5 +1,6 @@
+import { a11yAudio } from '../lib/a11yAudio';
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { studioApi } from '../api/studioApi'
 import { useStudioStore } from '../store/useStudioStore'
 
@@ -7,6 +8,17 @@ export function useStudioViewModel() {
   const store = useStudioStore()
   const [isInstallingQtgmc, setIsInstallingQtgmc] = useState(false)
   const [isInstallingObs, setIsInstallingObs] = useState(false)
+
+  const prevDrops = useRef(0)
+  useEffect(() => {
+    if (status?.health?.dropped_frames !== undefined) {
+      if (status.health.dropped_frames > prevDrops.current) {
+        a11yAudio.playWarning()
+      }
+      prevDrops.current = status.health.dropped_frames
+    }
+  }, [status?.health?.dropped_frames])
+
 
   // System Status polling
   const { data: status, refetch: refetchStatus, isRefetching } = useQuery({
@@ -26,7 +38,9 @@ export function useStudioViewModel() {
         data.logs.forEach((l) => store.addLog(l))
       }
       if (!data?.active && (store.isRestoring || isInstallingQtgmc || isInstallingObs)) {
+        
         if (store.isRestoring) {
+            a11yAudio.playSuccess();
             store.setIsRestoring(false)
             store.addLog('[RESTAURAÃ‡ÃƒO] Processo de restauraÃ§Ã£o concluÃ­do com sucesso!')
         }
@@ -38,15 +52,18 @@ export function useStudioViewModel() {
   const restoreMutation = useMutation({
     mutationFn: studioApi.startRestoration,
     onSuccess: (data) => {
-      if (data.status === 'started') {
+      if (data.status === 'started' || data.status === 'ok') {
+        a11yAudio.playStageStart();
         store.setIsRestoring(true)
         store.addLog('[RESTAURAÃ‡ÃƒO] Processo streaming iniciado!')
       } else {
+        a11yAudio.playError();
         alert(data.message || 'Erro ao iniciar')
       }
     },
     onError: (err: any) => {
-      alert(`Erro na requisiÃ§Ã£o: ${err.message}`)
+      a11yAudio.playError();
+      alert(`Erro na requisição: ${err.message}`)
     },
   })
 
