@@ -7,6 +7,7 @@ import { PresetSelector } from './components/PresetSelector'
 import { FileSelector } from './components/FileSelector'
 import { CaptureBar } from './components/CaptureBar'
 import { RestorationSettings } from './components/RestorationSettings'
+import { StorageSettings } from './components/StorageSettings'
 import { ConsoleViewer } from './components/ConsoleViewer'
 import { LiveMonitor } from './components/LiveMonitor'
 import { useTranslation } from 'react-i18next'
@@ -91,6 +92,7 @@ const StudioMain: React.FC = () => {
                   <PresetSelector />
                 </div>
                 <RestorationSettings />
+                <StorageSettings />
               </div>
 
             </div>

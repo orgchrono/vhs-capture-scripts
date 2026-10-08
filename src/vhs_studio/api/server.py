@@ -118,6 +118,40 @@ def get_status():
 
 
 
+
+from vhs_studio.config.storage_config import load_storage_config, save_storage_config
+from vhs_studio.storage.manager import StorageManager
+
+@app.get("/api/storage/config")
+def get_storage_config():
+    data = load_storage_config()
+    provider = StorageManager.get_provider(data["provider"])
+    status = provider.get_status() if provider else {"ready": False}
+    return {
+        "provider": data["provider"],
+        "config": data["config"],
+        "status": status,
+        "available_providers": list(StorageManager._providers.keys())
+    }
+
+@app.post("/api/storage/config")
+async def update_storage_config(request: Request):
+    data = await request.json()
+    provider_id = data.get("provider")
+    config = data.get("config", {})
+    
+    provider = StorageManager.get_provider(provider_id)
+    if not provider:
+        return JSONResponse(status_code=400, content={"error": "Provedor invalido"})
+        
+    success = provider.configure(config)
+    if success:
+        save_storage_config(provider_id, config)
+        return {"status": "ok", "message": "Configuracao salva e validada!"}
+    else:
+        return JSONResponse(status_code=400, content={"error": "Falha ao validar configuracao."})
+
+
 @app.post("/api/action")
 async def perform_action(request: Request):
     data = await request.json()
