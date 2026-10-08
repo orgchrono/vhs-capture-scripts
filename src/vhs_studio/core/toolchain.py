@@ -1,4 +1,4 @@
-﻿import sys
+import sys
 import shutil
 import subprocess
 from functools import lru_cache

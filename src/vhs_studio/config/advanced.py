@@ -1,4 +1,4 @@
-﻿import sys
+import sys
 import os
 from vhs_studio.core.paths import ADVANCED_CONFIG_PATH
 

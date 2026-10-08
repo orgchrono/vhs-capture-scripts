@@ -1,4 +1,4 @@
-﻿import json
+import json
 import os
 import keyring
 from vhs_studio.core.logger import log
