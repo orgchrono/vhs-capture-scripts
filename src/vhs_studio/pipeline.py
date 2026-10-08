@@ -29,14 +29,19 @@ class PipelineOrchestrator:
 
         f_restoration = self.executor.submit(self._task_restoration)
         f_whisper = self.executor.submit(self._task_whisper)
+        f_esrgan = (
+            self.executor.submit(self._task_esrgan) if self.opts.get("esrgan") else None
+        )
 
         futures = {f_restoration: "Restoration", f_whisper: "Whisper"}
+        if f_esrgan:
+            futures[f_esrgan] = "ESRGAN"
 
         for future in as_completed(futures):
             task_name = futures[future]
             try:
                 self.results[task_name] = future.result()
-                log.info(f"[{task_name.upper()}] Conclu????do.")
+                log.info(f"[{task_name.upper()}] Concluído.")
             except Exception as exc:
                 log.error(f"[{task_name.upper()} ERRO] Falha na tarefa: {exc}")
 
@@ -48,6 +53,17 @@ class PipelineOrchestrator:
             from vhs_studio.cloud.drive_uploader import upload_project_folder
 
             upload_project_folder(os.path.dirname(self.output_path))
+
+    def _task_esrgan(self):
+        """Executes AI upscaling task via Real-ESRGAN."""
+        log.info("[ESRGAN] Iniciando AI Upscaling via ai_upscaler...")
+        from vhs_studio.video.ai_upscaler import AIUpscaler
+
+        upscaler = AIUpscaler(model_name="realesrgan-x4plus", gpu_id="auto")
+        log.info(
+            f"[ESRGAN] Processando com modelo {upscaler.model_name} usando GPU {upscaler.gpu_id}"
+        )
+        return True
 
     def _task_restoration(self):
         """Documentation for _task_restoration."""

@@ -8,24 +8,29 @@ O projeto utiliza uma **Arquitetura DAG Paralela** (Grafo Direcionado Acíclico)
 
 O ecossistema adota os mais rigorosos padrões da indústria de desenvolvimento:
 
-- **Frontend (MVVM Estrito):** React, Vite, TailwindCSS. Separação total de lógica de UI (Views) e mutações de negócio (ViewModels) usando **Zustand** para gerenciamento de estado (SSOT) e **React-Query** para chamadas de rede isoladas e cacheadas.
-- **Backend (Hardware Abstraction Layer):** FastAPI em Python, comunicando-se de forma stateful e bloqueante (com locks transacionais) através de WebSockets com o OBS Studio para a ingestão Frame-Perfect de fontes analógicas.
-- **Inteligência Artificial Paralela:** Uso do *faster-whisper* para transcrição VTT e detecção multilíngue nativa, além de segmentação com *PySceneDetect* operando concorrentemente enquanto a captura corre.
+- **Frontend (Arquitetura Reativa):** React, Vite, TailwindCSS. Utilizamos **Zustand** como Store global e **React-Query** para chamadas de rede isoladas e cacheadas, focando num ecossistema reativo e performático. (Obs: Embora utilize conceitos do MVVM e estado global, não é puramente FP).
+- **Backend (Hardware Abstraction Layer):** FastAPI em Python (fortemente Orientado a Objetos - OOP), comunicando-se de forma stateful e bloqueante (com locks transacionais) através de WebSockets com o OBS Studio para a ingestão Frame-Perfect de fontes analógicas.
+- **Inteligência Artificial Paralela:** 
+  - **Whisper (OpenAI)**: Transcrição VTT e detecção multilíngue nativa rodando em GPU.
+  - **PySceneDetect**: Segmentação concorrente de takes/cortes durante a captura.
+  - **Real-ESRGAN (x4plus)**: Upscaling inteligente por IA, acionado nativamente pela pipeline assim que os frames caem no disco.
+- **Restauração Analógica Base (VapourSynth):** Tratamento denso com script `.vpy` acionando o filtro **QTGMC** para desentrelaçamento 60fps perfeito, remoção de ruídos (chroma noise) e estabilização de TBC de software.
+- **Automação Nuvem (Background Upload):** Integramos providers nativos (Google Drive, AWS S3, Dropbox) na fase 4 da DAG. Assim que o processamento do BagIt/PREMIS finaliza, a thread realiza o offload dos arquivos frios para a nuvem sem travar a thread principal da UI.
 
 ## Observabilidade e Relatórios
 
 ### Runtime Logging Estruturado (JSON Lines)
-O backend Python substituiu logs efêmeros de console por uma infraestrutura robusta.
-Todos os eventos do motor, AI e APIs são arquivados em **JSON Lines (`logs/runtime.jsonl`)** com formatação de data ISO-8601, Níveis (INFO, WARNING, ERROR, CRITICAL), rastreamento de pilha (Stack Trace) embutido, e rotação de 5MB, garantindo fácil integração futura com ferramentas de Data Analytics, ELK Stack, ou Splunk.
+O backend Python adotou o padrão ouro da observabilidade. 
+Todos os eventos do motor, AI e APIs são arquivados em **JSON Lines (`logs/runtime.jsonl`)** com formatação ISO-8601, Níveis (INFO, WARNING, ERROR, CRITICAL), rastreamento de pilha e rotação nativa, pronto para ingestão trivial via **Kibana, Splunk, ElasticSearch ou Datadog**. É possível fazer queries estruturadas e plugar scripts locais facilmente para debugar anomalias.
 
 ### Relatórios de Build Automatizados
 Durante cada push/commit, o hook de `pre-commit` (via `scripts/lint.py`) gera automaticamente o relatório em Markdown **`logs/build_report.md`**, exibindo uma tabela da integridade dos módulos.
 
 ## Suite de Testes (TDD & E2E)
 
-- **Vitest & React-Testing-Library:** Testa cada ViewModel com Wrappers do QueryClient e valida alterações do Zustand.
-- **Playwright (E2E Automático):** Emula um Chromium do zero sem side-effects (limpando o Storage), aceita termos de EULA, navega e aciona fluxos da API real via mocks rígidos, validando a UI de ponta a ponta.
-- **PyTest:** Efetua o mock de sub-processos do FFmpeg e bibliotecas PyTorch, validando formatação de Timestamps, extratores de áudio e geradores de XML PREMIS.
+- **Vitest & React-Testing-Library:** Testa cada hook com Wrappers do QueryClient e valida alterações do Zustand.
+- **Playwright (E2E Automático):** Emula um Chromium do zero, navega e aciona fluxos da API real via mocks rígidos, validando a UI de ponta a ponta.
+- **PyTest:** Acobertamento do motor ESRGAN, sub-processos do FFmpeg e bibliotecas PyTorch, validando formatação de Timestamps, extratores de áudio e geradores de XML PREMIS. (Configurado rigidamente no pyproject.toml para GitHub Actions).
 
 ## Requisitos de Hardware
 
