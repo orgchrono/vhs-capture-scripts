@@ -15,4 +15,5 @@ if not exist ".venv\Scripts\python.exe" (
 )
 
 .venv\Scripts\python.exe -m vhs_studio %*
+if errorlevel 1 pause
 exit /b %ERRORLEVEL%

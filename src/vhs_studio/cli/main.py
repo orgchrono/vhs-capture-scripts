@@ -21,7 +21,7 @@ def main():
     
     args, unknown = parser.parse_known_args()
 
-    if args.command == "desktop":
+    if args.command == "desktop" or args.command is None:
         run_desktop()
     elif args.command == "watcher":
         import vhs_studio.cli.watcher
