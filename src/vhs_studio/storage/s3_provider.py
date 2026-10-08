@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict
 from .base import StorageProvider
 from vhs_studio.core.logger import log
 
@@ -19,7 +19,7 @@ class S3Provider(StorageProvider):
     def get_id(self) -> str:
         return "s3_generic"
 
-    def configure(self, config: Dict[str, Any]) -> bool:
+    def configure(self, config: Dict[str, object]) -> bool:
         if not HAS_BOTO3:
             log.error("[S3] Biblioteca 'boto3' não instalada.")
             return False
@@ -75,5 +75,5 @@ class S3Provider(StorageProvider):
             log.error(f"[S3] Erro no upload: {e}")
             return False
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> Dict[str, object]:
         return {"ready": self.s3_client is not None, "bucket": self.bucket_name}

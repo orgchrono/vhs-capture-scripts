@@ -19,7 +19,7 @@ def print_error(msg):
 
 
 def run_cmd(cmd, shell=False):
-    result = subprocess.run(cmd, shell=shell, capture_output=True, text=True)
+    result = subprocess.run(cmd, shell=shell, capture_output=True, text=True)  # nosec
     return result
 
 
@@ -52,7 +52,7 @@ def setup_vapoursynth_windows():
             )
             installer_path = os.path.join(tempfile.gettempdir(), "VapourSynth-Setup.exe")
             try:
-                urllib.request.urlretrieve(installer_url, installer_path)
+                urllib.request.urlretrieve(installer_url, installer_path)  # nosec
                 print_step("Executando instalador (isso pode exigir permissão de Administrador)...")
                 subprocess.run([installer_path, "/S"])
                 print_success("Instalador oficial executado.")

@@ -26,7 +26,10 @@ app.include_router(oauth_router, prefix="/api/oauth")
 # Setup CORS to only allow localhost
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://127.0.0.1:8088", "http://localhost:8088"],
+    allow_origins=[
+        f"http://{DEFAULT_API_HOST}:{DEFAULT_API_PORT}",
+        f"http://localhost:{DEFAULT_API_PORT}",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -36,6 +39,12 @@ import sys
 
 
 from vhs_studio.core.paths import RAW_MEDIA_DIR, UI_DIST_DIR as DIST_DIR
+from vhs_studio.core.constants import (
+    DEFAULT_API_HOST,
+    DEFAULT_API_PORT,
+    OBS_WEBSOCKET_HOST,
+    OBS_WEBSOCKET_PORT,
+)
 
 
 @app.middleware("http")
@@ -49,7 +58,7 @@ async def verify_origin(request: Request, call_next):
         if request.method == "POST":
             origin = request.headers.get("origin")
             if origin and not (
-                origin.startswith("http://127.0.0.1")
+                origin.startswith(f"http://{DEFAULT_API_HOST}")
                 or origin.startswith("http://localhost")
             ):
                 return JSONResponse(
@@ -77,8 +86,10 @@ def ensure_obs_running():
 
     try:
         # Check if websocket responds
-        req = urllib.request.Request("http://127.0.0.1:4455")
-        urllib.request.urlopen(req, timeout=1)
+        req = urllib.request.Request(
+            f"http://{OBS_WEBSOCKET_HOST}:{OBS_WEBSOCKET_PORT}"
+        )
+        urllib.request.urlopen(req, timeout=1)  # nosec
         return True
     except:
         pass  # Not responding
@@ -291,7 +302,7 @@ else:
         return {"error": "UI n??o buildada. Execute 'npm run build' na pasta ui/"}
 
 
-def run_server(port=8088):
+def run_server(port=DEFAULT_API_PORT):
     import uvicorn
 
-    uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")
+    uvicorn.run(app, host=DEFAULT_API_HOST, port=port, log_level="warning")

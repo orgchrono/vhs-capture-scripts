@@ -20,7 +20,7 @@ def get_base_path():
 
 
 def get_directory_hash(directory):
-    sha1 = hashlib.sha1()
+    sha1 = hashlib.sha256()
     for root, dirs, files in os.walk(directory):
         for name in sorted(files):
             filepath = os.path.join(root, name)
@@ -51,7 +51,7 @@ def ensure_ui_build():
     pkg_json = os.path.join(project_root, "ui", "package.json")
     if os.path.exists(pkg_json):
         with open(pkg_json, "rb") as f:
-            current_hash += hashlib.sha1(f.read()).hexdigest()
+            current_hash += hashlib.sha256(f.read()).hexdigest()
 
     rebuild_needed = True
     if os.path.exists(hash_file) and os.path.exists(os.path.join(ui_dist_dir, "index.html")):
@@ -114,3 +114,4 @@ def run_desktop():
 
 if __name__ == "main":
     run_desktop()
+

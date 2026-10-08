@@ -1,6 +1,6 @@
 import os
 import shutil
-from typing import Dict, Any
+from typing import Dict
 from .base import StorageProvider
 from vhs_studio.core.logger import log
 
@@ -15,7 +15,7 @@ class LocalStorageProvider(StorageProvider):
     def get_id(self) -> str:
         return "local_nas_usb"
 
-    def configure(self, config: Dict[str, Any]) -> bool:
+    def configure(self, config: Dict[str, object]) -> bool:
         path = config.get("path")
         if not path:
             log.error("[LocalStorage] Caminho de destino não fornecido na configuração.")
@@ -50,7 +50,7 @@ class LocalStorageProvider(StorageProvider):
             log.error(f"[LocalStorage] Erro ao copiar arquivo: {e}")
             return False
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> Dict[str, object]:
         if not self.is_ready or not os.path.exists(self.base_path):
             return {"ready": False, "free_space_gb": 0}
 

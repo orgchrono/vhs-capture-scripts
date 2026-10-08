@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Any
+from typing import Dict
 from .base import StorageProvider
 from vhs_studio.core.logger import log
 
@@ -21,7 +21,8 @@ class GoogleDriveProvider(StorageProvider):
     def get_id(self) -> str:
         return "gdrive"
 
-    def configure(self, config: Dict[str, Any]) -> bool:
+    def configure(self, config: Dict[str, object]) -> bool:
+        self.folder_id = config.get("folder_id")
         if not HAS_GDRIVE:
             log.error("[GDrive] Dependências do Google não instaladas.")
             return False
@@ -49,10 +50,12 @@ class GoogleDriveProvider(StorageProvider):
 
         try:
             file_metadata = {"name": os.path.basename(destination_path)}
+            if getattr(self, "folder_id", None):
+                file_metadata["parents"] = [self.folder_id]
+                
             media = MediaFileUpload(local_filepath, resumable=True)
             log.info(f"[GDrive] Iniciando upload: {local_filepath} ...")
 
-            # TODO: Lidar com pastas (parents) no Drive
             file = self.service.files().create(body=file_metadata, media_body=media, fields="id").execute()
             log.info(f"[GDrive] Upload concluído. File ID: {file.get('id')}")
             return True
@@ -60,5 +63,5 @@ class GoogleDriveProvider(StorageProvider):
             log.error(f"[GDrive] Erro no upload: {e}")
             return False
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> Dict[str, object]:
         return {"ready": self.service is not None}

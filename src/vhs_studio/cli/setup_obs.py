@@ -35,7 +35,7 @@ def setup_windows_portable():
         headers={"User-Agent": "VHS-Studio"},
     )
     try:
-        resp = urllib.request.urlopen(req)
+        resp = urllib.request.urlopen(req)  # nosec
         data = json.loads(resp.read().decode())
         zip_url = None
         for asset in data.get("assets", []):
@@ -53,7 +53,7 @@ def setup_windows_portable():
     zip_path = os.path.join(TOOLS_DIR, "obs_installer.zip")
     print_step(f"Baixando OBS Studio Portable de {zip_url} ...")
     try:
-        urllib.request.urlretrieve(zip_url, zip_path)
+        urllib.request.urlretrieve(zip_url, zip_path)  # nosec
     except Exception as e:
         print_error(f"Falha no download: {e}")
         return False

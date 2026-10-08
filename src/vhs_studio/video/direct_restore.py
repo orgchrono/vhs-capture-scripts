@@ -147,7 +147,7 @@ def print_log_tail(log_path, lines=20):
 
 
 def restore_stream(args):
-    w, h, detected_fps, total_dur, a_codec = get_stream_info(args.input_path)
+    w, h, detected_fps, _, _ = get_stream_info(args.input_path)
     fps = args.target_fps if args.target_fps else detected_fps
     if fps <= 0:
         fps = VideoConfig.DEFAULT_FPS
@@ -179,7 +179,7 @@ def restore_stream(args):
         )
 
     log_path = f"{args.output_path}.log"
-    log_file = open(log_path, "w", encoding="utf-8", errors="replace")
+    log_file = open(log_path, "w", encoding="utf-8", errors="replace") # pylint: disable=consider-using-with
 
     # Inicia decodificador rawvideo do vídeo
     cmd_in = [Toolchain.get_ffmpeg_path(), "-hide_banner"]
@@ -268,11 +268,9 @@ def restore_stream(args):
     if stats["stream_broken"] or rc_out != 0 or rc_in != 0:
         log.error(f"\n[ERRO] O processo de restauração falhou! (in rc={rc_in}, out rc={rc_out})")
         print_log_tail(log_path, lines=25)
-        if os.path.exists(part_path):
-            os.remove(part_path)
         try:
             JobManager.release_lock()
-        except:
+        except Exception:
             pass
         sys.exit(1)
 
@@ -358,8 +356,6 @@ def restore_stream(args):
 
 
 def main():
-    from vhs_studio.core.jobs import JobManager
-
     JobManager.acquire_lock()
     parser = argparse.ArgumentParser(description="Restauração direta ultra-rápida sem perda de sincronia A/V para VHS")
     parser.add_argument("input", help="Arquivo raw de entrada")
@@ -471,11 +467,9 @@ def main():
     args.input_path = os.path.abspath(args.input)
     if not os.path.exists(args.input_path):
         log.error(f"[ERRO] Arquivo não encontrado: {args.input_path}")
-        if os.path.exists(part_path):
-            os.remove(part_path)
         try:
             JobManager.release_lock()
-        except:
+        except Exception:
             pass
         sys.exit(1)
 
@@ -524,15 +518,13 @@ def main():
         log.error(
             "[QTGMC] QTGMC/VapourSynth não está implementado na pipeline atual. Por favor, aguarde a fase P4 (ou instale/configure as dependências manualmente se souber o que está fazendo). Utilize 'znedi3', 'nnedi' ou 'bwdif' por enquanto."
         )
-        if os.path.exists(part_path):
-            os.remove(part_path)
         try:
             JobManager.release_lock()
-        except:
+        except Exception:
             pass
         sys.exit(1)
 
-    strat["audio_policy"]
+    args.audio_mode = strat['audio_policy']
     args.target_fps = strat["args.target_fps"]
 
     if args.start_sec is not None:
@@ -540,8 +532,10 @@ def main():
     else:
         args.start_sec = find_first_video_frame(args.input_path)
 
-    restore_stream(opts)
+    restore_stream(args)
 
 
 if __name__ == "__main__":
     main()
+
+

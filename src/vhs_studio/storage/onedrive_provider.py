@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict
 from .base import StorageProvider
 from vhs_studio.core.logger import log
 import os
@@ -19,7 +19,7 @@ class OneDriveProvider(StorageProvider):
     def get_id(self) -> str:
         return "onedrive"
 
-    def configure(self, config: Dict[str, Any]) -> bool:
+    def configure(self, config: Dict[str, object]) -> bool:
         if not HAS_ONEDRIVE:
             log.error("[OneDrive] Biblioteca 'O365' não instalada.")
             return False
@@ -74,5 +74,5 @@ class OneDriveProvider(StorageProvider):
             log.error(f"[OneDrive] Erro no upload: {e}")
             return False
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> Dict[str, object]:
         return {"ready": self.drive is not None}

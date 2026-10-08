@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict
 from .base import StorageProvider
 from vhs_studio.core.logger import log
 
@@ -20,7 +20,7 @@ class SupabaseStorageProvider(StorageProvider):
     def get_id(self) -> str:
         return "supabase"
 
-    def configure(self, config: Dict[str, Any]) -> bool:
+    def configure(self, config: Dict[str, object]) -> bool:
         if not HAS_SUPABASE:
             log.error("[Supabase] Biblioteca 'supabase' não instalada.")
             return False
@@ -63,5 +63,5 @@ class SupabaseStorageProvider(StorageProvider):
             log.error(f"[Supabase] Falha no upload: {e}")
             return False
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> Dict[str, object]:
         return {"ready": self.client is not None, "bucket": self.bucket_name}

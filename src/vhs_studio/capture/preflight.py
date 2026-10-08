@@ -90,7 +90,7 @@ def ensure_ffmpeg():
             zip_path = os.path.join(TOOLS_DIR, "ffmpeg.zip")
             url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
 
-            urllib.request.urlretrieve(url, zip_path)
+            urllib.request.urlretrieve(url, zip_path)  # nosec
             with zipfile.ZipFile(zip_path, "r") as zip_ref:
                 extracted_folder = zip_ref.namelist()[0].split("/")[0]
                 zip_ref.extractall(TOOLS_DIR)

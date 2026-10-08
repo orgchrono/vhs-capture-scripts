@@ -8,7 +8,7 @@ class AtomicIO:
     def generate_hash(params_dict):
         """Gera um hash curto para diferenciar saídas com parâmetros de filtros diferentes."""
         param_str = json.dumps(params_dict, sort_keys=True).encode("utf-8")
-        return hashlib.md5(param_str).hexdigest()[:8]
+        return hashlib.sha256(param_str).hexdigest()[:8]
 
     @staticmethod
     def get_part_path(final_path):
@@ -21,3 +21,4 @@ class AtomicIO:
             if os.path.exists(final_path):
                 os.remove(final_path)
             os.rename(part_path, final_path)
+

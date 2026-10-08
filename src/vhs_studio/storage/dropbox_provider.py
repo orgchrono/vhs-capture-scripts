@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict
 from .base import StorageProvider
 from vhs_studio.core.logger import log
 import os
@@ -18,7 +18,7 @@ class DropboxProvider(StorageProvider):
     def get_id(self) -> str:
         return "dropbox"
 
-    def configure(self, config: Dict[str, Any]) -> bool:
+    def configure(self, config: Dict[str, object]) -> bool:
         if not HAS_DROPBOX:
             log.error("[Dropbox] Biblioteca 'dropbox' não instalada.")
             return False
@@ -80,5 +80,5 @@ class DropboxProvider(StorageProvider):
             log.error(f"[Dropbox] Erro no upload: {e}")
             return False
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> Dict[str, object]:
         return {"ready": self.dbx is not None}

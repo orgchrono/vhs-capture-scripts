@@ -8,10 +8,10 @@ from vhs_studio.core.logger import log
 class OBSClient:
     """Cliente WebSocket robusto para OBS Studio (v5.x)."""
 
-    def __init__(self, host="127.0.0.1", port=4455, password=""):
+    def __init__(self, host="127.0.0.1", port=4455, password=None):
         self.host = host
         self.port = port
-        self.password = password
+        self.password = password if password is not None else ""
         self.ws = None
 
     def connect(self):
