@@ -1,5 +1,4 @@
 ﻿import os
-import sys
 
 # Compatibilidade de import para tomllib (Nativo no Python 3.11+, tomli no 3.10)
 try:
@@ -23,9 +22,7 @@ class AdvancedConfig:
             cls._config = {}
             return cls._config
 
-        base_path = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "..", "..", "..")
-        )
+        base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
         toml_path = os.path.join(base_path, "vhs_advanced_config.toml")
 
         if os.path.exists(toml_path):

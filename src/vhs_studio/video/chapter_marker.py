@@ -84,9 +84,7 @@ def _run_scenedetect(input_video: str, threshold: float, csv_path: str) -> bool:
         )
         return os.path.exists(csv_path)
     except subprocess.CalledProcessError as e:
-        log.error(
-            f"[Capítulos] Falha no scenedetect: {e.stderr.decode('utf-8', errors='ignore')}"
-        )
+        log.error(f"[Capítulos] Falha no scenedetect: {e.stderr.decode('utf-8', errors='ignore')}")
         return False
 
 
@@ -112,9 +110,7 @@ def _run_ffmpeg_mux(input_video: str, ffmeta_path: str, output_video: str) -> bo
         )
         return True
     except subprocess.CalledProcessError as e:
-        log.error(
-            f"[Capítulos] Falha no FFmpeg: {e.stderr.decode('utf-8', errors='ignore')}"
-        )
+        log.error(f"[Capítulos] Falha no FFmpeg: {e.stderr.decode('utf-8', errors='ignore')}")
         return False
 
 
@@ -129,7 +125,7 @@ def generate_chapters(input_video: str, output_video: str) -> bool:
     csv_path = os.path.join(base_dir, f"{base_name}-Scenes.csv")
     ffmeta_path = os.path.join(base_dir, f"{base_name}.ffmeta")
 
-    log.info(f"[Capítulos] 1/3 - Escaneando cortes de câmera com PySceneDetect...")
+    log.info("[Capítulos] 1/3 - Escaneando cortes de câmera com PySceneDetect...")
     if not _run_scenedetect(input_video, threshold, csv_path):
         return False
 

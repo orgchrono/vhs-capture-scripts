@@ -20,7 +20,7 @@ class VapourSynthQTGMC:
     def check_python_vapoursynth():
         """Verifica se o módulo vapoursynth pode ser importado."""
         try:
-            import vapoursynth
+            pass
 
             return True
         except ImportError:
@@ -99,12 +99,8 @@ clip.set_output()
         cmd_vspipe = ["vspipe", "-c", "y4m", vpy_path, "-"]
         log.info(f"[QTGMC] Executando VapourSynth: {' '.join(cmd_vspipe)}")
 
-        p_vs = subprocess.Popen(
-            cmd_vspipe, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        )
-        p_ff = subprocess.Popen(
-            ffmpeg_output_args, stdin=p_vs.stdout, stderr=subprocess.PIPE
-        )
+        p_vs = subprocess.Popen(cmd_vspipe, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p_ff = subprocess.Popen(ffmpeg_output_args, stdin=p_vs.stdout, stderr=subprocess.PIPE)
         p_vs.stdout.close()
 
         stdout, stderr = p_ff.communicate()
@@ -121,9 +117,7 @@ clip.set_output()
 
         if sys.platform == "win32":
             script_ps1 = os.path.join(bin_dir, "setup_vapoursynth.ps1")
-            log.info(
-                f"[QTGMC INSTALADOR] Iniciando instalador PowerShell no Windows: {script_ps1}"
-            )
+            log.info(f"[QTGMC INSTALADOR] Iniciando instalador PowerShell no Windows: {script_ps1}")
             cmd = [
                 "powershell.exe",
                 "-NoProfile",
@@ -134,9 +128,7 @@ clip.set_output()
             ]
         else:
             script_sh = os.path.join(bin_dir, "setup_vapoursynth.sh")
-            log.info(
-                f"[QTGMC INSTALADOR] Iniciando instalador Bash no macOS/Linux: {script_sh}"
-            )
+            log.info(f"[QTGMC INSTALADOR] Iniciando instalador Bash no macOS/Linux: {script_sh}")
             cmd = ["bash", script_sh]
 
         try:

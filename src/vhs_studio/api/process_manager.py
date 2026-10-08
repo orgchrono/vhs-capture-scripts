@@ -1,6 +1,5 @@
 import threading
 import subprocess
-from vhs_studio.core.logger import log
 
 
 class ProcessManager:
@@ -53,9 +52,7 @@ class ProcessManager:
 
     def is_running(self):
         with self._lock:
-            return (
-                self.active_process is not None and self.active_process.poll() is None
-            )
+            return self.active_process is not None and self.active_process.poll() is None
 
     def terminate(self):
         with self._lock:

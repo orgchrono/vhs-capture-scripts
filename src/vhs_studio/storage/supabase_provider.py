@@ -3,7 +3,7 @@ from .base import StorageProvider
 from vhs_studio.core.logger import log
 
 try:
-    from supabase import create_client, Client
+    from supabase import create_client
 
     HAS_SUPABASE = True
 except ImportError:
@@ -50,11 +50,9 @@ class SupabaseStorageProvider(StorageProvider):
             return False
 
         try:
-            log.info(
-                f"[Supabase] Fazendo upload de {local_filepath} para o bucket {self.bucket_name}..."
-            )
+            log.info(f"[Supabase] Fazendo upload de {local_filepath} para o bucket {self.bucket_name}...")
             with open(local_filepath, "rb") as f:
-                res = self.client.storage.from_(self.bucket_name).upload(
+                self.client.storage.from_(self.bucket_name).upload(
                     file=f,
                     path=destination_path,
                     file_options={"content-type": "video/mp4"},

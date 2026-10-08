@@ -56,11 +56,7 @@ def get_logger(name):
         try:
             fh = logging.FileHandler("vhs_studio.log", encoding="utf-8")
             fh.setLevel(logging.DEBUG)
-            fh.setFormatter(
-                logging.Formatter(
-                    "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-                )
-            )
+            fh.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
             logger.addHandler(fh)
         except Exception:
             pass

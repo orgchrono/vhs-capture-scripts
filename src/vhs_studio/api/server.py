@@ -2,14 +2,12 @@
 import json
 import os
 import sys
-import threading
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import JSONResponse, FileResponse, HTMLResponse
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 import secrets
 
-from vhs_studio.core.logger import log
 from vhs_studio.core.filter_builder import FilterBuilder
 from vhs_studio.video.vapoursynth_qtgmc import VapourSynthQTGMC
 from vhs_studio.api.process_manager import ProcessManager
@@ -57,19 +55,12 @@ async def verify_origin(request: Request, call_next):
 
         if request.method == "POST":
             origin = request.headers.get("origin")
-            if origin and not (
-                origin.startswith("http://127.0.0.1")
-                or origin.startswith("http://localhost")
-            ):
-                return JSONResponse(
-                    status_code=403, content={"error": "Origem inválida."}
-                )
+            if origin and not (origin.startswith("http://127.0.0.1") or origin.startswith("http://localhost")):
+                return JSONResponse(status_code=403, content={"error": "Origem inválida."})
 
         token = request.headers.get("X-Session-Token")
         if token and token != SESSION_TOKEN:
-            return JSONResponse(
-                status_code=403, content={"error": "Token de sessão inválido."}
-            )
+            return JSONResponse(status_code=403, content={"error": "Token de sessão inválido."})
 
     response = await call_next(request)
     return response
@@ -178,12 +169,7 @@ async def update_storage_config(request: Request):
         save_storage_config(provider_id, config)
         return {"status": "ok", "message": "Configuracao salva e validada!"}
     else:
-        return JSONResponse(
-            status_code=400, content={"error": "Falha ao validar configuracao."}
-        )
-
-
-import webbrowser
+        return JSONResponse(status_code=400, content={"error": "Falha ao validar configuracao."})
 
 
 @app.post("/api/action")

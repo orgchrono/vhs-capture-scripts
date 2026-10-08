@@ -27,7 +27,7 @@ class Filters:
     DEINT_YADIF: str = "yadif=mode=1:parity=auto"
 
     UPSCALE_1080P_LANCZOS: str = (
-        "scale=1440:1080:flags=lanczos:in_color_matrix=smpte170m:out_color_matrix=bt709,setsar=1:1,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:black,cas=0.4"
+        "scale=1440:1080:flags=lanczos:in_color_matrix=smpte170m:out_color_matrix=bt709,setsar=1:1,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:black,cas=0.4"  # noqa: E501
     )
 
 

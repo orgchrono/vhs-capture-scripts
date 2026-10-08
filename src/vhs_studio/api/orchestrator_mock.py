@@ -1,4 +1,3 @@
-import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from vhs_studio.core.logger import log
@@ -31,9 +30,7 @@ class PipelineOrchestrator:
                 results[task_name] = future.result()
                 log.info(f"[PIPELINE] Tarefa concluÃ­da: {task_name}")
             except Exception as exc:
-                log.error(
-                    f"[PIPELINE ERRO] A tarefa {task_name} gerou uma exceÃ§Ã£o: {exc}"
-                )
+                log.error(f"[PIPELINE ERRO] A tarefa {task_name} gerou uma exceÃ§Ã£o: {exc}")
 
         # 3. Tarefas dependentes (Sincronas, super rÃ¡pidas)
         if "Restoration" in results and "SceneDetect" in results:

@@ -17,11 +17,9 @@ Mecanismo de Alta Performance e Sincronia A/V Perfeita:
 
 import sys
 import os
-from vhs_studio.core.atomic_io import AtomicIO
 import os
 import subprocess
 import argparse
-import time
 import json
 
 from vhs_studio.core.logger import log
@@ -56,12 +54,8 @@ def get_stream_info(input_file):
             "aac",
         )
 
-    v_stream = next(
-        (s for s in data.get("streams", []) if s.get("codec_type") == "video"), {}
-    )
-    a_stream = next(
-        (s for s in data.get("streams", []) if s.get("codec_type") == "audio"), {}
-    )
+    v_stream = next((s for s in data.get("streams", []) if s.get("codec_type") == "video"), {})
+    a_stream = next((s for s in data.get("streams", []) if s.get("codec_type") == "audio"), {})
 
     w = int(v_stream.get("width", VideoConfig.DEFAULT_WIDTH))
     h = int(v_stream.get("height", VideoConfig.DEFAULT_HEIGHT))
@@ -118,14 +112,10 @@ def find_first_video_frame(input_file, max_scan_sec=VideoConfig.MAX_SCAN_SECONDS
             break
         y_sample = buf[:y_bytes:64]
         mean_luma = sum(y_sample) / len(y_sample) if y_sample else 0
-        if (
-            mean_luma > VideoConfig.LUMA_THRESHOLD + 4.0
-        ):  # slightly higher for detection
+        if mean_luma > VideoConfig.LUMA_THRESHOLD + 4.0:  # slightly higher for detection
             consecutive_good += 1
             if consecutive_good >= VideoConfig.CONSECUTIVE_GOOD_FRAMES_REQUIRED:
-                first_good_frame = frame_idx - (
-                    VideoConfig.CONSECUTIVE_GOOD_FRAMES_REQUIRED - 1
-                )
+                first_good_frame = frame_idx - (VideoConfig.CONSECUTIVE_GOOD_FRAMES_REQUIRED - 1)
                 break
         else:
             consecutive_good = 0
@@ -209,9 +199,7 @@ def restore_stream(args):
         "-",
     ]
 
-    p_in = subprocess.Popen(
-        cmd_in, stdout=subprocess.PIPE, stderr=log_file, bufsize=16 * 1024 * 1024
-    )
+    p_in = subprocess.Popen(cmd_in, stdout=subprocess.PIPE, stderr=log_file, bufsize=16 * 1024 * 1024)
 
     vf = builder.build_video_filters(
         args.apply_chroma,
@@ -256,9 +244,7 @@ def restore_stream(args):
         audio_treatment=args.apply_audio_treatment,
     )
 
-    p_out = subprocess.Popen(
-        cmd_out, stdin=subprocess.PIPE, stderr=log_file, bufsize=16 * 1024 * 1024
-    )
+    p_out = subprocess.Popen(cmd_out, stdin=subprocess.PIPE, stderr=log_file, bufsize=16 * 1024 * 1024)
 
     runner = StreamRunner(
         mode=args.mode,
@@ -280,9 +266,7 @@ def restore_stream(args):
     log_file.close()
 
     if stats["stream_broken"] or rc_out != 0 or rc_in != 0:
-        log.error(
-            f"\n[ERRO] O processo de restauração falhou! (in rc={rc_in}, out rc={rc_out})"
-        )
+        log.error(f"\n[ERRO] O processo de restauração falhou! (in rc={rc_in}, out rc={rc_out})")
         print_log_tail(log_path, lines=25)
         if os.path.exists(part_path):
             os.remove(part_path)
@@ -292,9 +276,7 @@ def restore_stream(args):
             pass
         sys.exit(1)
 
-    final_size_bytes = (
-        os.path.getsize(final_output_path) if os.path.exists(final_output_path) else 0
-    )
+    final_size_bytes = os.path.getsize(final_output_path) if os.path.exists(final_output_path) else 0
     final_size_mb = final_size_bytes / (1024 * 1024)
     if final_size_mb >= 1000:
         size_str = f"{final_size_mb / 1024:.1f} GB"
@@ -306,26 +288,20 @@ def restore_stream(args):
     log.info(f"[SUCESSO] Vídeo master restaurado e finalizado com êxito!")
     log.info(f"  Destino:             {args.output_path}")
     log.info(f"  Tamanho:             {size_str}")
-    log.info(
-        f"  Total analisado:     {stats['total_frames']:,} frames ({duration_hours:.2f}h de conteúdo)"
-    )
+    log.info(f"  Total analisado:     {stats['total_frames']:,} frames ({duration_hours:.2f}h de conteúdo)")
     log.info(f"  Frames de vídeo:     {stats['kept_frames']:,} frames válidos")
     if args.mode == "freeze":
         log.info(
             f"  Pretos neutralizados:{stats['frozen_frames']+stats['dropped_frames']:,} frames ({stats['frozen_frames']:,} mantidos via TBC frame-hold)"
         )
-        log.info(
-            f"  Modo de sincronia:   TBC Frame-Hold aplicado (taxa constante mantida)"
-        )
+        log.info(f"  Modo de sincronia:   TBC Frame-Hold aplicado (taxa constante mantida)")
     else:
         sec_recup = (stats["dropped_frames"] / fps) if fps > 0 else 0
         log.info(
             f"  Pretos descartados:  {stats['dropped_frames']:,} frames pretos eliminados ({sec_recup:.2f}s recuperados)"
         )
     fps_avg = (stats["total_frames"] / stats["elapsed"]) if stats["elapsed"] > 0 else 0
-    log.info(
-        f"  Tempo gasto:         {stats['elapsed']/60:.1f} minutos ({fps_avg:.0f} fps médio)"
-    )
+    log.info(f"  Tempo gasto:         {stats['elapsed']/60:.1f} minutos ({fps_avg:.0f} fps médio)")
     log.info(f"  Áudio:               100% contínuo e intacto (sem cortes)")
     log.info(f"  Arquivo de log:      {log_path}")
 
@@ -347,16 +323,10 @@ def restore_stream(args):
                 f.write(f"START={start_time}\n")
                 f.write(f"END={end_time}\n")
                 f.write(f"title=Cena {i}\n")
-        log.info(
-            f"  Cenas detectadas:    {len(stats['chapters'])}. Embutindo metadados no arquivo final..."
-        )
+        log.info(f"  Cenas detectadas:    {len(stats['chapters'])}. Embutindo metadados no arquivo final...")
 
         # Muxing the metadata into the container
-        ext = (
-            "mkv"
-            if args.output_codec == "ffv1"
-            else "mov" if args.output_codec == "prores" else "mp4"
-        )
+        ext = "mkv" if args.output_codec == "ffv1" else "mov" if args.output_codec == "prores" else "mp4"
         muxed_path = f"{args.output_path}.muxed.{ext}"
         mux_cmd = [
             Toolchain.get_ffmpeg_path(),
@@ -391,14 +361,10 @@ def main():
     from vhs_studio.core.jobs import JobManager
 
     JobManager.acquire_lock()
-    parser = argparse.ArgumentParser(
-        description="Restauração direta ultra-rápida sem perda de sincronia A/V para VHS"
-    )
+    parser = argparse.ArgumentParser(description="Restauração direta ultra-rápida sem perda de sincronia A/V para VHS")
     parser.add_argument("input", help="Arquivo raw de entrada")
     parser.add_argument("--output", default=None, help="Arquivo final de saída")
-    parser.add_argument(
-        "--crf", type=int, default=20, help="Qualidade args.crf / ICQ (padrão: 20)"
-    )
+    parser.add_argument("--crf", type=int, default=20, help="Qualidade args.crf / ICQ (padrão: 20)")
     parser.add_argument(
         "--mode",
         choices=["freeze", "drop", "passthrough"],
@@ -498,9 +464,7 @@ def main():
     args = parser.parse_args()
 
     if getattr(args, "install_qtgmc", False):
-        log.info(
-            "[INSTALADOR] Iniciando instalador automático do VapourSynth + QTGMC..."
-        )
+        log.info("[INSTALADOR] Iniciando instalador automático do VapourSynth + QTGMC...")
         ok = VapourSynthQTGMC.install_dependencies(interactive=True)
         sys.exit(0 if ok else 1)
 
@@ -524,14 +488,8 @@ def main():
         args.output_path = os.path.abspath(args.output)
     else:
         suffix = "480p" if args.no_1080p else "1080p"
-        ext = (
-            "mkv"
-            if args.output_codec == "ffv1"
-            else "mov" if args.output_codec == "prores" else "mp4"
-        )
-        args.output_path = os.path.join(
-            output_dir, f"{base_name}_restored_{suffix}.{ext}"
-        )
+        ext = "mkv" if args.output_codec == "ffv1" else "mov" if args.output_codec == "prores" else "mp4"
+        args.output_path = os.path.join(output_dir, f"{base_name}_restored_{suffix}.{ext}")
 
     log.info("\n[RESTAURAÇÃO] Arquivo de Entrada: {args.input_path}")
 
@@ -558,9 +516,7 @@ def main():
 
     resolved_deint = "none"
     if strat["need_deinterlace"]:
-        resolved_deint = (
-            "bwdif" if args.deinterlacer in ("auto", "bwdif") else args.deinterlacer
-        )
+        resolved_deint = "bwdif" if args.deinterlacer in ("auto", "bwdif") else args.deinterlacer
     elif args.deinterlacer in ("bwdif", "bwdif_single", "znedi3", "nnedi", "qtgmc"):
         resolved_deint = args.deinterlacer
 
@@ -576,7 +532,7 @@ def main():
             pass
         sys.exit(1)
 
-    resolved_audio = strat["audio_policy"]
+    strat["audio_policy"]
     args.target_fps = strat["args.target_fps"]
 
     if args.start_sec is not None:

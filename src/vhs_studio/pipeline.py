@@ -17,8 +17,8 @@ class PipelineOrchestrator:
         self.results = {}
 
     def start(self):
-        log.info(f"============================================================")
-        log.info(f"[PIPELINE ORQUESTRADA] Iniciando MÃºltiplos Motores (DAG)")
+        log.info("============================================================")
+        log.info("[PIPELINE ORQUESTRADA] Iniciando MÃºltiplos Motores (DAG)")
         log.info(f"  Fonte: {self.raw_file}")
 
         f_restoration = self.executor.submit(self._task_restoration)
@@ -35,7 +35,7 @@ class PipelineOrchestrator:
                 log.error(f"[{task_name.upper()} ERRO] Falha na tarefa: {exc}")
 
         self._task_scenedetect_and_split()
-        log.info(f"[PIPELINE ORQUESTRADA] Sucesso Absoluto!")
+        log.info("[PIPELINE ORQUESTRADA] Sucesso Absoluto!")
 
         # FASE 4.3 - Cloud Upload
         if self.params.get("auto_upload"):
@@ -105,28 +105,19 @@ class PipelineOrchestrator:
             return
 
         try:
-            import scenedetect
             from scenedetect import detect, ContentDetector
         except ImportError:
-            log.warning(
-                "[SCENE DETECT] scenedetect nÃ£o estÃ¡ instalado. Pulei os cortes mÃ¡gicos."
-            )
+            log.warning("[SCENE DETECT] scenedetect nÃ£o estÃ¡ instalado. Pulei os cortes mÃ¡gicos.")
             return
 
-        log.info(
-            "[SCENE DETECT] Procurando cortes secos (Flash/Camera Cuts) no VÃ­deo Master..."
-        )
+        log.info("[SCENE DETECT] Procurando cortes secos (Flash/Camera Cuts) no VÃ­deo Master...")
         scene_list = detect(master_file, ContentDetector(threshold=27.0))
 
         if len(scene_list) <= 1:
-            log.info(
-                "[SCENE DETECT] Nenhum corte abrupto detectado. Arquivo mantido Ã­ntegro."
-            )
+            log.info("[SCENE DETECT] Nenhum corte abrupto detectado. Arquivo mantido Ã­ntegro.")
             return
 
-        log.info(
-            f"[SCENE DETECT] {len(scene_list)} Cenas Detectadas! Fatiando arquivo mestre..."
-        )
+        log.info(f"[SCENE DETECT] {len(scene_list)} Cenas Detectadas! Fatiando arquivo mestre...")
 
         base_dir = os.path.dirname(master_file)
         base_name, ext = os.path.splitext(os.path.basename(master_file))

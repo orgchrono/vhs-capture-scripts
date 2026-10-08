@@ -35,9 +35,7 @@ def get_directory_hash(directory):
 
 def ensure_ui_build():
     if hasattr(sys, "_MEIPASS"):
-        log.info(
-            "[DESKTOP] Executável empacotado detectado. Pulando checagem de build do Vite."
-        )
+        log.info("[DESKTOP] Executável empacotado detectado. Pulando checagem de build do Vite.")
         return get_base_path()
 
     project_root = get_base_path()
@@ -56,25 +54,17 @@ def ensure_ui_build():
             current_hash += hashlib.sha1(f.read()).hexdigest()
 
     rebuild_needed = True
-    if os.path.exists(hash_file) and os.path.exists(
-        os.path.join(ui_dist_dir, "index.html")
-    ):
+    if os.path.exists(hash_file) and os.path.exists(os.path.join(ui_dist_dir, "index.html")):
         with open(hash_file, "r") as f:
             if f.read().strip() == current_hash:
                 rebuild_needed = False
 
     if rebuild_needed:
-        log.warning(
-            "[SEGURANÇA] Mudanças detectadas nos arquivos da Interface (UI) ou Hash Mismatch."
-        )
-        log.warning(
-            "O sistema identificou código novo em 'ui/src'. O build requer execução de 'npm install'."
-        )
+        log.warning("[SEGURANÇA] Mudanças detectadas nos arquivos da Interface (UI) ou Hash Mismatch.")
+        log.warning("O sistema identificou código novo em 'ui/src'. O build requer execução de 'npm install'.")
         print("")
         print("=== AVISO DE SEGURANÇA / INTEGRIDADE ===")
-        print(
-            "Deseja autorizar a compilação do novo código e instalar pacotes Node.js localmente?"
-        )
+        print("Deseja autorizar a compilação do novo código e instalar pacotes Node.js localmente?")
         ans = input("Autorizar build da UI? (Y/n): ").strip().lower()
         if ans == "" or ans == "y" or ans == "yes":
             log.info("[DESKTOP] Autorização concedida. Compilando via Vite...")
@@ -85,15 +75,11 @@ def ensure_ui_build():
                 os.makedirs(ui_dist_dir, exist_ok=True)
                 with open(hash_file, "w") as f:
                     f.write(current_hash)
-                log.info(
-                    "[DESKTOP] Build da UI concluída com sucesso e Cache atualizado!"
-                )
+                log.info("[DESKTOP] Build da UI concluída com sucesso e Cache atualizado!")
             except Exception as e:
                 log.error(f"[DESKTOP ERRO] Falha ao compilar a UI: {e}")
         else:
-            log.warning(
-                "[DESKTOP] Build rejeitada pelo usuário por razões de segurança. Usando cache anterior."
-            )
+            log.warning("[DESKTOP] Build rejeitada pelo usuário por razões de segurança. Usando cache anterior.")
     else:
         log.info("[DESKTOP] UI Verificada (Security Hash Match).")
 
@@ -104,9 +90,7 @@ def run_desktop():
     try:
         import webview
     except ImportError:
-        log.error(
-            "[DESKTOP] pywebview não encontrado. Por favor, execute: pip install pywebview fastapi uvicorn"
-        )
+        log.error("[DESKTOP] pywebview não encontrado. Por favor, execute: pip install pywebview fastapi uvicorn")
         sys.exit(1)
 
     ensure_ui_build()
@@ -115,10 +99,8 @@ def run_desktop():
     t = threading.Thread(target=run_server, args=(port,), daemon=True)
     t.start()
 
-    log.info(
-        f"[DESKTOP] Iniciando janela nativa Desktop Pro em http://127.0.0.1:{port}"
-    )
-    window = webview.create_window(
+    log.info(f"[DESKTOP] Iniciando janela nativa Desktop Pro em http://127.0.0.1:{port}")
+    webview.create_window(
         title="VHS Studio",
         url=f"http://127.0.0.1:{port}",
         width=1440,

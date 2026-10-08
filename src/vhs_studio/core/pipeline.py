@@ -27,9 +27,7 @@ def process_job(job: dict):
     success = generate_chapters(restored_path, final_output_path)
 
     if not success:
-        log.warning(
-            "[Pipeline] Marcação de capítulos falhou. Usando arquivo original para upload."
-        )
+        log.warning("[Pipeline] Marcação de capítulos falhou. Usando arquivo original para upload.")
         final_output_path = restored_path
 
     config = load_storage_config()
@@ -40,9 +38,7 @@ def process_job(job: dict):
         try:
             provider = StorageManager.get_provider(provider_id)
             if provider:
-                url = provider.upload_video(
-                    final_output_path, os.path.basename(final_output_path)
-                )
+                url = provider.upload_video(final_output_path, os.path.basename(final_output_path))
                 log.info(f"[Pipeline] Upload concluído! URL: {url}")
             else:
                 log.error(f"[Pipeline] Provedor {provider_id} não encontrado.")

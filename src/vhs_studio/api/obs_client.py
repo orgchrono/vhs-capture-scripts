@@ -18,15 +18,11 @@ class OBSClient:
         try:
             import websocket
         except ImportError:
-            log.error(
-                "[ERRO] websocket-client não instalado. Use pip install websocket-client"
-            )
+            log.error("[ERRO] websocket-client não instalado. Use pip install websocket-client")
             return False
 
         try:
-            self.ws = websocket.create_connection(
-                f"ws://{self.host}:{self.port}", timeout=3
-            )
+            self.ws = websocket.create_connection(f"ws://{self.host}:{self.port}", timeout=3)
             # Handshake inicial
             hello = json.loads(self.ws.recv())
             auth_info = hello.get("d", {}).get("authentication")
@@ -43,12 +39,12 @@ class OBSClient:
 
                 salt = auth_info["salt"]
                 challenge = auth_info["challenge"]
-                secret = base64.b64encode(
-                    hashlib.sha256((self.password + salt).encode("utf-8")).digest()
-                ).decode("utf-8")
-                auth_resp = base64.b64encode(
-                    hashlib.sha256((secret + challenge).encode("utf-8")).digest()
-                ).decode("utf-8")
+                secret = base64.b64encode(hashlib.sha256((self.password + salt).encode("utf-8")).digest()).decode(
+                    "utf-8"
+                )
+                auth_resp = base64.b64encode(hashlib.sha256((secret + challenge).encode("utf-8")).digest()).decode(
+                    "utf-8"
+                )
                 identify_payload["d"]["authentication"] = auth_resp
 
             self.ws.send(json.dumps(identify_payload))

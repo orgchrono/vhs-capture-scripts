@@ -16,9 +16,7 @@ class Toolchain:
 
         log.error(f"[ERRO FATAL] Dependência '{name}' não encontrada no sistema.")
         if winget_path:
-            log.error(
-                f"Por favor, instale o {name} e adicione-o ao PATH do Windows, ou instale via WinGet."
-            )
+            log.error(f"Por favor, instale o {name} e adicione-o ao PATH do Windows, ou instale via WinGet.")
         else:
             log.error(f"Por favor, instale o {name} e adicione-o ao PATH do Windows.")
         sys.exit(1)
@@ -26,17 +24,13 @@ class Toolchain:
     @staticmethod
     @lru_cache(maxsize=1)
     def get_ffmpeg_path():
-        winget_path = os.path.expandvars(
-            r"%LOCALAPPDATA%\Microsoft\WinGet\Links\ffmpeg.exe"
-        )
+        winget_path = os.path.expandvars(r"%LOCALAPPDATA%\Microsoft\WinGet\Links\ffmpeg.exe")
         return Toolchain.require_executable("ffmpeg", winget_path)
 
     @staticmethod
     @lru_cache(maxsize=1)
     def get_ffprobe_path():
-        winget_path = os.path.expandvars(
-            r"%LOCALAPPDATA%\Microsoft\WinGet\Links\ffprobe.exe"
-        )
+        winget_path = os.path.expandvars(r"%LOCALAPPDATA%\Microsoft\WinGet\Links\ffprobe.exe")
         return Toolchain.require_executable("ffprobe", winget_path)
 
     @staticmethod
@@ -47,14 +41,10 @@ class Toolchain:
         encoders = ""
         filters = ""
         try:
-            res_enc = subprocess.run(
-                [ffmpeg, "-encoders"], capture_output=True, text=True
-            )
+            res_enc = subprocess.run([ffmpeg, "-encoders"], capture_output=True, text=True)
             encoders = res_enc.stdout
 
-            res_flt = subprocess.run(
-                [ffmpeg, "-filters"], capture_output=True, text=True
-            )
+            res_flt = subprocess.run([ffmpeg, "-filters"], capture_output=True, text=True)
             filters = res_flt.stdout
         except Exception as e:
             log.warning(f"Falha ao obter capacidades do ffmpeg: {e}")
@@ -64,10 +54,7 @@ class Toolchain:
     @staticmethod
     def has_encoder(encoder_name):
         caps = Toolchain.get_ffmpeg_capabilities()
-        return (
-            f" {encoder_name} " in caps["encoders"]
-            or f"V..... {encoder_name} " in caps["encoders"]
-        )
+        return f" {encoder_name} " in caps["encoders"] or f"V..... {encoder_name} " in caps["encoders"]
 
     @staticmethod
     def has_filter(filter_name):

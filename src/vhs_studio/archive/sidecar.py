@@ -16,7 +16,7 @@ class SidecarManager:
             "metadata": metadata,
         }
 
-        with open(sidecar_path, "w", encoding="utf-8") as f:
+        with open(sidecar_path, "w", encoding="utf-8"):
             json.dumps(data, indent=2)
 
         return sidecar_path

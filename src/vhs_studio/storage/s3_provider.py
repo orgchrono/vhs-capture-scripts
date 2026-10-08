@@ -1,7 +1,6 @@
 ﻿from typing import Dict, Any
 from .base import StorageProvider
 from vhs_studio.core.logger import log
-import os
 
 try:
     import boto3
@@ -27,9 +26,7 @@ class S3Provider(StorageProvider):
 
         access_key = config.get("S3_ACCESS_KEY")
         secret_key = config.get("S3_SECRET_KEY")
-        endpoint_url = config.get(
-            "S3_ENDPOINT_URL"
-        )  # Opcional (para Cloudflare R2, MinIO, etc)
+        endpoint_url = config.get("S3_ENDPOINT_URL")  # Opcional (para Cloudflare R2, MinIO, etc)
         region = config.get("S3_REGION", "us-east-1")
         self.bucket_name = config.get("S3_BUCKET", "vhs-archive")
 
@@ -69,13 +66,9 @@ class S3Provider(StorageProvider):
             return False
 
         try:
-            log.info(
-                f"[S3] Iniciando upload de {local_filepath} para o bucket {self.bucket_name}..."
-            )
+            log.info(f"[S3] Iniciando upload de {local_filepath} para o bucket {self.bucket_name}...")
             # Extra args para definir ContentType se quiser, ou usar defaults
-            self.s3_client.upload_file(
-                local_filepath, self.bucket_name, destination_path
-            )
+            self.s3_client.upload_file(local_filepath, self.bucket_name, destination_path)
             log.info("[S3] Upload concluído com sucesso.")
             return True
         except Exception as e:

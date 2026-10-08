@@ -35,9 +35,7 @@ class OneDriveProvider(StorageProvider):
         try:
             credentials = (client_id, client_secret)
             # Vamos usar backend em memória ou no app data para os tokens
-            token_path = os.path.join(
-                os.path.expanduser("~"), ".vhs_studio", "onedrive_token.txt"
-            )
+            token_path = os.path.join(os.path.expanduser("~"), ".vhs_studio", "onedrive_token.txt")
             token_backend = FileSystemTokenBackend(
                 token_path=os.path.dirname(token_path),
                 token_filename=os.path.basename(token_path),
@@ -69,9 +67,7 @@ class OneDriveProvider(StorageProvider):
             # Pega a pasta root ou cria caminho
             folder = self.drive.get_root_folder()
             # O365 suporta resumable upload para > 4MB
-            folder.upload_file(
-                local_filepath, item_name=os.path.basename(destination_path)
-            )
+            folder.upload_file(local_filepath, item_name=os.path.basename(destination_path))
             log.info("[OneDrive] Upload concluído.")
             return True
         except Exception as e:

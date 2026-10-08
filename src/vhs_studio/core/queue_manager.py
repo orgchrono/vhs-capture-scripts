@@ -1,7 +1,6 @@
 ﻿import sqlite3
 import os
 import json
-from datetime import datetime
 from vhs_studio.core.logger import log
 
 DB_PATH = os.path.join(os.path.expanduser("~"), ".vhs_studio", "pipeline.db")
@@ -40,9 +39,7 @@ def get_next_job():
     conn = _get_conn()
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    cursor.execute(
-        "SELECT * FROM jobs WHERE status = 'pending' ORDER BY id ASC LIMIT 1"
-    )
+    cursor.execute("SELECT * FROM jobs WHERE status = 'pending' ORDER BY id ASC LIMIT 1")
     row = cursor.fetchone()
     if row:
         conn.execute(

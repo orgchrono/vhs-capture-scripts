@@ -1,5 +1,4 @@
 import os
-import sys
 import subprocess
 import numpy as np
 from vhs_studio.core.logger import log
@@ -27,34 +26,24 @@ class AIUpscaler:
         Prioriza Placas Dedicadas (NVIDIA/AMD) sobre Gráficos Integrados (Intel/Radeon Vega).
         """
         try:
-            res = subprocess.run(
-                ["vulkaninfo", "--summary"], capture_output=True, text=True, timeout=5
-            )
+            res = subprocess.run(["vulkaninfo", "--summary"], capture_output=True, text=True, timeout=5)
             output = res.stdout.lower()
 
             # VulkanInfo geralmente lista as GPUs no resumo.
             # Lógica simples: se acharmos "nvidia" ou "radeon rx", é dedicada.
             if "nvidia" in output or "rtx" in output or "gtx" in output:
-                log.info(
-                    "[AI UPSCALER] GPU NVIDIA Dedicada detectada para aceleração Vulkan."
-                )
+                log.info("[AI UPSCALER] GPU NVIDIA Dedicada detectada para aceleração Vulkan.")
                 return 0
             elif "radeon rx" in output or "amd radeon pro" in output:
-                log.info(
-                    "[AI UPSCALER] GPU AMD Dedicada detectada para aceleração Vulkan."
-                )
+                log.info("[AI UPSCALER] GPU AMD Dedicada detectada para aceleração Vulkan.")
                 return 0
             elif "intel" in output or "uhd" in output or "iris" in output:
-                log.info(
-                    "[AI UPSCALER] GPU Intel Integrada detectada para aceleração Vulkan."
-                )
+                log.info("[AI UPSCALER] GPU Intel Integrada detectada para aceleração Vulkan.")
                 return 0  # NCNN normalmente mapeia a primeira GPU como 0
         except Exception:
             pass
 
-        log.warning(
-            "[AI UPSCALER] vulkaninfo não encontrado ou falhou. Usando GPU 0 por padrão (Auto-detecção cega)."
-        )
+        log.warning("[AI UPSCALER] vulkaninfo não encontrado ou falhou. Usando GPU 0 por padrão (Auto-detecção cega).")
         return 0
 
     def _find_or_download_ncnn(self):
@@ -62,17 +51,13 @@ class AIUpscaler:
         Localiza ou instrui o download do realesrgan-ncnn-vulkan, que é a forma
         mais eficiente, rápida e gratuita de rodar ESRGAN em qualquer placa de vídeo (AMD/NVIDIA/Intel).
         """
-        base_dir = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "..", "tools", "realesrgan")
-        )
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "tools", "realesrgan"))
         exe_path = os.path.join(base_dir, "realesrgan-ncnn-vulkan.exe")
 
         if not os.path.exists(exe_path):
-            log.warning(
-                "[AI UPSCALER] O motor gratuito RealESRGAN-NCNN-Vulkan nao foi encontrado."
-            )
+            log.warning("[AI UPSCALER] O motor gratuito RealESRGAN-NCNN-Vulkan nao foi encontrado.")
             log.info(
-                "Para usar upscale de IA gratuito, baixe a ultima versao em: https://github.com/xinntao/Real-ESRGAN/releases"
+                "Para usar upscale de IA gratuito, baixe a ultima versao em: https://github.com/xinntao/Real-ESRGAN/releases"  # noqa: E501
             )
             log.info(f"E extraia o executavel em: {base_dir}")
             return None
@@ -84,9 +69,7 @@ class AIUpscaler:
         O binário ncnn-vulkan já suporta entrada de vídeo diretamente nas versões mais recentes.
         """
         if not self.ncnn_path:
-            raise RuntimeError(
-                "Motor ESRGAN ausente. Impossivel realizar upscaling via IA."
-            )
+            raise RuntimeError("Motor ESRGAN ausente. Impossivel realizar upscaling via IA.")
 
         log.info(f"[AI UPSCALER] Iniciando Upscaling Neural com {self.model_name}...")
 
@@ -106,12 +89,8 @@ class AIUpscaler:
 
         try:
             # Roda o ESRGAN
-            subprocess.run(
-                cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-            )
-            log.info(
-                f"[AI UPSCALER] Upscaling de IA concluído com sucesso: {output_video}"
-            )
+            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            log.info(f"[AI UPSCALER] Upscaling de IA concluído com sucesso: {output_video}")
         except subprocess.CalledProcessError as e:
             log.error(f"[AI UPSCALER] Falha ao executar RealESRGAN: {e}")
 
@@ -121,18 +100,15 @@ class AIUpscaler:
         Requer: pip install realesrgan torch torchvision opencv-python
         """
         try:
-            import cv2
             from basicsr.archs.rrdbnet_arch import RRDBNet
             from realesrgan import RealESRGANer
         except ImportError:
             raise ImportError(
-                "Para processamento in-memory via código, instale: pip install realesrgan torch torchvision opencv-python"
+                "Para processamento in-memory via código, instale: pip install realesrgan torch torchvision opencv-python"  # noqa: E501
             )
 
         # Converte bytes brutos para array NumPy
-        frame = np.frombuffer(rgb_frame_bytes, dtype=np.uint8).reshape(
-            (height, width, 3)
-        )
+        frame = np.frombuffer(rgb_frame_bytes, dtype=np.uint8).reshape((height, width, 3))
 
         # Inicializa o modelo (apenas na primeira chamada em um loop real)
         model = RRDBNet(

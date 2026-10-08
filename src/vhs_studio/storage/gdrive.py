@@ -53,11 +53,7 @@ class GoogleDriveProvider(StorageProvider):
             log.info(f"[GDrive] Iniciando upload: {local_filepath} ...")
 
             # TODO: Lidar com pastas (parents) no Drive
-            file = (
-                self.service.files()
-                .create(body=file_metadata, media_body=media, fields="id")
-                .execute()
-            )
+            file = self.service.files().create(body=file_metadata, media_body=media, fields="id").execute()
             log.info(f"[GDrive] Upload concluído. File ID: {file.get('id')}")
             return True
         except Exception as e:

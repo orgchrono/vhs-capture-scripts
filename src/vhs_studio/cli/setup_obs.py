@@ -72,9 +72,7 @@ def setup_windows_portable():
     open(os.path.join(OBS_DIR, "obs_portable_mode.txt"), "w").close()
 
     # 5. Configurar WebSocket
-    config_dir = os.path.join(
-        OBS_DIR, "config", "obs-studio", "plugin_config", "obs-websocket"
-    )
+    config_dir = os.path.join(OBS_DIR, "config", "obs-studio", "plugin_config", "obs-websocket")
     os.makedirs(config_dir, exist_ok=True)
 
     ws_config = {
