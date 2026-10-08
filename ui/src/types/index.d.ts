@@ -1,4 +1,4 @@
-export interface RawFile {
+﻿export interface RawFile {
   name: string;
   path: string;
   size_mb: number;
@@ -10,6 +10,11 @@ export interface SystemStatus {
   obs_connected?: boolean;
   obs_recording?: boolean;
   raw_files: RawFile[];
+  health?: {
+    dropped_frames: number
+    cpu_usage: number
+    is_recording: boolean
+  };
 }
 
 export type RestorationPreset = 'gold' | 'speed' | 'tbc_hold' | 'ai_master' | 'custom';

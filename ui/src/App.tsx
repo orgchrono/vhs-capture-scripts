@@ -76,7 +76,7 @@ const StudioMain: React.FC = () => {
                   Monitor de Sinal
                 </h2>
                 <div className="flex-1 bg-black rounded-xl overflow-hidden border border-white/5 shadow-inner">
-                  <LiveMonitor />
+                  <LiveMonitor health={status?.health} />
                 </div>
               </div>
 

@@ -104,7 +104,8 @@ def get_status():
         "obs_connected": ensure_obs_running(),
         "raw_files": raw_files,
         "process_running": pm.is_running(),
-        "process_logs": pm.get_logs()
+        "process_logs": pm.get_logs(),
+        "health": obs_health_stats
     }
 
 

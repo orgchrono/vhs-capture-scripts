@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { studioApi } from '../api/studioApi'
 import { useStudioStore } from '../store/useStudioStore'
 

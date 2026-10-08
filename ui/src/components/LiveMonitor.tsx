@@ -3,7 +3,7 @@ import { Video, AlertTriangle } from 'lucide-react';
 import { useStudioStore } from '../store/useStudioStore';
 import { studioApi } from '../api/studioApi';
 
-export const LiveMonitor: React.FC = () => {
+export const LiveMonitor: React.FC<{ health?: any }> = ({ health }) => {
   const { isCapturing } = useStudioStore();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -73,6 +73,11 @@ export const LiveMonitor: React.FC = () => {
         {isCapturing && (
           <span className="bg-red-600/90 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-white border border-red-500/50 shadow-sm flex items-center gap-1.5 animate-pulse tracking-wider">
             <span className="w-1.5 h-1.5 bg-white rounded-full"></span> REC
+          </span>
+        )}
+        {health?.dropped_frames > 0 && (
+          <span className="bg-amber-600/90 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-white border border-amber-500/50 shadow-sm flex items-center gap-1.5 animate-pulse tracking-wider">
+            <AlertTriangle className="w-3 h-3 text-white" /> FITA MASTIGADA! ({health.dropped_frames} DROPS)
           </span>
         )}
       </div>
