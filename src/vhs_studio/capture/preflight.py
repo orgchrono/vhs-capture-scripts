@@ -3,31 +3,48 @@ import shutil
 import subprocess
 import urllib.request
 import zipfile
+import platform
 from vhs_studio.core.logger import log
 from vhs_studio.cli.setup_obs import install_obs
 
 TOOLS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "tools"))
 FFMPEG_DIR = os.path.join(TOOLS_DIR, "ffmpeg")
-OBS_PORTABLE = os.path.join(TOOLS_DIR, "obs", "bin", "64bit", "obs64.exe")
-OBS_SYSTEM = r"C:\Program Files\obs-studio\bin\64bit\obs64.exe"
+
+
+def is_ffmpeg_in_path():
+    try:
+        subprocess.run(["ffmpeg", "-version"], capture_output=True, check=True)
+        return True
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return False
 
 
 def ensure_obs():
-    if os.path.exists(OBS_SYSTEM):
-        log.info("[Preflight] OBS detectado no sistema.")
-        return True
-    if os.path.exists(OBS_PORTABLE):
-        log.info("[Preflight] OBS Portable detectado na pasta tools.")
-        return True
+    sys_name = platform.system()
 
-    log.warning("[Preflight] OBS não encontrado. Iniciando fallback de download e instalação portátil...")
+    if sys_name == "Windows":
+        obs_system = r"C:\Program Files\obs-studio\bin\64bit\obs64.exe"
+        obs_portable = os.path.join(TOOLS_DIR, "obs", "bin", "64bit", "obs64.exe")
+        if os.path.exists(obs_system) or os.path.exists(obs_portable):
+            log.info("[Preflight] OBS detectado no sistema (Windows).")
+            return True
+    elif sys_name == "Linux":
+        if shutil.which("obs"):
+            log.info("[Preflight] OBS detectado no sistema (Linux).")
+            return True
+    elif sys_name == "Darwin":  # macOS
+        if shutil.which("obs") or os.path.exists("/Applications/OBS.app"):
+            log.info("[Preflight] OBS detectado no sistema (macOS).")
+            return True
+
+    log.warning(f"[Preflight] OBS não encontrado no {sys_name}. Iniciando fallback de instalação...")
     try:
-        success = install_obs()
+        success = install_obs()  # setup_obs.py já é nativamente multiplataforma!
         if success:
-            log.info("[Preflight] OBS baixado e configurado com sucesso.")
+            log.info("[Preflight] OBS instalado/configurado com sucesso.")
             return True
         else:
-            log.error("[Preflight] Falha ao baixar OBS.")
+            log.error("[Preflight] Falha ao instalar OBS.")
             return False
     except Exception as e:
         log.error(f"[Preflight] Erro crítico no auto-setup do OBS: {e}")
@@ -35,65 +52,74 @@ def ensure_obs():
 
 
 def ensure_ffmpeg():
-    # 1. Tenta achar no PATH nativo
-    try:
-        subprocess.run(["ffmpeg", "-version"], capture_output=True, check=True)
-        log.info("[Preflight] FFmpeg detectado no PATH do sistema.")
-        return True
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        pass
-
-    # 2. Verifica se já temos na pasta tools/ffmpeg
-    ffmpeg_exe = os.path.join(FFMPEG_DIR, "bin", "ffmpeg.exe")
-    if os.path.exists(ffmpeg_exe):
-        # Injeta temporariamente no PATH dessa execução
-        os.environ["PATH"] += os.pathsep + os.path.join(FFMPEG_DIR, "bin")
-        log.info("[Preflight] FFmpeg Portable detectado e injetado no PATH.")
+    # 1. Tenta achar no PATH nativo (Funciona em Win/Mac/Linux)
+    if is_ffmpeg_in_path():
+        log.info("[Preflight] FFmpeg detectado nativamente no PATH do sistema.")
         return True
 
-    # 3. Fallback de Download Automático
-    log.warning("[Preflight] FFmpeg não encontrado. Iniciando download da build estática (BtbN)...")
-    os.makedirs(TOOLS_DIR, exist_ok=True)
-    zip_path = os.path.join(TOOLS_DIR, "ffmpeg.zip")
-    url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
+    sys_name = platform.system()
+
+    # 2. Verifica instalação portátil local (Apenas Windows)
+    if sys_name == "Windows":
+        ffmpeg_exe = os.path.join(FFMPEG_DIR, "bin", "ffmpeg.exe")
+        if os.path.exists(ffmpeg_exe):
+            os.environ["PATH"] += os.pathsep + os.path.join(FFMPEG_DIR, "bin")
+            log.info("[Preflight] FFmpeg Portable injetado no PATH do Windows.")
+            return True
+
+    # 3. Fallback Multiplataforma
+    log.warning(f"[Preflight] FFmpeg ausente. Iniciando instalação fallback para {sys_name}...")
 
     try:
-        log.info(f"[Preflight] Baixando: {url}")
-        urllib.request.urlretrieve(url, zip_path)
-        log.info("[Preflight] Extraindo FFmpeg...")
-        with zipfile.ZipFile(zip_path, "r") as zip_ref:
-            # Extrai tudo para TOOLS_DIR
-            extracted_folder = zip_ref.namelist()[0].split("/")[0]
-            zip_ref.extractall(TOOLS_DIR)
+        if sys_name == "Linux":
+            log.info("[Preflight] Tentando instalar FFmpeg via APT (Linux)...")
+            subprocess.run(["sudo", "apt-get", "update"], check=True)
+            subprocess.run(["sudo", "apt-get", "install", "-y", "ffmpeg"], check=True)
+            return True
 
-        # Renomeia a pasta feia (ex: ffmpeg-master-latest-win64-gpl) para "ffmpeg"
-        extracted_path = os.path.join(TOOLS_DIR, extracted_folder)
-        if os.path.exists(FFMPEG_DIR):
-            shutil.rmtree(FFMPEG_DIR)
-        os.rename(extracted_path, FFMPEG_DIR)
-        os.remove(zip_path)
+        elif sys_name == "Darwin":
+            log.info("[Preflight] Tentando instalar FFmpeg via Homebrew (macOS)...")
+            subprocess.run(["brew", "install", "ffmpeg"], check=True)
+            return True
 
-        # Injeta no PATH
-        os.environ["PATH"] += os.pathsep + os.path.join(FFMPEG_DIR, "bin")
-        log.info("[Preflight] FFmpeg instalado e atualizado com sucesso!")
-        return True
+        elif sys_name == "Windows":
+            log.info("[Preflight] Baixando FFmpeg Portable (Windows)...")
+            os.makedirs(TOOLS_DIR, exist_ok=True)
+            zip_path = os.path.join(TOOLS_DIR, "ffmpeg.zip")
+            url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
+
+            urllib.request.urlretrieve(url, zip_path)
+            with zipfile.ZipFile(zip_path, "r") as zip_ref:
+                extracted_folder = zip_ref.namelist()[0].split("/")[0]
+                zip_ref.extractall(TOOLS_DIR)
+
+            extracted_path = os.path.join(TOOLS_DIR, extracted_folder)
+            if os.path.exists(FFMPEG_DIR):
+                shutil.rmtree(FFMPEG_DIR)
+            os.rename(extracted_path, FFMPEG_DIR)
+            os.remove(zip_path)
+
+            os.environ["PATH"] += os.pathsep + os.path.join(FFMPEG_DIR, "bin")
+            log.info("[Preflight] FFmpeg Portable instalado no Windows.")
+            return True
+        else:
+            log.error(f"[Preflight] Sistema não suportado para instalação automática de FFmpeg: {sys_name}")
+            return False
+
     except Exception as e:
-        log.error(f"[Preflight] Falha ao fazer download/instalação do FFmpeg: {e}")
+        log.error(f"[Preflight] Falha catastrófica ao obter FFmpeg no {sys_name}: {e}")
         return False
 
 
 def run_preflight_checks():
     issues = []
 
-    # Check & Auto-Install OBS
     if not ensure_obs():
-        issues.append("OBS Studio ausente e fallback de download falhou.")
+        issues.append("OBS Studio ausente e instalação falhou.")
 
-    # Check & Auto-Install FFmpeg
     if not ensure_ffmpeg():
-        issues.append("FFmpeg ausente e fallback de download falhou.")
+        issues.append("FFmpeg ausente e instalação falhou.")
 
-    # Check Disk Space
     raw_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "media", "raw"))
     os.makedirs(raw_dir, exist_ok=True)
     total, used, free = shutil.disk_usage(raw_dir)
