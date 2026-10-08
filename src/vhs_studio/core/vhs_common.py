@@ -1,4 +1,6 @@
+﻿# flake8: noqa
 from vhs_studio.core.toolchain import Toolchain
+
 #!/usr/bin/env python3
 """
 vhs_common.py - Biblioteca Python unificada para o pipeline VHS Studio
@@ -16,28 +18,34 @@ from vhs_studio.core.logger import log
 import shutil
 
 
-
-
-
-
-
 def probe_media(file_path):
     """
     Inspeciona profundamente o arquivo de mídia usando ffprobe e retorna metadados completos.
     """
     ffprobe = Toolchain.get_ffprobe_path()
     cmd = [
-        ffprobe, "-v", "error",
-        "-show_streams", "-show_format",
-        "-of", "json", file_path
+        ffprobe,
+        "-v",
+        "error",
+        "-show_streams",
+        "-show_format",
+        "-of",
+        "json",
+        file_path,
     ]
     res = subprocess.run(cmd, capture_output=True, text=True)
     if res.returncode != 0:
-        raise RuntimeError(f"ffprobe falhou ao inspecionar '{file_path}': {res.stderr.strip()}")
+        raise RuntimeError(
+            f"ffprobe falhou ao inspecionar '{file_path}': {res.stderr.strip()}"
+        )
 
     data = json.loads(res.stdout)
-    v_stream = next((s for s in data.get("streams", []) if s.get("codec_type") == "video"), {})
-    a_stream = next((s for s in data.get("streams", []) if s.get("codec_type") == "audio"), {})
+    v_stream = next(
+        (s for s in data.get("streams", []) if s.get("codec_type") == "video"), {}
+    )
+    a_stream = next(
+        (s for s in data.get("streams", []) if s.get("codec_type") == "audio"), {}
+    )
 
     w = int(v_stream.get("width", 720))
     h = int(v_stream.get("height", 480))
@@ -76,8 +84,9 @@ def probe_media(file_path):
         "color_space": v_stream.get("color_space", "smpte170m"),
         "color_primaries": v_stream.get("color_primaries", "smpte170m"),
         "color_transfer": v_stream.get("color_transfer", "smpte170m"),
-        "format": data.get("format", {}).get("format_name", "")
+        "format": data.get("format", {}).get("format_name", ""),
     }
+
 
 def detect_interlace_status(file_path, num_frames=300, start_sec=None):
     """
@@ -87,7 +96,7 @@ def detect_interlace_status(file_path, num_frames=300, start_sec=None):
     líderes pretos estáticos que resultam em detecções indeterminadas.
     """
     ffmpeg = Toolchain.get_ffmpeg_path()
-    
+
     # Se start_sec não for informado, tenta buscar após o início estático
     if start_sec is None:
         try:
@@ -98,18 +107,36 @@ def detect_interlace_status(file_path, num_frames=300, start_sec=None):
             start_sec = 0.0
 
     cmd = [
-        ffmpeg, "-hide_banner",
-        "-ss", str(start_sec),
-        "-i", file_path,
-        "-vf", "idet",
-        "-vframes", str(num_frames),
-        "-an", "-f", "null", "-"
+        ffmpeg,
+        "-hide_banner",
+        "-ss",
+        str(start_sec),
+        "-i",
+        file_path,
+        "-vf",
+        "idet",
+        "-vframes",
+        str(num_frames),
+        "-an",
+        "-f",
+        "null",
+        "-",
     ]
     res = subprocess.run(cmd, capture_output=True, text=True)
     stderr = res.stderr
 
-    multi_matches = list(re.finditer(r"Multi frame detection:\s+TFF:\s*(\d+)\s+BFF:\s*(\d+)\s+Progressive:\s*(\d+)\s+Undetermined:\s*(\d+)", stderr))
-    single_matches = list(re.finditer(r"Single frame detection:\s+TFF:\s*(\d+)\s+BFF:\s*(\d+)\s+Progressive:\s*(\d+)\s+Undetermined:\s*(\d+)", stderr))
+    multi_matches = list(
+        re.finditer(
+            r"Multi frame detection:\s+TFF:\s*(\d+)\s+BFF:\s*(\d+)\s+Progressive:\s*(\d+)\s+Undetermined:\s*(\d+)",
+            stderr,
+        )
+    )
+    single_matches = list(
+        re.finditer(
+            r"Single frame detection:\s+TFF:\s*(\d+)\s+BFF:\s*(\d+)\s+Progressive:\s*(\d+)\s+Undetermined:\s*(\d+)",
+            stderr,
+        )
+    )
 
     for m in reversed(multi_matches + single_matches):
         tff = int(m.group(1))
@@ -121,7 +148,9 @@ def detect_interlace_status(file_path, num_frames=300, start_sec=None):
         if total > 0:
             # Se a grande maioria for undetermined (ex: clipe curto estático), tenta fallback no frame 0 se não foi
             if undet > total * 0.85 and start_sec > 0:
-                return detect_interlace_status(file_path, num_frames=num_frames, start_sec=0.0)
+                return detect_interlace_status(
+                    file_path, num_frames=num_frames, start_sec=0.0
+                )
 
             is_interlaced = (tff + bff) > prog
             order = "bff" if bff >= tff else "tff"
@@ -133,15 +162,16 @@ def detect_interlace_status(file_path, num_frames=300, start_sec=None):
                 "bff_count": bff,
                 "progressive_count": prog,
                 "undetermined_count": undet,
-                "summary": f"{'Interlaced (' + order.upper() + ')' if is_interlaced else 'Progressive'} ({tff} TFF, {bff} BFF, {prog} Prog, {undet} Undet)"
+                "summary": f"{'Interlaced (' + order.upper() + ')' if is_interlaced else 'Progressive'} ({tff} TFF, {bff} BFF, {prog} Prog, {undet} Undet)",
             }
 
     return {
         "detected": False,
         "is_interlaced": False,
         "preferred_order": "bff",
-        "summary": "Detecção inconclusiva"
+        "summary": "Detecção inconclusiva",
     }
+
 
 def detect_audio_layout(file_path, sample_sec=15.0, sample_duration=5.0):
     """
@@ -152,18 +182,29 @@ def detect_audio_layout(file_path, sample_sec=15.0, sample_duration=5.0):
     """
     ffmpeg = Toolchain.get_ffmpeg_path()
     cmd = [
-        ffmpeg, "-hide_banner",
-        "-ss", str(sample_sec),
-        "-t", str(sample_duration),
-        "-i", file_path,
-        "-af", "astats",
-        "-f", "null", "-"
+        ffmpeg,
+        "-hide_banner",
+        "-ss",
+        str(sample_sec),
+        "-t",
+        str(sample_duration),
+        "-i",
+        file_path,
+        "-af",
+        "astats",
+        "-f",
+        "null",
+        "-",
     ]
     res = subprocess.run(cmd, capture_output=True, text=True)
     stderr = res.stderr
 
-    ch1_match = re.search(r"Channel: 1.*?RMS level dB:\s*(-?[\d\.]+)", stderr, re.DOTALL)
-    ch2_match = re.search(r"Channel: 2.*?RMS level dB:\s*(-?[\d\.]+)", stderr, re.DOTALL)
+    ch1_match = re.search(
+        r"Channel: 1.*?RMS level dB:\s*(-?[\d\.]+)", stderr, re.DOTALL
+    )
+    ch2_match = re.search(
+        r"Channel: 2.*?RMS level dB:\s*(-?[\d\.]+)", stderr, re.DOTALL
+    )
 
     if ch1_match and ch2_match:
         rms1 = float(ch1_match.group(1))
@@ -177,7 +218,7 @@ def detect_audio_layout(file_path, sample_sec=15.0, sample_duration=5.0):
                 "rms_l": rms1,
                 "rms_r": rms2,
                 "recommendation": "duplicate_l_to_r",
-                "reason": f"Canal R está mudo ({rms2:.1f} dB) enquanto L tem sinal ({rms1:.1f} dB). Duplicação necessária."
+                "reason": f"Canal R está mudo ({rms2:.1f} dB) enquanto L tem sinal ({rms1:.1f} dB). Duplicação necessária.",
             }
         # Canal 1 está mudo enquanto canal 2 tem sinal
         if rms1 < -55.0 and rms2 > -45.0:
@@ -187,7 +228,7 @@ def detect_audio_layout(file_path, sample_sec=15.0, sample_duration=5.0):
                 "rms_l": rms1,
                 "rms_r": rms2,
                 "recommendation": "duplicate_r_to_l",
-                "reason": f"Canal L está mudo ({rms1:.1f} dB) enquanto R tem sinal ({rms2:.1f} dB)."
+                "reason": f"Canal L está mudo ({rms1:.1f} dB) enquanto R tem sinal ({rms2:.1f} dB).",
             }
         # Ambos os canais são praticamente idênticos (duplicação pelo hardware Panasonic DMR-EH55)
         if abs(rms1 - rms2) < 0.8 and rms1 > -50.0:
@@ -197,7 +238,7 @@ def detect_audio_layout(file_path, sample_sec=15.0, sample_duration=5.0):
                 "rms_l": rms1,
                 "rms_r": rms2,
                 "recommendation": "passthrough",
-                "reason": f"Canais L e R são idênticos (L: {rms1:.1f} dB, R: {rms2:.1f} dB). Placa já realizou a duplicação."
+                "reason": f"Canais L e R são idênticos (L: {rms1:.1f} dB, R: {rms2:.1f} dB). Placa já realizou a duplicação.",
             }
         # Canais com sinais independentes
         return {
@@ -206,7 +247,7 @@ def detect_audio_layout(file_path, sample_sec=15.0, sample_duration=5.0):
             "rms_l": rms1,
             "rms_r": rms2,
             "recommendation": "passthrough",
-            "reason": f"Estéreo genuíno detectado (L: {rms1:.1f} dB, R: {rms2:.1f} dB)."
+            "reason": f"Estéreo genuíno detectado (L: {rms1:.1f} dB, R: {rms2:.1f} dB).",
         }
 
     return {
@@ -215,10 +256,19 @@ def detect_audio_layout(file_path, sample_sec=15.0, sample_duration=5.0):
         "rms_l": 0.0,
         "rms_r": 0.0,
         "recommendation": "passthrough",
-        "reason": "Análise de áudio inconclusiva (mantendo estéreo padrão)."
+        "reason": "Análise de áudio inconclusiva (mantendo estéreo padrão).",
     }
 
-def resolve_pipeline_strategy(meta, interlace_info, audio_info, user_fps=None, user_deint=None, user_audio=None, interactive=False):
+
+def resolve_pipeline_strategy(
+    meta,
+    interlace_info,
+    audio_info,
+    user_fps=None,
+    user_deint=None,
+    user_audio=None,
+    interactive=False,
+):
     """
     Consolida as detecções técnicas com eventuais parâmetros do usuário e
     resolve a estratégia canônica à prova de falhas.
@@ -244,7 +294,9 @@ def resolve_pipeline_strategy(meta, interlace_info, audio_info, user_fps=None, u
         ambiguity_reasons.append(f"FPS incomum detectado: {raw_fps:.2f}")
 
     if user_deint:
-        need_deinterlace = (user_deint == "force") or (user_deint == "auto" and is_interlaced)
+        need_deinterlace = (user_deint == "force") or (
+            user_deint == "auto" and is_interlaced
+        )
     else:
         # Se o FPS já for >= 45.0 e o container marcar progressivo, não deve desentrelaçar
         if raw_fps >= 45.0 and not is_interlaced:
@@ -252,7 +304,9 @@ def resolve_pipeline_strategy(meta, interlace_info, audio_info, user_fps=None, u
         elif raw_fps < 35.0 and is_interlaced:
             need_deinterlace = True
         elif raw_fps >= 45.0 and is_interlaced:
-            ambiguity_reasons.append(f"Conflito: Taxa alta ({raw_fps:.2f} fps) mas idet aponta entrelaçamento.")
+            ambiguity_reasons.append(
+                f"Conflito: Taxa alta ({raw_fps:.2f} fps) mas idet aponta entrelaçamento."
+            )
             need_deinterlace = False
         else:
             need_deinterlace = is_interlaced
@@ -274,7 +328,9 @@ def resolve_pipeline_strategy(meta, interlace_info, audio_info, user_fps=None, u
         log.info("============================================================")
         log.info("[AUDIT / DECISÃO INTERATIVA DA PIPELINE]")
         log.info(f"  Arquivo: {meta.get('file_path')}")
-        log.info(f"  FPS Nativo: {raw_fps:.3f} | Resolução: {meta.get('width')}x{meta.get('height')}")
+        log.info(
+            f"  FPS Nativo: {raw_fps:.3f} | Resolução: {meta.get('width')}x{meta.get('height')}"
+        )
         log.info(f"  Status idet: {interlace_info.get('summary')}")
         log.info(f"  Áudio: {audio_info.get('reason')}")
         if ambiguity_reasons:
@@ -282,9 +338,13 @@ def resolve_pipeline_strategy(meta, interlace_info, audio_info, user_fps=None, u
             for a in ambiguity_reasons:
                 log.warning(f"    - {a}")
         log.info("\nComo deseja processar o vídeo?")
-        log.info(f"  [1] Recomendado: FPS {target_fps:.3f} | Desentrelaçamento: {'Sim' if need_deinterlace else 'Não'} | Áudio: {audio_policy}")
+        log.info(
+            f"  [1] Recomendado: FPS {target_fps:.3f} | Desentrelaçamento: {'Sim' if need_deinterlace else 'Não'} | Áudio: {audio_policy}"
+        )
         log.info("  [2] Forçar NTSC 29.97i -> 59.94p (Double-Rate BWDIF/QTGMC)")
-        log.info("  [3] Forçar Progressivo Direto (Pular desentrelaçamento, manter FPS nativo)")
+        log.info(
+            "  [3] Forçar Progressivo Direto (Pular desentrelaçamento, manter FPS nativo)"
+        )
         log.info("  [4] Forçar PAL 25i -> 50p")
         try:
             choice = input("Escolha uma opção [1-4] (Enter para 1): ").strip()
@@ -310,8 +370,9 @@ def resolve_pipeline_strategy(meta, interlace_info, audio_info, user_fps=None, u
         "preferred_order": preferred_order,
         "audio_policy": audio_policy,
         "ambiguity": len(ambiguity_reasons) > 0,
-        "ambiguity_details": ambiguity_reasons
+        "ambiguity_details": ambiguity_reasons,
     }
+
 
 def is_no_signal_frame(mean_luma, mean_cb=128.0, mean_cr=128.0):
     """
@@ -326,11 +387,13 @@ def is_no_signal_frame(mean_luma, mean_cb=128.0, mean_cr=128.0):
         return True, "blue_screen"
     return False, "normal"
 
+
 def write_manifest(manifest_path, data):
     """Grava o manifesto de sessão em formato JSON formatado."""
     os.makedirs(os.path.dirname(manifest_path), exist_ok=True)
     with open(manifest_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
+
 
 def read_manifest(manifest_path):
     """Lê o manifesto JSON se existir."""

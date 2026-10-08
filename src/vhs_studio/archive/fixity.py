@@ -1,5 +1,6 @@
 import hashlib
 
+
 class FixityChecker:
     @staticmethod
     def calculate_sha256(filepath, chunk_size=8192):

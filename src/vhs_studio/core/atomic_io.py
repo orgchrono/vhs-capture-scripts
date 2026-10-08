@@ -2,6 +2,7 @@ import os
 import hashlib
 import json
 
+
 class AtomicIO:
     @staticmethod
     def generate_hash(params_dict):

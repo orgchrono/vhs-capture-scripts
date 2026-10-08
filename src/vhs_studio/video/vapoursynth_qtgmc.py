@@ -1,8 +1,9 @@
-import os
+﻿import os
 import sys
 import subprocess
 import shutil
 from vhs_studio.core.logger import log
+
 
 class VapourSynthQTGMC:
     """
@@ -20,12 +21,21 @@ class VapourSynthQTGMC:
         """Verifica se o módulo vapoursynth pode ser importado."""
         try:
             import vapoursynth
+
             return True
         except ImportError:
             return False
 
     @classmethod
-    def generate_qtgmc_script(cls, input_path, output_vpy_path, preset="Slower", field_order="tff", fps_mode=2, apply_comb_filter=False):
+    def generate_qtgmc_script(
+        cls,
+        input_path,
+        output_vpy_path,
+        preset="Slower",
+        field_order="tff",
+        fps_mode=2,
+        apply_comb_filter=False,
+    ):
         """
         Gera um script .vpy configurado para desentrelaçamento de alta precisão via QTGMC.
         field_order: 'tff' (Top Field First) ou 'bff' (Bottom Field First)
@@ -35,7 +45,11 @@ class VapourSynthQTGMC:
         escaped_input = input_path.replace("\\", "/")
         tff_bool = "True" if field_order.lower() == "tff" else "False"
 
-        comb_str = "clip = core.tcomb.TComb(clip, mode=2, fthreshl=4, fthreshc=5, othreshl=5, othreshc=6)" if apply_comb_filter else ""
+        comb_str = (
+            "clip = core.tcomb.TComb(clip, mode=2, fthreshl=4, fthreshc=5, othreshl=5, othreshc=6)"
+            if apply_comb_filter
+            else ""
+        )
 
         script_content = f"""# Script VapourSynth QTGMC gerado automaticamente pela Pipeline VHS Studio
 import vapoursynth as vs
@@ -84,11 +98,15 @@ clip.set_output()
 
         cmd_vspipe = ["vspipe", "-c", "y4m", vpy_path, "-"]
         log.info(f"[QTGMC] Executando VapourSynth: {' '.join(cmd_vspipe)}")
-        
-        p_vs = subprocess.Popen(cmd_vspipe, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        p_ff = subprocess.Popen(ffmpeg_output_args, stdin=p_vs.stdout, stderr=subprocess.PIPE)
+
+        p_vs = subprocess.Popen(
+            cmd_vspipe, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+        p_ff = subprocess.Popen(
+            ffmpeg_output_args, stdin=p_vs.stdout, stderr=subprocess.PIPE
+        )
         p_vs.stdout.close()
-        
+
         stdout, stderr = p_ff.communicate()
         return p_ff.returncode == 0
 
@@ -100,14 +118,25 @@ clip.set_output()
         No macOS / Linux utiliza o script Bash correspondente (brew / apt / pacman / dnf).
         """
         bin_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "bin"))
-        
+
         if sys.platform == "win32":
             script_ps1 = os.path.join(bin_dir, "setup_vapoursynth.ps1")
-            log.info(f"[QTGMC INSTALADOR] Iniciando instalador PowerShell no Windows: {script_ps1}")
-            cmd = ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script_ps1]
+            log.info(
+                f"[QTGMC INSTALADOR] Iniciando instalador PowerShell no Windows: {script_ps1}"
+            )
+            cmd = [
+                "powershell.exe",
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                script_ps1,
+            ]
         else:
             script_sh = os.path.join(bin_dir, "setup_vapoursynth.sh")
-            log.info(f"[QTGMC INSTALADOR] Iniciando instalador Bash no macOS/Linux: {script_sh}")
+            log.info(
+                f"[QTGMC INSTALADOR] Iniciando instalador Bash no macOS/Linux: {script_sh}"
+            )
             cmd = ["bash", script_sh]
 
         try:
@@ -116,4 +145,3 @@ clip.set_output()
         except Exception as e:
             log.error(f"[QTGMC INSTALADOR] Falha ao executar script de instalação: {e}")
             return False
-

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
+
 @dataclass(frozen=True)
 class RestoreOptions:
     input_path: str
@@ -20,6 +21,7 @@ class RestoreOptions:
     deinterlacer: str = "auto"
     audio_mode: str = "auto"
     target_fps: Optional[float] = None
+
 
 @dataclass
 class RestoreResult:

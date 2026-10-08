@@ -6,6 +6,7 @@ import subprocess
 
 from vhs_studio.core.toolchain import Toolchain
 
+
 class FilterBuilder:
     def __init__(self, target_1080p=True, crf=20, mode="freeze", output_codec="h264"):
         self.output_codec = output_codec
@@ -22,7 +23,18 @@ class FilterBuilder:
     def check_encoder_support(encoder_name):
         try:
             # Testa se o hardware e driver realmente aceitam codificar um frame
-            cmd = [Toolchain.get_ffmpeg_path(), "-f", "lavfi", "-i", "nullsrc=s=64x64:d=0.04", "-c:v", encoder_name, "-f", "null", "-"]
+            cmd = [
+                Toolchain.get_ffmpeg_path(),
+                "-f",
+                "lavfi",
+                "-i",
+                "nullsrc=s=64x64:d=0.04",
+                "-c:v",
+                encoder_name,
+                "-f",
+                "null",
+                "-",
+            ]
             res = subprocess.run(cmd, capture_output=True, text=True, timeout=3)
             return res.returncode == 0
         except Exception:
@@ -48,7 +60,14 @@ class FilterBuilder:
             return "h264_qsv"
         return "libx264"
 
-    def build_video_filters(self, apply_chroma, apply_denoise, deinterlacer, apply_comb_filter=False, overscan_blanking=False):
+    def build_video_filters(
+        self,
+        apply_chroma,
+        apply_denoise,
+        deinterlacer,
+        apply_comb_filter=False,
+        overscan_blanking=False,
+    ):
         vf_filters = []
         if overscan_blanking:
             vf_filters.append("drawbox=y=ih-12:color=black:width=iw:height=12:t=fill")
@@ -56,8 +75,10 @@ class FilterBuilder:
             if self.check_filter_support("dedot"):
                 vf_filters.append("dedot=m=comb")
             else:
-                log.warning("[AVISO] Filtro 3D Comb (dedot) não encontrado no FFmpeg local. Omitindo.")
-                
+                log.warning(
+                    "[AVISO] Filtro 3D Comb (dedot) não encontrado no FFmpeg local. Omitindo."
+                )
+
         if apply_chroma:
             vf_filters.append(Filters.CHROMA_SHIFT)
         if apply_denoise:
@@ -71,16 +92,22 @@ class FilterBuilder:
             if self.check_filter_support("znedi3"):
                 vf_filters.append(Filters.DEINT_ZNEDI3)
             elif self.check_filter_support("nnedi"):
-                log.info("[DEINTERLACE] Usando filtro de rede neural 'nnedi' nativo do FFmpeg.")
+                log.info(
+                    "[DEINTERLACE] Usando filtro de rede neural 'nnedi' nativo do FFmpeg."
+                )
                 vf_filters.append(Filters.DEINT_NNEDI)
             else:
-                log.warning("[AVISO] Filtros 'znedi3'/'nnedi' não encontrados neste FFmpeg. Fazendo fallback para 'bwdif'!")
+                log.warning(
+                    "[AVISO] Filtros 'znedi3'/'nnedi' não encontrados neste FFmpeg. Fazendo fallback para 'bwdif'!"
+                )
                 vf_filters.append(Filters.DEINT_BWDIF_BOB)
         elif deinterlacer == "nnedi":
             if self.check_filter_support("nnedi"):
                 vf_filters.append(Filters.DEINT_NNEDI)
             else:
-                log.warning("[AVISO] Filtro 'nnedi' não encontrado neste FFmpeg. Fazendo fallback para 'bwdif'!")
+                log.warning(
+                    "[AVISO] Filtro 'nnedi' não encontrado neste FFmpeg. Fazendo fallback para 'bwdif'!"
+                )
                 vf_filters.append(Filters.DEINT_BWDIF_BOB)
         elif deinterlacer == "yadif":
             vf_filters.append(Filters.DEINT_YADIF)
@@ -90,23 +117,42 @@ class FilterBuilder:
 
         return ",".join(vf_filters) if vf_filters else "null"
 
-    def build_ffmpeg_output_args(self, input_path, output_path, w, h, fps, start_sec, audio_offset, duration, vf, audio_mode, audio_treatment=False):
+    def build_ffmpeg_output_args(
+        self,
+        input_path,
+        output_path,
+        w,
+        h,
+        fps,
+        start_sec,
+        audio_offset,
+        duration,
+        vf,
+        audio_mode,
+        audio_treatment=False,
+    ):
         cmd_out = [
-            Toolchain.get_ffmpeg_path(), "-hide_banner",
-            "-f", "rawvideo", "-pix_fmt", "yuv420p", "-s", f"{w}x{h}", "-r", f"{fps:.3f}", "-i", "-"
+            Toolchain.get_ffmpeg_path(),
+            "-hide_banner",
+            "-f",
+            "rawvideo",
+            "-pix_fmt",
+            "yuv420p",
+            "-s",
+            f"{w}x{h}",
+            "-r",
+            f"{fps:.3f}",
+            "-i",
+            "-",
         ]
-        
+
         a_start_sec = max(0.0, start_sec + audio_offset)
         if a_start_sec > 0.05:
             cmd_out += ["-ss", f"{a_start_sec:.3f}"]
         if duration:
             cmd_out += ["-t", f"{duration:.3f}"]
-            
-        cmd_out += [
-            "-i", input_path,
-            "-map", "0:v", "-map", "1:a",
-            "-vf", vf
-        ]
+
+        cmd_out += ["-i", input_path, "-map", "0:v", "-map", "1:a", "-vf", vf]
 
         af_filters = []
         if audio_mode == "mono_l":
@@ -118,34 +164,84 @@ class FilterBuilder:
             # Remove DC Offset and apply notch filter at 60Hz for electrical hum
             af_filters.append("dcshift=shift=0")
             af_filters.append("anequalizer=c0 f=60 w=5 g=-30|c1 f=60 w=5 g=-30")
-        
+
         if af_filters:
             cmd_out += ["-af", ",".join(af_filters)]
 
         if self.output_codec == "prores":
-            cmd_out += ["-c:v", "prores_ks", "-profile:v", "3", "-pix_fmt", "yuv422p10le", "-vendor", "ap10"]
+            cmd_out += [
+                "-c:v",
+                "prores_ks",
+                "-profile:v",
+                "3",
+                "-pix_fmt",
+                "yuv422p10le",
+                "-vendor",
+                "ap10",
+            ]
         elif self.output_codec == "ffv1":
             cmd_out += ["-c:v", "ffv1", "-level", "3", "-g", "1", "-pix_fmt", "yuv420p"]
         else:
             if self.encoder == "h264_videotoolbox":
-                cmd_out += ["-c:v", "h264_videotoolbox", "-q:v", str(min(100, max(1, 100 - self.crf * 2))), "-pix_fmt", "yuv420p"]
+                cmd_out += [
+                    "-c:v",
+                    "h264_videotoolbox",
+                    "-q:v",
+                    str(min(100, max(1, 100 - self.crf * 2))),
+                    "-pix_fmt",
+                    "yuv420p",
+                ]
             elif self.encoder == "h264_nvenc":
-                cmd_out += ["-c:v", "h264_nvenc", "-preset", "p4", "-cq", str(self.crf), "-rc", "vbr"]
+                cmd_out += [
+                    "-c:v",
+                    "h264_nvenc",
+                    "-preset",
+                    "p4",
+                    "-cq",
+                    str(self.crf),
+                    "-rc",
+                    "vbr",
+                ]
             elif self.encoder == "h264_amf":
-                cmd_out += ["-c:v", "h264_amf", "-quality", "speed", "-rc", "cqp", "-qp_i", str(self.crf), "-qp_p", str(self.crf)]
+                cmd_out += [
+                    "-c:v",
+                    "h264_amf",
+                    "-quality",
+                    "speed",
+                    "-rc",
+                    "cqp",
+                    "-qp_i",
+                    str(self.crf),
+                    "-qp_p",
+                    str(self.crf),
+                ]
             elif self.encoder == "h264_vaapi":
                 cmd_out += ["-c:v", "h264_vaapi", "-qp", str(self.crf)]
             elif self.encoder == "h264_qsv":
                 cmd_out += ["-c:v", "h264_qsv", "-global_quality", str(self.crf)]
             else:
-                cmd_out += ["-c:v", "libx264", "-preset", "veryfast", "-crf", str(self.crf), "-pix_fmt", "yuv420p"]
+                cmd_out += [
+                    "-c:v",
+                    "libx264",
+                    "-preset",
+                    "veryfast",
+                    "-crf",
+                    str(self.crf),
+                    "-pix_fmt",
+                    "yuv420p",
+                ]
 
-        cmd_out += ["-color_primaries", OutputConfig.COLOR_PRIMARIES, 
-                   "-color_trc", OutputConfig.COLOR_TRC, 
-                   "-colorspace", OutputConfig.COLOR_SPACE]
+        cmd_out += [
+            "-color_primaries",
+            OutputConfig.COLOR_PRIMARIES,
+            "-color_trc",
+            OutputConfig.COLOR_TRC,
+            "-colorspace",
+            OutputConfig.COLOR_SPACE,
+        ]
 
         if self.output_codec in ("prores", "ffv1"):
-            cmd_out += ["-c:a", "pcm_s24le"] # Uncompressed audio for archival
+            cmd_out += ["-c:a", "pcm_s24le"]  # Uncompressed audio for archival
         else:
             cmd_out += ["-c:a", AudioConfig.CODEC, "-b:a", AudioConfig.BITRATE]
 

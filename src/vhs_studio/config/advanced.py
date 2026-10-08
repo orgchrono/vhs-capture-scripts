@@ -1,53 +1,45 @@
 ﻿import os
-from pathlib import Path
-from vhs_studio.core.logger import log
+import sys
 
+# Compatibilidade de import para tomllib (Nativo no Python 3.11+, tomli no 3.10)
 try:
     import tomllib
-except ModuleNotFoundError:
+except ImportError:
     try:
-        import tomli as tomllib
+        import tomli as tomllib  # type: ignore
     except ImportError:
-        tomllib = None
+        tomllib = None  # type: ignore
 
-# Procura o arquivo ao lado do __main__ ou na pasta do usuário
-USER_DIR = os.path.join(os.path.expanduser("~"), ".vhs_studio")
-CONFIG_PATHS = [
-    os.path.join(os.getcwd(), "vhs_advanced_config.toml"),
-    os.path.join(USER_DIR, "vhs_advanced_config.toml")
-]
 
 class AdvancedConfig:
-    _data = None
+    _config = None
 
     @classmethod
     def load(cls):
-        if cls._data is not None:
-            return cls._data
-            
-        if tomllib is None:
-            log.warning("[TOML] Biblioteca tomllib/tomli ausente. Usando valores padrões.")
-            cls._data = {}
-            return cls._data
+        if cls._config is not None:
+            return cls._config
 
-        for p in CONFIG_PATHS:
-            if os.path.exists(p):
-                try:
-                    with open(p, "rb") as f:
-                        cls._data = tomllib.load(f)
-                        log.info(f"[Config] Configurações avançadas carregadas de {p}")
-                        return cls._data
-                except Exception as e:
-                    log.error(f"[Config] Erro ao ler TOML ({p}): {e}")
-                    
-        # Fallback para dicionário vazio
-        cls._data = {}
-        return cls._data
+        if tomllib is None:
+            cls._config = {}
+            return cls._config
+
+        base_path = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "..", "..")
+        )
+        toml_path = os.path.join(base_path, "vhs_advanced_config.toml")
+
+        if os.path.exists(toml_path):
+            try:
+                with open(toml_path, "rb") as f:
+                    cls._config = tomllib.load(f)
+            except Exception:
+                cls._config = {}
+        else:
+            cls._config = {}
+
+        return cls._config
 
     @classmethod
-    def get(cls, section: str, key: str, default):
-        data = cls.load()
-        try:
-            return data.get(section, {}).get(key, default)
-        except AttributeError:
-            return default
+    def get(cls, section: str, key: str, default=None):
+        config = cls.load()
+        return config.get(section, {}).get(key, default)

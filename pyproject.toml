@@ -24,3 +24,11 @@ package-dir = {"" = "src"}
 ai = ["faster-whisper", "scenedetect[opencv]"]
 cloud = ["google-api-python-client", "google-auth-httplib2", "google-auth-oauthlib", "keyring", "supabase", "dropbox", "O365", "boto3"]
 dev = ["pytest", "flake8", "black", "isort", "mypy", "types-requests"]
+
+[tool.mypy]
+ignore_missing_imports = true
+check_untyped_defs = false
+
+[tool.flake8]
+max-line-length = 120
+extend-ignore = "E203"
