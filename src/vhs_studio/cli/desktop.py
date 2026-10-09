@@ -63,7 +63,7 @@ def ensure_ui_build():
     if os.path.exists(hash_file) and os.path.exists(
         os.path.join(ui_dist_dir, "index.html")
     ):
-        with open(hash_file, "r") as f:
+        with open(hash_file, "r", encoding="utf-8") as f:
             if f.read().strip() == current_hash:
                 rebuild_needed = False
 
@@ -87,7 +87,7 @@ def ensure_ui_build():
                 subprocess.run("npm install", cwd=ui_dir, shell=True, check=True)
                 subprocess.run("npm run build", cwd=ui_dir, shell=True, check=True)
                 os.makedirs(ui_dist_dir, exist_ok=True)
-                with open(hash_file, "w") as f:
+                with open(hash_file, "w", encoding="utf-8") as f:
                     f.write(current_hash)
                 log.info(
                     "[DESKTOP] Build da UI concluída com sucesso e Cache atualizado!"

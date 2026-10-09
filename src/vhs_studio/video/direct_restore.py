@@ -195,12 +195,21 @@ def restore_stream(args):
         cmd_in, stdout=subprocess.PIPE, stderr=log_file, bufsize=16 * 1024 * 1024
     )
 
+    apply_chroma = getattr(args, "apply_chroma", getattr(args, "chroma_fix", False))
+    apply_denoise = getattr(args, "apply_denoise", getattr(args, "denoise", False))
+    apply_comb = getattr(args, "apply_comb_filter", getattr(args, "comb_filter", False))
+    apply_blanking = getattr(args, "apply_overscan_blanking", getattr(args, "overscan_blanking", False))
+    apply_dropout = getattr(args, "apply_dropout_clean", getattr(args, "dropout_clean", False))
+    apply_treatment = getattr(args, "apply_audio_treatment", getattr(args, "audio_treatment", False))
+    apply_ai_audio = getattr(args, "apply_ai_audio_denoise", getattr(args, "ai_audio_denoise", False))
+
     vf = builder.build_video_filters(
-        args.apply_chroma,
-        args.apply_denoise,
+        apply_chroma,
+        apply_denoise,
         args.deinterlacer,
-        apply_comb_filter=args.apply_comb_filter,
-        overscan_blanking=args.apply_overscan_blanking,
+        apply_comb_filter=apply_comb,
+        overscan_blanking=apply_blanking,
+        apply_dropout_clean=apply_dropout,
     )
 
     from vhs_studio.core.atomic_io import AtomicIO
@@ -235,7 +244,8 @@ def restore_stream(args):
         args.duration,
         vf,
         args.audio_mode,
-        audio_treatment=args.apply_audio_treatment,
+        audio_treatment=apply_treatment,
+        ai_audio_denoise=apply_ai_audio,
     )
 
     p_out = subprocess.Popen(
@@ -442,6 +452,16 @@ def main():
         "--audio-treatment",
         action="store_true",
         help="Remove DC Offset, Hum Elétrico (60Hz notch) e reduz chiado de fundo do áudio analógico",
+    )
+    parser.add_argument(
+        "--dropout-clean",
+        action="store_true",
+        help="Detecta e atenua riscos/dropouts brancos transitórios na imagem",
+    )
+    parser.add_argument(
+        "--ai-audio-denoise",
+        action="store_true",
+        help="Aplica redução profunda de ruído e hiss de fita analógica",
     )
     parser.add_argument(
         "--output-codec",

@@ -25,6 +25,13 @@ export interface StudioState {
   combFilter: boolean;
   overscanBlanking: boolean;
   audioTreatment: boolean;
+  dropoutClean: boolean;
+  aiAudioDenoise: boolean;
+  aiFaceRestore: boolean;
+  aiFaceFidelity: number;
+  aiRife60fps: boolean;
+  aiUpscaler: boolean;
+  aiUpscalerModel: string;
   isRestoring: boolean;
   isCapturing: boolean;
   logs: string[];
@@ -48,6 +55,13 @@ export const initialStudioState: StudioState = {
   combFilter: false,
   overscanBlanking: true,
   audioTreatment: false,
+  dropoutClean: false,
+  aiAudioDenoise: false,
+  aiFaceRestore: false,
+  aiFaceFidelity: 0.7,
+  aiRife60fps: false,
+  aiUpscaler: false,
+  aiUpscalerModel: 'realesrgan-x4plus',
   isRestoring: false,
   isCapturing: false,
   logs: [],
@@ -80,6 +94,11 @@ export const studioSlice = createSlice({
         state.combFilter = true;
         state.overscanBlanking = true;
         state.audioTreatment = true;
+        state.dropoutClean = false;
+        state.aiAudioDenoise = false;
+        state.aiFaceRestore = false;
+        state.aiRife60fps = false;
+        state.aiUpscaler = false;
         state.crf = 18;
       } else if (preset === 'speed') {
         state.deinterlacer = 'bwdif';
@@ -92,6 +111,11 @@ export const studioSlice = createSlice({
         state.combFilter = false;
         state.overscanBlanking = true;
         state.audioTreatment = false;
+        state.dropoutClean = false;
+        state.aiAudioDenoise = false;
+        state.aiFaceRestore = false;
+        state.aiRife60fps = false;
+        state.aiUpscaler = false;
         state.crf = 20;
       } else if (preset === 'tbc_hold') {
         state.deinterlacer = 'znedi3';
@@ -104,6 +128,11 @@ export const studioSlice = createSlice({
         state.combFilter = true;
         state.overscanBlanking = true;
         state.audioTreatment = true;
+        state.dropoutClean = true;
+        state.aiAudioDenoise = false;
+        state.aiFaceRestore = false;
+        state.aiRife60fps = false;
+        state.aiUpscaler = false;
         state.crf = 20;
       } else if (preset === 'ai_master') {
         state.deinterlacer = 'bwdif';
@@ -116,6 +145,13 @@ export const studioSlice = createSlice({
         state.combFilter = false;
         state.overscanBlanking = true;
         state.audioTreatment = true;
+        state.dropoutClean = true;
+        state.aiAudioDenoise = true;
+        state.aiFaceRestore = true;
+        state.aiFaceFidelity = 0.7;
+        state.aiRife60fps = true;
+        state.aiUpscaler = true;
+        state.aiUpscalerModel = 'realesrgan-x4plus';
         state.crf = 18;
       } else {
         state.preset = 'custom';
@@ -165,6 +201,33 @@ export const studioSlice = createSlice({
     },
     setAudioTreatment: (state, action: PayloadAction<boolean>) => {
       state.audioTreatment = action.payload;
+      state.preset = 'custom';
+    },
+    setDropoutClean: (state, action: PayloadAction<boolean>) => {
+      state.dropoutClean = action.payload;
+      state.preset = 'custom';
+    },
+    setAiAudioDenoise: (state, action: PayloadAction<boolean>) => {
+      state.aiAudioDenoise = action.payload;
+      state.preset = 'custom';
+    },
+    setAiFaceRestore: (state, action: PayloadAction<boolean>) => {
+      state.aiFaceRestore = action.payload;
+      state.preset = 'custom';
+    },
+    setAiFaceFidelity: (state, action: PayloadAction<number>) => {
+      state.aiFaceFidelity = action.payload;
+    },
+    setAiRife60fps: (state, action: PayloadAction<boolean>) => {
+      state.aiRife60fps = action.payload;
+      state.preset = 'custom';
+    },
+    setAiUpscaler: (state, action: PayloadAction<boolean>) => {
+      state.aiUpscaler = action.payload;
+      state.preset = 'custom';
+    },
+    setAiUpscalerModel: (state, action: PayloadAction<string>) => {
+      state.aiUpscalerModel = action.payload;
       state.preset = 'custom';
     },
     setIsRestoring: (state, action: PayloadAction<boolean>) => {
@@ -230,6 +293,13 @@ export const {
   setCombFilter,
   setOverscanBlanking,
   setAudioTreatment,
+  setDropoutClean,
+  setAiAudioDenoise,
+  setAiFaceRestore,
+  setAiFaceFidelity,
+  setAiRife60fps,
+  setAiUpscaler,
+  setAiUpscalerModel,
   setIsRestoring,
   setIsCapturing,
   addLog,

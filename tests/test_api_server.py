@@ -155,3 +155,34 @@ def test_api_logs_stream(client):
         assert "text/event-stream" in response.headers["content-type"]
         line = next(response.iter_lines())
         assert "connected" in line or "data:" in line
+
+
+def test_api_hardware(client):
+    response = client.get("/api/hardware")
+    assert response.status_code == 200
+    data = response.json()
+    assert "tier" in data
+    assert "tier_name" in data
+    assert "cpu" in data
+    assert "ram" in data
+    assert "gpu" in data
+
+
+def test_api_get_logs(client):
+    response = client.get("/api/logs")
+    assert response.status_code == 200
+    data = response.json()
+    assert "active" in data
+    assert "logs" in data
+
+
+@patch("vhs_studio.api.server.pm.start_process")
+def test_api_run_endpoint(mock_start, client):
+    mock_start.return_value = (True, "Started")
+    response = client.post(
+        "/api/run",
+        json={"input": "media/raw/test.mkv", "deinterlacer": "bwdif"},
+        headers={"X-Session-Token": SESSION_TOKEN},
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == "ok"

@@ -25,7 +25,7 @@ class JobManager:
         if not os.path.exists(lock_path):
             return None
         try:
-            with open(lock_path, "r") as f:
+            with open(lock_path, "r", encoding="utf-8") as f:
                 content = f.read().strip()
             return int(content.split(":")[0])
         except Exception:
@@ -52,7 +52,7 @@ class JobManager:
             # lock file exists mas ta corrompido (retornou None)
             os.remove(lock_path)
 
-        with open(lock_path, "w") as f:
+        with open(lock_path, "w", encoding="utf-8") as f:
             f.write(f"{os.getpid()}:pipeline_running")
 
     @staticmethod

@@ -3,18 +3,26 @@ config.py - Centralized configuration and constants for the VHS Restoration Pipe
 """
 
 from dataclasses import dataclass
+from vhs_studio.core.constants import (
+    NTSC_WIDTH,
+    NTSC_HEIGHT,
+    DEFAULT_NTSC_FPS,
+    DEFAULT_LUMA_THRESHOLD,
+    DEFAULT_CONSECUTIVE_GOOD_FRAMES,
+    MAX_SCAN_SECONDS,
+)
 
 
 @dataclass
 class VideoConfig:
     """Documentation for VideoConfig."""
 
-    DEFAULT_WIDTH: int = 720
-    DEFAULT_HEIGHT: int = 480
-    DEFAULT_FPS: float = 29.97
-    LUMA_THRESHOLD: float = 18.0
-    CONSECUTIVE_GOOD_FRAMES_REQUIRED: int = 5
-    MAX_SCAN_SECONDS: int = 120
+    DEFAULT_WIDTH: int = NTSC_WIDTH
+    DEFAULT_HEIGHT: int = NTSC_HEIGHT
+    DEFAULT_FPS: float = DEFAULT_NTSC_FPS
+    LUMA_THRESHOLD: float = DEFAULT_LUMA_THRESHOLD
+    CONSECUTIVE_GOOD_FRAMES_REQUIRED: int = DEFAULT_CONSECUTIVE_GOOD_FRAMES
+    MAX_SCAN_SECONDS: int = MAX_SCAN_SECONDS
 
 
 @dataclass

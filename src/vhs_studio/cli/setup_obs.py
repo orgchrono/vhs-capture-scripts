@@ -62,7 +62,7 @@ def setup_windows_portable():
 
     # 4. Ativar Modo Portátil
     print_step("Configurando Modo Portátil e WebSocket...")
-    open(os.path.join(OBS_DIR, "obs_portable_mode.txt"), "w").close()
+    open(os.path.join(OBS_DIR, "obs_portable_mode.txt"), "w", encoding="utf-8").close()
 
     # 5. Configurar WebSocket
     config_dir = os.path.join(
@@ -78,7 +78,7 @@ def setup_windows_portable():
         "AuthSecret": "",
     }
 
-    with open(os.path.join(config_dir, "config.json"), "w") as f:
+    with open(os.path.join(config_dir, "config.json"), "w", encoding="utf-8") as f:
         json.dump(ws_config, f, indent=4)
 
     print_success(

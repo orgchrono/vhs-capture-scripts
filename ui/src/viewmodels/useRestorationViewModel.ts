@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { useStudioStore } from '../store/useStudioStore';
-import { useGenerateSubtitlesMutation } from '../api/studioRtkApi';
+import { useGenerateSubtitlesMutation, useGetHardwareProfileQuery } from '../api/studioRtkApi';
+import type { HardwareProfile } from '../types';
 
 export interface UseRestorationViewModelResult {
   store: ReturnType<typeof useStudioStore>;
+  hardwareProfile?: HardwareProfile;
+  isLoadingHardware: boolean;
   whisperModel: string;
   setWhisperModel: (model: string) => void;
   isGeneratingSubtitles: boolean;
@@ -13,10 +16,12 @@ export interface UseRestorationViewModelResult {
 /**
  * Dedicated ViewModel for RestorationSettings (MVVM, SoC, SRP).
  * Encapsulates AI transcription triggers, Whisper model selection persistence,
- * and restoration parameter coordination outside the JSX view.
+ * hardware profiling diagnostics, and restoration parameter coordination outside the JSX view.
  */
 export function useRestorationViewModel(): UseRestorationViewModelResult {
   const store = useStudioStore();
+  const { data: hardwareProfile, isLoading: isLoadingHardware } = useGetHardwareProfileQuery();
+
   const [whisperModel, setWhisperModelState] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       return window.localStorage.getItem('whisper_model') || 'tiny';
@@ -57,6 +62,8 @@ export function useRestorationViewModel(): UseRestorationViewModelResult {
 
   return {
     store,
+    hardwareProfile,
+    isLoadingHardware,
     whisperModel,
     setWhisperModel,
     isGeneratingSubtitles,

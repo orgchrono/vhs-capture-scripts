@@ -4,7 +4,7 @@ import os
 import sys
 import subprocess
 import argparse
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 from vhs_studio.core.logger import log
 import json
 from vhs_studio.core.constants import DEFAULT_SCENE_THRESHOLD
@@ -29,27 +29,47 @@ class PipelineOrchestrator:
 
         esrgan_enabled = False
         if isinstance(self.opts, dict):
-            esrgan_enabled = self.opts.get("esrgan", False)
+            esrgan_enabled = self.opts.get("esrgan", False) or self.opts.get("ai_upscaler", False)
         elif hasattr(self.opts, "esrgan"):
-            esrgan_enabled = getattr(self.opts, "esrgan", False)
+            esrgan_enabled = getattr(self.opts, "esrgan", False) or getattr(self.opts, "ai_upscaler", False)
         if not esrgan_enabled and isinstance(self.params, dict):
-            esrgan_enabled = self.params.get("esrgan", False)
+            esrgan_enabled = self.params.get("esrgan", False) or self.params.get("ai_upscaler", False)
 
         f_restoration = self.executor.submit(self._task_restoration)
         f_whisper = self.executor.submit(self._task_whisper)
-        f_esrgan = self.executor.submit(self._task_esrgan) if esrgan_enabled else None
 
-        futures = {f_restoration: "Restoration", f_whisper: "Whisper"}
-        if f_esrgan:
-            futures[f_esrgan] = "ESRGAN"
+        # Wait for base restoration to finish before post-processing video enhancements
+        try:
+            self.results["Restoration"] = f_restoration.result()
+            log.info("[RESTORATION] Base restoration finished successfully.")
+        except Exception as exc:
+            log.error(f"[RESTORATION ERROR] Primary restoration failed: {exc}")
+            raise exc
 
-        for future in as_completed(futures):
-            task_name = futures[future]
+        # Post-restoration AI enhancements (CodeFormer, RIFE 60fps, Super-Resolution)
+        if self.params.get("ai_face_restore"):
             try:
-                self.results[task_name] = future.result()
-                log.info(f"[{task_name.upper()}] Task completed.")
+                self.results["FaceRestoration"] = self._task_face_restore()
             except Exception as exc:
-                log.error(f"[{task_name.upper()} ERROR] Task execution failed: {exc}")
+                log.error(f"[FACE RESTORATION ERROR] {exc}")
+
+        if self.params.get("ai_rife_60fps"):
+            try:
+                self.results["RIFE"] = self._task_rife()
+            except Exception as exc:
+                log.error(f"[RIFE ERROR] {exc}")
+
+        if esrgan_enabled:
+            try:
+                self.results["Upscaler"] = self._task_upscaler()
+            except Exception as exc:
+                log.error(f"[UPSCALER ERROR] {exc}")
+
+        try:
+            self.results["Whisper"] = f_whisper.result()
+            log.info("[WHISPER] Audio transcription completed.")
+        except Exception as exc:
+            log.warning(f"[WHISPER WARNING] Audio transcription failed: {exc}")
 
         self._task_scenedetect_and_split()
         log.info("[PIPELINE ORCHESTRATOR] All pipeline stages finished successfully.")
@@ -79,22 +99,55 @@ class PipelineOrchestrator:
             except Exception as e:
                 log.error(f"[CLOUD UPLOAD ERROR] Failed to upload to cloud: {e}")
 
-    def _task_esrgan(self):
-        """Execute AI upscaling task via Real-ESRGAN Vulkan engine."""
-        log.info("[ESRGAN] Initializing neural upscaling engine...")
+    def _task_face_restore(self):
+        """Execute face restoration task via CodeFormer."""
+        log.info("[FACE RESTORER] Inicializando restauração facial CodeFormer...")
+        from vhs_studio.ai.face_restorer import FaceRestorer
+
+        fidelity = float(self.params.get("ai_face_fidelity", 0.7))
+        restorer = FaceRestorer(fidelity_weight=fidelity)
+        if restorer.is_available() and os.path.exists(self.output_path):
+            base_dir, filename = os.path.split(self.output_path)
+            name, ext = os.path.splitext(filename)
+            faced_path = os.path.join(base_dir, f"{name}_codeformer{ext}")
+            if restorer.process_video(self.output_path, faced_path):
+                return faced_path
+        return None
+
+    def _task_rife(self):
+        """Execute motion interpolation task via RIFE-NCNN."""
+        log.info("[RIFE] Inicializando interpolação 60fps via RIFE-NCNN...")
+        from vhs_studio.video.rife_interpolator import RifeInterpolator
+
+        interpolator = RifeInterpolator(target_fps=60.0)
+        if interpolator.is_available() and os.path.exists(self.output_path):
+            base_dir, filename = os.path.split(self.output_path)
+            name, ext = os.path.splitext(filename)
+            rife_path = os.path.join(base_dir, f"{name}_60fps{ext}")
+            if interpolator.interpolate_video(self.output_path, rife_path):
+                return rife_path
+        return None
+
+    def _task_upscaler(self):
+        """Execute AI super-resolution task via Real-ESRGAN / Real-CUGAN."""
+        model = self.params.get("ai_upscaler_model") or (
+            "models-se" if self.params.get("realcugan") else "realesrgan-x4plus"
+        )
+        log.info(f"[AI UPSCALER] Initializing super-resolution engine with model {model}...")
         from vhs_studio.video.ai_upscaler import AIUpscaler
 
-        upscaler = AIUpscaler(model_name="realesrgan-x4plus", gpu_id="auto")
-        log.info(
-            f"[ESRGAN] Processing with model {upscaler.model_name} on GPU {upscaler.gpu_id}"
-        )
+        upscaler = AIUpscaler(model_name=model, gpu_id="auto")
         if upscaler.ncnn_path and os.path.exists(self.output_path):
             base_dir, filename = os.path.split(self.output_path)
             name, ext = os.path.splitext(filename)
-            upscaled_path = os.path.join(base_dir, f"{name}_esrgan{ext}")
+            upscaled_path = os.path.join(base_dir, f"{name}_ai_upscale{ext}")
             upscaler.process_video(self.output_path, upscaled_path)
             return upscaled_path
         return True
+
+    def _task_esrgan(self):
+        """Backwards compatibility alias for _task_upscaler."""
+        return self._task_upscaler()
 
     def _task_restoration(self):
         """Invoke primary restoration CLI subprocess."""
@@ -118,13 +171,23 @@ class PipelineOrchestrator:
             cmd.append("--overscan-blanking")
         if self.params.get("audio_treatment"):
             cmd.append("--audio-treatment")
+        if self.params.get("dropout_clean"):
+            cmd.append("--dropout-clean")
+        if self.params.get("ai_audio_denoise"):
+            cmd.append("--ai-audio-denoise")
 
         if self.params.get("deinterlacer"):
-            cmd.extend(["--opts.deinterlacer", self.params["deinterlacer"]])
+            cmd.extend(["--deinterlacer", str(self.params["deinterlacer"])])
         if self.params.get("audio_mode"):
-            cmd.extend(["--audio-opts.mode", self.params["audio_mode"]])
+            cmd.extend(["--audio-mode", str(self.params["audio_mode"])])
+        if self.params.get("mode"):
+            cmd.extend(["--mode", str(self.params["mode"])])
+        if self.params.get("crf"):
+            cmd.extend(["--crf", str(self.params["crf"])])
         if self.params.get("output_codec"):
-            cmd.extend(["--output-codec", self.params["output_codec"]])
+            cmd.extend(["--output-codec", str(self.params["output_codec"])])
+        if self.params.get("no_1080p"):
+            cmd.append("--no-1080p")
 
         subprocess.run(cmd, check=True)
         return self.output_path

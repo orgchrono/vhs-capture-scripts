@@ -9,6 +9,12 @@ from vhs_studio.core.toolchain import Toolchain
 from vhs_studio.core.constants import (
     DEFAULT_CRF,
     DEFAULT_ENCODER_TEST_TIMEOUT_SEC,
+    OVERSCAN_BLANKING_HEIGHT_PX,
+    AUDIO_NOTCH_HUM_FREQ_HZ,
+    AUDIO_NOTCH_WIDTH_HZ,
+    AUDIO_NOTCH_ATTENUATION_DB,
+    DEFAULT_AUDIO_DENOISE_NR_DB,
+    DEFAULT_AUDIO_DENOISE_NF_DB,
 )
 
 
@@ -86,11 +92,16 @@ class FilterBuilder:
         deinterlacer: str,
         apply_comb_filter: bool = False,
         overscan_blanking: bool = False,
+        apply_dropout_clean: bool = False,
     ) -> str:
         """Assemble the video filtergraph string based on restoration toggles and deinterlacing engine."""
         vf_filters = []
         if overscan_blanking:
-            vf_filters.append("drawbox=y=ih-12:color=black:width=iw:height=12:t=fill")
+            h = OVERSCAN_BLANKING_HEIGHT_PX
+            vf_filters.append(f"drawbox=y=ih-{h}:color=black:width=iw:height={h}:t=fill")
+        if apply_dropout_clean:
+            from vhs_studio.video.dropout_cleaner import DropoutCleaner
+            vf_filters.append(DropoutCleaner.get_ffmpeg_filter())
         if apply_comb_filter:
             if self.check_filter_support("dedot"):
                 vf_filters.append("dedot=m=comb")
@@ -150,6 +161,7 @@ class FilterBuilder:
         vf: str,
         audio_mode: str,
         audio_treatment: bool = False,
+        ai_audio_denoise: bool = False,
     ):
         """Build CLI command arguments for muxing restored video frames with aligned audio."""
         cmd_out = [
@@ -186,7 +198,15 @@ class FilterBuilder:
         if audio_treatment:
             # Remove DC Offset and apply notch filter at 60Hz for electrical hum
             af_filters.append("dcshift=shift=0")
-            af_filters.append("anequalizer=c0 f=60 w=5 g=-30|c1 f=60 w=5 g=-30")
+            af_filters.append(
+                f"anequalizer=c0 f={AUDIO_NOTCH_HUM_FREQ_HZ} w={AUDIO_NOTCH_WIDTH_HZ} g={AUDIO_NOTCH_ATTENUATION_DB}|"
+                f"c1 f={AUDIO_NOTCH_HUM_FREQ_HZ} w={AUDIO_NOTCH_WIDTH_HZ} g={AUDIO_NOTCH_ATTENUATION_DB}"
+            )
+
+        if ai_audio_denoise:
+            af_filters.append(
+                f"afftdn=nr={DEFAULT_AUDIO_DENOISE_NR_DB:.1f}:nf={DEFAULT_AUDIO_DENOISE_NF_DB:.1f}:tn=1"
+            )
 
         if af_filters:
             cmd_out += ["-af", ",".join(af_filters)]

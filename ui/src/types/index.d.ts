@@ -4,16 +4,49 @@ export interface RawFile {
   size_mb: number;
 }
 
+export interface HardwareProfile {
+  tier: number;
+  tier_name: string;
+  tier_color: string;
+  recommendation: string;
+  cpu: {
+    cores: number;
+    arch: string;
+    model: string;
+  };
+  ram: {
+    total_gb: number;
+    available_gb: number;
+  };
+  gpu: {
+    type: string;
+    name: string;
+    vulkan_available: boolean;
+    vram_gb: number;
+  };
+  ai_capabilities: Record<
+    string,
+    {
+      name: string;
+      supported: boolean;
+      badge: string;
+      cost: string;
+      desc: string;
+    }
+  >;
+}
+
 export interface SystemStatus {
   encoder: string;
   vapoursynth_available: boolean;
   obs_connected?: boolean;
   obs_recording?: boolean;
   raw_files: RawFile[];
+  hardware?: HardwareProfile;
   health?: {
-    dropped_frames: number
-    cpu_usage: number
-    is_recording: boolean
+    dropped_frames: number;
+    cpu_usage: number;
+    is_recording: boolean;
   };
 }
 
@@ -37,6 +70,13 @@ export interface RestorationPayload {
   comb_filter?: boolean;
   overscan_blanking?: boolean;
   audio_treatment?: boolean;
+  dropout_clean?: boolean;
+  ai_audio_denoise?: boolean;
+  ai_face_restore?: boolean;
+  ai_face_fidelity?: number;
+  ai_rife_60fps?: boolean;
+  ai_upscaler?: boolean;
+  ai_upscaler_model?: string;
   output_codec?: OutputCodec;
   auto_upload?: boolean;
 }

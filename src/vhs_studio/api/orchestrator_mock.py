@@ -1,4 +1,4 @@
-﻿"""Module documentation pending."""
+"""Module documentation pending."""
 
 import os
 import time
@@ -85,7 +85,7 @@ class PipelineOrchestrator:
         base_name = os.path.splitext(os.path.basename(file_path))[0]
         fake_out = os.path.join(base_dir, f"{base_name}_restored.mkv")
         # Criar mock do arquivo restaurado para o teste
-        with open(fake_out, "w") as f:
+        with open(fake_out, "w", encoding="utf-8") as f:
             f.write("mock")
         return fake_out
 

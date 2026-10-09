@@ -4,12 +4,13 @@ import os
 import subprocess
 import multiprocessing
 from vhs_studio.core.logger import log
+from vhs_studio.core.constants import DEFAULT_UPSCALER_MODEL
 
 
 class AIUpscaler:
     """Manages AI-based video super-resolution upscaling using Vulkan GPU acceleration."""
 
-    def __init__(self, model_name="realesrgan-x4plus", gpu_id="auto"):
+    def __init__(self, model_name=DEFAULT_UPSCALER_MODEL, gpu_id="auto"):
         self.model_name = model_name
         self.use_ncnn = True
         self.ncnn_path = self._find_or_download_ncnn()
@@ -51,15 +52,26 @@ class AIUpscaler:
         return 0
 
     def _find_or_download_ncnn(self):
-        """Locate the Real-ESRGAN Vulkan executable on the system or portable bundle."""
-        from vhs_studio.core.paths import REALESRGAN_DIR
+        """Locate the Real-ESRGAN or Real-CUGAN Vulkan executable on the system or portable bundle."""
+        import shutil
+        from vhs_studio.core.paths import REALESRGAN_DIR, TOOLS_DIR
 
-        base_dir = REALESRGAN_DIR
-        exe_path = os.path.join(base_dir, "realesrgan-ncnn-vulkan.exe")
+        bin_name = "realcugan-ncnn-vulkan" if "cugan" in self.model_name.lower() else "realesrgan-ncnn-vulkan"
+        which_path = shutil.which(bin_name)
+        if which_path:
+            return which_path
 
-        if not os.path.exists(exe_path):
-            return None
-        return exe_path
+        exe_suffix = ".exe" if os.name == "nt" else ""
+        target_dir = os.path.join(TOOLS_DIR, "realcugan" if "cugan" in self.model_name.lower() else "realesrgan")
+        candidate = os.path.join(target_dir, f"{bin_name}{exe_suffix}")
+        if os.path.exists(candidate):
+            return candidate
+
+        fallback = os.path.join(REALESRGAN_DIR, f"realesrgan-ncnn-vulkan{exe_suffix}")
+        if os.path.exists(fallback):
+            return fallback
+
+        return None
 
     def process_video(self, input_video, output_video):
         """Execute neural upscaling on the provided video input."""

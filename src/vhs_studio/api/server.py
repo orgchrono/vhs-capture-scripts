@@ -28,6 +28,7 @@ from vhs_studio.api.oauth_routes import oauth_router
 from vhs_studio.config.storage_config import load_storage_config, save_storage_config
 from vhs_studio.storage.manager import StorageManager
 from vhs_studio.core.queue_manager import queue_manager, queue_worker
+from vhs_studio.core.hardware import get_hardware_profile
 
 # Session token for minimal CSRF mitigation when accessed via web view
 SESSION_TOKEN = secrets.token_hex(16)
@@ -152,7 +153,14 @@ def get_status():
         "raw_files": raw_files,
         "process_running": pm.is_running(),
         "process_logs": combined_logs,
+        "hardware": get_hardware_profile(),
     }
+
+
+@app.get("/api/hardware")
+def get_hardware():
+    """Return hardware diagnostics, tier rating and honest performance benchmarks."""
+    return get_hardware_profile()
 
 
 @app.get("/api/logs/stream")
@@ -387,6 +395,87 @@ async def perform_action(request: Request):
         return {"status": "error", "message": "No process currently running."}
 
     return {"status": "error", "message": "Unknown action."}
+
+
+@app.get("/api/logs")
+def get_all_logs():
+    """Return historical log buffer for frontend RTK Query."""
+    return {"active": pm.is_running(), "logs": pm.get_logs()}
+
+
+@app.post("/api/run")
+async def run_pipeline(request: Request):
+    """Run direct restoration pipeline endpoint for frontend integration."""
+    params = await request.json()
+    if pm.is_running():
+        return JSONResponse(status_code=400, content={"status": "error", "message": "A process is already running."})
+
+    input_file = params.get("input")
+    if not input_file or "media" not in input_file:
+        return JSONResponse(status_code=400, content={"status": "error", "message": "Invalid or insecure file path."})
+
+    params_json = json.dumps(params)
+    cmd = [
+        sys.executable,
+        "-m",
+        "vhs_studio",
+        "pipeline",
+        input_file,
+        "--params-json",
+        params_json,
+    ]
+    success, msg = pm.start_process(cmd)
+    if success:
+        return {"status": "ok", "message": "Restoration pipeline started."}
+    return JSONResponse(status_code=500, content={"status": "error", "message": msg})
+
+
+@app.post("/api/obs/start")
+def obs_start():
+    """Trigger OBS Studio recording start."""
+    obs = OBSClient()
+    if not obs.is_connected:
+        obs.connect()
+    res = obs.start_record()
+    if res and res.get("requestStatus", {}).get("result"):
+        return {"status": "ok", "message": "Recording started."}
+    return {"status": "error", "message": "Failed to start OBS recording."}
+
+
+@app.post("/api/obs/stop")
+def obs_stop():
+    """Trigger OBS Studio recording stop."""
+    obs = OBSClient()
+    if not obs.is_connected:
+        obs.connect()
+    res = obs.stop_record() or {}
+    output_path = res.get("responseData", {}).get("outputPath", "")
+    return {"status": "ok", "message": "Recording stopped.", "path": output_path}
+
+
+@app.post("/api/obs/virtualcam")
+async def obs_virtualcam(request: Request):
+    """Toggle OBS Virtual Camera output."""
+    body = await request.json()
+    enable = body.get("enable", True)
+    obs = OBSClient()
+    if not obs.is_connected:
+        obs.connect()
+    action = "StartVirtualCam" if enable else "StopVirtualCam"
+    obs.send_request(action)
+    return {"status": "ok", "message": f"Virtual camera set to {enable}."}
+
+
+@app.post("/api/install_qtgmc")
+def install_qtgmc():
+    """Launch background installer for VapourSynth and QTGMC."""
+    if pm.is_running():
+        return {"status": "error", "message": "A process is already running."}
+    cmd = [sys.executable, "-m", "vhs_studio.cli.setup_qtgmc"]
+    success, msg = pm.start_process(cmd)
+    if success:
+        return {"status": "started", "message": "VapourSynth installation started."}
+    return {"status": "error", "message": msg}
 
 
 # Mount frontend distribution
