@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from unittest.mock import patch
 """
 test_vhs_common.py - Testes unitários para a biblioteca vhs_common e utilitários da pipeline.
 Pode ser executado diretamente com: python -m unittest discover tests
@@ -151,7 +152,9 @@ class TestVHSCommon(unittest.TestCase):
         self.assertTrue(strat["need_deinterlace"])
         self.assertEqual(strat["audio_policy"], "mono_l")
 
-    def test_filter_builder_hardware_encoder(self):
+    @patch("vhs_studio.core.toolchain.Toolchain.require_executable")
+    def test_filter_builder_hardware_encoder(self, mock_require):
+        mock_require.return_value = "/dummy/ffmpeg"
         """Testa se o FilterBuilder detecta um encoder válido (QSV, NVENC, AMF ou libx264)."""
         from vhs_studio.core.filter_builder import FilterBuilder
 

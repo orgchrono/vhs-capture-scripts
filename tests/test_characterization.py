@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from unittest.mock import patch, MagicMock
 """
 test_characterization.py - Testes de caracterização das falhas apontadas no Audit Report.
 Estes testes reproduzem e documentam os bugs exatos antes de corrigi-los nas próximas fases.
@@ -26,22 +27,28 @@ import argparse
 
 class TestCharacterization(unittest.TestCase):
 
-    def test_c08_idet_double_parse(self):
+    @patch("subprocess.run")
+    @patch("vhs_studio.core.toolchain.Toolchain.require_executable")
+    def test_c08_idet_double_parse(self, mock_require, mock_run):
         """
         C-08: Testa se o parser de idet atual falha ao ler o bloco correto
         da fita sintética, classificando-a incorretamente (ou provando o bug).
         """
+        mock_require.return_value = "ffmpeg"
+        mock_run.return_value = MagicMock(
+            returncode=0,
+            stdout="",
+            stderr="[Parsed_idet_0 @ 0x123] Repeated Fields: Neither:  100 Top:    0 Bottom:    0\n"
+            "[Parsed_idet_0 @ 0x123] Single frame detection: TFF:    0 BFF:  100 Progressive:    0 Undetermined:    0\n"
+            "[Parsed_idet_0 @ 0x123] Multi frame detection: TFF:    0 BFF:  100 Progressive:    0 Undetermined:    0",
+        )
         fixture_path = os.path.join(
             REPO_ROOT, "tests", "fixtures", "ntsc_bff_black.mkv"
         )
-        if not os.path.exists(fixture_path):
-            self.skipTest("Fixture não encontrada.")
-
         try:
             result = vhs_common.detect_interlace_status(fixture_path)
             print(f"C-08 result: {result}")
         except AttributeError:
-            # Maybe it's named something else like detect_interlace
             pass
 
     def test_c07_ignored_flags(self):
@@ -66,7 +73,9 @@ class TestCharacterization(unittest.TestCase):
         print(f"C-07 returncode: {res.returncode}")
         self.assertNotIn("unrecognized arguments: --flag-inexistente", res.stderr)
 
-    def test_c06_qtgmc_silent_fallback(self):
+    @patch("vhs_studio.core.toolchain.Toolchain.require_executable")
+    def test_c06_qtgmc_silent_fallback(self, mock_require):
+        mock_require.return_value = "/dummy/ffmpeg"
         """
         C-06: O FilterBuilder ignora silenciosamente o deinterlacer=qtgmc
         sem adicionar filtro de desentrelaçamento.
@@ -102,20 +111,21 @@ class TestCharacterization(unittest.TestCase):
         except Exception as e:
             print(f"M-05 exception on silence: {e}")
 
-    def test_c09_rawvideo_fps(self):
+    @patch("subprocess.Popen")
+    @patch("vhs_studio.core.toolchain.Toolchain.require_executable")
+    def test_c09_rawvideo_fps(self, mock_require, mock_popen):
         """
         C-09: Confirma a taxa de quadros e comportamento do rawvideo
         quando FFmpeg descompacta a fita entrelaçada para processamento 4:2:2.
         """
+        mock_require.return_value = "ffmpeg"
+        mock_process = MagicMock()
+        mock_process.stdout.read.return_value = b"\x00" * (720 * 480 * 2 * 10)
+        mock_popen.return_value = mock_process
+
         fixture_path = os.path.join(
             REPO_ROOT, "tests", "fixtures", "ntsc_bff_black.mkv"
         )
-        if not os.path.exists(fixture_path):
-            self.skipTest("Fixture não encontrada.")
-
-        # Se chamarmos FFmpeg com -f rawvideo sem especificar framerate, ele extrai na taxa nativa (29.97).
-        # Se o stream_runner espera ler 59.94, ele vai consumir 2 frames para cada frame real,
-        # ou se o FFmpeg enviar 29.97, vai demorar o dobro do tempo lendo ou cortar pela metade.
         cmd = [
             "ffmpeg",
             "-i",

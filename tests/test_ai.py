@@ -1,4 +1,5 @@
-﻿import pytest
+import sys
+import pytest
 from unittest.mock import patch, MagicMock
 from vhs_studio.ai.whisper_engine import (
     extract_audio,
@@ -29,6 +30,9 @@ def test_extract_audio_failure(mock_run):
 
 
 @patch("vhs_studio.ai.whisper_engine.extract_audio")
+@pytest.mark.skipif(
+    "faster_whisper" not in sys.modules, reason="faster_whisper not installed"
+)
 @patch("faster_whisper.WhisperModel")
 def test_transcribe_and_generate_vtt(mock_model_cls, mock_extract, tmp_path):
     # Setup mocks
