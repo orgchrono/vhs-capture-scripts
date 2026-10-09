@@ -9,7 +9,7 @@ import sys
 import argparse
 import json
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Mapping, Callable, Tuple
 
 from vhs_studio.core.logger import log
 from vhs_studio.pipeline_planner import resolve_output_spec
@@ -24,6 +24,19 @@ from vhs_studio.pipeline_steps import (
 )
 
 
+def make_step_runner(step_name: str, fn: Callable[[], Optional[str]]) -> Callable[[], Optional[str]]:
+    """Closure capturing pipeline step execution with uniform logging and error boundaries."""
+    def run() -> Optional[str]:
+        try:
+            res = fn()
+            log.info(f"[{step_name.upper()}] Step completed successfully.")
+            return res
+        except Exception as exc:
+            log.error(f"[{step_name.upper()} ERROR] Step failed: {exc}")
+            return None
+    return run
+
+
 class PipelineOrchestrator:
     """Imperative Shell coordinating multi-stage restoration and enhancement DAG."""
 
@@ -31,15 +44,15 @@ class PipelineOrchestrator:
         self,
         raw_file: str,
         output_path: str,
-        opts: Optional[Any] = None,
-        params: Optional[Dict[str, Any]] = None,
+        opts: Optional[object] = None,
+        params: Optional[Mapping[str, object]] = None,
     ):
         self.raw_file = os.path.abspath(raw_file)
         self.output_path = os.path.abspath(output_path)
-        self.opts = opts or {}
-        self.params = params or {}
+        self.opts = opts if opts is not None else {}
+        self.params = params if params is not None else {}
         self.executor = ThreadPoolExecutor(max_workers=3)
-        self.results: Dict[str, Any] = {}
+        self.results: Dict[str, Optional[str]] = {}
 
     def _is_upscaler_enabled(self) -> bool:
         """Helper to determine whether AI upscaling is requested."""
@@ -49,61 +62,63 @@ class PipelineOrchestrator:
         elif hasattr(self.opts, "esrgan"):
             if getattr(self.opts, "esrgan", False) or getattr(self.opts, "ai_upscaler", False):
                 return True
-        if isinstance(self.params, dict):
+        if isinstance(self.params, (dict, Mapping)):
             return bool(self.params.get("esrgan") or self.params.get("ai_upscaler"))
         return False
 
-    def start(self) -> Dict[str, Any]:
+    def start(self) -> Dict[str, Optional[str]]:
         """Execute the DAG of concurrent restoration and AI enhancement tasks."""
         log.info("============================================================")
         log.info("[PIPELINE ORCHESTRATOR] Starting Multi-Engine DAG Processing")
         log.info(f"  Source: {self.raw_file}")
         log.info(f"  Destination: {self.output_path}")
 
-        # Dispatch primary restoration and audio transcription in parallel
+        # Dispatch primary restoration and audio transcription concurrently
         f_restoration = self.executor.submit(self._task_restoration)
         f_whisper = self.executor.submit(self._task_whisper)
 
-        # Wait for base restoration to complete before post-processing video enhancements
+        # Primary restoration must succeed before post-processing video enhancements
         try:
-            self.results["Restoration"] = f_restoration.result()
+            restoration_result: Optional[str] = f_restoration.result()
             log.info("[RESTORATION] Base restoration finished successfully.")
         except Exception as exc:
             log.error(f"[RESTORATION ERROR] Primary restoration failed: {exc}")
             raise exc
 
-        # Sequential post-restoration neural pipelines
-        if self.params.get("ai_face_restore"):
-            try:
-                self.results["FaceRestoration"] = self._task_face_restore()
-            except Exception as exc:
-                log.error(f"[FACE RESTORATION ERROR] {exc}")
+        # Declarative post-restoration neural pipelines
+        post_step_specs: Tuple[Tuple[str, bool, Callable[[], Optional[str]]], ...] = (
+            ("FaceRestoration", bool(self.params.get("ai_face_restore")), self._task_face_restore),
+            ("RIFE", bool(self.params.get("ai_rife_60fps")), self._task_rife),
+            ("Upscaler", self._is_upscaler_enabled(), self._task_upscaler),
+        )
 
-        if self.params.get("ai_rife_60fps"):
-            try:
-                self.results["RIFE"] = self._task_rife()
-            except Exception as exc:
-                log.error(f"[RIFE ERROR] {exc}")
+        def execute_post_step(name: str, step_fn: Callable[[], Optional[str]]) -> Tuple[str, Optional[str]]:
+            runner = make_step_runner(name, step_fn)
+            return name, runner()
 
-        if self._is_upscaler_enabled():
-            try:
-                self.results["Upscaler"] = self._task_upscaler()
-            except Exception as exc:
-                log.error(f"[UPSCALER ERROR] {exc}")
+        post_results = dict(
+            execute_post_step(name, fn)
+            for name, enabled, fn in post_step_specs
+            if enabled
+        )
 
         try:
-            self.results["Whisper"] = f_whisper.result()
+            whisper_result = f_whisper.result()
             log.info("[WHISPER] Audio transcription completed.")
         except Exception as exc:
             log.warning(f"[WHISPER WARNING] Audio transcription failed: {exc}")
+            whisper_result = None
 
-        # Scene cut segmentation
         self._task_scenedetect_and_split()
         log.info("[PIPELINE ORCHESTRATOR] All pipeline stages finished successfully.")
 
-        # Optional cloud synchronization
         CloudOffloadStep.execute(self.output_path, self.params)
 
+        self.results = {
+            "Restoration": restoration_result,
+            "Whisper": whisper_result,
+            **post_results,
+        }
         return self.results
 
     def _task_restoration(self) -> str:

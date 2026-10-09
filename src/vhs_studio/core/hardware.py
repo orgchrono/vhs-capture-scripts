@@ -4,11 +4,53 @@ import os
 import platform
 import shutil
 import subprocess
-from typing import Dict, Any
+from typing import Dict, TypedDict
 from vhs_studio.core.constants import TIER_4_MIN_VRAM_GB, TIER_2_MIN_CPU_CORES
 
 
-def get_ram_info() -> Dict[str, float]:
+class GpuInfo(TypedDict):
+    """Semantic typed structure for detected GPU hardware."""
+    type: str
+    name: str
+    vulkan_available: bool
+    vram_gb: float
+
+
+class RamInfo(TypedDict):
+    """Semantic typed structure for RAM metrics."""
+    total_gb: float
+    available_gb: float
+
+
+class CpuInfo(TypedDict):
+    """Semantic typed structure for CPU metrics."""
+    cores: int
+    arch: str
+    model: str
+
+
+class AiCapability(TypedDict):
+    """Semantic typed structure for AI capability status."""
+    name: str
+    supported: bool
+    badge: str
+    cost: str
+    desc: str
+
+
+class HardwareProfile(TypedDict):
+    """Semantic typed structure for hardware capability tiering."""
+    tier: int
+    tier_name: str
+    tier_color: str
+    recommendation: str
+    cpu: CpuInfo
+    ram: RamInfo
+    gpu: GpuInfo
+    ai_capabilities: Dict[str, AiCapability]
+
+
+def get_ram_info() -> RamInfo:
     """Retrieve system total and available RAM in Gigabytes without external dependencies."""
     total_gb = 8.0
     avail_gb = 4.0
@@ -52,7 +94,7 @@ def get_ram_info() -> Dict[str, float]:
     return {"total_gb": total_gb, "available_gb": avail_gb}
 
 
-def detect_gpu_info() -> Dict[str, Any]:
+def detect_gpu_info() -> GpuInfo:
     """Inspect GPU hardware via Vulkan, NVIDIA-SMI, and system probes."""
     gpu_type = "cpu_only"
     gpu_name = "Nenhum (Renderização via CPU)"
@@ -111,7 +153,7 @@ def detect_gpu_info() -> Dict[str, Any]:
     }
 
 
-def get_hardware_profile() -> Dict[str, Any]:
+def get_hardware_profile() -> HardwareProfile:
     """Assemble complete hardware capability analysis and honest AI performance tiering."""
     cpu_cores = os.cpu_count() or 4
     cpu_arch = platform.machine()
@@ -158,7 +200,7 @@ def get_hardware_profile() -> Dict[str, Any]:
             "Evite ativar upscalers neurais para não sobrecarregar a máquina."
         )
 
-    ai_capabilities = {
+    ai_capabilities: Dict[str, AiCapability] = {
         "audio_deepfilter": {
             "name": "Restauração de Áudio Neural (DeepFilter)",
             "supported": True,

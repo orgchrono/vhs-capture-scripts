@@ -7,7 +7,7 @@ error handling and toolchain binding.
 import os
 import shutil
 import subprocess
-from typing import Optional, Dict, Any
+from typing import Optional, Mapping
 from vhs_studio.core.logger import log
 from vhs_studio.core.constants import (
     DEFAULT_CODEFORMER_FIDELITY,
@@ -26,7 +26,7 @@ class BaseRestorationStep:
     """Executes the primary hardware/software video restoration pipeline via CLI subprocess."""
 
     @staticmethod
-    def execute(raw_file: str, output_path: str, params: Dict[str, Any], python_exe: str) -> str:
+    def execute(raw_file: str, output_path: str, params: Mapping[str, object], python_exe: str) -> str:
         log.info(f"[RESTORATION STEP] Executing primary restoration on: {raw_file}")
         cmd = build_restore_command_args(raw_file, output_path, params, python_exe)
         subprocess.run(cmd, check=True)
@@ -64,11 +64,11 @@ class FaceRestorationStep:
     """Executes facial region detection and restoration using CodeFormer."""
 
     @staticmethod
-    def execute(output_path: str, params: Dict[str, Any]) -> Optional[str]:
+    def execute(output_path: str, params: Mapping[str, object]) -> Optional[str]:
         log.info("[FACE RESTORER] Inicializando restauração facial CodeFormer...")
         from vhs_studio.ai.face_restorer import FaceRestorer
 
-        fidelity = float(params.get("ai_face_fidelity", DEFAULT_CODEFORMER_FIDELITY))
+        fidelity = float(params.get("ai_face_fidelity", DEFAULT_CODEFORMER_FIDELITY))  # type: ignore[arg-type]
         restorer = FaceRestorer(fidelity_weight=fidelity)
         if restorer.is_available() and os.path.exists(output_path):
             base_dir, filename = os.path.split(output_path)
@@ -101,7 +101,7 @@ class AIUpscalerStep:
     """Executes AI super-resolution via Real-ESRGAN or Real-CUGAN."""
 
     @staticmethod
-    def execute(output_path: str, params: Dict[str, Any]) -> Optional[str]:
+    def execute(output_path: str, params: Mapping[str, object]) -> Optional[str]:
         model = resolve_upscaler_model(params)
         log.info(f"[AI UPSCALER] Initializing super-resolution engine with model {model}...")
         from vhs_studio.video.ai_upscaler import AIUpscaler
@@ -168,7 +168,7 @@ class CloudOffloadStep:
     """Uploads restored master video to configured cloud storage destination."""
 
     @staticmethod
-    def execute(output_path: str, params: Dict[str, Any]) -> None:
+    def execute(output_path: str, params: Mapping[str, object]) -> None:
         if not params.get("auto_upload"):
             return
         try:
@@ -176,8 +176,9 @@ class CloudOffloadStep:
             from vhs_studio.storage.manager import StorageManager
 
             storage_cfg = load_storage_config()
-            provider_id = params.get("storage_provider") or storage_cfg.get(
-                "provider", "gdrive"
+            provider_id = str(
+                params.get("storage_provider")
+                or storage_cfg.get("provider", "gdrive")
             )
             provider = StorageManager.get_provider(provider_id)
             if provider:

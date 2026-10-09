@@ -5,30 +5,23 @@ resolving paths, commands, and DAG task execution matrices (SoC & SRP).
 """
 
 import os
-from typing import Dict, Any, List, Tuple
+from typing import Mapping, List, Tuple
 from vhs_studio.core.constants import (
     DEFAULT_UPSCALER_MODEL,
     DEFAULT_CUGAN_MODEL,
 )
 
 
-def resolve_output_spec(input_path: str, output_dir: str, params: Dict[str, Any]) -> Tuple[str, str]:
-    """
-    Pure function resolving final destination path and file base name.
-
-    Returns:
-        (output_path, base_name)
-    """
+def resolve_output_spec(
+    input_path: str, output_dir: str, params: Mapping[str, object]
+) -> Tuple[str, str]:
+    """Pure function resolving final destination path and file base name."""
     base_name = os.path.splitext(os.path.basename(input_path))[0]
     suffix = "480p" if params.get("no_1080p") else "1080p"
-    codec = params.get("output_codec", "h264")
+    codec = str(params.get("output_codec", "h264"))
 
-    if codec == "ffv1":
-        ext = "mkv"
-    elif codec == "prores":
-        ext = "mov"
-    else:
-        ext = "mp4"
+    ext_map = {"ffv1": "mkv", "prores": "mov"}
+    ext = ext_map.get(codec, "mp4")
 
     filename = f"{base_name}_restored_{suffix}.{ext}"
     return os.path.normpath(os.path.join(output_dir, filename)), base_name
@@ -37,13 +30,11 @@ def resolve_output_spec(input_path: str, output_dir: str, params: Dict[str, Any]
 def build_restore_command_args(
     raw_file: str,
     output_path: str,
-    params: Dict[str, Any],
+    params: Mapping[str, object],
     python_exe: str = "",
 ) -> List[str]:
-    """
-    Pure function that constructs CLI command arguments for primary restoration.
-    """
-    cmd = [
+    """Pure functional constructor for CLI primary restoration arguments."""
+    base_cmd = [
         python_exe or "python",
         "-m",
         "vhs_studio.cli.main",
@@ -53,7 +44,7 @@ def build_restore_command_args(
         output_path,
     ]
 
-    boolean_flags = [
+    boolean_flag_specs = (
         ("denoise", "--denoise"),
         ("chroma_fix", "--chroma-fix"),
         ("comb_filter", "--comb-filter"),
@@ -61,29 +52,30 @@ def build_restore_command_args(
         ("audio_treatment", "--audio-treatment"),
         ("dropout_clean", "--dropout-clean"),
         ("ai_audio_denoise", "--ai-audio-denoise"),
+    )
+
+    active_bool_flags = [
+        flag for key, flag in boolean_flag_specs if bool(params.get(key))
     ]
 
-    for param_key, flag in boolean_flags:
-        if params.get(param_key):
-            cmd.append(flag)
-
-    value_options = [
+    value_option_specs = (
         ("deinterlacer", "--deinterlacer"),
         ("audio_mode", "--audio-mode"),
         ("mode", "--mode"),
         ("crf", "--crf"),
         ("output_codec", "--output-codec"),
+    )
+
+    active_value_options = [
+        arg
+        for key, opt in value_option_specs
+        if params.get(key) is not None
+        for arg in (opt, str(params[key]))
     ]
 
-    for param_key, opt in value_options:
-        val = params.get(param_key)
-        if val is not None:
-            cmd.extend([opt, str(val)])
+    resolution_flag = ["--no-1080p"] if params.get("no_1080p") else []
 
-    if params.get("no_1080p"):
-        cmd.append("--no-1080p")
-
-    return cmd
+    return base_cmd + active_bool_flags + active_value_options + resolution_flag
 
 
 def build_scene_split_command(
@@ -93,9 +85,7 @@ def build_scene_split_command(
     out_clip: str,
     ffmpeg_bin: str = "ffmpeg",
 ) -> List[str]:
-    """
-    Pure function assembling fast stream-copy slicing command for scene clips.
-    """
+    """Pure function assembling fast stream-copy slicing command for scene clips."""
     return [
         ffmpeg_bin,
         "-hide_banner",
@@ -114,10 +104,8 @@ def build_scene_split_command(
     ]
 
 
-def resolve_upscaler_model(params: Dict[str, Any]) -> str:
-    """
-    Pure helper to select AI upscaler model string.
-    """
+def resolve_upscaler_model(params: Mapping[str, object]) -> str:
+    """Pure helper to select AI upscaler model string."""
     model = params.get("ai_upscaler_model")
     if model:
         return str(model)

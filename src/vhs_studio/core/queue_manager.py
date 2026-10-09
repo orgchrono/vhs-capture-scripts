@@ -1,16 +1,26 @@
-"""Persistent SQLite-backed batch queue manager for sequential and scheduled processing."""
-
 import sqlite3
 import os
 import json
 import threading
 import time
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Mapping, TypedDict
 from vhs_studio.core.logger import log
 
 DEFAULT_QUEUE_DB_PATH = os.path.join(
     os.path.expanduser("~"), ".vhs_studio", "pipeline_queue.db"
 )
+
+
+class JobDict(TypedDict, total=False):
+    """Semantic typed structure for persistent queue jobs."""
+    id: int
+    raw_path: str
+    status: str
+    priority: int
+    params: Dict[str, object]
+    created_at: str
+    updated_at: str
+    error_message: Optional[str]
 
 
 class PersistentQueueManager:
@@ -53,7 +63,7 @@ class PersistentQueueManager:
             conn.close()
 
     def enqueue(
-        self, raw_path: str, params: Optional[Dict[str, Any]] = None, priority: int = 0
+        self, raw_path: str, params: Optional[Mapping[str, object]] = None, priority: int = 0
     ) -> int:
         """Enqueue a new media processing job."""
         params_str = json.dumps(params or {})
@@ -73,7 +83,7 @@ class PersistentQueueManager:
             log.info(f"[QUEUE] Enqueued job #{job_id}: {raw_path}")
             return job_id
 
-    def get_next_pending_job(self) -> Optional[Dict[str, Any]]:
+    def get_next_pending_job(self) -> Optional[JobDict]:
         """Fetch the next pending job in FIFO priority order and mark it processing."""
         with self._lock:
             conn = self._get_connection()
@@ -102,7 +112,7 @@ class PersistentQueueManager:
                 job_data["status"] = "processing"
                 job_data["params"] = json.loads(job_data["params"])
                 conn.close()
-                return job_data
+                return job_data  # type: ignore[return-value]
             conn.close()
             return None
 
@@ -156,7 +166,7 @@ class PersistentQueueManager:
             conn.close()
             return rows > 0
 
-    def list_jobs(self, status: Optional[str] = None) -> List[Dict[str, Any]]:
+    def list_jobs(self, status: Optional[str] = None) -> List[JobDict]:
         """List jobs filtered by status or all jobs."""
         with self._lock:
             conn = self._get_connection()
@@ -169,13 +179,14 @@ class PersistentQueueManager:
             else:
                 cursor.execute("SELECT * FROM jobs ORDER BY id DESC")
             rows = cursor.fetchall()
-            jobs = []
-            for r in rows:
-                d = dict(r)
-                d["params"] = json.loads(d.get("params", "{}"))
-                jobs.append(d)
             conn.close()
-            return jobs
+
+            def _row_to_job(row: sqlite3.Row) -> JobDict:
+                d = dict(row)
+                d["params"] = json.loads(d.get("params", "{}"))
+                return d  # type: ignore[return-value]
+
+            return [_row_to_job(r) for r in rows]
 
     def get_stats(self) -> Dict[str, int]:
         """Return counts of jobs grouped by status."""
@@ -196,7 +207,7 @@ class PersistentQueueManager:
             return stats
 
 
-# Global queue manager instance (Sequential mode by default for low CPU/RAM safety)
+# Shared queue manager instance (Sequential mode by default for low CPU/RAM safety)
 queue_manager = PersistentQueueManager()
 
 
@@ -265,22 +276,22 @@ queue_worker = QueueWorker()
 
 
 def enqueue_job(
-    raw_path: str, params: Optional[Dict[str, Any]] = None, priority: int = 0
+    raw_path: str, params: Optional[Mapping[str, object]] = None, priority: int = 0
 ) -> int:
-    """Enqueue a job into the global queue manager."""
+    """Enqueue a job into the shared queue manager instance."""
     return queue_manager.enqueue(raw_path, params, priority)
 
 
-def get_next_job() -> Optional[Dict[str, Any]]:
-    """Fetch next pending job from the global queue manager."""
+def get_next_job() -> Optional[JobDict]:
+    """Fetch next pending job from the shared queue manager instance."""
     return queue_manager.get_next_pending_job()
 
 
 def complete_job(job_id: int) -> None:
-    """Mark a job as completed in the global queue manager."""
+    """Mark a job as completed in the shared queue manager instance."""
     queue_manager.complete_job(job_id)
 
 
 def fail_job(job_id: int, error_message: str) -> None:
-    """Mark a job as failed in the global queue manager."""
+    """Mark a job as failed in the shared queue manager instance."""
     queue_manager.fail_job(job_id, error_message)

@@ -5,6 +5,7 @@ import base64
 import hashlib
 import time
 import threading
+from typing import Callable, Optional, List
 from vhs_studio.core.logger import log
 from vhs_studio.core.constants import OBS_WEBSOCKET_HOST, OBS_WEBSOCKET_PORT
 
@@ -76,17 +77,9 @@ class OBSClient:
                             )
                             return False
 
-                        salt = auth_info["salt"]
-                        challenge = auth_info["challenge"]
-                        concat1 = (self.password + salt).encode("utf-8")
-                        secret = base64.b64encode(
-                            hashlib.sha256(concat1).digest()
-                        ).decode("utf-8")
-                        concat2 = (secret + challenge).encode("utf-8")
-                        auth_resp = base64.b64encode(
-                            hashlib.sha256(concat2).digest()
-                        ).decode("utf-8")
-                        identify_payload["d"]["authentication"] = auth_resp
+                        identify_payload["d"]["authentication"] = compute_obs_auth_response(
+                            self.password, auth_info["salt"], auth_info["challenge"]
+                        )
 
                     self.ws.send(json.dumps(identify_payload))
                     resp = json.loads(self.ws.recv())
@@ -157,14 +150,28 @@ class OBSClient:
         return self.send_request("StopRecord")
 
 
-_shared_obs_client = None
-_client_lock = threading.Lock()
+def compute_obs_auth_response(password: str, salt: str, challenge: str) -> str:
+    """Pure functional computation of OBS WebSocket SHA-256 challenge response."""
+    concat1 = (password + salt).encode("utf-8")
+    secret = base64.b64encode(hashlib.sha256(concat1).digest()).decode("utf-8")
+    concat2 = (secret + challenge).encode("utf-8")
+    return base64.b64encode(hashlib.sha256(concat2).digest()).decode("utf-8")
 
 
-def get_default_obs_client() -> OBSClient:
-    """Return shared thread-safe OBSClient instance."""
-    global _shared_obs_client
-    with _client_lock:
-        if _shared_obs_client is None:
-            _shared_obs_client = OBSClient()
-        return _shared_obs_client
+def make_obs_client_provider() -> Callable[[], OBSClient]:
+    """Closure factory providing a thread-safe cached OBSClient without module-level side effects."""
+    lock = threading.Lock()
+    instance: List[Optional[OBSClient]] = [None]
+
+    def provider() -> OBSClient:
+        with lock:
+            if instance[0] is None:
+                instance[0] = OBSClient()
+            client = instance[0]
+            assert client is not None
+            return client
+
+    return provider
+
+
+get_default_obs_client = make_obs_client_provider()
