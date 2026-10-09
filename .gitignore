@@ -16,8 +16,9 @@ profiles/*-local.env
 *.avi
 *.trf
 *.wav
-*.flac
 *.log
+*.jsonl
+logs/*.jsonl
 workspace/
 data/
 tmp*/

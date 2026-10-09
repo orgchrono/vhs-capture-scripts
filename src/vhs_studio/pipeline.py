@@ -1,4 +1,4 @@
-"""Module documentation pending."""
+"""Orquestrador principal de pipeline de processamento e restauração."""
 
 import os
 import sys
@@ -10,28 +10,33 @@ import json
 
 
 class PipelineOrchestrator:
-    """Documentation for PipelineOrchestrator."""
+    """Gerencia a execução paralela (DAG) das tarefas de restauração, IA e empacotamento."""
 
-    def __init__(self, raw_file, output_path, opts, params):
-        """Documentation for __init__."""
+    def __init__(self, raw_file, output_path, opts=None, params=None):
         self.raw_file = os.path.abspath(raw_file)
         self.output_path = os.path.abspath(output_path)
-        self.opts = opts
-        self.params = params
+        self.opts = opts or {}
+        self.params = params or {}
         self.executor = ThreadPoolExecutor(max_workers=3)
         self.results = {}
 
     def start(self):
-        """Documentation for start."""
+        """Inicia a DAG de tarefas concorrentes."""
         log.info("============================================================")
-        log.info("[PIPELINE ORQUESTRADA] Iniciando M????ltiplos Motores (DAG)")
+        log.info("[PIPELINE ORQUESTRADA] Iniciando Múltiplos Motores (DAG)")
         log.info(f"  Fonte: {self.raw_file}")
+
+        esrgan_enabled = False
+        if isinstance(self.opts, dict):
+            esrgan_enabled = self.opts.get("esrgan", False)
+        elif hasattr(self.opts, "esrgan"):
+            esrgan_enabled = getattr(self.opts, "esrgan", False)
+        if not esrgan_enabled and isinstance(self.params, dict):
+            esrgan_enabled = self.params.get("esrgan", False)
 
         f_restoration = self.executor.submit(self._task_restoration)
         f_whisper = self.executor.submit(self._task_whisper)
-        f_esrgan = (
-            self.executor.submit(self._task_esrgan) if self.opts.get("esrgan") else None
-        )
+        f_esrgan = self.executor.submit(self._task_esrgan) if esrgan_enabled else None
 
         futures = {f_restoration: "Restoration", f_whisper: "Whisper"}
         if f_esrgan:
@@ -50,12 +55,29 @@ class PipelineOrchestrator:
 
         # FASE 4.3 - Cloud Upload
         if self.params.get("auto_upload"):
-            from vhs_studio.cloud.drive_uploader import upload_project_folder
+            try:
+                from vhs_studio.config.storage_config import load_storage_config
+                from vhs_studio.storage.manager import StorageManager
 
-            upload_project_folder(os.path.dirname(self.output_path))
+                storage_cfg = load_storage_config()
+                provider_id = self.params.get("storage_provider") or storage_cfg.get(
+                    "provider", "gdrive"
+                )
+                provider = StorageManager.get_provider(provider_id)
+                if provider:
+                    log.info(f"[CLOUD UPLOAD] Fazendo upload para {provider_id}...")
+                    provider.upload_video(
+                        self.output_path, os.path.basename(self.output_path)
+                    )
+                else:
+                    log.warning(
+                        f"[CLOUD UPLOAD] Provedor '{provider_id}' não configurado ou indisponível."
+                    )
+            except Exception as e:
+                log.error(f"[CLOUD UPLOAD ERRO] Falha no upload para nuvem: {e}")
 
     def _task_esrgan(self):
-        """Executes AI upscaling task via Real-ESRGAN."""
+        """Executa upscale de IA via Real-ESRGAN."""
         log.info("[ESRGAN] Iniciando AI Upscaling via ai_upscaler...")
         from vhs_studio.video.ai_upscaler import AIUpscaler
 
@@ -63,10 +85,16 @@ class PipelineOrchestrator:
         log.info(
             f"[ESRGAN] Processando com modelo {upscaler.model_name} usando GPU {upscaler.gpu_id}"
         )
+        if upscaler.ncnn_path and os.path.exists(self.output_path):
+            base_dir, filename = os.path.split(self.output_path)
+            name, ext = os.path.splitext(filename)
+            upscaled_path = os.path.join(base_dir, f"{name}_esrgan{ext}")
+            upscaler.process_video(self.output_path, upscaled_path)
+            return upscaled_path
         return True
 
     def _task_restoration(self):
-        """Documentation for _task_restoration."""
+        """Dispara a rotina de restauração base (CLI de direct_restore)."""
         cmd = [
             sys.executable,
             "-m",
@@ -99,32 +127,30 @@ class PipelineOrchestrator:
         return self.output_path
 
     def _task_whisper(self):
-        """Documentation for _task_whisper."""
+        """Transcreve o áudio gerando arquivo VTT via Whisper."""
         try:
             from vhs_studio.ai.whisper_engine import transcribe_and_generate_vtt
 
             base_dir = os.path.dirname(self.output_path)
             os.makedirs(base_dir, exist_ok=True)
-            # Patching transcribe_and_generate_vtt to accept target_dir if we can, or just move it.
             vtt = transcribe_and_generate_vtt(self.raw_file, model_size="tiny")
 
-            # Move vtt to output_path directory
             vtt_name = os.path.basename(vtt)
             new_vtt = os.path.join(base_dir, vtt_name)
-            if vtt != new_vtt:
+            if vtt != new_vtt and os.path.exists(vtt):
                 import shutil
 
                 shutil.move(vtt, new_vtt)
             return new_vtt
         except ImportError:
-            log.warning("[WHISPER] faster-whisper n????o est???? instalado. Pulei.")
+            log.warning("[WHISPER] faster-whisper não está instalado. Pulei.")
             return None
         except Exception as e:
             log.warning(f"[WHISPER ERRO] {e}")
             return None
 
     def _task_scenedetect_and_split(self):
-        """Documentation for _task_scenedetect_and_split."""
+        """Segmenta a fita em cenas usando PySceneDetect."""
         master_file = self.results.get("Restoration")
         if not master_file or not os.path.exists(master_file):
             return
@@ -133,18 +159,18 @@ class PipelineOrchestrator:
             from scenedetect import detect, ContentDetector
         except ImportError:
             log.warning(
-                "[SCENE DETECT] scenedetect n????o est???? instalado. Pulei os cortes m????gicos."
+                "[SCENE DETECT] scenedetect não está instalado. Pulei os cortes mágicos."
             )
             return
 
         log.info(
-            "[SCENE DETECT] Procurando cortes secos (Flash/Camera Cuts) no V????deo Master..."
+            "[SCENE DETECT] Procurando cortes secos (Flash/Camera Cuts) no Vídeo Master..."
         )
         scene_list = detect(master_file, ContentDetector(threshold=27.0))
 
         if len(scene_list) <= 1:
             log.info(
-                "[SCENE DETECT] Nenhum corte abrupto detectado. Arquivo mantido ????ntegro."
+                "[SCENE DETECT] Nenhum corte abrupto detectado. Arquivo mantido íntegro."
             )
             return
 
@@ -177,11 +203,11 @@ class PipelineOrchestrator:
                 out_clip,
             ]
             subprocess.run(cmd)
-            log.info(f"  -> Gerado: Cena_{i:03d}{ext} ({start_time} at???? {end_time})")
+            log.info(f"  -> Gerado: Cena_{i:03d}{ext} ({start_time} até {end_time})")
 
 
 def main(unknown_args):
-    """Documentation for main."""
+    """Entrypoint CLI para a pipeline orquestrada."""
     parser = argparse.ArgumentParser()
     parser.add_argument("input", help="Arquivo raw")
     parser.add_argument("--params-json", required=True, help="JSON de parametros")
@@ -193,7 +219,6 @@ def main(unknown_args):
 
     base_name = os.path.splitext(os.path.basename(args.input))[0]
 
-    # Criar pasta pro projeto!
     output_dir = os.path.join(RESTORED_MEDIA_DIR, base_name)
     os.makedirs(output_dir, exist_ok=True)
 

@@ -9,6 +9,7 @@
                     "lint":  "oxlint",
                     "preview":  "vite preview",
                     "jscpd":  "jscpd ../src ./src --threshold 0 --reporters console",
+                    "test":  "vitest run",
                     "test:unit":  "vitest run"
                 },
     "dependencies":  {

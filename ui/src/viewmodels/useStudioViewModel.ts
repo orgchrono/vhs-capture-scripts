@@ -44,7 +44,7 @@ export function useStudioViewModel() {
         if (store.isRestoring) {
             a11yAudio.playSuccess();
             store.setIsRestoring(false)
-            store.addLog('[RESTAURA?????????O] Processo de restaura????????o conclu????do com sucesso!')
+            store.addLog('[RESTAURAÇÃO] Processo de restauração concluído com sucesso!')
         }
       }
     },
@@ -57,7 +57,7 @@ export function useStudioViewModel() {
       if (data.status === 'started' || data.status === 'ok') {
         a11yAudio.playStageStart();
         store.setIsRestoring(true)
-        store.addLog('[RESTAURA?????????O] Processo streaming iniciado!')
+        store.addLog('[RESTAURAÇÃO] Processo streaming iniciado!')
       } else {
         a11yAudio.playError();
         alert(data.message || 'Erro ao iniciar')
@@ -65,7 +65,7 @@ export function useStudioViewModel() {
     },
     onError: (err: any) => {
       a11yAudio.playError();
-      alert(`Erro na requisi????o: ${err.message}`)
+      alert(`Erro na requisição: ${err.message}`)
     },
   })
 
@@ -74,7 +74,7 @@ export function useStudioViewModel() {
       return false // Handled in View
     }
 
-    store.addLog(`[RESTAURA?????????O] Preparando restaura????????o do arquivo: ${store.selectedFile}`)
+    store.addLog(`[RESTAURAÇÃO] Preparando restauração do arquivo: ${store.selectedFile}`)
     restoreMutation.mutate({
       input: store.selectedFile,
       deinterlacer: store.deinterlacer,
@@ -102,7 +102,7 @@ export function useStudioViewModel() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'install_obs' })
       })
-      store.addLog('[OBS] Instalador iniciado em segundo plano. Acompanhe a instala????????o no Console.')
+      store.addLog('[OBS] Instalador iniciado em segundo plano. Acompanhe a instalação no Console.')
       refetchStatus()
     } catch (e) {
       console.error(e)
@@ -116,7 +116,7 @@ export function useStudioViewModel() {
     store.addLog('[QTGMC] Disparando instalador automatizado do VapourSynth + QTGMC...')
     try {
       await studioApi.installQtgmc()
-      store.addLog('[QTGMC] Instalador iniciado em segundo plano. Acompanhe a instala????????o no Console.')
+      store.addLog('[QTGMC] Instalador iniciado em segundo plano. Acompanhe a instalação no Console.')
     } catch (e) {
       store.addLog(`[QTGMC ERRO] Falha ao iniciar instalador: ${e}`)
     } finally {

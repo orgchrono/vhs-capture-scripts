@@ -4,7 +4,7 @@ import logging
 import sys
 import os
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 from logging.handlers import RotatingFileHandler
 
@@ -39,7 +39,7 @@ class JsonFormatter(logging.Formatter):
 
     def format(self, record):
         log_record = {
-            "time": datetime.utcnow().isoformat() + "Z",
+            "time": datetime.now(timezone.utc).isoformat(),
             "level": record.levelname,
             "name": record.name,
             "message": record.getMessage(),
