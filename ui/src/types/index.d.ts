@@ -40,3 +40,34 @@ export interface RestorationPayload {
   output_codec?: OutputCodec;
   auto_upload?: boolean;
 }
+
+export interface ObsStats {
+  connected: boolean;
+  recording: boolean;
+  timecode?: string;
+  duration_sec?: number;
+  bytes?: number;
+  bitrate_kbps?: number;
+  fps?: number;
+  cpu_usage?: number;
+  memory_mb?: number;
+}
+
+export interface QueueJob {
+  id: number;
+  raw_path: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+  priority: number;
+  params: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  error_message?: string | null;
+}
+
+export interface QueueStats {
+  pending: number;
+  processing: number;
+  completed: number;
+  failed: number;
+  cancelled?: number;
+}

@@ -27,22 +27,57 @@ export function useStudioViewModel() {
     }
   }, [status?.health?.dropped_frames])
 
-  // Logs polling during restoration or installation
+  const { isRestoring, setIsRestoring, addLog } = store;
+
+  // Real-time Server-Sent Events (SSE) for low-latency live log streaming
+  useEffect(() => {
+    const isBusy = isRestoring || isInstallingQtgmc || isInstallingObs;
+    if (!isBusy || typeof EventSource === 'undefined') return;
+
+    const eventSource = new EventSource('/api/logs/stream');
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.line) {
+          addLog(data.line);
+        }
+        if (data.active === false && isRestoring) {
+          a11yAudio.playSuccess();
+          setIsRestoring(false);
+          addLog('[RESTAURAÇÃO] Processo de restauração concluído com sucesso!');
+        }
+      } catch {
+        // Ignore JSON parse errors on keepalive comments
+      }
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [isRestoring, isInstallingQtgmc, isInstallingObs, setIsRestoring, addLog]);
+
+  // Fallback logs polling if EventSource is unavailable in environment
   useQuery({
     queryKey: ['logs'],
     queryFn: studioApi.getLogs,
-    refetchInterval: (store.isRestoring || isInstallingQtgmc || isInstallingObs) ? TIMING.LOGS_ACTIVE_POLL_MS : false,
-    enabled: store.isRestoring || isInstallingQtgmc || isInstallingObs,
+    refetchInterval:
+      typeof EventSource === 'undefined' &&
+      (store.isRestoring || isInstallingQtgmc || isInstallingObs)
+        ? TIMING.LOGS_ACTIVE_POLL_MS
+        : false,
+    enabled:
+      typeof EventSource === 'undefined' &&
+      (store.isRestoring || isInstallingQtgmc || isInstallingObs),
     onSuccess: (data: { active: boolean; logs: string[] }) => {
       if (data?.logs?.length) {
-        data.logs.forEach((l) => store.addLog(l))
+        data.logs.forEach((l) => store.addLog(l));
       }
       if (!data?.active && (store.isRestoring || isInstallingQtgmc || isInstallingObs)) {
-        
         if (store.isRestoring) {
-            a11yAudio.playSuccess();
-            store.setIsRestoring(false)
-            store.addLog('[RESTAURAÇÃO] Processo de restauração concluído com sucesso!')
+          a11yAudio.playSuccess();
+          store.setIsRestoring(false);
+          store.addLog('[RESTAURAÇÃO] Processo de restauração concluído com sucesso!');
         }
       }
     },

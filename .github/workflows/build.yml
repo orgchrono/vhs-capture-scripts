@@ -1,4 +1,4 @@
-﻿name: VHS Studio Build & Test Pipeline
+name: VHS Studio Build & Test Pipeline
 
 on:
   push:
@@ -28,9 +28,9 @@ jobs:
         choco install ffmpeg --no-progress -y
         
     - name: Set up Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: 24
         
     - name: Install UI Dependencies
       working-directory: ./ui

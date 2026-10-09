@@ -6,8 +6,9 @@ import os
 import sys
 import subprocess
 import secrets
+import asyncio
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -22,9 +23,11 @@ from vhs_studio.core.paths import RAW_MEDIA_DIR, UI_DIST_DIR as DIST_DIR
 from vhs_studio.core.filter_builder import FilterBuilder
 from vhs_studio.video.vapoursynth_qtgmc import VapourSynthQTGMC
 from vhs_studio.api.process_manager import ProcessManager
+from vhs_studio.api.obs_client import OBSClient
 from vhs_studio.api.oauth_routes import oauth_router
 from vhs_studio.config.storage_config import load_storage_config, save_storage_config
 from vhs_studio.storage.manager import StorageManager
+from vhs_studio.core.queue_manager import queue_manager, queue_worker
 
 # Session token for minimal CSRF mitigation when accessed via web view
 SESSION_TOKEN = secrets.token_hex(16)
@@ -152,6 +155,57 @@ def get_status():
     }
 
 
+@app.get("/api/logs/stream")
+async def stream_logs(request: Request):
+    """Server-Sent Events (SSE) endpoint for low-latency real-time log streaming."""
+
+    async def event_generator():
+        yield f"data: {json.dumps({'connected': True, 'active': pm.is_running()})}\n\n"
+        last_idx = 0
+        idle_ticks = 0
+        while True:
+            if await request.is_disconnected():
+                break
+            logs = pm.get_logs()
+            if len(logs) > last_idx:
+                for line in logs[last_idx:]:
+                    payload = json.dumps({"line": line, "active": pm.is_running()})
+                    yield f"data: {payload}\n\n"
+                last_idx = len(logs)
+                idle_ticks = 0
+            elif not pm.is_running():
+                idle_ticks += 1
+                if idle_ticks >= 2:
+                    yield f"data: {json.dumps({'active': False})}\n\n"
+                    break
+            await asyncio.sleep(0.2)
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+@app.get("/api/obs/stats")
+def get_obs_stats():
+    """Return live telemetry from OBS Studio WebSocket API (bitrate, duration, fps, cpu)."""
+    obs = OBSClient()
+    if not obs.is_connected:
+        obs.connect()
+    if obs.is_connected:
+        status = obs.send_request("GetRecordStatus") or {}
+        stats = obs.send_request("GetStats") or {}
+        return {
+            "connected": True,
+            "recording": status.get("outputActive", False),
+            "timecode": status.get("outputTimecode", "00:00:00"),
+            "duration_sec": round(status.get("outputDuration", 0) / 1000.0, 1),
+            "bytes": status.get("outputBytes", 0),
+            "bitrate_kbps": round(stats.get("outputBitrate", 0), 1),
+            "fps": round(stats.get("activeFps", 0), 1),
+            "cpu_usage": round(stats.get("cpuUsage", 0), 1),
+            "memory_mb": round(stats.get("memoryUsage", 0), 1),
+        }
+    return {"connected": False, "recording": False}
+
+
 @app.get("/api/storage/config")
 def get_storage_config():
     """Return cloud and local storage configuration status."""
@@ -180,15 +234,60 @@ async def update_storage_config(request: Request):
     success = provider.configure(config)
     if success:
         save_storage_config(provider_id, config)
-        return {
-            "status": "ok",
-            "message": "Configuration saved and validated successfully.",
-        }
+        return {"status": "ok", "message": "Configuration saved and validated successfully."}
     else:
         return JSONResponse(
-            status_code=400,
-            content={"error": "Failed to validate storage configuration."},
+            status_code=400, content={"error": "Failed to validate storage configuration."}
         )
+
+
+@app.get("/api/queue")
+def get_queue():
+    """Return queued jobs and status statistics."""
+    return {
+        "jobs": queue_manager.list_jobs(),
+        "stats": queue_manager.get_stats(),
+        "worker_running": queue_worker._running,
+    }
+
+
+@app.post("/api/queue/enqueue")
+async def enqueue_queue_job(request: Request):
+    """Enqueue a job into the persistent batch processing queue."""
+    data = await request.json()
+    raw_path = data.get("input")
+    params = data.get("params", {})
+    priority = data.get("priority", 0)
+
+    if not raw_path or "media" not in raw_path:
+        return JSONResponse(
+            status_code=400, content={"error": "Invalid or insecure file path."}
+        )
+
+    job_id = queue_manager.enqueue(raw_path, params, priority)
+    return {"status": "ok", "job_id": job_id, "message": f"Job #{job_id} enqueued."}
+
+
+@app.post("/api/queue/cancel/{job_id}")
+def cancel_queue_job(job_id: int):
+    """Cancel a pending job in the queue."""
+    if queue_manager.cancel_job(job_id):
+        return {"status": "ok", "message": f"Job #{job_id} cancelled."}
+    return JSONResponse(status_code=400, content={"error": "Job could not be cancelled."})
+
+
+@app.post("/api/queue/start")
+def start_queue_worker():
+    """Start the background sequential batch worker."""
+    queue_worker.start()
+    return {"status": "ok", "message": "Queue worker started."}
+
+
+@app.post("/api/queue/stop")
+def stop_queue_worker():
+    """Pause the background sequential batch worker."""
+    queue_worker.stop()
+    return {"status": "ok", "message": "Queue worker stopped."}
 
 
 @app.post("/api/action")
@@ -241,10 +340,7 @@ async def perform_action(request: Request):
 
     elif action == "install_obs":
         if pm.is_running():
-            return {
-                "status": "error",
-                "message": "Please wait for the current process to finish.",
-            }
+            return {"status": "error", "message": "Please wait for the current process to finish."}
 
         cmd = [sys.executable, "-m", "vhs_studio.cli.setup_obs"]
         success, msg = pm.start_process(cmd)
@@ -256,10 +352,7 @@ async def perform_action(request: Request):
 
     elif action == "install_vapoursynth":
         if pm.is_running():
-            return {
-                "status": "error",
-                "message": "Please wait for the current process to finish.",
-            }
+            return {"status": "error", "message": "Please wait for the current process to finish."}
 
         cmd = [sys.executable, "-m", "vhs_studio.cli.setup_qtgmc"]
 
@@ -271,10 +364,7 @@ async def perform_action(request: Request):
 
     elif action == "generate_subtitles":
         if pm.is_running():
-            return {
-                "status": "error",
-                "message": "Please wait for the current process to finish.",
-            }
+            return {"status": "error", "message": "Please wait for the current process to finish."}
 
         input_file = params.get("input")
         model_size = params.get("model_size", "tiny")

@@ -75,3 +75,83 @@ def test_api_action_start_restore_invalid_file(client):
     data = response.json()
     assert data["status"] == "error"
     assert data["message"] == "Invalid or insecure file path."
+
+
+@patch("vhs_studio.api.server.OBSClient")
+def test_api_obs_stats(mock_obs_cls, client):
+    mock_obs = MagicMock()
+    mock_obs.is_connected = True
+    mock_obs.send_request.side_effect = lambda req: (
+        {
+            "outputActive": True,
+            "outputTimecode": "00:05:22",
+            "outputDuration": 322000,
+            "outputBytes": 104857600,
+        }
+        if req == "GetRecordStatus"
+        else {
+            "outputBitrate": 15200.5,
+            "activeFps": 59.94,
+            "cpuUsage": 12.4,
+            "memoryUsage": 350.2,
+        }
+    )
+    mock_obs_cls.return_value = mock_obs
+
+    response = client.get("/api/obs/stats")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["connected"] is True
+    assert data["recording"] is True
+    assert data["timecode"] == "00:05:22"
+    assert data["bitrate_kbps"] == 15200.5
+    assert data["fps"] == 59.9
+
+
+def test_api_queue_endpoints(client):
+    # Test GET queue
+    response = client.get("/api/queue")
+    assert response.status_code == 200
+    data = response.json()
+    assert "jobs" in data
+    assert "stats" in data
+    assert "worker_running" in data
+
+    # Test Enqueue invalid path
+    bad_res = client.post(
+        "/api/queue/enqueue",
+        json={"input": "insecure_folder/tape.mkv"},
+        headers={"X-Session-Token": SESSION_TOKEN},
+    )
+    assert bad_res.status_code == 400
+
+    # Test Enqueue valid path
+    good_res = client.post(
+        "/api/queue/enqueue",
+        json={"input": "media/tape_01.mkv", "priority": 5},
+        headers={"X-Session-Token": SESSION_TOKEN},
+    )
+    assert good_res.status_code == 200
+    job_id = good_res.json()["job_id"]
+
+    # Test Cancel job
+    cancel_res = client.post(
+        f"/api/queue/cancel/{job_id}",
+        headers={"X-Session-Token": SESSION_TOKEN},
+    )
+    assert cancel_res.status_code == 200
+
+    # Test Start and Stop worker
+    start_res = client.post("/api/queue/start", headers={"X-Session-Token": SESSION_TOKEN})
+    assert start_res.status_code == 200
+    stop_res = client.post("/api/queue/stop", headers={"X-Session-Token": SESSION_TOKEN})
+    assert stop_res.status_code == 200
+
+
+def test_api_logs_stream(client):
+    # Verify the SSE streaming endpoint responds with text/event-stream
+    with client.stream("GET", "/api/logs/stream") as response:
+        assert response.status_code == 200
+        assert "text/event-stream" in response.headers["content-type"]
+        line = next(response.iter_lines())
+        assert "connected" in line or "data:" in line

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Video, AlertTriangle } from 'lucide-react';
+import { Video, AlertTriangle, Activity } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { useStudioStore } from '../store/useStudioStore';
 import { studioApi } from '../api/studioApi';
 
@@ -8,6 +9,13 @@ export const LiveMonitor: React.FC<{ health?: any }> = ({ health }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [isActive, setIsActive] = useState(false);
+
+  const { data: obsStats } = useQuery({
+    queryKey: ['obsStats'],
+    queryFn: studioApi.getObsStats,
+    refetchInterval: 1000,
+    retry: false,
+  });
 
   useEffect(() => {
     let activeStream: MediaStream | null = null;
@@ -70,9 +78,23 @@ export const LiveMonitor: React.FC<{ health?: any }> = ({ health }) => {
           <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-slate-500'}`}></span>
           LIVE PREVIEW (NATIVO)
         </span>
-        {isCapturing && (
+        {(isCapturing || obsStats?.recording) && (
           <span className="bg-red-600/90 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-white border border-red-500/50 shadow-sm flex items-center gap-1.5 animate-pulse tracking-wider">
-            <span className="w-1.5 h-1.5 bg-white rounded-full"></span> REC
+            <span className="w-1.5 h-1.5 bg-white rounded-full"></span>
+            {obsStats?.timecode ? `REC ${obsStats.timecode}` : 'REC'}
+          </span>
+        )}
+        {obsStats?.connected && obsStats?.bitrate_kbps !== undefined && obsStats.bitrate_kbps > 0 && (
+          <span className="bg-blue-950/80 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-mono font-semibold text-blue-300 border border-blue-500/40 shadow-sm flex items-center gap-1.5">
+            <Activity className="w-3 h-3 text-blue-400 animate-pulse" />
+            {obsStats.bitrate_kbps >= 1000
+              ? `${(obsStats.bitrate_kbps / 1000).toFixed(1)} Mbps`
+              : `${obsStats.bitrate_kbps} kbps`}
+          </span>
+        )}
+        {obsStats?.connected && obsStats?.fps !== undefined && obsStats.fps > 0 && (
+          <span className="bg-slate-900/80 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-mono text-slate-300 border border-white/10 shadow-sm">
+            {obsStats.fps} FPS
           </span>
         )}
         {health?.dropped_frames > 0 && (
