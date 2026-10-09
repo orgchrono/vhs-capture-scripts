@@ -155,6 +155,8 @@ class FilterBuilder:
         cmd_out = [
             Toolchain.get_ffmpeg_path(),
             "-hide_banner",
+            "-threads",
+            "0",
             "-f",
             "rawvideo",
             "-pix_fmt",

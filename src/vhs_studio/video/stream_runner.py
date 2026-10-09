@@ -36,7 +36,7 @@ class StreamRunner:
                 break
 
             total_frames += 1
-            y_sample = buf[: self.y_bytes : 64]
+            y_sample = memoryview(buf)[: self.y_bytes : 64]
             mean_luma = sum(y_sample) / len(y_sample) if y_sample else 0
             is_bad = mean_luma <= self.luma_threshold
 

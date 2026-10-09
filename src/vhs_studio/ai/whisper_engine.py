@@ -6,9 +6,14 @@ import subprocess
 
 
 def extract_audio(video_path: str, output_wav: str) -> bool:
-    """Documentation for extract_audio."""
+    """Extract single-channel 16kHz PCM audio for Whisper transcription with full CPU threads."""
+    from vhs_studio.core.toolchain import Toolchain
+
     cmd = [
-        "ffmpeg",
+        Toolchain.get_ffmpeg_path(),
+        "-hide_banner",
+        "-threads",
+        "0",
         "-y",
         "-i",
         video_path,
@@ -67,10 +72,18 @@ def transcribe_and_generate_vtt(video_path: str, model_size: str = "tiny") -> st
     except ImportError:
         pass
 
+    cpu_threads = max(4, os.cpu_count() or 4)
+    num_workers = max(1, (os.cpu_count() or 4) // 2)
     log.info(
-        f"[WHISPER] Carregando modelo {model_size} (Device: {device}, Compute: {compute_type})..."
+        f"[WHISPER] Carregando modelo {model_size} (Device: {device}, Compute: {compute_type}, Threads: {cpu_threads})..."
     )
-    model = WhisperModel(model_size, device=device, compute_type=compute_type)
+    model = WhisperModel(
+        model_size,
+        device=device,
+        compute_type=compute_type,
+        cpu_threads=cpu_threads,
+        num_workers=num_workers,
+    )
 
     log.info(f"[WHISPER] Transcrevendo {temp_wav}...")
     segments, info = model.transcribe(temp_wav, beam_size=5)

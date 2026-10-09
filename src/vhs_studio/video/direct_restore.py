@@ -112,11 +112,11 @@ def find_first_video_frame(input_file, max_scan_sec=VideoConfig.MAX_SCAN_SECONDS
     p.stdout.close()
     p.wait()
 
-    args.start_sec = max(0.0, first_good_frame / fps)
+    start_sec = max(0.0, first_good_frame / fps)
     log.info(
-        f"[RESTAURAÇÃO] Gravação útil identificada a partir de {args.start_sec:.3f}s (frame {first_good_frame} a {fps:.2f} fps)."
+        f"[RESTAURAÇÃO] Gravação útil identificada a partir de {start_sec:.3f}s (frame {first_good_frame} a {fps:.2f} fps)."
     )
-    return args.start_sec
+    return start_sec
 
 
 def print_log_tail(log_path, lines=20):
@@ -174,7 +174,7 @@ def restore_stream(args):
     )  # pylint: disable=consider-using-with
 
     # Inicia decodificador rawvideo do vídeo
-    cmd_in = [Toolchain.get_ffmpeg_path(), "-hide_banner"]
+    cmd_in = [Toolchain.get_ffmpeg_path(), "-hide_banner", "-threads", "0"]
     if args.start_sec > 0.05:
         cmd_in += ["-ss", f"{args.start_sec:.3f}"]
     if args.duration:

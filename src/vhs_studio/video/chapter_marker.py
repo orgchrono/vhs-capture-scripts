@@ -93,10 +93,14 @@ def _run_scenedetect(input_video: str, threshold: float, csv_path: str) -> bool:
 
 def _run_ffmpeg_mux(input_video: str, ffmeta_path: str, output_video: str) -> bool:
     """Execute FFmpeg to embed chapter metadata stream without re-encoding video."""
+    from vhs_studio.core.toolchain import Toolchain
     try:
         subprocess.run(
             [
-                "ffmpeg",
+                Toolchain.get_ffmpeg_path(),
+                "-hide_banner",
+                "-threads",
+                "0",
                 "-y",
                 "-i",
                 input_video,

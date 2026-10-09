@@ -11,14 +11,14 @@ if not exist ".venv" (
 echo [*] Ativando ambiente virtual...
 call .venv\Scripts\activate.bat
 
-echo [*] Garantindo que dependencias Python estao atualizadas...
-python -m pip install --upgrade pip > nul
-python -m pip install -e .[dev,ai,cloud] > nul
-
-echo [*] Garantindo que dependencias da Interface (UI) estao atualizadas...
-cd ui
-call npm install > nul
-cd ..
+echo [*] Verificando dependencias Python e UI via FastDeps...
+python scripts\fast_deps.py
+if %ERRORLEVEL% NEQ 0 (
+    echo.
+    echo [ERRO] Falha ao sincronizar dependencias.
+    pause
+    exit /b %ERRORLEVEL%
+)
 
 echo [*] Rodando Linter e Type Checking...
 python scripts\lint.py
