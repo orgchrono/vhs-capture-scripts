@@ -1,4 +1,4 @@
-﻿"""Module documentation pending."""
+"""Hardware Abstraction Layer (HAL) client for OBS Studio WebSocket v5 API."""
 
 import json
 import base64
@@ -6,13 +6,18 @@ import hashlib
 import time
 import threading
 from vhs_studio.core.logger import log
+from vhs_studio.core.constants import OBS_WEBSOCKET_HOST, OBS_WEBSOCKET_PORT
 
 
 class OBSClient:
-    """Cliente WebSocket robusto para OBS Studio (v5.x) com reconexao automatica (HAL)."""
+    """Robust WebSocket client for OBS Studio v5 with automated exponential backoff reconnection."""
 
-    def __init__(self, host="127.0.0.1", port=4455, password=None):
-        """Documentation for __init__."""
+    def __init__(
+        self,
+        host=OBS_WEBSOCKET_HOST,
+        port=OBS_WEBSOCKET_PORT,
+        password=None,
+    ):
         self.host = host
         self.port = port
         self.password = password if password is not None else ""
@@ -24,16 +29,16 @@ class OBSClient:
 
     @property
     def is_connected(self):
-        """Documentation for is_connected."""
+        """Return True if WebSocket connection is currently active."""
         return self._connected
 
     def connect(self):
-        """Documentation for connect."""
+        """Initiate WebSocket connection and perform challenge-response authentication."""
         try:
             import websocket
         except ImportError:
             log.error(
-                "[ERRO] websocket-client nao instalado. Use pip install websocket-client"
+                "[ERROR] websocket-client is not installed. Install via: pip install websocket-client"
             )
             return False
 
@@ -46,7 +51,7 @@ class OBSClient:
                     self.ws = websocket.create_connection(
                         f"ws://{self.host}:{self.port}", timeout=3
                     )
-                    # Handshake inicial
+                    # Handshake hello frame
                     hello = json.loads(self.ws.recv())
                     auth_info = hello.get("d", {}).get("authentication")
 
@@ -58,7 +63,7 @@ class OBSClient:
                     if auth_info:
                         if not self.password:
                             log.error(
-                                "[ERRO] OBS requer senha, mas nenhuma foi configurada."
+                                "[ERROR] OBS WebSocket requires password, but none was provided."
                             )
                             return False
 
@@ -80,28 +85,28 @@ class OBSClient:
                     if resp.get("op") == 2:
                         self._connected = True
                         log.info(
-                            f"[HAL] OBS WebSocket Conectado com Sucesso! (Tentativa {attempt + 1})"
+                            f"[HAL] OBS WebSocket connected successfully on attempt {attempt + 1}."
                         )
                         return True
                     else:
-                        log.error(f"[HAL] Falha de auth no OBS: {resp}")
+                        log.error(f"[HAL] OBS WebSocket authentication failed: {resp}")
                         return False
                 except Exception as e:
                     log.warning(
-                        f"[HAL] Falha ao conectar no OBS (Tentativa {attempt + 1}/{self._max_retries}): {e}"
+                        f"[HAL] Connection attempt {attempt + 1}/{self._max_retries} failed: {e}"
                     )
                     if self.ws:
                         self.ws.close()
                     time.sleep(self._backoff * (2**attempt))
 
-            log.error("[HAL] Esgotadas as tentativas de conexao com o OBS.")
+            log.error("[HAL] Exhausted all reconnection attempts to OBS Studio.")
             return False
 
     def send_request(self, request_type, request_data=None):
-        """Documentation for send_request."""
+        """Send RPC command payload to OBS WebSocket and await response frame."""
         if not self._connected or not self.ws:
             log.warning(
-                "[HAL] Conexao perdida, tentando reconectar antes do request..."
+                "[HAL] Connection inactive. Attempting reconnect before sending request..."
             )
             if not self.connect():
                 return None
@@ -119,14 +124,14 @@ class OBSClient:
             resp = json.loads(self.ws.recv())
             return resp.get("d", {})
         except Exception as e:
-            log.error(f"[HAL] Falha no Request do OBS ({request_type}): {e}")
+            log.error(f"[HAL] OBS RPC request error ({request_type}): {e}")
             self._connected = False
             return None
 
     def start_record(self):
-        """Documentation for start_record."""
+        """Trigger StartRecord command in OBS Studio."""
         return self.send_request("StartRecord")
 
     def stop_record(self):
-        """Documentation for stop_record."""
+        """Trigger StopRecord command in OBS Studio."""
         return self.send_request("StopRecord")

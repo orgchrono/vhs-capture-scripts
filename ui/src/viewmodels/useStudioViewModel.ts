@@ -3,20 +3,18 @@ import { useQuery, useMutation } from '@tanstack/react-query'
 import { useEffect, useState, useRef } from 'react'
 import { studioApi } from '../api/studioApi'
 import { useStudioStore } from '../store/useStudioStore'
+import { TIMING } from '../lib/constants'
 
 export function useStudioViewModel() {
   const store = useStudioStore()
   const [isInstallingQtgmc, setIsInstallingQtgmc] = useState(false)
   const [isInstallingObs, setIsInstallingObs] = useState(false)
 
-  
-
-
   // System Status polling
   const { data: status, refetch: refetchStatus, isRefetching } = useQuery({
     queryKey: ['systemStatus'],
     queryFn: studioApi.getStatus,
-    refetchInterval: 4000,
+    refetchInterval: TIMING.SYSTEM_STATUS_POLL_MS,
   })
 
   const prevDrops = useRef(0)
@@ -33,7 +31,7 @@ export function useStudioViewModel() {
   useQuery({
     queryKey: ['logs'],
     queryFn: studioApi.getLogs,
-    refetchInterval: (store.isRestoring || isInstallingQtgmc || isInstallingObs) ? 1000 : false,
+    refetchInterval: (store.isRestoring || isInstallingQtgmc || isInstallingObs) ? TIMING.LOGS_ACTIVE_POLL_MS : false,
     enabled: store.isRestoring || isInstallingQtgmc || isInstallingObs,
     onSuccess: (data: { active: boolean; logs: string[] }) => {
       if (data?.logs?.length) {
@@ -107,7 +105,7 @@ export function useStudioViewModel() {
     } catch (e) {
       console.error(e)
     } finally {
-      setTimeout(() => setIsInstallingObs(false), 3000)
+      setTimeout(() => setIsInstallingObs(false), TIMING.INSTALL_RESET_DELAY_MS)
     }
   }
 
@@ -120,7 +118,7 @@ export function useStudioViewModel() {
     } catch (e) {
       store.addLog(`[QTGMC ERRO] Falha ao iniciar instalador: ${e}`)
     } finally {
-      setTimeout(() => setIsInstallingQtgmc(false), 3000)
+      setTimeout(() => setIsInstallingQtgmc(false), TIMING.INSTALL_RESET_DELAY_MS)
     }
   }
 

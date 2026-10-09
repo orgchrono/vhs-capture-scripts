@@ -50,7 +50,7 @@ def test_api_action_invalid(client):
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "error"
-    assert data["message"] == "Ação desconhecida."
+    assert data["message"] == "Unknown action."
 
 
 def test_api_action_stop_process_none_running(client):
@@ -62,7 +62,7 @@ def test_api_action_stop_process_none_running(client):
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "error"
-    assert data["message"] == "Nenhum processo rodando."
+    assert data["message"] == "No process currently running."
 
 
 def test_api_action_start_restore_invalid_file(client):
@@ -74,4 +74,4 @@ def test_api_action_start_restore_invalid_file(client):
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "error"
-    assert data["message"] == "Caminho de arquivo inválido ou inseguro."
+    assert data["message"] == "Invalid or insecure file path."

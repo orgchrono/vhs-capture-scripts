@@ -1,4 +1,4 @@
-"""Orquestrador principal de pipeline de processamento e restauração."""
+"""Main processing and restoration pipeline orchestrator."""
 
 import os
 import sys
@@ -7,10 +7,11 @@ import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from vhs_studio.core.logger import log
 import json
+from vhs_studio.core.constants import DEFAULT_SCENE_THRESHOLD
 
 
 class PipelineOrchestrator:
-    """Gerencia a execução paralela (DAG) das tarefas de restauração, IA e empacotamento."""
+    """Manages parallel DAG execution for restoration, AI enhancement, and packaging."""
 
     def __init__(self, raw_file, output_path, opts=None, params=None):
         self.raw_file = os.path.abspath(raw_file)
@@ -21,10 +22,10 @@ class PipelineOrchestrator:
         self.results = {}
 
     def start(self):
-        """Inicia a DAG de tarefas concorrentes."""
+        """Execute the DAG of concurrent restoration and AI processing tasks."""
         log.info("============================================================")
-        log.info("[PIPELINE ORQUESTRADA] Iniciando Múltiplos Motores (DAG)")
-        log.info(f"  Fonte: {self.raw_file}")
+        log.info("[PIPELINE ORCHESTRATOR] Starting Multi-Engine DAG Processing")
+        log.info(f"  Source: {self.raw_file}")
 
         esrgan_enabled = False
         if isinstance(self.opts, dict):
@@ -46,14 +47,14 @@ class PipelineOrchestrator:
             task_name = futures[future]
             try:
                 self.results[task_name] = future.result()
-                log.info(f"[{task_name.upper()}] Concluído.")
+                log.info(f"[{task_name.upper()}] Task completed.")
             except Exception as exc:
-                log.error(f"[{task_name.upper()} ERRO] Falha na tarefa: {exc}")
+                log.error(f"[{task_name.upper()} ERROR] Task execution failed: {exc}")
 
         self._task_scenedetect_and_split()
-        log.info("[PIPELINE ORQUESTRADA] Sucesso Absoluto!")
+        log.info("[PIPELINE ORCHESTRATOR] All pipeline stages finished successfully.")
 
-        # FASE 4.3 - Cloud Upload
+        # Stage: Cloud Offload
         if self.params.get("auto_upload"):
             try:
                 from vhs_studio.config.storage_config import load_storage_config
@@ -65,25 +66,27 @@ class PipelineOrchestrator:
                 )
                 provider = StorageManager.get_provider(provider_id)
                 if provider:
-                    log.info(f"[CLOUD UPLOAD] Fazendo upload para {provider_id}...")
+                    log.info(
+                        f"[CLOUD UPLOAD] Uploading master file to {provider_id}..."
+                    )
                     provider.upload_video(
                         self.output_path, os.path.basename(self.output_path)
                     )
                 else:
                     log.warning(
-                        f"[CLOUD UPLOAD] Provedor '{provider_id}' não configurado ou indisponível."
+                        f"[CLOUD UPLOAD] Provider '{provider_id}' is not configured or unavailable."
                     )
             except Exception as e:
-                log.error(f"[CLOUD UPLOAD ERRO] Falha no upload para nuvem: {e}")
+                log.error(f"[CLOUD UPLOAD ERROR] Failed to upload to cloud: {e}")
 
     def _task_esrgan(self):
-        """Executa upscale de IA via Real-ESRGAN."""
-        log.info("[ESRGAN] Iniciando AI Upscaling via ai_upscaler...")
+        """Execute AI upscaling task via Real-ESRGAN Vulkan engine."""
+        log.info("[ESRGAN] Initializing neural upscaling engine...")
         from vhs_studio.video.ai_upscaler import AIUpscaler
 
         upscaler = AIUpscaler(model_name="realesrgan-x4plus", gpu_id="auto")
         log.info(
-            f"[ESRGAN] Processando com modelo {upscaler.model_name} usando GPU {upscaler.gpu_id}"
+            f"[ESRGAN] Processing with model {upscaler.model_name} on GPU {upscaler.gpu_id}"
         )
         if upscaler.ncnn_path and os.path.exists(self.output_path):
             base_dir, filename = os.path.split(self.output_path)
@@ -94,7 +97,7 @@ class PipelineOrchestrator:
         return True
 
     def _task_restoration(self):
-        """Dispara a rotina de restauração base (CLI de direct_restore)."""
+        """Invoke primary restoration CLI subprocess."""
         cmd = [
             sys.executable,
             "-m",
@@ -127,7 +130,7 @@ class PipelineOrchestrator:
         return self.output_path
 
     def _task_whisper(self):
-        """Transcreve o áudio gerando arquivo VTT via Whisper."""
+        """Transcribe speech track to WebVTT format using Whisper."""
         try:
             from vhs_studio.ai.whisper_engine import transcribe_and_generate_vtt
 
@@ -143,14 +146,16 @@ class PipelineOrchestrator:
                 shutil.move(vtt, new_vtt)
             return new_vtt
         except ImportError:
-            log.warning("[WHISPER] faster-whisper não está instalado. Pulei.")
+            log.warning(
+                "[WHISPER] faster-whisper package is not installed. Skipping transcription."
+            )
             return None
         except Exception as e:
-            log.warning(f"[WHISPER ERRO] {e}")
+            log.warning(f"[WHISPER ERROR] Transcription failed: {e}")
             return None
 
     def _task_scenedetect_and_split(self):
-        """Segmenta a fita em cenas usando PySceneDetect."""
+        """Segment video into chapters based on camera scene cut transitions."""
         master_file = self.results.get("Restoration")
         if not master_file or not os.path.exists(master_file):
             return
@@ -159,23 +164,23 @@ class PipelineOrchestrator:
             from scenedetect import detect, ContentDetector
         except ImportError:
             log.warning(
-                "[SCENE DETECT] scenedetect não está instalado. Pulei os cortes mágicos."
+                "[SCENE DETECT] scenedetect package is not installed. Skipping scene splits."
             )
             return
 
-        log.info(
-            "[SCENE DETECT] Procurando cortes secos (Flash/Camera Cuts) no Vídeo Master..."
+        log.info("[SCENE DETECT] Scanning for camera cuts in master video...")
+        scene_list = detect(
+            master_file, ContentDetector(threshold=DEFAULT_SCENE_THRESHOLD)
         )
-        scene_list = detect(master_file, ContentDetector(threshold=27.0))
 
         if len(scene_list) <= 1:
             log.info(
-                "[SCENE DETECT] Nenhum corte abrupto detectado. Arquivo mantido íntegro."
+                "[SCENE DETECT] No scene cuts detected. Retaining intact master file."
             )
             return
 
         log.info(
-            f"[SCENE DETECT] {len(scene_list)} Cenas Detectadas! Fatiando arquivo mestre..."
+            f"[SCENE DETECT] {len(scene_list)} scene cuts detected. Slicing video into scenes..."
         )
 
         base_dir = os.path.dirname(master_file)
@@ -185,7 +190,7 @@ class PipelineOrchestrator:
             start_time = scene[0].get_timecode()
             end_time = scene[1].get_timecode()
 
-            out_clip = os.path.join(base_dir, f"{base_name}_Cena_{i:03d}{ext}")
+            out_clip = os.path.join(base_dir, f"{base_name}_Scene_{i:03d}{ext}")
             cmd = [
                 "ffmpeg",
                 "-hide_banner",
@@ -203,14 +208,16 @@ class PipelineOrchestrator:
                 out_clip,
             ]
             subprocess.run(cmd)
-            log.info(f"  -> Gerado: Cena_{i:03d}{ext} ({start_time} até {end_time})")
+            log.info(f"  -> Generated: Scene_{i:03d}{ext} ({start_time} to {end_time})")
 
 
 def main(unknown_args):
-    """Entrypoint CLI para a pipeline orquestrada."""
-    parser = argparse.ArgumentParser()
-    parser.add_argument("input", help="Arquivo raw")
-    parser.add_argument("--params-json", required=True, help="JSON de parametros")
+    """CLI entrypoint for orchestrated pipeline execution."""
+    parser = argparse.ArgumentParser(description="VHS Studio Pipeline Orchestrator")
+    parser.add_argument("input", help="Path to raw captured file")
+    parser.add_argument(
+        "--params-json", required=True, help="Serialized parameters JSON"
+    )
     args, _ = parser.parse_known_args(unknown_args)
 
     params = json.loads(args.params_json)

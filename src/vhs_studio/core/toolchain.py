@@ -1,47 +1,51 @@
-"""Module documentation pending."""
+"""Toolchain resolver and dependency capabilities inspector for FFmpeg and external binaries."""
 
 import sys
 import shutil
 import subprocess
 from functools import lru_cache
+from typing import Dict
 from vhs_studio.core.logger import log
 from vhs_studio.core.paths import get_ffmpeg_executable_path
 
 
 class Toolchain:
-    """Documentation for Toolchain."""
+    """Manages executable discovery, PATH resolution, and codec/filter capability detection."""
 
     @staticmethod
-    def require_executable(name):
-        # 1. Checa no SSOT (Portable ou Sistema adaptativo)
-        """Documentation for require_executable."""
+    def require_executable(name: str) -> str:
+        """Resolve path to requested executable or exit cleanly if absent."""
+        # 1. Inspect dedicated portable paths
         path = get_ffmpeg_executable_path(name)
         if path:
             return path
 
-        # 2. Checa via shutil no PATH atual
-        if shutil.which(name):
-            return name
+        # 2. Check system PATH via shutil
+        which_path = shutil.which(name)
+        if which_path:
+            return which_path
 
-        log.error(f"[ERRO FATAL] Dependência '{name}' não encontrada.")
+        log.error(
+            f"[FATAL] Required executable '{name}' was not found in PATH or portable bundle."
+        )
         sys.exit(1)
 
     @staticmethod
     @lru_cache(maxsize=1)
-    def get_ffmpeg_path():
-        """Documentation for get_ffmpeg_path."""
+    def get_ffmpeg_path() -> str:
+        """Return cached path to FFmpeg binary."""
         return Toolchain.require_executable("ffmpeg")
 
     @staticmethod
     @lru_cache(maxsize=1)
-    def get_ffprobe_path():
-        """Documentation for get_ffprobe_path."""
+    def get_ffprobe_path() -> str:
+        """Return cached path to FFprobe binary."""
         return Toolchain.require_executable("ffprobe")
 
     @staticmethod
     @lru_cache(maxsize=1)
-    def get_ffmpeg_capabilities():
-        """Retorna dicionário de capacidades cacheadas do ffmpeg (encoders, filtros)."""
+    def get_ffmpeg_capabilities() -> Dict[str, str]:
+        """Return dictionary of supported FFmpeg encoders and filters."""
         ffmpeg = Toolchain.get_ffmpeg_path()
         encoders = ""
         filters = ""
@@ -56,13 +60,13 @@ class Toolchain:
             )
             filters = res_flt.stdout
         except Exception as e:
-            log.warning(f"Falha ao obter capacidades do ffmpeg: {e}")
+            log.warning(f"Failed querying FFmpeg capabilities: {e}")
 
         return {"encoders": encoders, "filters": filters}
 
     @staticmethod
-    def has_encoder(encoder_name):
-        """Documentation for has_encoder."""
+    def has_encoder(encoder_name: str) -> bool:
+        """Return True if specified encoder is compiled into FFmpeg build."""
         caps = Toolchain.get_ffmpeg_capabilities()
         return (
             f" {encoder_name} " in caps["encoders"]
@@ -70,8 +74,8 @@ class Toolchain:
         )
 
     @staticmethod
-    def has_filter(filter_name):
-        """Documentation for has_filter."""
+    def has_filter(filter_name: str) -> bool:
+        """Return True if specified video/audio filter is compiled into FFmpeg build."""
         caps = Toolchain.get_ffmpeg_capabilities()
         return (
             f" {filter_name} " in caps["filters"]

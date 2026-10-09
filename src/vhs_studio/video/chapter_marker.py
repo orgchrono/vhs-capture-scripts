@@ -1,6 +1,6 @@
 """
-chapter_marker.py - Módulo FP/SRP para embutir marcações de capítulo via FFmpeg.
-Seguindo princípios de FP Pure (Pure Functions para transformação de texto) e SRP.
+Chapter marking generator module for FFmpeg muxing.
+Follows functional programming principles (pure transformations) and strict Separation of Concerns.
 """
 
 import os
@@ -9,16 +9,17 @@ import csv
 from typing import List, Tuple
 from vhs_studio.core.logger import log
 from vhs_studio.config.advanced import AdvancedConfig
+from vhs_studio.core.constants import DEFAULT_SCENE_THRESHOLD
 
 # ==============================================================================
-# PURE FUNCTIONS (Sem Side Effects - FP Pure, SRP)
+# PURE FUNCTIONS (Side-effect free text and data transformations)
 # ==============================================================================
 
 
 def parse_scenedetect_csv(csv_content: str) -> List[Tuple[int, int]]:
     """
-    [Pure Function] Lê o conteúdo raw do CSV e retorna uma lista de tuplas
-    (start_ms, end_ms) livre de side-effects.
+    Parse PySceneDetect CSV content and return a list of (start_ms, end_ms) tuples.
+    Pure transformation with no I/O side effects.
     """
     lines = csv_content.strip().splitlines()
     start_idx = 0
@@ -42,7 +43,7 @@ def parse_scenedetect_csv(csv_content: str) -> List[Tuple[int, int]]:
 
 def generate_ffmetadata_text(title: str, scenes: List[Tuple[int, int]]) -> str:
     """
-    [Pure Function] Recebe metadados e retorna a string no formato FFmetadata.
+    Generate an FFmetadata1 formatted string from scene timestamp intervals.
     """
     lines = [";FFMETADATA1", f"title={title}", ""]
     for i, (start_ms, end_ms) in enumerate(scenes):
@@ -60,12 +61,12 @@ def generate_ffmetadata_text(title: str, scenes: List[Tuple[int, int]]) -> str:
 
 
 # ==============================================================================
-# I/O BOUND FUNCTIONS (Side Effects contidos - SOC)
+# I/O BOUND FUNCTIONS (Isolated system execution)
 # ==============================================================================
 
 
 def _run_scenedetect(input_video: str, threshold: float, csv_path: str) -> bool:
-    """[I/O] Executa o PySceneDetect e escreve o CSV no disco."""
+    """Execute PySceneDetect CLI and persist scene list to CSV."""
     try:
         subprocess.run(
             [
@@ -85,13 +86,13 @@ def _run_scenedetect(input_video: str, threshold: float, csv_path: str) -> bool:
         return os.path.exists(csv_path)
     except subprocess.CalledProcessError as e:
         log.error(
-            f"[Capítulos] Falha no scenedetect: {e.stderr.decode('utf-8', errors='ignore')}"
+            f"[Chapters] PySceneDetect execution failed: {e.stderr.decode('utf-8', errors='ignore')}"
         )
         return False
 
 
 def _run_ffmpeg_mux(input_video: str, ffmeta_path: str, output_video: str) -> bool:
-    """[I/O] Executa o FFmpeg para embutir os metadados no arquivo final."""
+    """Execute FFmpeg to embed chapter metadata stream without re-encoding video."""
     try:
         subprocess.run(
             [
@@ -113,45 +114,48 @@ def _run_ffmpeg_mux(input_video: str, ffmeta_path: str, output_video: str) -> bo
         return True
     except subprocess.CalledProcessError as e:
         log.error(
-            f"[Capítulos] Falha no FFmpeg: {e.stderr.decode('utf-8', errors='ignore')}"
+            f"[Chapters] FFmpeg metadata muxing failed: {e.stderr.decode('utf-8', errors='ignore')}"
         )
         return False
 
 
 def generate_chapters(input_video: str, output_video: str) -> bool:
     """
-    [Orquestrador] Função principal que delega I/O e Transformações Puras.
+    Orchestrate chapter detection and lossless metadata embedding.
     """
-    threshold = AdvancedConfig.get("ffmpeg", "scene_threshold", 27.0)
+    threshold = AdvancedConfig.get("ffmpeg", "scene_threshold", DEFAULT_SCENE_THRESHOLD)
     base_dir = os.path.dirname(input_video)
     base_name = os.path.splitext(os.path.basename(input_video))[0]
 
     csv_path = os.path.join(base_dir, f"{base_name}-Scenes.csv")
     ffmeta_path = os.path.join(base_dir, f"{base_name}.ffmeta")
 
-    log.info("[Capítulos] 1/3 - Escaneando cortes de câmera com PySceneDetect...")
+    log.info("[Chapters] Step 1/3 - Scanning camera transitions with PySceneDetect...")
     if not _run_scenedetect(input_video, threshold, csv_path):
         return False
 
-    log.info("[Capítulos] 2/3 - Extraindo metadados e gerando trilha (FP Pure)...")
+    log.info(
+        "[Chapters] Step 2/3 - Extracting timestamps and formatting FFmetadata track..."
+    )
     try:
         with open(csv_path, "r", encoding="utf-8") as f:
             csv_content = f.read()
 
-        # Pure transformations
         scenes = parse_scenedetect_csv(csv_content)
         ffmeta_content = generate_ffmetadata_text(base_name, scenes)
 
         with open(ffmeta_path, "w", encoding="utf-8") as f:
             f.write(ffmeta_content)
     except Exception as e:
-        log.error(f"[Capítulos] Falha ao processar dados puros: {e}")
+        log.error(f"[Chapters] Failed parsing scene timestamps: {e}")
         return False
 
-    log.info("[Capítulos] 3/3 - Embutindo capítulos no vídeo final (Lossless)...")
+    log.info(
+        "[Chapters] Step 3/3 - Losslessly embedding chapter markers into destination container..."
+    )
     success = _run_ffmpeg_mux(input_video, ffmeta_path, output_video)
 
-    # Limpeza I/O
+    # Cleanup temporary metadata files
     try:
         os.remove(csv_path)
         os.remove(ffmeta_path)
@@ -159,5 +163,7 @@ def generate_chapters(input_video: str, output_video: str) -> bool:
         pass
 
     if success:
-        log.info(f"[Capítulos] Concluído! Arquivo final gerado: {output_video}")
+        log.info(
+            f"[Chapters] Finished successfully! Output file generated: {output_video}"
+        )
     return success

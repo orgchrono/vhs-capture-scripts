@@ -1,4 +1,4 @@
-"""Module documentation pending."""
+"""Video and audio FFmpeg filter graph and argument builder."""
 
 from vhs_studio.config.settings import Filters, AudioConfig, OutputConfig
 from vhs_studio.core.logger import log
@@ -6,13 +6,22 @@ import sys
 import subprocess
 
 from vhs_studio.core.toolchain import Toolchain
+from vhs_studio.core.constants import (
+    DEFAULT_CRF,
+    DEFAULT_ENCODER_TEST_TIMEOUT_SEC,
+)
 
 
 class FilterBuilder:
-    """Documentation for FilterBuilder."""
+    """Constructs adaptive FFmpeg filter chains and hardware-accelerated encoding arguments."""
 
-    def __init__(self, target_1080p=True, crf=20, mode="freeze", output_codec="h264"):
-        """Documentation for __init__."""
+    def __init__(
+        self,
+        target_1080p=True,
+        crf=DEFAULT_CRF,
+        mode="freeze",
+        output_codec="h264",
+    ):
         self.output_codec = output_codec
         self.encoder = self.detect_best_encoder() if output_codec == "h264" else None
         self.target_1080p = target_1080p
@@ -20,15 +29,14 @@ class FilterBuilder:
         self.mode = mode
 
     @staticmethod
-    def check_filter_support(filter_name):
-        """Documentation for check_filter_support."""
+    def check_filter_support(filter_name: str) -> bool:
+        """Check if FFmpeg supports the requested filter."""
         return Toolchain.has_filter(filter_name)
 
     @staticmethod
-    def check_encoder_support(encoder_name):
-        """Documentation for check_encoder_support."""
+    def check_encoder_support(encoder_name: str) -> bool:
+        """Verify if current hardware and driver can successfully encode a test frame."""
         try:
-            # Testa se o hardware e driver realmente aceitam codificar um frame
             cmd = [
                 Toolchain.get_ffmpeg_path(),
                 "-f",
@@ -41,22 +49,26 @@ class FilterBuilder:
                 "null",
                 "-",
             ]
-            res = subprocess.run(cmd, capture_output=True, text=True, timeout=3)
+            res = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=DEFAULT_ENCODER_TEST_TIMEOUT_SEC,
+            )
             return res.returncode == 0
         except Exception:
             return False
 
     @classmethod
-    def detect_best_encoder(cls):
-        # 1. macOS (Apple Silicon M1/M2/M3/M4 e Macs Intel)
-        """Documentation for detect_best_encoder."""
+    def detect_best_encoder(cls) -> str:
+        """Auto-detect optimal hardware encoder (NVIDIA, Apple, AMD, VAAPI, Intel) or fallback to libx264."""
+        # 1. macOS (Apple Silicon M-Series and Intel Macs)
         if sys.platform == "darwin":
             if cls.check_encoder_support("h264_videotoolbox"):
                 return "h264_videotoolbox"
             return "libx264"
 
-        # 2. Windows e Linux
-        # Prioritize NVIDIA NVENC, then AMD AMF (Windows), then VAAPI (Linux), then Intel QSV, fallback to libx264
+        # 2. Windows and Linux: Prioritize NVENC, AMF, VAAPI, QSV, fallback to libx264
         if cls.check_encoder_support("h264_nvenc"):
             return "h264_nvenc"
         if sys.platform == "win32" and cls.check_encoder_support("h264_amf"):
@@ -69,13 +81,13 @@ class FilterBuilder:
 
     def build_video_filters(
         self,
-        apply_chroma,
-        apply_denoise,
-        deinterlacer,
-        apply_comb_filter=False,
-        overscan_blanking=False,
-    ):
-        """Documentation for build_video_filters."""
+        apply_chroma: bool,
+        apply_denoise: bool,
+        deinterlacer: str,
+        apply_comb_filter: bool = False,
+        overscan_blanking: bool = False,
+    ) -> str:
+        """Assemble the video filtergraph string based on restoration toggles and deinterlacing engine."""
         vf_filters = []
         if overscan_blanking:
             vf_filters.append("drawbox=y=ih-12:color=black:width=iw:height=12:t=fill")
@@ -84,7 +96,7 @@ class FilterBuilder:
                 vf_filters.append("dedot=m=comb")
             else:
                 log.warning(
-                    "[AVISO] Filtro 3D Comb (dedot) não encontrado no FFmpeg local. Omitindo."
+                    "[WARNING] 3D Comb filter (dedot) not found in local FFmpeg build. Skipping."
                 )
 
         if apply_chroma:
@@ -101,12 +113,12 @@ class FilterBuilder:
                 vf_filters.append(Filters.DEINT_ZNEDI3)
             elif self.check_filter_support("nnedi"):
                 log.info(
-                    "[DEINTERLACE] Usando filtro de rede neural 'nnedi' nativo do FFmpeg."
+                    "[DEINTERLACE] Using native neural network deinterlacer 'nnedi'."
                 )
                 vf_filters.append(Filters.DEINT_NNEDI)
             else:
                 log.warning(
-                    "[AVISO] Filtros 'znedi3'/'nnedi' não encontrados neste FFmpeg. Fazendo fallback para 'bwdif'!"
+                    "[WARNING] Neither 'znedi3' nor 'nnedi' filters found. Falling back to 'bwdif'."
                 )
                 vf_filters.append(Filters.DEINT_BWDIF_BOB)
         elif deinterlacer == "nnedi":
@@ -114,7 +126,7 @@ class FilterBuilder:
                 vf_filters.append(Filters.DEINT_NNEDI)
             else:
                 log.warning(
-                    "[AVISO] Filtro 'nnedi' não encontrado neste FFmpeg. Fazendo fallback para 'bwdif'!"
+                    "[WARNING] 'nnedi' filter not found in FFmpeg. Falling back to 'bwdif'."
                 )
                 vf_filters.append(Filters.DEINT_BWDIF_BOB)
         elif deinterlacer == "yadif":
@@ -127,19 +139,19 @@ class FilterBuilder:
 
     def build_ffmpeg_output_args(
         self,
-        input_path,
-        output_path,
-        w,
-        h,
-        fps,
-        start_sec,
-        audio_offset,
-        duration,
-        vf,
-        audio_mode,
-        audio_treatment=False,
+        input_path: str,
+        output_path: str,
+        w: int,
+        h: int,
+        fps: float,
+        start_sec: float,
+        audio_offset: float,
+        duration: float,
+        vf: str,
+        audio_mode: str,
+        audio_treatment: bool = False,
     ):
-        """Documentation for build_ffmpeg_output_args."""
+        """Build CLI command arguments for muxing restored video frames with aligned audio."""
         cmd_out = [
             Toolchain.get_ffmpeg_path(),
             "-hide_banner",

@@ -1,38 +1,64 @@
 import type { DeinterlacerType, VideoMode, AudioMode, OutputCodec, ResolutionMode } from '../types';
 
+export const TIMING = {
+  SYSTEM_STATUS_POLL_MS: 4000,
+  LOGS_ACTIVE_POLL_MS: 1000,
+  INSTALL_RESET_DELAY_MS: 3000,
+  NOTIFICATION_AUTO_DISMISS_MS: 5000,
+} as const;
+
+export const DEFAULTS = {
+  CRF: 18,
+  AUDIO_OFFSET_MS: 0,
+  RESOLUTION: '1080p' as ResolutionMode,
+  OUTPUT_CODEC: 'h264' as OutputCodec,
+  DEINTERLACER: 'bwdif' as DeinterlacerType,
+  VIDEO_MODE: 'double' as VideoMode,
+  AUDIO_MODE: 'stereo' as AudioMode,
+} as const;
+
+export const API_ENDPOINTS = {
+  STATUS: '/api/status',
+  TOKEN: '/api/token',
+  ACTION: '/api/action',
+  STORAGE_CONFIG: '/api/storage/config',
+  OBS_START: '/api/obs/start',
+  OBS_STOP: '/api/obs/stop',
+} as const;
+
 export const DEINTERLACER_OPTIONS: { value: DeinterlacerType; label: string }[] = [
-  { value: 'bwdif', label: 'BWDIF (Rápido / CPU Leve)' },
-  { value: 'qtgmc', label: 'QTGMC Padrão (Alta Qualidade)' },
-  { value: 'qtgmc_fast', label: 'QTGMC Rápido (Balanceado)' },
-  { value: 'qtgmc_slow', label: 'QTGMC Lento (Máxima Qualidade)' },
-  { value: 'nnedi', label: 'NNEDI3 (Upscale Direcionado)' },
-  { value: 'znedi3', label: 'ZNEDI3 (Variante Otimizada)' },
-  { value: 'none', label: 'Nenhum (Progressivo/Telecine)' },
+  { value: 'bwdif', label: 'BWDIF (Fast / Low CPU)' },
+  { value: 'qtgmc', label: 'QTGMC Standard (High Quality)' },
+  { value: 'qtgmc_fast', label: 'QTGMC Fast (Balanced)' },
+  { value: 'qtgmc_slow', label: 'QTGMC Slow (Maximum Quality)' },
+  { value: 'nnedi', label: 'NNEDI3 (Directional Upscale)' },
+  { value: 'znedi3', label: 'ZNEDI3 (Optimized Variant)' },
+  { value: 'none', label: 'None (Progressive / Telecine)' },
 ];
 
 export const VIDEO_MODE_OPTIONS: { value: VideoMode; label: string }[] = [
-  { value: 'double', label: '60fps / 50fps (Smooth / Padrão)' },
+  { value: 'double', label: '60fps / 50fps (Smooth / Standard)' },
   { value: 'single', label: '30fps / 25fps (Original Film)' },
-  { value: 'freeze', label: 'Frame-Hold TBC (Proteção contra Dropouts)' },
-  { value: 'drop', label: 'Drop (Excluir Dropouts Brutos)' },
-  { value: 'passthrough', label: 'Passthrough (Intacto)' },
+  { value: 'freeze', label: 'Frame-Hold TBC (Dropout Protection)' },
+  { value: 'drop', label: 'Drop (Exclude Raw Dropouts)' },
+  { value: 'passthrough', label: 'Passthrough (Intact)' },
 ];
 
 export const AUDIO_MODE_OPTIONS: { value: AudioMode; label: string }[] = [
-  { value: 'stereo', label: 'Estéreo (Original do Capturador)' },
-  { value: 'mono', label: 'Mono Misto (Canais Somados L+R)' },
-  { value: 'mono_l', label: 'Mono Forçado (Apenas Esquerdo)' },
-  { value: 'mono_r', label: 'Mono Forçado (Apenas Direito)' },
+  { value: 'stereo', label: 'Stereo (Original Capture)' },
+  { value: 'mono', label: 'Mixed Mono (Summed L+R)' },
+  { value: 'mono_l', label: 'Forced Mono (Left Only)' },
+  { value: 'mono_r', label: 'Forced Mono (Right Only)' },
 ];
 
 export const OUTPUT_CODEC_OPTIONS: { value: OutputCodec; label: string }[] = [
-  { value: 'h264', label: 'H.264 (Compatibilidade Máxima)' },
-  { value: 'hevc', label: 'H.265 / HEVC (Maior Compressão)' },
-  { value: 'prores', label: 'ProRes 422 HQ (Edição Master)' },
-  { value: 'ffv1', label: 'FFV1 (Arquivamento Lossless)' },
+  { value: 'h264', label: 'H.264 (Maximum Compatibility)' },
+  { value: 'hevc', label: 'H.265 / HEVC (Higher Compression)' },
+  { value: 'prores', label: 'ProRes 422 HQ (Editing Master)' },
+  { value: 'ffv1', label: 'FFV1 (Lossless Archival)' },
 ];
 
 export const RESOLUTION_OPTIONS: { value: ResolutionMode; label: string }[] = [
   { value: 'original', label: 'Original (480p / 576p)' },
-  { value: '1080p', label: 'Upscale 1080p (Padrão YouTube)' },
+  { value: '1080p', label: 'Upscale 1080p (YouTube Standard)' },
 ];
