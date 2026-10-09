@@ -90,10 +90,43 @@ def setup_vapoursynth_windows():
     return True
 
 
+def setup_vapoursynth_unix():
+    """Install VapourSynth and havsfunc on Linux or macOS."""
+    print_step("Iniciando setup automático do VapourSynth + QTGMC para Linux/macOS...")
+    from vhs_studio.core.package_manager import install_vapoursynth_crossplatform
+
+    if install_vapoursynth_crossplatform():
+        print_success("VapourSynth instalado com sucesso pelo gerenciador de pacotes do sistema!")
+    else:
+        print_step("Gerenciador de pacotes automático indisponível ou VapourSynth já existente.")
+
+    print_step("Instalando bibliotecas Python para QTGMC (havsfunc)...")
+    pip_res = run_cmd([sys.executable, "-m", "pip", "install", "vapoursynth", "havsfunc"])
+    if pip_res.returncode == 0:
+        print_success("Bibliotecas Python havsfunc instaladas!")
+    else:
+        print_error(f"Aviso no pip: {pip_res.stderr}")
+
+    test_res = run_cmd(
+        [
+            sys.executable,
+            "-c",
+            "import vapoursynth as vs; print('VapourSynth API:', vs.core.version())",
+        ]
+    )
+    if test_res.returncode == 0:
+        print_success(test_res.stdout.strip())
+        print_success("QTGMC e VapourSynth estão 100% prontos para uso no VHS Studio!")
+        return True
+    else:
+        print_error(
+            "VapourSynth instalado, mas não carregou no Python. Verifique o ambiente virtual."
+        )
+        return False
+
+
 if __name__ == "__main__":
     if sys.platform == "win32":
         setup_vapoursynth_windows()
     else:
-        print_error(
-            "Setup automático não suportado neste SO. Instale VapourSynth manualmente."
-        )
+        setup_vapoursynth_unix()

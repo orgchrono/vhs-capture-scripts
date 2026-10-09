@@ -1,4 +1,4 @@
-name: Code Quality & Testing
+name: Cross-Platform CI & Quality Testing
 
 on:
   push:
@@ -8,12 +8,17 @@ on:
 
 jobs:
   lint-and-test:
-    name: Lint, Types & Tests
-    runs-on: ubuntu-latest
+    name: CI on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
     steps:
     - name: Check out repository
       uses: actions/checkout@v4
-    
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
@@ -26,17 +31,19 @@ jobs:
         node-version: 24
         cache: 'npm'
         cache-dependency-path: 'ui/package-lock.json'
-        
+
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -e .[dev,ai,cloud]
-        
+
     - name: Lint Python with flake8 (Strict)
+      if: matrix.os == 'ubuntu-latest'
       run: |
         flake8 src/vhs_studio --count --select=E9,F63,F7,F82 --show-source --statistics
-        
+
     - name: Type check Python with mypy
+      if: matrix.os == 'ubuntu-latest'
       run: |
         mypy src/vhs_studio --ignore-missing-imports
 
@@ -45,16 +52,16 @@ jobs:
         python -m pytest tests/ -v
 
     - name: Install UI Dependencies
+      working-directory: ./ui
       run: |
-        cd ui
         npm ci
 
     - name: Type check and Build UI
+      working-directory: ./ui
       run: |
-        cd ui
         npm run build
 
     - name: Run UI Unit Tests (Vitest)
+      working-directory: ./ui
       run: |
-        cd ui
         npm run test:unit

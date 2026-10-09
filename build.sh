@@ -22,7 +22,7 @@ pyinstaller --noconfirm --clean \
   --add-data "ui/dist:ui/dist" \
   --add-data "vhs_advanced_config.toml:." \
   --add-data "assets:assets" \
-  --icon "assets/vhs_icon.png" \\
+  --icon "assets/vhs_icon.png" \
   src/vhs_studio/cli/desktop.py
 
 echo "========================================================"

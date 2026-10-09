@@ -30,4 +30,4 @@ pyinstaller --noconfirm --clean ^
 echo ========================================================
 echo [OK] Build concluido! O executavel esta na pasta "dist".
 echo ========================================================
-pause
+if not defined CI pause

@@ -82,16 +82,9 @@ def ensure_ffmpeg():
     )
 
     try:
-        if sys_name == "Linux":
-            log.info("[Preflight] Tentando instalar FFmpeg via APT (Linux)...")
-            subprocess.run(["sudo", "apt-get", "update"], check=True)
-            subprocess.run(["sudo", "apt-get", "install", "-y", "ffmpeg"], check=True)
-            return True
-
-        elif sys_name == "Darwin":
-            log.info("[Preflight] Tentando instalar FFmpeg via Homebrew (macOS)...")
-            subprocess.run(["brew", "install", "ffmpeg"], check=True)
-            return True
+        if sys_name in ["Linux", "Darwin"]:
+            from vhs_studio.core.package_manager import install_ffmpeg_crossplatform
+            return install_ffmpeg_crossplatform()
 
         elif sys_name == "Windows":
             log.info("[Preflight] Baixando FFmpeg Portable (Windows)...")

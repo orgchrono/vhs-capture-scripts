@@ -88,21 +88,19 @@ def setup_windows_portable():
 
 
 def setup_linux():
-    """Documentation for setup_linux."""
+    """Install OBS Studio on Linux across Debian, Fedora, Arch, openSUSE and Flatpak."""
     print_step("Verificando OBS Studio no Linux...")
     if shutil.which("obs"):
         print_success("OBS Studio já está instalado.")
         return True
 
-    print_step("Tentando instalar OBS via APT...")
-    try:
-        subprocess.run(["sudo", "apt-get", "update"], check=True)
-        subprocess.run(["sudo", "apt-get", "install", "obs-studio", "-y"], check=True)
-        print_success("OBS Studio instalado via APT.")
+    from vhs_studio.core.package_manager import install_obs_crossplatform
+    print_step("Instalando OBS Studio via gerenciador de pacotes da distribuição...")
+    if install_obs_crossplatform():
+        print_success("OBS Studio instalado com sucesso.")
         return True
-    except Exception as e:
-        print_error(f"Falha ao instalar via APT: {e}")
-        return False
+    print_error("Falha ao instalar OBS Studio automaticamente no Linux.")
+    return False
 
 
 def setup_mac():

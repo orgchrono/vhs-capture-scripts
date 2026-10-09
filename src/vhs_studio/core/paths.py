@@ -2,6 +2,7 @@
 
 import os
 import platform
+import shutil
 
 # Root of the vhs-capture-scripts repository
 PROJECT_ROOT = os.path.abspath(
@@ -29,7 +30,7 @@ ADVANCED_CONFIG_PATH = os.path.join(PROJECT_ROOT, "vhs_advanced_config.toml")
 
 
 def get_obs_executable_paths():
-    """Documentation for get_obs_executable_paths."""
+    """Return candidates for OBS executable paths across Windows, macOS, and Linux."""
     sys_name = platform.system()
     paths = []
 
@@ -38,12 +39,24 @@ def get_obs_executable_paths():
         paths.append(r"C:\Program Files\obs-studio\bin\64bit\obs64.exe")
     elif sys_name == "Darwin":
         paths.append("/Applications/OBS.app/Contents/MacOS/OBS")
+    elif sys_name == "Linux":
+        paths.extend([
+            "/usr/bin/obs",
+            "/usr/local/bin/obs",
+            "/var/lib/flatpak/exports/bin/com.obsproject.Studio",
+            os.path.expanduser("~/.local/share/flatpak/exports/bin/com.obsproject.Studio"),
+            "/snap/bin/obs-studio",
+        ])
+
+    which_obs = shutil.which("obs")
+    if which_obs and which_obs not in paths:
+        paths.insert(0, which_obs)
 
     return paths
 
 
 def get_obs_cwd():
-    """Documentation for get_obs_cwd."""
+    """Return working directory for OBS if executing portable Windows bundle."""
     sys_name = platform.system()
     if sys_name == "Windows":
         return os.path.join(OBS_DIR, "bin", "64bit")
@@ -51,11 +64,15 @@ def get_obs_cwd():
 
 
 def get_ffmpeg_executable_path(binary_name="ffmpeg"):
-    """Documentation for get_ffmpeg_executable_path."""
+    """Return path to FFmpeg binary if portable or available in system PATH."""
     sys_name = platform.system()
     if sys_name == "Windows":
         portable_path = os.path.join(FFMPEG_DIR, "bin", f"{binary_name}.exe")
         if os.path.exists(portable_path):
             return portable_path
+
+    which_path = shutil.which(binary_name)
+    if which_path:
+        return which_path
 
     return None
