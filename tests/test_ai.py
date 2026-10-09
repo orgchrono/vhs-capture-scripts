@@ -20,19 +20,29 @@ def test_format_timestamp():
     assert format_timestamp(59.999) == "00:00:59.999"
 
 
+@patch("vhs_studio.core.toolchain.Toolchain.get_ffmpeg_path", return_value="ffmpeg")
 @patch("subprocess.run")
-def test_extract_audio_success(mock_run):
+def test_extract_audio_success(mock_run, mock_ffmpeg):
     mock_run.return_value = MagicMock(returncode=0)
     assert extract_audio("dummy.mkv", "out.wav") is True
     mock_run.assert_called_once()
 
 
+@patch("vhs_studio.core.toolchain.Toolchain.get_ffmpeg_path", return_value="ffmpeg")
 @patch("subprocess.run")
-def test_extract_audio_failure(mock_run):
+def test_extract_audio_failure(mock_run, mock_ffmpeg):
     import subprocess
 
     mock_run.side_effect = subprocess.CalledProcessError(1, "cmd")
     assert extract_audio("dummy.mkv", "out.wav") is False
+
+
+def test_extract_audio_missing_ffmpeg():
+    with patch(
+        "vhs_studio.core.toolchain.Toolchain.get_ffmpeg_path",
+        side_effect=FileNotFoundError("not found"),
+    ):
+        assert extract_audio("dummy.mkv", "out.wav") is False
 
 
 @patch("vhs_studio.ai.whisper_engine.extract_audio")

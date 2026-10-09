@@ -11,6 +11,7 @@ import {
   Zap,
   AlertTriangle,
   ShieldCheck,
+  Cloud,
 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 import { Switch } from './ui/switch'
@@ -19,6 +20,7 @@ import { Input } from './ui/input'
 import { useTranslation } from 'react-i18next'
 import { DEINTERLACER_OPTIONS, VIDEO_MODE_OPTIONS, AUDIO_MODE_OPTIONS, OUTPUT_CODEC_OPTIONS, RESOLUTION_OPTIONS } from '../lib/constants'
 import { useRestorationViewModel } from '../viewmodels/useRestorationViewModel'
+import { StorageSettings } from './StorageSettings'
 
 const GenericSelect = ({ value, onChange, options }: { value: string, onChange: (v: any) => void, options: {value: string, label: string}[] }) => (
   <Select value={value} onValueChange={onChange}>
@@ -91,12 +93,13 @@ export const RestorationSettings: React.FC = () => {
       </div>
 
       <Tabs defaultValue="video" className="w-full" aria-label="Settings Tabs">
-        <TabsList className="grid w-full grid-cols-5 mb-4">
-          <TabsTrigger value="video" className="flex items-center gap-2"><Video className="w-4 h-4"/>Vídeo</TabsTrigger>
-          <TabsTrigger value="audio" className="flex items-center gap-2"><Music className="w-4 h-4"/>Áudio</TabsTrigger>
-          <TabsTrigger value="filters" className="flex items-center gap-2"><ImageIcon className="w-4 h-4"/>Filtros</TabsTrigger>
-          <TabsTrigger value="advanced" className="flex items-center gap-2"><Settings2 className="w-4 h-4"/>Avançado</TabsTrigger>
-          <TabsTrigger value="ai" className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-indigo-400"/>IA & Performance</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-6 mb-4">
+          <TabsTrigger value="video" className="flex items-center gap-1.5 text-xs"><Video className="w-3.5 h-3.5"/>Vídeo</TabsTrigger>
+          <TabsTrigger value="audio" className="flex items-center gap-1.5 text-xs"><Music className="w-3.5 h-3.5"/>Áudio</TabsTrigger>
+          <TabsTrigger value="filters" className="flex items-center gap-1.5 text-xs"><ImageIcon className="w-3.5 h-3.5"/>Filtros</TabsTrigger>
+          <TabsTrigger value="advanced" className="flex items-center gap-1.5 text-xs"><Settings2 className="w-3.5 h-3.5"/>Avançado</TabsTrigger>
+          <TabsTrigger value="ai" className="flex items-center gap-1.5 text-xs"><Sparkles className="w-3.5 h-3.5 text-indigo-400"/>IA</TabsTrigger>
+          <TabsTrigger value="storage" className="flex items-center gap-1.5 text-xs"><Cloud className="w-3.5 h-3.5 text-emerald-400"/>Nuvem</TabsTrigger>
         </TabsList>
 
         <TabsContent value="video" className="space-y-4">
@@ -487,7 +490,11 @@ export const RestorationSettings: React.FC = () => {
             </div>
           </div>
         </TabsContent>
-</Tabs>
+
+        <TabsContent value="storage" className="space-y-4">
+          <StorageSettings />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

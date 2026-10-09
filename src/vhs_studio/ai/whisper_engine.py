@@ -9,8 +9,14 @@ def extract_audio(video_path: str, output_wav: str) -> bool:
     """Extract single-channel 16kHz PCM audio for Whisper transcription with full CPU threads."""
     from vhs_studio.core.toolchain import Toolchain
 
+    try:
+        ffmpeg_path = Toolchain.get_ffmpeg_path()
+    except (FileNotFoundError, Exception) as err:
+        log.error(f"[WHISPER] FFmpeg não disponível para extração de áudio: {err}")
+        return False
+
     cmd = [
-        Toolchain.get_ffmpeg_path(),
+        ffmpeg_path,
         "-hide_banner",
         "-threads",
         "0",

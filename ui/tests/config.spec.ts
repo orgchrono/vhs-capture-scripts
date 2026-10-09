@@ -1,4 +1,4 @@
-﻿import { test, expect } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
 test.describe('VHS Studio Config & Monitoring', () => {
 
@@ -18,16 +18,19 @@ test.describe('VHS Studio Config & Monitoring', () => {
     await page.addInitScript(() => window.localStorage.setItem('vhs_studio_eula_accepted', 'true'));
     await page.goto('http://localhost:5173/');
 
-    await expect(page.locator('text=Caminho do Destino')).toBeVisible();
     await expect(page.locator('text=Motor de Processamento')).toBeVisible();
     
-    // Test tabs by clicking the raw elements
+    // Test tabs by clicking the tab triggers
     const tabs = page.locator('button[role="tab"]');
     await tabs.nth(0).click();
-    await expect(page.locator('text=Base').first()).toBeVisible(); 
+    await expect(page.locator('text=Desentrelaçamento').first()).toBeVisible(); 
 
     await tabs.nth(1).click();
     // In audio tab, we look for "Modo", "Sincroniza" or similar
-    await expect(page.locator('text=Modo').first()).toBeVisible(); 
+    await expect(page.locator('text=Modo').first()).toBeVisible();
+
+    // Nuvem / Storage tab (index 5)
+    await tabs.nth(5).click();
+    await expect(page.locator('text=Caminho do Destino')).toBeVisible();
   });
 });

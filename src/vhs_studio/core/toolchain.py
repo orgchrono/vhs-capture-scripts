@@ -28,7 +28,9 @@ class Toolchain:
         log.error(
             f"[FATAL] Required executable '{name}' was not found in PATH or portable bundle."
         )
-        sys.exit(1)
+        raise FileNotFoundError(
+            f"Required executable '{name}' was not found in PATH or portable bundle."
+        )
 
     @staticmethod
     @lru_cache(maxsize=1)
