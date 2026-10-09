@@ -19,8 +19,14 @@ import {
   setIsCapturing,
   addLog,
   clearLogs,
+  toggleSidebar,
+  setSidebarCollapsed,
+  toggleConsole,
+  setConsoleCollapsed,
+  setWorkspacePreset,
   setPartialState,
   type StudioState,
+  type WorkspacePreset,
 } from './studioSlice';
 import type {
   RestorationPreset,
@@ -58,6 +64,11 @@ export function useStudioStore() {
     setIsCapturing: (val: boolean) => dispatch(setIsCapturing(val)),
     addLog: (line: string) => dispatch(addLog(line)),
     clearLogs: () => dispatch(clearLogs()),
+    toggleSidebar: () => dispatch(toggleSidebar()),
+    setSidebarCollapsed: (val: boolean) => dispatch(setSidebarCollapsed(val)),
+    toggleConsole: () => dispatch(toggleConsole()),
+    setConsoleCollapsed: (val: boolean) => dispatch(setConsoleCollapsed(val)),
+    setWorkspacePreset: (preset: WorkspacePreset) => dispatch(setWorkspacePreset(preset)),
   };
 }
 

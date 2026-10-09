@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Cpu, Film, Sparkles, Wrench, Globe, Eye, Video, Type } from 'lucide-react'
+import { Cpu, Film, Sparkles, Wrench, Globe, Eye, Video, Type, PanelLeft, PanelBottom } from 'lucide-react'
 import { Button } from './ui/button'
 import type { SystemStatus } from '../types'
 import { useTranslation } from 'react-i18next'
@@ -10,9 +10,23 @@ interface HeaderProps {
   isInstallingQtgmc: boolean
   isInstallingObs?: boolean
   onInstallObs?: () => void
+  sidebarCollapsed?: boolean
+  onToggleSidebar?: () => void
+  consoleCollapsed?: boolean
+  onToggleConsole?: () => void
 }
 
-export const Header: React.FC<HeaderProps> = ({ status, onInstallQtgmc, isInstallingQtgmc , isInstallingObs, onInstallObs }) => {
+export const Header: React.FC<HeaderProps> = ({
+  status,
+  onInstallQtgmc,
+  isInstallingQtgmc,
+  isInstallingObs,
+  onInstallObs,
+  sidebarCollapsed,
+  onToggleSidebar,
+  consoleCollapsed,
+  onToggleConsole,
+}) => {
   const { t, i18n } = useTranslation();
   const [highContrast, setHighContrast] = useState(false)
   const [largeText, setLargeText] = useState(false);
@@ -67,6 +81,32 @@ export const Header: React.FC<HeaderProps> = ({ status, onInstallQtgmc, isInstal
           }} title="Acessibilidade: Aumentar Texto">
             <Type className="w-4 h-4" />
           </Button>
+        </div>
+
+        {/* Workspace Layout Controls */}
+        <div className="flex items-center gap-1 bg-slate-900/80 border border-white/10 rounded-lg p-1">
+          {onToggleSidebar && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`w-8 h-8 rounded-md hover:bg-slate-800 ${sidebarCollapsed ? 'text-slate-500' : 'text-sky-400'}`}
+              onClick={onToggleSidebar}
+              title={sidebarCollapsed ? "Expandir Painel Lateral" : "Recolher Painel Lateral"}
+            >
+              <PanelLeft className="w-4 h-4" />
+            </Button>
+          )}
+          {onToggleConsole && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`w-8 h-8 rounded-md hover:bg-slate-800 ${consoleCollapsed ? 'text-slate-500' : 'text-emerald-400'}`}
+              onClick={onToggleConsole}
+              title={consoleCollapsed ? "Expandir Console de Monitoramento" : "Recolher Console"}
+            >
+              <PanelBottom className="w-4 h-4" />
+            </Button>
+          )}
         </div>
 
         <div className="w-px h-6 bg-white/10 mx-1"></div>

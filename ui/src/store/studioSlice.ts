@@ -8,6 +8,8 @@ import type {
   ResolutionMode,
 } from '../types';
 
+export type WorkspacePreset = 'default' | 'capture' | 'restore';
+
 export interface StudioState {
   selectedFile: string;
   preset: RestorationPreset;
@@ -26,6 +28,9 @@ export interface StudioState {
   isRestoring: boolean;
   isCapturing: boolean;
   logs: string[];
+  sidebarCollapsed: boolean;
+  consoleCollapsed: boolean;
+  workspacePreset: WorkspacePreset;
 }
 
 export const initialStudioState: StudioState = {
@@ -46,6 +51,9 @@ export const initialStudioState: StudioState = {
   isRestoring: false,
   isCapturing: false,
   logs: [],
+  sidebarCollapsed: false,
+  consoleCollapsed: false,
+  workspacePreset: 'default',
 };
 
 export const studioSlice = createSlice({
@@ -175,6 +183,31 @@ export const studioSlice = createSlice({
     clearLogs: (state) => {
       state.logs = [];
     },
+    toggleSidebar: (state) => {
+      state.sidebarCollapsed = !state.sidebarCollapsed;
+    },
+    setSidebarCollapsed: (state, action: PayloadAction<boolean>) => {
+      state.sidebarCollapsed = action.payload;
+    },
+    toggleConsole: (state) => {
+      state.consoleCollapsed = !state.consoleCollapsed;
+    },
+    setConsoleCollapsed: (state, action: PayloadAction<boolean>) => {
+      state.consoleCollapsed = action.payload;
+    },
+    setWorkspacePreset: (state, action: PayloadAction<WorkspacePreset>) => {
+      state.workspacePreset = action.payload;
+      if (action.payload === 'capture') {
+        state.sidebarCollapsed = false;
+        state.consoleCollapsed = true;
+      } else if (action.payload === 'restore') {
+        state.sidebarCollapsed = false;
+        state.consoleCollapsed = false;
+      } else {
+        state.sidebarCollapsed = false;
+        state.consoleCollapsed = false;
+      }
+    },
     setPartialState: (state, action: PayloadAction<Partial<StudioState>>) => {
       Object.assign(state, action.payload);
     },
@@ -201,5 +234,10 @@ export const {
   setIsCapturing,
   addLog,
   clearLogs,
+  toggleSidebar,
+  setSidebarCollapsed,
+  toggleConsole,
+  setConsoleCollapsed,
+  setWorkspacePreset,
   setPartialState,
 } = studioSlice.actions;
