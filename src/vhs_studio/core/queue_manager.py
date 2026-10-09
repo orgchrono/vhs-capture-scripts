@@ -24,7 +24,9 @@ class PersistentQueueManager:
 
     def _get_connection(self) -> sqlite3.Connection:
         """Create database directory and return connection."""
-        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+        db_dir = os.path.dirname(self.db_path)
+        if db_dir:
+            os.makedirs(db_dir, exist_ok=True)
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         return conn
@@ -204,26 +206,31 @@ class QueueWorker:
     def __init__(self, manager: PersistentQueueManager = queue_manager):
         self.manager = manager
         self._running = False
+        self._stop_event = threading.Event()
         self._thread: Optional[threading.Thread] = None
 
     def start(self):
         """Start worker thread."""
         if not self._running:
             self._running = True
+            self._stop_event.clear()
             self._thread = threading.Thread(target=self._run_loop, daemon=True)
             self._thread.start()
             log.info("[QUEUE WORKER] Batch worker thread started.")
 
-    def stop(self):
-        """Stop worker loop."""
+    def stop(self, timeout: float = 2.0):
+        """Stop worker loop and join thread cleanly."""
         self._running = False
+        self._stop_event.set()
+        if self._thread and self._thread.is_alive():
+            self._thread.join(timeout=timeout)
 
     def _run_loop(self):
         """Sequential polling and task execution loop."""
         from vhs_studio.api.server import pm
         import sys
 
-        while self._running:
+        while self._running and not self._stop_event.is_set():
             if not pm.is_running():
                 job = self.manager.get_next_pending_job()
                 if job:
@@ -246,12 +253,12 @@ class QueueWorker:
                     success, _ = pm.start_process(cmd)
                     if success:
                         # Await process completion
-                        while pm.is_running():
-                            time.sleep(1)
+                        while pm.is_running() and not self._stop_event.is_set():
+                            self._stop_event.wait(0.5)
                         self.manager.complete_job(job_id)
                     else:
                         self.manager.fail_job(job_id, "Failed starting subprocess.")
-            time.sleep(2)
+            self._stop_event.wait(0.5)
 
 
 queue_worker = QueueWorker()

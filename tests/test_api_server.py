@@ -186,3 +186,59 @@ def test_api_run_endpoint(mock_start, client):
     )
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
+
+
+def test_api_security_path_traversal_run(client):
+    """Verify that path traversal attempts on /api/run are blocked."""
+    for bad_path in ["media/../../etc/passwd", "media/tape\0.mkv", "C:/Windows/system32/cmd.exe"]:
+        response = client.post(
+            "/api/run",
+            json={"input": bad_path},
+            headers={"X-Session-Token": SESSION_TOKEN},
+        )
+        assert response.status_code == 400
+        assert response.json()["message"] == "Invalid or insecure file path."
+
+
+def test_api_security_path_traversal_queue_enqueue(client):
+    """Verify that path traversal attempts on /api/queue/enqueue are blocked."""
+    for bad_path in ["media/../../etc/shadow", "media/tape\0.mkv", "outside/media/test.mkv"]:
+        response = client.post(
+            "/api/queue/enqueue",
+            json={"input": bad_path},
+            headers={"X-Session-Token": SESSION_TOKEN},
+        )
+        assert response.status_code == 400
+        assert response.json()["error"] == "Invalid or insecure file path."
+
+
+def test_api_security_generate_subtitles_validation(client):
+    """Verify that subtitle generation rejects insecure paths and validates model size."""
+    # Insecure path
+    res = client.post(
+        "/api/action",
+        json={"action": "generate_subtitles", "params": {"input": "media/../../etc/passwd"}},
+        headers={"X-Session-Token": SESSION_TOKEN},
+    )
+    assert res.status_code == 200
+    assert res.json()["status"] == "error"
+    assert res.json()["message"] == "Invalid or insecure file path."
+
+    # Valid execution
+    with patch("vhs_studio.api.server.pm.start_process") as mock_start:
+        mock_start.return_value = (True, "Started")
+        ok_res = client.post(
+            "/api/action",
+            json={
+                "action": "generate_subtitles",
+                "params": {"input": "media/raw/tape.mkv", "model_size": "small"},
+            },
+            headers={"X-Session-Token": SESSION_TOKEN},
+        )
+        assert ok_res.status_code == 200
+        assert ok_res.json()["status"] == "ok"
+        mock_start.assert_called_once()
+        called_cmd = mock_start.call_args[0][0]
+        assert "sys.argv[1]" in called_cmd[2]
+        assert called_cmd[3] == "media/raw/tape.mkv"
+        assert called_cmd[4] == "small"

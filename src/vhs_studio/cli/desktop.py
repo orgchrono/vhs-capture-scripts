@@ -93,7 +93,7 @@ def ensure_ui_build():
             ui_dir = os.path.join(project_root, "ui")
             try:
                 npm_cmd = "npm.cmd" if os.name == "nt" else "npm"
-                subprocess.run(f"{npm_cmd} run build", cwd=ui_dir, shell=True, check=True)
+                subprocess.run([npm_cmd, "run", "build"], cwd=ui_dir, check=True)
                 os.makedirs(ui_dist_dir, exist_ok=True)
                 with open(hash_file, "w", encoding="utf-8") as f:
                     f.write(current_hash)

@@ -2,7 +2,6 @@
 
 import os
 import tempfile
-import time
 from vhs_studio.core.queue_manager import (
     PersistentQueueManager,
     QueueWorker,
@@ -82,7 +81,6 @@ def test_queue_worker_lifecycle():
         assert worker._running is False
         worker.start()
         assert worker._running is True
-        time.sleep(0.1)
         worker.stop()
         assert worker._running is False
 

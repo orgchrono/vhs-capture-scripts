@@ -19,7 +19,7 @@ from vhs_studio.core.constants import (
     OBS_WEBSOCKET_PORT,
     VALID_MEDIA_EXTENSIONS,
 )
-from vhs_studio.core.paths import RAW_MEDIA_DIR, UI_DIST_DIR as DIST_DIR
+from vhs_studio.core.paths import MEDIA_DIR, RAW_MEDIA_DIR, UI_DIST_DIR as DIST_DIR
 from vhs_studio.core.filter_builder import FilterBuilder
 from vhs_studio.video.vapoursynth_qtgmc import VapourSynthQTGMC
 from vhs_studio.api.process_manager import ProcessManager
@@ -33,6 +33,25 @@ from vhs_studio.core.hardware import get_hardware_profile
 # Session token for minimal CSRF mitigation when accessed via web view
 SESSION_TOKEN = secrets.token_hex(16)
 pm = ProcessManager()
+
+
+def is_safe_media_path(raw_path: str | None) -> bool:
+    """Validate that raw_path is safe against traversal and stays within MEDIA_DIR."""
+    if not raw_path or not isinstance(raw_path, str):
+        return False
+    if "\0" in raw_path or ".." in raw_path:
+        return False
+    norm = os.path.normpath(raw_path).replace("\\", "/")
+    if norm.startswith("media/") or norm == "media":
+        return True
+    try:
+        abs_p = os.path.abspath(raw_path)
+        media_abs = os.path.abspath(MEDIA_DIR)
+        common = os.path.commonpath([abs_p, media_abs])
+        return common == media_abs
+    except Exception:
+        return False
+
 
 app = FastAPI(title="VHS Studio API")
 app.include_router(oauth_router, prefix="/api/oauth")
@@ -267,7 +286,7 @@ async def enqueue_queue_job(request: Request):
     params = data.get("params", {})
     priority = data.get("priority", 0)
 
-    if not raw_path or "media" not in raw_path:
+    if not is_safe_media_path(raw_path):
         return JSONResponse(
             status_code=400, content={"error": "Invalid or insecure file path."}
         )
@@ -323,7 +342,7 @@ async def perform_action(request: Request):
                 }
 
         input_file = params.get("input")
-        if not input_file or "media" not in input_file:
+        if not is_safe_media_path(input_file):
             return {
                 "status": "error",
                 "message": "Invalid or insecure file path.",
@@ -377,10 +396,22 @@ async def perform_action(request: Request):
         input_file = params.get("input")
         model_size = params.get("model_size", "tiny")
 
+        if not is_safe_media_path(input_file):
+            return {
+                "status": "error",
+                "message": "Invalid or insecure file path.",
+            }
+
+        valid_models = ("tiny", "base", "small", "medium", "large")
+        if model_size not in valid_models:
+            model_size = "tiny"
+
         cmd = [
             sys.executable,
             "-c",
-            f"from vhs_studio.ai.whisper_engine import transcribe_and_generate_vtt; transcribe_and_generate_vtt(r'{input_file}', '{model_size}')",
+            "import sys; from vhs_studio.ai.whisper_engine import transcribe_and_generate_vtt; transcribe_and_generate_vtt(sys.argv[1], sys.argv[2])",
+            input_file,
+            model_size,
         ]
 
         success, msg = pm.start_process(cmd)
@@ -411,7 +442,7 @@ async def run_pipeline(request: Request):
         return JSONResponse(status_code=400, content={"status": "error", "message": "A process is already running."})
 
     input_file = params.get("input")
-    if not input_file or "media" not in input_file:
+    if not is_safe_media_path(input_file):
         return JSONResponse(status_code=400, content={"status": "error", "message": "Invalid or insecure file path."})
 
     params_json = json.dumps(params)
