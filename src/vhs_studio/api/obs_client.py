@@ -12,6 +12,9 @@ from vhs_studio.core.constants import OBS_WEBSOCKET_HOST, OBS_WEBSOCKET_PORT
 class OBSClient:
     """Robust WebSocket client for OBS Studio v5 with automated exponential backoff reconnection."""
 
+    _last_fail_time = 0.0
+    _fail_cooldown = 3.0
+
     def __init__(
         self,
         host=OBS_WEBSOCKET_HOST,
@@ -32,7 +35,7 @@ class OBSClient:
         """Return True if WebSocket connection is currently active."""
         return self._connected
 
-    def connect(self):
+    def connect(self, max_retries=None, silent=False):
         """Initiate WebSocket connection and perform challenge-response authentication."""
         try:
             import websocket
@@ -46,10 +49,16 @@ class OBSClient:
             if self._connected:
                 return True
 
-            for attempt in range(self._max_retries):
+            now = time.time()
+            if now - OBSClient._last_fail_time < OBSClient._fail_cooldown:
+                return False
+
+            retries = max_retries if max_retries is not None else self._max_retries
+
+            for attempt in range(retries):
                 try:
                     self.ws = websocket.create_connection(
-                        f"ws://{self.host}:{self.port}", timeout=3
+                        f"ws://{self.host}:{self.port}", timeout=2
                     )
                     # Handshake hello frame
                     hello = json.loads(self.ws.recv())
@@ -92,14 +101,25 @@ class OBSClient:
                         log.error(f"[HAL] OBS WebSocket authentication failed: {resp}")
                         return False
                 except Exception as e:
-                    log.warning(
-                        f"[HAL] Connection attempt {attempt + 1}/{self._max_retries} failed: {e}"
-                    )
+                    OBSClient._last_fail_time = time.time()
+                    if not silent:
+                        log.warning(
+                            f"[HAL] Connection attempt {attempt + 1}/{retries} failed: {e}"
+                        )
+                    else:
+                        log.debug(
+                            f"[HAL] Silent check connection attempt {attempt + 1}/{retries} failed: {e}"
+                        )
                     if self.ws:
-                        self.ws.close()
-                    time.sleep(self._backoff * (2**attempt))
+                        try:
+                            self.ws.close()
+                        except Exception:
+                            pass
+                    if attempt < retries - 1:
+                        time.sleep(self._backoff * (2**attempt))
 
-            log.error("[HAL] Exhausted all reconnection attempts to OBS Studio.")
+            if not silent:
+                log.error("[HAL] Exhausted all reconnection attempts to OBS Studio.")
             return False
 
     def send_request(self, request_type, request_data=None):
@@ -135,3 +155,16 @@ class OBSClient:
     def stop_record(self):
         """Trigger StopRecord command in OBS Studio."""
         return self.send_request("StopRecord")
+
+
+_shared_obs_client = None
+_client_lock = threading.Lock()
+
+
+def get_default_obs_client() -> OBSClient:
+    """Return shared thread-safe OBSClient instance."""
+    global _shared_obs_client
+    with _client_lock:
+        if _shared_obs_client is None:
+            _shared_obs_client = OBSClient()
+        return _shared_obs_client

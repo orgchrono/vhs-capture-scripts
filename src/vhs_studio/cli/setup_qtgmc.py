@@ -43,8 +43,9 @@ def setup_vapoursynth_windows():
         if winget_res.returncode == 0:
             print_success("VapourSynth instalado com sucesso via WinGet!")
         else:
-            print_error("Falha ao instalar via WinGet. Baixando instalador oficial...")
-            installer_url = "https://github.com/vapoursynth/vapoursynth/releases/latest/download/VapourSynth65-Setup.exe"
+            installer_url = (
+                "https://github.com/vapoursynth/vapoursynth/releases/latest/download/VapourSynth65-Setup.exe"
+            )
             installer_path = os.path.join(
                 tempfile.gettempdir(), "VapourSynth-Setup.exe"
             )

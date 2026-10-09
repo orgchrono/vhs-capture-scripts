@@ -81,7 +81,8 @@ def transcribe_and_generate_vtt(video_path: str, model_size: str = "tiny") -> st
     cpu_threads = max(4, os.cpu_count() or 4)
     num_workers = max(1, (os.cpu_count() or 4) // 2)
     log.info(
-        f"[WHISPER] Carregando modelo {model_size} (Device: {device}, Compute: {compute_type}, Threads: {cpu_threads})..."
+        f"[WHISPER] Carregando modelo {model_size} "
+        f"(Device: {device}, Compute: {compute_type}, Threads: {cpu_threads})..."
     )
     model = WhisperModel(
         model_size,

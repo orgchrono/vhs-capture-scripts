@@ -196,7 +196,7 @@ def get_obs_stats():
     """Return live telemetry from OBS Studio WebSocket API (bitrate, duration, fps, cpu)."""
     obs = OBSClient()
     if not obs.is_connected:
-        obs.connect()
+        obs.connect(max_retries=1, silent=True)
     if obs.is_connected:
         status = obs.send_request("GetRecordStatus") or {}
         stats = obs.send_request("GetStats") or {}

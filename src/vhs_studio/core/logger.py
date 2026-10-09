@@ -79,6 +79,15 @@ def setup_logger():
 
     logger = logging.getLogger("vhs_studio")
     logger.setLevel(logging.DEBUG)
+    logger.propagate = False
+
+    if logger.handlers:
+        for h in logger.handlers:
+            if isinstance(h, MemoryLogHandler):
+                return logger, h
+        mh = MemoryLogHandler()
+        logger.addHandler(mh)
+        return logger, mh
 
     # 1. Console Handler (Colorido)
     ch = logging.StreamHandler(sys.stdout)

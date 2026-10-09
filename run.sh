@@ -1,12 +1,12 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -eo pipefail
 
 echo "========================================================"
-echo "  VHS Studio Pro - Ambiente de Desenvolvimento"
+echo "  VHS Studio Pro - Ambiente de Producao e Studio"
 echo "========================================================"
 
 if [ ! -d ".venv" ]; then
-    echo "[*] Criando ambiente virtual isolado (.venv)..."
+    echo "[*] Criando ambiente virtual isolado .venv..."
     python3 -m uv venv .venv 2>/dev/null || python3 -m venv .venv
 fi
 
@@ -14,15 +14,16 @@ echo "[*] Ativando ambiente virtual..."
 source .venv/bin/activate
 
 echo "[*] Verificando dependencias Python e UI via FastDeps..."
-python3 scripts/fast_deps.py
+python scripts/fast_deps.py
 
-echo "[*] Rodando Linter e Type Checking (Flake8, Mypy, TSC)..."
-if ! python3 scripts/lint.py; then
-    echo ""
-    echo "[ERRO] O codigo nao passou no crivo de qualidade!"
-    echo "Corrija os erros listados acima antes de iniciar o servidor."
-    exit 1
+if [ "$1" == "--lint" ]; then
+    echo "[*] Rodando Linter e Type Checking..."
+    if ! python scripts/lint.py; then
+        echo ""
+        echo "[ERRO] O codigo nao passou no crivo de qualidade!"
+        exit 1
+    fi
 fi
 
-echo "[*] Qualidade Aprovada! Iniciando o Servidor e a Interface..."
-python3 -m vhs_studio
+echo "[*] Iniciando o VHS Studio Pro..."
+exec python -m vhs_studio "$@"

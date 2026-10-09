@@ -93,8 +93,10 @@ def install_ffmpeg_crossplatform() -> bool:
             return run_system_install(["apk", "add", "ffmpeg"])
         elif mgr == "brew":
             return run_system_install(["brew", "install", "ffmpeg"])
-
-        log.error(f"[PackageManager] Nenhum gerenciador de pacotes suportado encontrado no Linux (Distro: {get_linux_distro_id()}).")
+        log.error(
+            f"[PackageManager] Nenhum gerenciador de pacotes suportado encontrado no Linux "
+            f"(Distro: {get_linux_distro_id()})."
+        )
         return False
 
     return False

@@ -1,6 +1,5 @@
 """Toolchain resolver and dependency capabilities inspector for FFmpeg and external binaries."""
 
-import sys
 import shutil
 import subprocess
 from functools import lru_cache
