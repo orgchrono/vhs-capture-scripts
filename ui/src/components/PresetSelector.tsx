@@ -1,4 +1,3 @@
-import { Button } from "./ui/button";
 import React from 'react'
 import { Award, Zap, ShieldCheck, Wand2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -42,29 +41,30 @@ export const PresetSelector: React.FC = () => {
   ]
 
   return (
-    <div className="grid grid-cols-2 gap-3 mb-6">
+    <div className="grid grid-cols-2 gap-3 mb-1">
       {presets.map((p) => {
         const Icon = p.icon
         const isActive = preset === p.id
 
         return (
-          <Button variant="outline"
+          <button
+            type="button"
             key={p.id}
             onClick={() => {
               applyPreset(p.id)
               toast.info(t('toast.preset_applied', { name: p.name }))
             }}
             className={cn(
-              'relative text-left p-3.5 rounded-xl border transition-all duration-200 cursor-pointer overflow-hidden flex flex-col justify-between group',
+              'relative text-left p-4 rounded-xl border transition-all duration-200 cursor-pointer overflow-hidden flex flex-col justify-between group min-h-[96px]',
               isActive
-                ? 'border-sky-500/50 shadow-[0_0_20px_rgba(56,189,248,0.15)]'
-                : 'bg-slate-900/40 border-white/5 hover:border-sky-500/30 hover:bg-slate-900/70'
+                ? 'bg-slate-900/90 border-sky-500/60 shadow-[0_0_24px_rgba(56,189,248,0.2)] ring-1 ring-sky-400/40'
+                : 'bg-slate-900/50 border-white/5 hover:border-sky-500/30 hover:bg-slate-900/80'
             )}
           >
             {isActive && (
               <motion.div
                 layoutId="active-preset-glow"
-                className="absolute inset-0 bg-sky-500/10 border-2 border-sky-400/60 rounded-xl pointer-events-none"
+                className="absolute inset-0 bg-sky-500/10 border-2 border-sky-400/70 rounded-xl pointer-events-none"
                 transition={
                   shouldReduceMotion
                     ? { duration: 0 }
@@ -81,17 +81,17 @@ export const PresetSelector: React.FC = () => {
               <div
                 className={cn(
                   'p-1.5 rounded-lg transition-colors',
-                  isActive ? 'bg-sky-500 text-slate-950' : 'bg-slate-800 text-slate-400 group-hover:text-sky-400'
+                  isActive ? 'bg-sky-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-400 group-hover:text-sky-400'
                 )}
               >
                 <Icon className="w-4 h-4" />
               </div>
-              <span className={cn('text-sm font-semibold', isActive ? 'text-white' : 'text-slate-200')}>
+              <span className={cn('text-sm font-semibold tracking-wide', isActive ? 'text-white' : 'text-slate-200')}>
                 {p.name}
               </span>
             </div>
-            <p className="text-xs text-slate-400 leading-relaxed">{p.desc}</p>
-          </Button>
+            <p className="text-xs text-slate-400 leading-relaxed font-normal">{p.desc}</p>
+          </button>
         )
       })}
     </div>

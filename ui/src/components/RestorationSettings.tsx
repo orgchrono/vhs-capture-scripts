@@ -97,8 +97,8 @@ export const RestorationSettings: React.FC = () => {
     search === '' || keywords.some(k => k.toLowerCase().includes(search.toLowerCase()))
 
   return (
-    <div className="bg-slate-900/50 border border-white/5 rounded-xl p-5 mb-6">
-      <div className="flex items-center justify-between gap-4 mb-6">
+    <div className="bg-slate-900/50 border border-white/5 rounded-xl p-4 mb-2">
+      <div className="flex items-center justify-between gap-4 mb-3">
         <div className="flex items-center gap-2">
           <Sliders className="w-4 h-4 text-sky-400" />
           <h3 className="text-sm font-semibold text-white uppercase tracking-wider">

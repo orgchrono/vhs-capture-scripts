@@ -3,6 +3,12 @@
     "start_restore": "Start Restoration",
     "no_file": "Select a file to restore first!"
   },
+  "settings": {
+    "fps_mode": "Framerate Mode (FPS)",
+    "deinterlacing": "Deinterlacing",
+    "resolution": "Resolution / Upscale",
+    "output_codec": "Output Codec"
+  },
   "privacy": {
     "title": "Privacy & Terms of Use",
     "subtitle": "Total Transparency (GNU GPLv3)",

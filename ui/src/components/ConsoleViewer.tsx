@@ -1,9 +1,23 @@
 import React, { useEffect, useRef } from 'react'
-import { Terminal, Trash2, Download } from 'lucide-react'
+import { Terminal, Trash2, Download, Play, Loader2 } from 'lucide-react'
+import { Button } from './ui/button'
+import { useTranslation } from 'react-i18next'
 import { useStudioStore } from '../store/useStudioStore'
 
-export const ConsoleViewer: React.FC = () => {
-  const { logs, clearLogs, isRestoring } = useStudioStore()
+interface ConsoleViewerProps {
+  onStart?: () => void
+  isRestoring?: boolean
+  hasSelectedFile?: boolean
+}
+
+export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
+  onStart,
+  isRestoring: propIsRestoring,
+  hasSelectedFile = true,
+}) => {
+  const { t } = useTranslation()
+  const { logs, clearLogs, isRestoring: storeIsRestoring } = useStudioStore()
+  const isRestoring = propIsRestoring ?? storeIsRestoring
   const endRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -47,7 +61,7 @@ export const ConsoleViewer: React.FC = () => {
           )}
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => {
                 const logs = useStudioStore.getState().logs.join('\n');
@@ -58,20 +72,41 @@ export const ConsoleViewer: React.FC = () => {
                 a.download = `vhs_studio_log_${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
                 a.click();
             }}
-            className="text-slate-500 hover:text-sky-300 transition text-xs flex items-center gap-1 cursor-pointer"
+            className="text-slate-400 hover:text-sky-300 transition text-xs flex items-center gap-1.5 cursor-pointer px-2.5 py-1 rounded hover:bg-white/5"
             title="Exportar Console"
           >
-            <Download className="w-3 h-3" />
-            Exportar
+            <Download className="w-3.5 h-3.5" />
+            <span>Exportar</span>
           </button>
           <button
             onClick={clearLogs}
-            className="text-slate-500 hover:text-red-400 transition text-xs flex items-center gap-1 cursor-pointer"
+            className="text-slate-400 hover:text-red-400 transition text-xs flex items-center gap-1.5 cursor-pointer px-2.5 py-1 rounded hover:bg-white/5"
             title="Limpar console"
           >
-            <Trash2 className="w-3 h-3" />
-            Limpar
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Limpar</span>
           </button>
+
+          {onStart && (
+            <Button
+              onClick={onStart}
+              disabled={isRestoring}
+              title={!hasSelectedFile ? t('toast.select_file_first') : undefined}
+              className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold py-1 px-5 shadow-lg shadow-emerald-500/20 transition-all text-xs rounded-md h-8 ml-2 cursor-pointer"
+            >
+              {isRestoring ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                  <span>Processando...</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-3.5 h-3.5 mr-1.5 fill-current" />
+                  <span>{t('capture.start_restore')}</span>
+                </>
+              )}
+            </Button>
+          )}
         </div>
       </div>
 

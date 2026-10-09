@@ -88,6 +88,31 @@ export const LiveMonitor: React.FC<{ health?: any }> = ({ health }) => {
         </div>
       )}
 
+      {/* Broadcast CRT Scanlines & Vignette */}
+      <div 
+        aria-hidden="true" 
+        className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.35)_50%)] bg-[length:100%_4px] opacity-25" 
+      />
+      <div 
+        aria-hidden="true" 
+        className="pointer-events-none absolute inset-0 z-10 shadow-[inset_0_0_60px_rgba(0,0,0,0.85)]" 
+      />
+
+      {/* Broadcast Safety Reticle Overlay */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-3 z-10 border border-white/5 rounded-lg">
+        <div className="absolute top-0 left-0 w-2.5 h-2.5 border-t-2 border-l-2 border-white/20" />
+        <div className="absolute top-0 right-0 w-2.5 h-2.5 border-t-2 border-r-2 border-white/20" />
+        <div className="absolute bottom-0 left-0 w-2.5 h-2.5 border-b-2 border-l-2 border-white/20" />
+        <div className="absolute bottom-0 right-0 w-2.5 h-2.5 border-b-2 border-r-2 border-white/20" />
+      </div>
+
+      {/* Bottom Right Format Badge */}
+      <div className="absolute bottom-3 right-3 z-10 flex items-center gap-2">
+        <span className="bg-black/70 backdrop-blur-md px-2 py-0.5 rounded text-[9px] font-mono text-slate-400 border border-white/10 shadow-sm">
+          SMPTE 4:3 • NTSC 59.94p
+        </span>
+      </div>
+
       {/* Zero-Latency Native HTML5 Video Element */}
       <video 
         ref={videoRef}
@@ -99,3 +124,4 @@ export const LiveMonitor: React.FC<{ health?: any }> = ({ health }) => {
     </div>
   );
 };
+

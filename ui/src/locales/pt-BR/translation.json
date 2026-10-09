@@ -3,6 +3,12 @@
     "start_restore": "Iniciar Restauração",
     "no_file": "Selecione um arquivo para restaurar primeiro!"
   },
+  "settings": {
+    "fps_mode": "Modo de Taxa de Quadros (FPS)",
+    "deinterlacing": "Desentrelaçamento",
+    "resolution": "Resolução / Upscale",
+    "output_codec": "Codec de Saída"
+  },
   "privacy": {
     "title": "Privacidade & Termos de Uso",
     "subtitle": "Transparência Total (GNU GPLv3)",

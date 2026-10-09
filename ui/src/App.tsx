@@ -1,6 +1,6 @@
 import { PrivacyModal } from './components/PrivacyModal'
 import React, { useState } from 'react'
-import { Play, Loader2, UploadCloud } from 'lucide-react'
+import { UploadCloud } from 'lucide-react'
 import { Header } from './components/Header'
 import { PresetSelector } from './components/PresetSelector'
 import { FileSelector } from './components/FileSelector'
@@ -9,7 +9,6 @@ import { RestorationSettings } from './components/RestorationSettings'
 import { ConsoleViewer } from './components/ConsoleViewer'
 import { LiveMonitor } from './components/LiveMonitor'
 import { useTranslation } from 'react-i18next'
-import { Button } from './components/ui/button'
 import { useStudioViewModel } from './viewmodels/useStudioViewModel'
 import { useStudioStore } from './store/useStudioStore'
 import { toast } from 'sonner'
@@ -40,6 +39,7 @@ const StudioMain: React.FC = () => {
     toggleSidebar,
     consoleCollapsed,
     toggleConsole,
+    selectedFile,
     setSelectedFile,
     addLog,
   } = useStudioStore()
@@ -127,23 +127,30 @@ const StudioMain: React.FC = () => {
 
       {/* ADAPTIVE MODULAR WORKSPACE (VS Code Style) */}
       <main className="flex-1 flex overflow-hidden">
-        <ResizablePanelGroup orientation="horizontal" className="flex-1 h-full">
+        <ResizablePanelGroup
+          orientation="horizontal"
+          className="flex-1 h-full"
+        >
           {/* LEFT SIDEBAR: Pipeline & Files */}
           {!sidebarCollapsed && (
             <>
               <ResizablePanel
-                defaultSize={28}
-                minSize={18}
-                maxSize={45}
                 id="sidebar-panel"
+                defaultSize="25%"
+                minSize="280px"
+                maxSize="450px"
                 className="bg-[#0b0f17] flex flex-col h-full overflow-hidden"
               >
                 <div className="p-4 border-b border-white/5 bg-slate-900/30">
-                  <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">1. Captura e Ingestão</h2>
+                  <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 whitespace-nowrap">
+                    1. Captura e Ingestão
+                  </h2>
                   <CaptureBar />
                 </div>
                 <div className="p-4 flex-1 overflow-y-auto custom-scrollbar">
-                  <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">2. Biblioteca de Fitas</h2>
+                  <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 whitespace-nowrap">
+                    2. Biblioteca de Fitas
+                  </h2>
                   <FileSelector
                     files={status?.raw_files || []}
                     onRefresh={refetchStatus}
@@ -156,13 +163,16 @@ const StudioMain: React.FC = () => {
           )}
 
           {/* MAIN WORKSPACE: Settings, Video & Console */}
-          <ResizablePanel defaultSize={sidebarCollapsed ? 100 : 72} minSize={50} id="main-panel">
-            <ResizablePanelGroup orientation="vertical" className="h-full">
+          <ResizablePanel id="main-panel" defaultSize="75%">
+            <ResizablePanelGroup
+              orientation="vertical"
+              className="h-full"
+            >
               {/* Top Half: Settings & Video */}
               <ResizablePanel
-                defaultSize={consoleCollapsed ? 100 : 68}
-                minSize={35}
                 id="workspace-top"
+                defaultSize="68%"
+                minSize="300px"
                 className="overflow-y-auto custom-scrollbar p-6 bg-gradient-to-br from-[#080c14] to-[#0a0e16]"
               >
                 <div className="max-w-6xl mx-auto grid grid-cols-1 xl:grid-cols-12 gap-6 h-full">
@@ -178,9 +188,9 @@ const StudioMain: React.FC = () => {
 
                   {/* Right Column: Engine Settings */}
                   <div className="xl:col-span-7 flex flex-col">
-                    <div className="mb-6">
-                      <h2 className="text-xl font-bold text-white flex items-center gap-2 mb-4">
-                        <span className="bg-sky-500 w-2 h-6 rounded-full"></span>
+                    <div className="mb-4">
+                      <h2 className="text-lg font-bold text-white flex items-center gap-2 mb-3">
+                        <span className="bg-sky-500 w-1.5 h-5 rounded-full"></span>
                         Motor de Processamento
                       </h2>
                       <PresetSelector />
@@ -195,37 +205,17 @@ const StudioMain: React.FC = () => {
                 <>
                   <ResizableHandle withHandle orientation="vertical" />
                   <ResizablePanel
-                    defaultSize={32}
-                    minSize={15}
-                    maxSize={60}
                     id="console-panel"
-                    className="bg-[#0b0f17] flex flex-col shrink-0"
+                    defaultSize="32%"
+                    minSize="180px"
+                    maxSize="60%"
+                    className="bg-[#0b0f17] flex flex-col shrink-0 p-2"
                   >
-                    <div className="flex items-center justify-between p-3 border-b border-white/5 bg-black/20">
-                      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                        Monitoramento do Processo
-                      </h3>
-                      <Button
-                        onClick={onStart}
-                        disabled={isRestoring}
-                        className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold py-1.5 px-6 shadow-lg shadow-emerald-500/20 transition-all text-sm rounded-md"
-                      >
-                        {isRestoring ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            <span>Processando...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Play className="w-4 h-4 mr-2 fill-current" />
-                            <span>{t('capture.start_restore')}</span>
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                    <div className="flex-1 overflow-hidden p-2">
-                      <ConsoleViewer />
-                    </div>
+                    <ConsoleViewer
+                      onStart={onStart}
+                      isRestoring={isRestoring}
+                      hasSelectedFile={Boolean(selectedFile)}
+                    />
                   </ResizablePanel>
                 </>
               )}
