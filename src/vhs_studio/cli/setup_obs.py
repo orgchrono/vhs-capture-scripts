@@ -9,6 +9,7 @@ import shutil
 import platform
 import subprocess
 from vhs_studio.core.paths import TOOLS_DIR, OBS_DIR
+from vhs_studio.core.constants import OBS_WEBSOCKET_PORT
 
 
 from vhs_studio.cli.utils import print_step, print_success, print_error
@@ -71,7 +72,7 @@ def setup_windows_portable():
 
     ws_config = {
         "DebugEnabled": False,
-        "ServerPort": 4455,
+        "ServerPort": OBS_WEBSOCKET_PORT,
         "ServerEnabled": True,
         "AuthRequired": False,
         "AuthSecret": "",
@@ -80,7 +81,9 @@ def setup_windows_portable():
     with open(os.path.join(config_dir, "config.json"), "w") as f:
         json.dump(ws_config, f, indent=4)
 
-    print_success("OBS Studio Portable instalado e configurado na porta 4455!")
+    print_success(
+        f"OBS Studio Portable instalado e configurado na porta {OBS_WEBSOCKET_PORT}!"
+    )
     return True
 
 

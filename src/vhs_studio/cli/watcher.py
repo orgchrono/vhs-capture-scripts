@@ -14,6 +14,7 @@ import time
 from vhs_studio.core.logger import log
 import math
 from vhs_studio.config.advanced import AdvancedConfig
+from vhs_studio.core.constants import OBS_WEBSOCKET_HOST, OBS_WEBSOCKET_PORT
 from vhs_studio.core.queue_manager import enqueue_job
 import subprocess
 import io
@@ -165,7 +166,7 @@ def run_watcher():
         retries = 0
         while True:
             try:
-                ws.connect("ws://127.0.0.1:4455", timeout=2.0)
+                ws.connect(f"ws://{OBS_WEBSOCKET_HOST}:{OBS_WEBSOCKET_PORT}", timeout=2.0)
                 break
             except Exception:
                 retries += 1

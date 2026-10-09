@@ -54,7 +54,7 @@ export const LiveMonitor: React.FC<{ health?: any }> = ({ health }) => {
         }
       } catch (err: any) {
         console.error("Failed to start Live Monitor:", err);
-        setError("CÃ¢mera Virtual nÃ£o detectada ou sem permissÃ£o.");
+        setError("Câmera Virtual não detectada ou sem permissão.");
         setIsActive(false);
       }
     };

@@ -47,13 +47,13 @@ export const RestorationSettings: React.FC = () => {
         <div className="flex items-center gap-2">
           <Sliders className="w-4 h-4 text-sky-400" />
           <h3 className="text-sm font-semibold text-white uppercase tracking-wider">
-            ConfiguraÃ§Ãµes TÃ©cnicas de RestauraÃ§Ã£o
+            Configurações Técnicas de Restauração
           </h3>
         </div>
         <div className="relative w-64">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
           <Input
-            placeholder="Buscar configuraÃ§Ã£o..."
+            placeholder="Buscar configuração..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 bg-slate-950/50"
@@ -63,19 +63,19 @@ export const RestorationSettings: React.FC = () => {
 
       <Tabs defaultValue="video" className="w-full" aria-label="Settings Tabs">
         <TabsList className="grid w-full grid-cols-5 mb-4">
-          <TabsTrigger value="video" className="flex items-center gap-2"><Video className="w-4 h-4"/>VÃ­deo</TabsTrigger>
-          <TabsTrigger value="audio" className="flex items-center gap-2"><Music className="w-4 h-4"/>Ãudio</TabsTrigger>
+          <TabsTrigger value="video" className="flex items-center gap-2"><Video className="w-4 h-4"/>Vídeo</TabsTrigger>
+          <TabsTrigger value="audio" className="flex items-center gap-2"><Music className="w-4 h-4"/>Áudio</TabsTrigger>
           <TabsTrigger value="filters" className="flex items-center gap-2"><ImageIcon className="w-4 h-4"/>Filtros</TabsTrigger>
-          <TabsTrigger value="advanced" className="flex items-center gap-2"><Settings2 className="w-4 h-4"/>AvanÃ§ado</TabsTrigger>
+          <TabsTrigger value="advanced" className="flex items-center gap-2"><Settings2 className="w-4 h-4"/>Avançado</TabsTrigger>
         </TabsList>
 
         <TabsContent value="video" className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            {matches(['desentrelaÃ§amento', 'deinterlacer', 'bwdif', 'qtgmc', 'video']) && (
+            {matches(['desentrelaçamento', 'deinterlacer', 'bwdif', 'qtgmc', 'video']) && (
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-slate-400 block">DesentrelaÃ§amento:</label>
+                <label className="text-xs font-medium text-slate-400 block">Desentrelaçamento:</label>
                 <GenericSelect value={deinterlacer} onChange={setDeinterlacer} options={DEINTERLACER_OPTIONS} />
-                <p className="text-[10px] text-slate-500">O QTGMC Ã© o padrÃ£o ouro, mas requer VapourSynth instalado.</p>
+                <p className="text-[10px] text-slate-500">O QTGMC é o padrão ouro, mas requer VapourSynth instalado.</p>
               </div>
             )}
             
@@ -86,16 +86,16 @@ export const RestorationSettings: React.FC = () => {
               </div>
             )}
             
-            {matches(['resoluÃ§Ã£o', 'upscale', '1080p', 'video']) && (
+            {matches(['resolução', 'upscale', '1080p', 'video']) && (
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-slate-400 block">ResoluÃ§Ã£o / Upscale:</label>
+                <label className="text-xs font-medium text-slate-400 block">Resolução / Upscale:</label>
                 <GenericSelect value={resolution} onChange={setResolution} options={RESOLUTION_OPTIONS} />
               </div>
             )}
 
             {matches(['codec', 'h264', 'h265', 'hevc', 'video']) && (
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-slate-400 block">Codec de SaÃ­da:</label>
+                <label className="text-xs font-medium text-slate-400 block">Codec de Saída:</label>
                 <GenericSelect value={outputCodec} onChange={setOutputCodec} options={OUTPUT_CODEC_OPTIONS} />
               </div>
             )}
@@ -104,27 +104,27 @@ export const RestorationSettings: React.FC = () => {
 
         <TabsContent value="audio" className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            {matches(['Ã¡udio', 'audio', 'stereo', 'mono']) && (
+            {matches(['áudio', 'audio', 'stereo', 'mono']) && (
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-slate-400 block">Modo de Ãudio:</label>
+                <label className="text-xs font-medium text-slate-400 block">Modo de Áudio:</label>
                 <GenericSelect value={audioMode} onChange={setAudioMode} options={AUDIO_MODE_OPTIONS} />
               </div>
             )}
 
-            {matches(['Ã¡udio', 'audio', 'delay', 'sincronizaÃ§Ã£o']) && (
+            {matches(['áudio', 'audio', 'delay', 'sincronização']) && (
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-slate-400 block">SincronizaÃ§Ã£o de Ãudio (Atraso em ms):</label>
+                <label className="text-xs font-medium text-slate-400 block">Sincronização de Áudio (Atraso em ms):</label>
                 <Input type="number" step="10" value={audioOffset} onChange={(e) => setAudioOffset(Number(e.target.value))}
                   className="w-full bg-slate-950" />
-                <p className="text-[10px] text-slate-500">Valores positivos atrasam o Ã¡udio. Valores negativos adiantam.</p>
+                <p className="text-[10px] text-slate-500">Valores positivos atrasam o áudio. Valores negativos adiantam.</p>
               </div>
             )}
 
-            {matches(['Ã¡udio', 'audio', 'tratamento', 'normalizaÃ§Ã£o']) && (
+            {matches(['áudio', 'audio', 'tratamento', 'normalização']) && (
               <div className="flex items-center justify-between bg-slate-950 p-4 rounded-lg border border-slate-800">
                 <div className="space-y-0.5">
-                  <label className="text-sm font-medium text-slate-200">Tratamento de Ãudio EBU R128</label>
-                  <p className="text-xs text-slate-500">NormalizaÃ§Ã£o de volume padrÃ£o TV/Streaming (-23 LUFS).</p>
+                  <label className="text-sm font-medium text-slate-200">Tratamento de Áudio EBU R128</label>
+                  <p className="text-xs text-slate-500">Normalização de volume padrão TV/Streaming (-23 LUFS).</p>
                 </div>
                 <Switch aria-label="Audio Treatment" checked={audioTreatment} onCheckedChange={setAudioTreatment} />
               </div>
@@ -144,11 +144,11 @@ export const RestorationSettings: React.FC = () => {
               </div>
             )}
 
-            {matches(['denoise', 'ruÃ­do', 'filtros']) && (
+            {matches(['denoise', 'ruído', 'filtros']) && (
               <div className="flex items-center justify-between bg-slate-950 p-4 rounded-lg border border-slate-800">
                 <div className="space-y-0.5">
-                  <label className="text-sm font-medium text-slate-200">ReduÃ§Ã£o de RuÃ­do (Denoise)</label>
-                  <p className="text-xs text-slate-500">Aplica nlmeans/hqdn3d para limpar ruÃ­do analÃ³gico.</p>
+                  <label className="text-sm font-medium text-slate-200">Redução de Ruído (Denoise)</label>
+                  <p className="text-xs text-slate-500">Aplica nlmeans/hqdn3d para limpar ruído analógico.</p>
                 </div>
                 <Switch aria-label="Denoise" checked={denoise} onCheckedChange={setDenoise} />
               </div>
@@ -158,7 +158,7 @@ export const RestorationSettings: React.FC = () => {
               <div className="flex items-center justify-between bg-slate-950 p-4 rounded-lg border border-slate-800">
                 <div className="space-y-0.5">
                   <label className="text-sm font-medium text-slate-200">Dot Crawl / Comb Filter</label>
-                  <p className="text-xs text-slate-500">Remove artefatos coloridos de conexÃ£o RCA (Composite).</p>
+                  <p className="text-xs text-slate-500">Remove artefatos coloridos de conexão RCA (Composite).</p>
                 </div>
                 <Switch aria-label="Comb Filter" checked={combFilter} onCheckedChange={setCombFilter} />
               </div>
@@ -178,9 +178,9 @@ export const RestorationSettings: React.FC = () => {
 
         <TabsContent value="advanced" className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            {matches(['crf', 'qualidade', 'avanÃ§ado', 'bitrate']) && (
+            {matches(['crf', 'qualidade', 'avançado', 'bitrate']) && (
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-slate-400 block">Qualidade de CompressÃ£o (CRF):</label>
+                <label className="text-xs font-medium text-slate-400 block">Qualidade de Compressão (CRF):</label>
                 <div className="flex items-center gap-4">
                   <input
                     type="range"
@@ -195,7 +195,7 @@ export const RestorationSettings: React.FC = () => {
                 </div>
                 <div className="flex justify-between text-[10px] text-slate-500 px-1">
                   <span>Maior Tamanho (14)</span>
-                  <span>PadrÃ£o (18)</span>
+                  <span>Padrão (18)</span>
                   <span>Menor Tamanho (28)</span>
                 </div>
               </div>
@@ -206,20 +206,20 @@ export const RestorationSettings: React.FC = () => {
         <TabsContent value="ai" className="space-y-4">
           <div className="bg-slate-900/50 p-4 border border-indigo-500/20 rounded-xl">
             <h3 className="text-sm font-semibold text-indigo-400 flex items-center gap-2 mb-2">
-              <Sparkles className="w-4 h-4" /> InteligÃªncia Artificial (Local)
+              <Sparkles className="w-4 h-4" /> Inteligência Artificial (Local)
             </h3>
             <p className="text-xs text-slate-400 mb-4 leading-relaxed">
-              Utilize o <strong>Whisper</strong> (OpenAI) rodando 100% offline no seu computador para extrair o Ã¡udio do arquivo bruto selecionado e gerar legendas precisas no formato <code>.vtt</code>. O vÃ­deo em si nÃ£o Ã© alterado.
+              Utilize o <strong>Whisper</strong> (OpenAI) rodando 100% offline no seu computador para extrair o áudio do arquivo bruto selecionado e gerar legendas precisas no formato <code>.vtt</code>. O vídeo em si não é alterado.
             </p>
             <div className="flex items-center gap-4">
               <div className="flex-1">
                 <label className="text-xs font-medium text-slate-400 block mb-1.5">Tamanho do Modelo:</label>
                 <Select defaultValue="tiny" onValueChange={(val) => window.localStorage.setItem('whisper_model', val)}>
                   <SelectTrigger className="w-full bg-slate-950 border-slate-800 text-white">
-                    <SelectValue placeholder="Tiny (RÃ¡pido)" />
+                    <SelectValue placeholder="Tiny (Rápido)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="tiny">Tiny (RÃ¡pido, ~40MB RAM)</SelectItem>
+                    <SelectItem value="tiny">Tiny (Rápido, ~40MB RAM)</SelectItem>
                     <SelectItem value="base">Base (Equilibrado, ~75MB RAM)</SelectItem>
                     <SelectItem value="small">Small (Preciso, ~250MB RAM)</SelectItem>
                   </SelectContent>
@@ -230,7 +230,7 @@ export const RestorationSettings: React.FC = () => {
                   onClick={() => {
                     const file = useStudioStore.getState().selectedFile;
                     const model = window.localStorage.getItem('whisper_model') || 'tiny';
-                    if (!file) { alert('Selecione um arquivo de vÃ­deo acima primeiro!'); return; }
+                    if (!file) { alert('Selecione um arquivo de vídeo acima primeiro!'); return; }
                     window.dispatchEvent(new CustomEvent('WHISPER_START', { detail: { input: file, model_size: model } }));
                   }}
                   className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs py-2.5 rounded-lg transition"

@@ -10,6 +10,7 @@ import hashlib
 import threading
 import subprocess
 from vhs_studio.core.logger import log
+from vhs_studio.core.constants import DEFAULT_API_HOST, DEFAULT_API_PORT
 from vhs_studio.api.server import run_server
 
 
@@ -115,16 +116,16 @@ def run_desktop():
 
     ensure_ui_build()
 
-    port = 8088
+    port = DEFAULT_API_PORT
     t = threading.Thread(target=run_server, args=(port,), daemon=True)
     t.start()
 
     log.info(
-        f"[DESKTOP] Iniciando janela nativa Desktop Pro em http://127.0.0.1:{port}"
+        f"[DESKTOP] Iniciando janela nativa Desktop Pro em http://{DEFAULT_API_HOST}:{port}"
     )
     webview.create_window(
         title="VHS Studio",
-        url=f"http://127.0.0.1:{port}",
+        url=f"http://{DEFAULT_API_HOST}:{port}",
         width=1440,
         height=900,
         maximized=True,
