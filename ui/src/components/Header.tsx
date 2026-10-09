@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Cpu, Film, Sparkles, Wrench, Globe, Eye, Video, Type, PanelLeft, PanelBottom } from 'lucide-react'
+import { Cpu, Film, Sparkles, Wrench, Globe, Eye, Video, Type, PanelLeft, PanelBottom, ShieldCheck } from 'lucide-react'
 import { Button } from './ui/button'
 import type { SystemStatus } from '../types'
 import { useTranslation } from 'react-i18next'
@@ -14,6 +14,7 @@ interface HeaderProps {
   onToggleSidebar?: () => void
   consoleCollapsed?: boolean
   onToggleConsole?: () => void
+  onOpenPrivacy?: () => void
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -26,6 +27,7 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleSidebar,
   consoleCollapsed,
   onToggleConsole,
+  onOpenPrivacy,
 }) => {
   const { t, i18n } = useTranslation();
   const [highContrast, setHighContrast] = useState(false)
@@ -81,6 +83,17 @@ export const Header: React.FC<HeaderProps> = ({
           }} title="Acessibilidade: Aumentar Texto">
             <Type className="w-4 h-4" />
           </Button>
+          {onOpenPrivacy && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-8 h-8 rounded-md hover:bg-slate-800 text-slate-300 hover:text-emerald-400"
+              onClick={onOpenPrivacy}
+              title="Termos de Licença & Conformidade (EULA)"
+            >
+              <ShieldCheck className="w-4 h-4" />
+            </Button>
+          )}
         </div>
 
         {/* Workspace Layout Controls */}

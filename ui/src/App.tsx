@@ -20,7 +20,7 @@ import {
 } from './components/ui/resizable'
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
 
-const StudioMain: React.FC = () => {
+const StudioMain: React.FC<{ onOpenPrivacy?: () => void }> = ({ onOpenPrivacy }) => {
   const { t } = useTranslation()
   const {
     status,
@@ -106,6 +106,7 @@ const StudioMain: React.FC = () => {
         onToggleSidebar={toggleSidebar}
         consoleCollapsed={consoleCollapsed}
         onToggleConsole={toggleConsole}
+        onOpenPrivacy={onOpenPrivacy}
       />
 
       {/* OS File Drag and Drop Visual Feedback Overlay */}
@@ -228,10 +229,11 @@ const StudioMain: React.FC = () => {
 }
 
 export default function App() {
+  const [privacyOpen, setPrivacyOpen] = useState(false)
   return (
     <>
-      <PrivacyModal />
-      <StudioMain />
+      <PrivacyModal isOpen={privacyOpen} onClose={() => setPrivacyOpen(false)} />
+      <StudioMain onOpenPrivacy={() => setPrivacyOpen(true)} />
       <Toaster />
     </>
   )
