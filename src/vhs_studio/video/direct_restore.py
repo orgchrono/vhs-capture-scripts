@@ -33,21 +33,20 @@ from vhs_studio.video.stream_runner import StreamRunner
 from vhs_studio.video.vapoursynth_qtgmc import VapourSynthQTGMC
 
 
+from vhs_studio.core.vhs_common import probe_media
+
+
 def get_stream_info(input_file):
     """Documentation for get_stream_info."""
-    cmd = [
-        Toolchain.get_ffprobe_path(),
-        "-v",
-        "error",
-        "-show_streams",
-        "-show_format",
-        "-of",
-        "json",
-        input_file,
-    ]
     try:
-        res = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        data = json.loads(res.stdout)
+        info = probe_media(input_file)
+        return (
+            int(info.get("width", VideoConfig.DEFAULT_WIDTH)),
+            int(info.get("height", VideoConfig.DEFAULT_HEIGHT)),
+            float(info.get("fps", VideoConfig.DEFAULT_FPS)),
+            float(info.get("duration", 0.0)),
+            str(info.get("audio_codec", "aac")),
+        )
     except Exception:
         return (
             VideoConfig.DEFAULT_WIDTH,
@@ -56,28 +55,6 @@ def get_stream_info(input_file):
             0.0,
             "aac",
         )
-
-    v_stream = next(
-        (s for s in data.get("streams", []) if s.get("codec_type") == "video"), {}
-    )
-    a_stream = next(
-        (s for s in data.get("streams", []) if s.get("codec_type") == "audio"), {}
-    )
-
-    w = int(v_stream.get("width", VideoConfig.DEFAULT_WIDTH))
-    h = int(v_stream.get("height", VideoConfig.DEFAULT_HEIGHT))
-
-    r_fps = v_stream.get("r_frame_rate", "30000/1001")
-    if "/" in r_fps:
-        num, den = r_fps.split("/")
-        fps = float(num) / float(den) if float(den) > 0 else VideoConfig.DEFAULT_FPS
-    else:
-        fps = float(r_fps) if r_fps else VideoConfig.DEFAULT_FPS
-
-    args.duration = float(data.get("format", {}).get("args.duration", 0.0))
-    a_codec = a_stream.get("codec_name", "aac")
-
-    return w, h, fps, args.duration, a_codec
 
 
 def find_first_video_frame(input_file, max_scan_sec=VideoConfig.MAX_SCAN_SECONDS):

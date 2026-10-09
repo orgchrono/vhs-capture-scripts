@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Video, AlertTriangle, Activity } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
 import { useStudioStore } from '../store/useStudioStore';
-import { studioApi } from '../api/studioApi';
+import { useGetObsStatsQuery, useToggleVirtualCamMutation } from '../api/studioRtkApi';
 
 export const LiveMonitor: React.FC<{ health?: any }> = ({ health }) => {
   const { isCapturing } = useStudioStore();
@@ -10,12 +9,11 @@ export const LiveMonitor: React.FC<{ health?: any }> = ({ health }) => {
   const [error, setError] = useState<string | null>(null);
   const [isActive, setIsActive] = useState(false);
 
-  const { data: obsStats } = useQuery({
-    queryKey: ['obsStats'],
-    queryFn: studioApi.getObsStats,
-    refetchInterval: 1000,
-    retry: false,
+  const { data: obsStats } = useGetObsStatsQuery(undefined, {
+    pollingInterval: 1000,
   });
+
+  const [toggleVirtualCam] = useToggleVirtualCamMutation();
 
   useEffect(() => {
     let activeStream: MediaStream | null = null;
@@ -23,7 +21,7 @@ export const LiveMonitor: React.FC<{ health?: any }> = ({ health }) => {
     const startMonitor = async () => {
       try {
         // 1. Tell OBS to start the virtual camera
-        await studioApi.toggleVirtualCam(true);
+        await toggleVirtualCam({ enable: true }).unwrap();
         
         // Wait a bit for the device to register in the OS
         await new Promise(r => setTimeout(r, 1000));
@@ -65,9 +63,9 @@ export const LiveMonitor: React.FC<{ health?: any }> = ({ health }) => {
       if (activeStream) {
         activeStream.getTracks().forEach(track => track.stop());
       }
-      studioApi.toggleVirtualCam(false).catch(console.error);
+      toggleVirtualCam({ enable: false }).unwrap().catch(console.error);
     };
-  }, []);
+  }, [toggleVirtualCam]);
 
   return (
     <div className="relative w-full h-full bg-black flex flex-col items-center justify-center overflow-hidden">

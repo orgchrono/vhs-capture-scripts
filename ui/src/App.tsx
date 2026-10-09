@@ -1,6 +1,5 @@
 import { PrivacyModal } from './components/PrivacyModal'
 import React from 'react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Play, Loader2 } from 'lucide-react'
 import { Header } from './components/Header'
 import { PresetSelector } from './components/PresetSelector'
@@ -13,8 +12,6 @@ import { LiveMonitor } from './components/LiveMonitor'
 import { useTranslation } from 'react-i18next'
 import { Button } from './components/ui/button'
 import { useStudioViewModel } from './viewmodels/useStudioViewModel'
-
-const queryClient = new QueryClient()
 
 const StudioMain: React.FC = () => {
   const { t } = useTranslation()
@@ -136,9 +133,9 @@ const StudioMain: React.FC = () => {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
+    <>
       <PrivacyModal />
       <StudioMain />
-    </QueryClientProvider>
+    </>
   )
 }

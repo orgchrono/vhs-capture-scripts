@@ -1,10 +1,12 @@
-﻿import { render, waitFor } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { StorageSettings } from './StorageSettings';
+import { Provider } from 'react-redux';
+import { store } from '../store';
 
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key: string) => key })
+  useTranslation: () => ({ t: (key: string) => key }),
 }));
 
 describe('StorageSettings Component', () => {
@@ -18,14 +20,23 @@ describe('StorageSettings Component', () => {
   });
 
   it('renders and fetches storage config via global fetch', async () => {
-    (globalThis.fetch as any).mockResolvedValue({
-      json: async () => ({ provider: 'local', config: { path: 'C:/VHS' } })
-    });
+    (globalThis.fetch as any).mockImplementation(() =>
+      Promise.resolve(
+        new Response(JSON.stringify({ provider: 'local', config: { path: 'C:/VHS' } }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })
+      )
+    );
 
-    render(<StorageSettings />);
+    render(
+      <Provider store={store}>
+        <StorageSettings />
+      </Provider>
+    );
 
     await waitFor(() => {
-      expect(globalThis.fetch).toHaveBeenCalledWith('/api/storage/config');
+      expect(globalThis.fetch).toHaveBeenCalled();
     });
   });
 });

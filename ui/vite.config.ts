@@ -1,4 +1,4 @@
-﻿import { defineConfig } from 'vitest/config'
+import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
@@ -33,8 +33,8 @@ export default defineConfig({
             if (id.includes('react/') || id.includes('react-dom/')) {
               return 'vendor-react'
             }
-            if (id.includes('@tanstack')) {
-              return 'vendor-tanstack'
+            if (id.includes('@reduxjs') || id.includes('react-redux')) {
+              return 'vendor-redux'
             }
             return 'vendor'
           }

@@ -71,3 +71,9 @@ export interface QueueStats {
   failed: number;
   cancelled?: number;
 }
+
+export interface StorageStatus {
+  ready?: boolean;
+  free_space_gb?: number | string;
+  [key: string]: unknown;
+}

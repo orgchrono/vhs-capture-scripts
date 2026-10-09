@@ -1,31 +1,46 @@
 import { a11yAudio } from '../lib/a11yAudio';
-import { useQuery, useMutation } from '@tanstack/react-query'
-import { useEffect, useState, useRef } from 'react'
-import { studioApi } from '../api/studioApi'
-import { useStudioStore } from '../store/useStudioStore'
-import { TIMING } from '../lib/constants'
+import { useEffect, useState, useRef } from 'react';
+import { useStudioStore } from '../store/useStudioStore';
+import { TIMING } from '../lib/constants';
+import {
+  useGetStatusQuery,
+  useStartRestorationMutation,
+  useInstallQtgmcMutation,
+  useInstallObsMutation,
+  useStartObsCaptureMutation,
+  useStopObsCaptureMutation,
+  useGetLogsQuery,
+} from '../api/studioRtkApi';
 
 export function useStudioViewModel() {
-  const store = useStudioStore()
-  const [isInstallingQtgmc, setIsInstallingQtgmc] = useState(false)
-  const [isInstallingObs, setIsInstallingObs] = useState(false)
+  const store = useStudioStore();
+  const [isInstallingQtgmc, setIsInstallingQtgmc] = useState(false);
+  const [isInstallingObs, setIsInstallingObs] = useState(false);
 
-  // System Status polling
-  const { data: status, refetch: refetchStatus, isRefetching } = useQuery({
-    queryKey: ['systemStatus'],
-    queryFn: studioApi.getStatus,
-    refetchInterval: TIMING.SYSTEM_STATUS_POLL_MS,
-  })
+  // RTK Query: System Status with polling
+  const {
+    data: status,
+    refetch: refetchStatus,
+    isFetching: isRefetching,
+  } = useGetStatusQuery(undefined, {
+    pollingInterval: TIMING.SYSTEM_STATUS_POLL_MS,
+  });
 
-  const prevDrops = useRef(0)
+  const [startRestorationTrigger, restoreResult] = useStartRestorationMutation();
+  const [installQtgmcTrigger] = useInstallQtgmcMutation();
+  const [installObsTrigger] = useInstallObsMutation();
+  const [startCaptureTrigger] = useStartObsCaptureMutation();
+  const [stopCaptureTrigger] = useStopObsCaptureMutation();
+
+  const prevDrops = useRef(0);
   useEffect(() => {
     if (status?.health?.dropped_frames !== undefined) {
       if (status.health.dropped_frames > prevDrops.current) {
-        a11yAudio.playWarning()
+        a11yAudio.playWarning();
       }
-      prevDrops.current = status.health.dropped_frames
+      prevDrops.current = status.health.dropped_frames;
     }
-  }, [status?.health?.dropped_frames])
+  }, [status?.health?.dropped_frames]);
 
   const { isRestoring, setIsRestoring, addLog } = store;
 
@@ -58,106 +73,119 @@ export function useStudioViewModel() {
   }, [isRestoring, isInstallingQtgmc, isInstallingObs, setIsRestoring, addLog]);
 
   // Fallback logs polling if EventSource is unavailable in environment
-  useQuery({
-    queryKey: ['logs'],
-    queryFn: studioApi.getLogs,
-    refetchInterval:
-      typeof EventSource === 'undefined' &&
-      (store.isRestoring || isInstallingQtgmc || isInstallingObs)
-        ? TIMING.LOGS_ACTIVE_POLL_MS
-        : false,
-    enabled:
-      typeof EventSource === 'undefined' &&
-      (store.isRestoring || isInstallingQtgmc || isInstallingObs),
-    onSuccess: (data: { active: boolean; logs: string[] }) => {
-      if (data?.logs?.length) {
-        data.logs.forEach((l) => store.addLog(l));
-      }
-      if (!data?.active && (store.isRestoring || isInstallingQtgmc || isInstallingObs)) {
-        if (store.isRestoring) {
-          a11yAudio.playSuccess();
-          store.setIsRestoring(false);
-          store.addLog('[RESTAURAÇÃO] Processo de restauração concluído com sucesso!');
-        }
-      }
-    },
-  } as any)
+  const isBusy = isRestoring || isInstallingQtgmc || isInstallingObs;
+  const { data: logsData } = useGetLogsQuery(undefined, {
+    pollingInterval: typeof EventSource === 'undefined' && isBusy ? TIMING.LOGS_ACTIVE_POLL_MS : 0,
+    skip: typeof EventSource !== 'undefined' || !isBusy,
+  });
 
-  // Start Restoration Mutation
-  const restoreMutation = useMutation({
-    mutationFn: studioApi.startRestoration,
-    onSuccess: (data) => {
+  useEffect(() => {
+    if (typeof EventSource === 'undefined' && logsData?.logs?.length) {
+      logsData.logs.forEach((l) => addLog(l));
+      if (!logsData.active && isRestoring) {
+        a11yAudio.playSuccess();
+        setIsRestoring(false);
+        addLog('[RESTAURAÇÃO] Processo de restauração concluído com sucesso!');
+      }
+    }
+  }, [logsData, isRestoring, setIsRestoring, addLog]);
+
+  const handleStartRestoration = async () => {
+    if (!store.selectedFile) {
+      return false;
+    }
+
+    addLog(`[RESTAURAÇÃO] Preparando restauração do arquivo: ${store.selectedFile}`);
+    try {
+      const data = await startRestorationTrigger({
+        input: store.selectedFile,
+        deinterlacer: store.deinterlacer,
+        mode: store.mode,
+        audio_mode: store.audioMode,
+        no_1080p: store.resolution === 'original',
+        crf: store.crf,
+        audio_offset: store.audioOffset,
+        chroma_fix: store.chromaFix,
+        denoise: store.denoise,
+        comb_filter: store.combFilter,
+        overscan_blanking: store.overscanBlanking,
+        audio_treatment: store.audioTreatment,
+        output_codec: store.outputCodec,
+      }).unwrap();
+
       if (data.status === 'started' || data.status === 'ok') {
         a11yAudio.playStageStart();
-        store.setIsRestoring(true)
-        store.addLog('[RESTAURAÇÃO] Processo streaming iniciado!')
+        setIsRestoring(true);
+        addLog('[RESTAURAÇÃO] Processo streaming iniciado!');
+        return true;
       } else {
         a11yAudio.playError();
-        alert(data.message || 'Erro ao iniciar')
+        alert(data.message || 'Erro ao iniciar');
+        return false;
       }
-    },
-    onError: (err: any) => {
+    } catch (err: any) {
       a11yAudio.playError();
-      alert(`Erro na requisição: ${err.message}`)
-    },
-  })
-
-  const handleStartRestoration = () => {
-    if (!store.selectedFile) {
-      return false // Handled in View
+      alert(`Erro na requisição: ${err.message || 'Falha de comunicação'}`);
+      return false;
     }
-
-    store.addLog(`[RESTAURAÇÃO] Preparando restauração do arquivo: ${store.selectedFile}`)
-    restoreMutation.mutate({
-      input: store.selectedFile,
-      deinterlacer: store.deinterlacer,
-      mode: store.mode,
-      audio_mode: store.audioMode,
-      no_1080p: store.resolution === 'original',
-      crf: store.crf,
-      audio_offset: store.audioOffset,
-      chroma_fix: store.chromaFix,
-      denoise: store.denoise,
-      comb_filter: store.combFilter,
-      overscan_blanking: store.overscanBlanking,
-      audio_treatment: store.audioTreatment,
-      output_codec: store.outputCodec,
-    })
-    return true
-  }
+  };
 
   const handleInstallObs = async () => {
-    setIsInstallingObs(true)
-    store.addLog('[OBS] Disparando instalador automatizado do OBS Portable...')
+    setIsInstallingObs(true);
+    addLog('[OBS] Disparando instalador automatizado do OBS Portable...');
     try {
-      await fetch('/api/action', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'install_obs' })
-      })
-      store.addLog('[OBS] Instalador iniciado em segundo plano. Acompanhe a instalação no Console.')
-      refetchStatus()
+      await installObsTrigger().unwrap();
+      addLog('[OBS] Instalador iniciado em segundo plano. Acompanhe a instalação no Console.');
+      refetchStatus();
     } catch (e) {
-      console.error(e)
+      console.error(e);
     } finally {
-      setTimeout(() => setIsInstallingObs(false), TIMING.INSTALL_RESET_DELAY_MS)
+      setTimeout(() => setIsInstallingObs(false), TIMING.INSTALL_RESET_DELAY_MS);
     }
-  }
+  };
 
   const handleInstallQtgmc = async () => {
-    setIsInstallingQtgmc(true)
-    store.addLog('[QTGMC] Disparando instalador automatizado do VapourSynth + QTGMC...')
+    setIsInstallingQtgmc(true);
+    addLog('[QTGMC] Disparando instalador automatizado do VapourSynth + QTGMC...');
     try {
-      await studioApi.installQtgmc()
-      store.addLog('[QTGMC] Instalador iniciado em segundo plano. Acompanhe a instalação no Console.')
+      await installQtgmcTrigger().unwrap();
+      addLog('[QTGMC] Instalador iniciado em segundo plano. Acompanhe a instalação no Console.');
     } catch (e) {
-      store.addLog(`[QTGMC ERRO] Falha ao iniciar instalador: ${e}`)
+      addLog(`[QTGMC ERRO] Falha ao iniciar instalador: ${e}`);
     } finally {
-      setTimeout(() => setIsInstallingQtgmc(false), TIMING.INSTALL_RESET_DELAY_MS)
+      setTimeout(() => setIsInstallingQtgmc(false), TIMING.INSTALL_RESET_DELAY_MS);
     }
-  }
+  };
 
-  
+  const handleStartCapture = async () => {
+    store.setIsCapturing(true);
+    addLog('[OBS CAPTURA] Solicitando início de gravação no OBS Studio...');
+    try {
+      const res = await startCaptureTrigger().unwrap();
+      if (res.status === 'started') {
+        addLog('[OBS CAPTURA] Gravação Lossless iniciada com sucesso!');
+      } else {
+        addLog(`[OBS AVISO] ${res.message || 'OBS não respondeu no WebSocket'}`);
+      }
+    } catch {
+      addLog('[OBS AVISO] OBS Studio não está aberto ou WebSocket não está ativo na porta padrão.');
+      addLog('[OBS DICA] Abra o OBS Studio com o perfil configurado.');
+    }
+  };
+
+  const handleStopCapture = async () => {
+    addLog('[OBS CAPTURA] Finalizando gravação no OBS Studio...');
+    try {
+      const res = await stopCaptureTrigger().unwrap();
+      store.setIsCapturing(false);
+      if (res.path) {
+        addLog(`[OBS CAPTURA] Arquivo finalizado com sucesso: ${res.path}`);
+      }
+    } catch (e) {
+      store.setIsCapturing(false);
+      addLog(`[OBS ERRO] Falha ao finalizar gravação: ${e}`);
+    }
+  };
 
   return {
     store,
@@ -167,8 +195,10 @@ export function useStudioViewModel() {
     isInstallingQtgmc,
     isInstallingObs,
     handleInstallObs,
-    isRestoring: store.isRestoring || restoreMutation.isPending,
+    isRestoring: store.isRestoring || restoreResult.isLoading,
     handleStartRestoration,
     handleInstallQtgmc,
-  }
+    handleStartCapture,
+    handleStopCapture,
+  };
 }

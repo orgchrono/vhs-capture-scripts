@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Input } from './ui/input'
 import { useTranslation } from 'react-i18next'
 import { DEINTERLACER_OPTIONS, VIDEO_MODE_OPTIONS, AUDIO_MODE_OPTIONS, OUTPUT_CODEC_OPTIONS, RESOLUTION_OPTIONS } from '../lib/constants'
+import { useGenerateSubtitlesMutation } from '../api/studioRtkApi'
 
 const GenericSelect = ({ value, onChange, options }: { value: string, onChange: (v: any) => void, options: {value: string, label: string}[] }) => (
   <Select value={value} onValueChange={onChange}>
@@ -21,7 +22,10 @@ const GenericSelect = ({ value, onChange, options }: { value: string, onChange: 
 
 export const RestorationSettings: React.FC = () => {
   const { t } = useTranslation();
+  const [generateSubtitlesTrigger, { isLoading: isGeneratingSubtitles }] = useGenerateSubtitlesMutation();
   const {
+    selectedFile,
+    addLog,
     mode, setMode,
     deinterlacer, setDeinterlacer,
     audioMode, setAudioMode,
@@ -227,15 +231,28 @@ export const RestorationSettings: React.FC = () => {
               </div>
               <div className="flex-1 flex items-end">
                 <button 
-                  onClick={() => {
-                    const file = useStudioStore.getState().selectedFile;
+                  disabled={isGeneratingSubtitles}
+                  onClick={async () => {
                     const model = window.localStorage.getItem('whisper_model') || 'tiny';
-                    if (!file) { alert('Selecione um arquivo de vídeo acima primeiro!'); return; }
-                    window.dispatchEvent(new CustomEvent('WHISPER_START', { detail: { input: file, model_size: model } }));
+                    if (!selectedFile) {
+                      alert('Selecione um arquivo de vídeo acima primeiro!');
+                      return;
+                    }
+                    addLog(`[WHISPER] Iniciando geração de legendas com modelo ${model}...`);
+                    try {
+                      const res = await generateSubtitlesTrigger({ input: selectedFile, model_size: model }).unwrap();
+                      if (res.status === 'started' || res.status === 'ok') {
+                        addLog('[WHISPER] Processamento iniciado em segundo plano.');
+                      } else {
+                        addLog(`[WHISPER AVISO] ${res.message || 'Falha ao iniciar'}`);
+                      }
+                    } catch (e: any) {
+                      addLog(`[WHISPER ERRO] ${e.message || 'Erro na requisição'}`);
+                    }
                   }}
-                  className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs py-2.5 rounded-lg transition"
+                  className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold text-xs py-2.5 rounded-lg transition"
                 >
-                  Gerar Legendas
+                  {isGeneratingSubtitles ? 'Iniciando...' : 'Gerar Legendas'}
                 </button>
               </div>
             </div>

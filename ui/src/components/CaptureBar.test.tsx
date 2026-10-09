@@ -1,30 +1,32 @@
-﻿import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import React from 'react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { CaptureBar } from './CaptureBar';
+import { Provider } from 'react-redux';
+import { store } from '../store';
 import { useStudioStore } from '../store/useStudioStore';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mock react-i18next
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key: string) => key })
+  useTranslation: () => ({ t: (key: string) => key }),
 }));
 
-vi.mock('../api/studioApi', () => ({
-  studioApi: {
-    startObsCapture: vi.fn(),
-    stopObsCapture: vi.fn(),
-  }
+const mockStartCapture = vi.fn();
+const mockStopCapture = vi.fn();
+
+vi.mock('../viewmodels/useStudioViewModel', () => ({
+  useStudioViewModel: () => ({
+    store: useStudioStore(),
+    handleStartCapture: mockStartCapture,
+    handleStopCapture: mockStopCapture,
+  }),
 }));
 
-import { studioApi } from '../api/studioApi';
-
-const queryClient = new QueryClient();
 const wrapper = ({ children }: { children: React.ReactNode }) => (
-  <QueryClientProvider client={queryClient}>
+  <Provider store={store}>
     {children}
-  </QueryClientProvider>
+  </Provider>
 );
 
 describe('CaptureBar Component', () => {
@@ -33,34 +35,23 @@ describe('CaptureBar Component', () => {
     useStudioStore.setState({ isCapturing: false, logs: [] });
   });
 
-  it('should start capture when start button is clicked', async () => {
-    (studioApi.startObsCapture as any).mockResolvedValue({ status: 'started' });
-
+  it('should start capture when start button is clicked', () => {
     render(<CaptureBar />, { wrapper });
 
     const startBtn = screen.getByText('Iniciar Gravação OBS');
     fireEvent.click(startBtn);
 
-    // State becomes optimistic
-    expect(useStudioStore.getState().isCapturing).toBe(true);
-
-    await waitFor(() => {
-      expect(studioApi.startObsCapture).toHaveBeenCalledTimes(1);
-    });
+    expect(mockStartCapture).toHaveBeenCalledTimes(1);
   });
 
-  it('should stop capture when stop button is clicked', async () => {
+  it('should stop capture when stop button is clicked', () => {
     useStudioStore.setState({ isCapturing: true });
-    (studioApi.stopObsCapture as any).mockResolvedValue({ path: '/fake/path.mkv' });
 
     render(<CaptureBar />, { wrapper });
 
     const stopBtn = screen.getByText('capture.stop_obs');
     fireEvent.click(stopBtn);
 
-    await waitFor(() => {
-      expect(studioApi.stopObsCapture).toHaveBeenCalledTimes(1);
-      expect(useStudioStore.getState().isCapturing).toBe(false);
-    });
+    expect(mockStopCapture).toHaveBeenCalledTimes(1);
   });
 });

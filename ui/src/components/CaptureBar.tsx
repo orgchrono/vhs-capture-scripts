@@ -1,43 +1,13 @@
 import { Button } from "./ui/button";
-import React from 'react'
-import { Radio, Square, HelpCircle } from 'lucide-react'
-import { useStudioStore } from '../store/useStudioStore'
-import { studioApi } from '../api/studioApi'
-import { useTranslation } from 'react-i18next'
+import React from 'react';
+import { Radio, Square, HelpCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { useStudioViewModel } from '../viewmodels/useStudioViewModel';
 
 export const CaptureBar: React.FC = () => {
   const { t } = useTranslation();
-  const { isCapturing, setIsCapturing, addLog } = useStudioStore()
-
-  const handleStartCapture = async () => {
-    setIsCapturing(true)
-    addLog('[OBS CAPTURA] Enviando comando de início de gravação para o OBS Studio...')
-    try {
-      const res = await studioApi.startObsCapture()
-      if (res.status === 'started') {
-        addLog('[OBS CAPTURA] Gravação DeckLink Lossless iniciada com sucesso!')
-      } else {
-        addLog(`[OBS AVISO] ${res.message || 'OBS não respondeu no WebSocket'}`)
-      }
-    } catch {
-      addLog('[OBS AVISO] OBS Studio não está aberto ou WebSocket não está ativo na porta 4455.')
-      addLog('[OBS DICA] Abra o OBS Studio com o perfil VHS_Archive.')
-    }
-  }
-
-  const handleStopCapture = async () => {
-    addLog('[OBS CAPTURA] Finalizando gravação no OBS Studio...')
-    try {
-      const res = await studioApi.stopObsCapture()
-      setIsCapturing(false)
-      if (res.path) {
-        addLog(`[OBS CAPTURA] Arquivo finalizado com sucesso: ${res.path}`)
-      }
-    } catch (e) {
-      setIsCapturing(false)
-      addLog(`[OBS ERRO] Falha ao finalizar: ${e}`)
-    }
-  }
+  const { store, handleStartCapture, handleStopCapture } = useStudioViewModel();
+  const { isCapturing } = store;
 
   return (
     <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-white/10 rounded-xl p-4 mb-4 flex flex-col gap-4">
