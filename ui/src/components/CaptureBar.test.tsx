@@ -15,9 +15,9 @@ vi.mock('react-i18next', () => ({
 const mockStartCapture = vi.fn();
 const mockStopCapture = vi.fn();
 
-vi.mock('../viewmodels/useStudioViewModel', () => ({
-  useStudioViewModel: () => ({
-    store: useStudioStore(),
+vi.mock('../viewmodels/useCaptureViewModel', () => ({
+  useCaptureViewModel: () => ({
+    isCapturing: useStudioStore.getState().isCapturing,
     handleStartCapture: mockStartCapture,
     handleStopCapture: mockStopCapture,
   }),

@@ -1,13 +1,12 @@
 import React, { useState } from 'react'
 import { Sliders, Search, Video, Music, Settings2, Image as ImageIcon, Sparkles } from 'lucide-react'
-import { useStudioStore } from '../store/useStudioStore'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 import { Switch } from './ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 import { Input } from './ui/input'
 import { useTranslation } from 'react-i18next'
 import { DEINTERLACER_OPTIONS, VIDEO_MODE_OPTIONS, AUDIO_MODE_OPTIONS, OUTPUT_CODEC_OPTIONS, RESOLUTION_OPTIONS } from '../lib/constants'
-import { useGenerateSubtitlesMutation } from '../api/studioRtkApi'
+import { useRestorationViewModel } from '../viewmodels/useRestorationViewModel'
 
 const GenericSelect = ({ value, onChange, options }: { value: string, onChange: (v: any) => void, options: {value: string, label: string}[] }) => (
   <Select value={value} onValueChange={onChange}>
@@ -22,10 +21,15 @@ const GenericSelect = ({ value, onChange, options }: { value: string, onChange: 
 
 export const RestorationSettings: React.FC = () => {
   const { t } = useTranslation();
-  const [generateSubtitlesTrigger, { isLoading: isGeneratingSubtitles }] = useGenerateSubtitlesMutation();
   const {
-    selectedFile,
-    addLog,
+    store,
+    whisperModel,
+    setWhisperModel,
+    isGeneratingSubtitles,
+    handleGenerateSubtitles,
+  } = useRestorationViewModel();
+
+  const {
     mode, setMode,
     deinterlacer, setDeinterlacer,
     audioMode, setAudioMode,
@@ -38,7 +42,7 @@ export const RestorationSettings: React.FC = () => {
     outputCodec, setOutputCodec,
     overscanBlanking, setOverscanBlanking,
     audioTreatment, setAudioTreatment,
-  } = useStudioStore()
+  } = store;
 
   const [search, setSearch] = useState('')
 
@@ -218,7 +222,7 @@ export const RestorationSettings: React.FC = () => {
             <div className="flex items-center gap-4">
               <div className="flex-1">
                 <label className="text-xs font-medium text-slate-400 block mb-1.5">Tamanho do Modelo:</label>
-                <Select defaultValue="tiny" onValueChange={(val) => window.localStorage.setItem('whisper_model', val)}>
+                <Select value={whisperModel} onValueChange={setWhisperModel}>
                   <SelectTrigger className="w-full bg-slate-950 border-slate-800 text-white">
                     <SelectValue placeholder="Tiny (Rápido)" />
                   </SelectTrigger>
@@ -232,24 +236,7 @@ export const RestorationSettings: React.FC = () => {
               <div className="flex-1 flex items-end">
                 <button 
                   disabled={isGeneratingSubtitles}
-                  onClick={async () => {
-                    const model = window.localStorage.getItem('whisper_model') || 'tiny';
-                    if (!selectedFile) {
-                      alert('Selecione um arquivo de vídeo acima primeiro!');
-                      return;
-                    }
-                    addLog(`[WHISPER] Iniciando geração de legendas com modelo ${model}...`);
-                    try {
-                      const res = await generateSubtitlesTrigger({ input: selectedFile, model_size: model }).unwrap();
-                      if (res.status === 'started' || res.status === 'ok') {
-                        addLog('[WHISPER] Processamento iniciado em segundo plano.');
-                      } else {
-                        addLog(`[WHISPER AVISO] ${res.message || 'Falha ao iniciar'}`);
-                      }
-                    } catch (e: any) {
-                      addLog(`[WHISPER ERRO] ${e.message || 'Erro na requisição'}`);
-                    }
-                  }}
+                  onClick={handleGenerateSubtitles}
                   className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold text-xs py-2.5 rounded-lg transition"
                 >
                   {isGeneratingSubtitles ? 'Iniciando...' : 'Gerar Legendas'}

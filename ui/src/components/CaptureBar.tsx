@@ -2,12 +2,11 @@ import { Button } from "./ui/button";
 import React from 'react';
 import { Radio, Square, HelpCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useStudioViewModel } from '../viewmodels/useStudioViewModel';
+import { useCaptureViewModel } from '../viewmodels/useCaptureViewModel';
 
 export const CaptureBar: React.FC = () => {
   const { t } = useTranslation();
-  const { store, handleStartCapture, handleStopCapture } = useStudioViewModel();
-  const { isCapturing } = store;
+  const { isCapturing, handleStartCapture, handleStopCapture } = useCaptureViewModel();
 
   return (
     <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-white/10 rounded-xl p-4 mb-4 flex flex-col gap-4">

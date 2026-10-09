@@ -1,71 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
 import { Video, AlertTriangle, Activity } from 'lucide-react';
-import { useStudioStore } from '../store/useStudioStore';
-import { useGetObsStatsQuery, useToggleVirtualCamMutation } from '../api/studioRtkApi';
+import { useLiveMonitor } from '../viewmodels/useLiveMonitor';
 
 export const LiveMonitor: React.FC<{ health?: any }> = ({ health }) => {
-  const { isCapturing } = useStudioStore();
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isActive, setIsActive] = useState(false);
-
-  const { data: obsStats } = useGetObsStatsQuery(undefined, {
-    pollingInterval: 1000,
-  });
-
-  const [toggleVirtualCam] = useToggleVirtualCamMutation();
-
-  useEffect(() => {
-    let activeStream: MediaStream | null = null;
-
-    const startMonitor = async () => {
-      try {
-        // 1. Tell OBS to start the virtual camera
-        await toggleVirtualCam({ enable: true }).unwrap();
-        
-        // Wait a bit for the device to register in the OS
-        await new Promise(r => setTimeout(r, 1000));
-
-        // 2. Find the OBS Virtual Camera device
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = devices.filter(d => d.kind === 'videoinput');
-        
-        // In PyWebView, the virtual camera might just be the default,
-        // but we try to find 'OBS Virtual Camera' if multiple exist.
-        let obsDeviceId = videoDevices.find(d => 
-          d.label.toLowerCase().includes('obs') || 
-          d.label.toLowerCase().includes('virtual')
-        )?.deviceId;
-
-        // If not found by name, just try to grab any video device if only one exists
-        // or just request the default video device and hope Chromium routed it.
-        const constraints = obsDeviceId 
-          ? { video: { deviceId: { exact: obsDeviceId } } }
-          : { video: true };
-
-        activeStream = await navigator.mediaDevices.getUserMedia(constraints);
-        
-        if (videoRef.current) {
-          videoRef.current.srcObject = activeStream;
-          setIsActive(true);
-          setError(null);
-        }
-      } catch (err: any) {
-        console.error("Failed to start Live Monitor:", err);
-        setError("Câmera Virtual não detectada ou sem permissão.");
-        setIsActive(false);
-      }
-    };
-
-    startMonitor();
-
-    return () => {
-      if (activeStream) {
-        activeStream.getTracks().forEach(track => track.stop());
-      }
-      toggleVirtualCam({ enable: false }).unwrap().catch(console.error);
-    };
-  }, [toggleVirtualCam]);
+  const { videoRef, isActive, error, obsStats, isCapturing } = useLiveMonitor();
 
   return (
     <div className="relative w-full h-full bg-black flex flex-col items-center justify-center overflow-hidden">
