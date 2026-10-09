@@ -1,32 +1,41 @@
-# Sugestões de Melhorias & Evoluções Futuras (VHS Studio)
+# 🚀 Roadmap e Evoluções Futuras - VHS Studio Pro
 
-Documento de referência para otimizações e funcionalidades não-críticas planejadas para próximas versões.
+Este documento serve como mapa de funcionalidades consolidadas e próximos horizontes de pesquisa e desenvolvimento do **VHS Studio Pro**.
 
 ---
 
-## 🎯 Implementado nesta Rodada (Concluído)
+## 🎯 Funcionalidades Consolidadas (100% Concluídas)
+
 - [x] **Neutralização Inteligente de Perdas (TBC Frame-Hold):** Elimina a dessincronia A/V cumulativa travando os quadros na perda de sincronismo em vez de descartar frames de vídeo.
-- [x] **Inspeção Técnica e Relatório de Integridade (`verify.py`):** Gera sidecar JSON (`_verify_report.json`) contendo verificação de desvio A/V, metadados de cor Rec.709 e duração.
-- [x] **Perfis de Hardware Específicos:** Suporte dedicado para JVC HR-D227M (estéreo Hi-Fi), JVC GR-AX410 (VHS-C mono com duplicação) e Panasonic DMR-EH55 (TBC passthrough).
-- [x] **Normalização de Line Endings & Linter:** `.gitattributes`, `.shellcheckrc`, `ruff.toml` e pipeline de CI no GitHub Actions.
-- [x] **Automação no OBS Studio:** Perfil `VHS_Archive` (720x486 NTSC lossless entrelaçado) e script Lua desacoplado com execução assíncrona.
+- [x] **Inspeção Técnica e Relatório de Integridade:** Geração de relatórios com metadados de cor Rec.709, duração e áudio.
+- [x] **Interface Gráfica Desktop Pro Completa (MVVM Strict):**
+  - Aplicação moderna em React 19 + TypeScript + Vite + Tailwind CSS.
+  - Store unificada com RTK Query e streaming SSE de logs em tempo real.
+  - Sistema acessível de feedback Sonner Toast e animações com Framer Motion.
+  - Acessibilidade WCAG 2.1 AAA e suporte multilíngue i18n (pt-BR, en-US, es-ES).
+- [x] **Setup Automatizado do VapourSynth + QTGMC:** Instalador integrado (`setup_qtgmc.py`) e acionável com um clique pela API/UI.
+- [x] **Upscaling Neural por IA:** Modelo Real-ESRGAN x4plus com aceleração por GPU.
+- [x] **Legendas e Transcrição Automática por IA:** OpenAI Whisper integrado com geração de arquivos `.vtt` e `.srt`.
+- [x] **Fila de Lotes Persistente (Batch Queue):** Motor SQLite sequencial com cancelamento, priorização e isolamento de falhas.
+- [x] **Backup e Offload em Nuvem:** Adaptadores nativos para AWS S3, Google Drive OAuth2 e Dropbox.
+- [x] **Segurança e Compliance Nível Arquivo:**
+  - Eliminação de `shell=True` e mitigação de Command Injection (CWE-78).
+  - Validação estrita de caminhos e bloqueio de Path Traversal (CWE-22).
+  - Termos de licença e isenção de responsabilidade baseados em padrões forenses.
+- [x] **8 Quality Gates Automatizados:** Linters, tipagem estrita, JSCPD anti-duplicação, Vitest, Playwright e Pytest.
 
 ---
 
-## 🚀 Próximas Evoluções Sugeridas (Opcionais)
+## 🔮 Horizontes Futuros e Próximas Pesquisas (Roadmap)
 
-### 1. Pacote Portátil VapourSynth + QTGMC
-- Atualmente, o desentrelaçamento em modo rápido ou quando `vspipe` não está no PATH utiliza o fallback seguro `bwdif`.
-- **Ideia:** Criar um script instalador ou embutir uma distribuição portable de Python + VapourSynth + QTGMC pré-configurada em `restoration/tools/vapoursynth/` para usuários sem familiaridade com a instalação do VapourSynth.
+### 1. Suporte a Decodificação RF Direta (VHS-Decode / DomesDayDuplicator)
+- Adicionar módulo de ingestão para arquivos `.sdr` ou `.flac` de sinais RF brutos capturados diretamente da cabeça de vídeo antes do circuito demodulador do videocassete.
+- Integrar com o pipeline do `vhs-decode` para restauração analógica baseada puramente em software.
 
-### 2. Interface Gráfica Leve (Launcher GUI)
-- Criar um frontend gráfico simples em Python (usando `tkinter` nativo sem dependências) para quem prefere não editar scripts `.bat`:
-  - Seletor do aparelho conectado (JVC HR-D227M vs JVC GR-AX410).
-  - Seletor de qualidade (`--fast` / streaming direto vs `--master` / FFV1 completo).
-  - Botão de preview ao vivo do sinal e monitor de áudio com medidor de volume (VU meter).
+### 2. Segmentação Semântica de Fita com Face Recognition
+- Usar modelos de visão computacional leves (ex: YOLO / InsightFace) para agrupar takes familiares por pessoas reconhecidas na gravação.
+- Gerar capítulos automáticos no arquivo `.mkv` com os nomes identificados.
 
-### 3. Integração com Modelos de IA para Upscale (Opcional)
-- Adicionar suporte opcional para modelos de super-resolução específicos para vídeo SD/analógico (ex: Real-ESRGAN Video ou Compact) como opção pós-QTGMC, mantendo sempre o arquivamento do master 1080p Lanczos intacto.
-
-### 4. Backup Automático para Armazenamento Externo / NAS
-- Script pós-processamento para mover automaticamente os arquivos de `media/raw/` e `media/output/` para discos de armazenamento frio (NAS/HD externo) assim que a verificação de integridade passar com sucesso.
+### 3. Visualizador de Espectrograma de Áudio ao Vivo
+- Adicionar visualização em tempo real de espectrograma FFT do sinal de áudio na interface durante a gravação no OBS.
+- Auxiliar operadores a identificar zumbidos de aterramento (60Hz / 50Hz hum) e ruídos de rastreamento (*head switching noise*).
