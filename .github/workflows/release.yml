@@ -3,8 +3,8 @@ name: Cross-Platform Release
 on:
   push:
     tags:
-      - 'v*.*.*'  # Dispara automaticamente quando voc? criar uma tag v1.0.0
-  workflow_dispatch: # Permite disparo manual via bot?o na interface do GitHub
+      - 'v*.*.*'  # Dispara automaticamente quando você criar uma tag v1.0.0
+  workflow_dispatch: # Permite disparo manual via botão na interface do GitHub
 
 jobs:
   build:
@@ -24,13 +24,16 @@ jobs:
             sep: ":"
 
     steps:
-    - uses: actions/checkout@v7
+    - name: Checkout Repository
+      uses: actions/checkout@v4
     
-    - uses: actions/setup-node@v7
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
       with:
         node-version: 24
         
-    - uses: actions/setup-python@v7
+    - name: Set up Python
+      uses: actions/setup-python@v5
       with:
         python-version: "3.11"
         cache: 'pip'

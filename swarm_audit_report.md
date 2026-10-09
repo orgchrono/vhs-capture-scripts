@@ -1,6 +1,7 @@
 # 🐝 Relatório do Swarm Auditors
 
-Mapeamento completo da codebase englobando arquitetura, segurança, testes, pipelines CI/CD e boas práticas.
+Mapeamento completo da codebase englobando arquitetura, segurança, testes,
+pipelines CI/CD e boas práticas.
 
 ## ✅ Arquitetura, SRP, SOC, SSOT, MVVM Strict [PASS]
 ```text
@@ -15,10 +16,10 @@ CI/CD and usage pipelines found: ['.github/workflows', 'build.cmd', 'build.sh', 
 Automatism and Parallelism are supported by CI/CD configuration.
 ```
 
-## ✅ Test Harness e Flaking Tests [PASS]
+## ⚠️ Test Harness e Flaking Tests [WARN]
 ```text
-No explicit test harness fixtures found.
-No flaking test patterns (sleep, random) detected.
+Harness tests active: Found 1 test fixtures/setups.
+Flaking tests risk: Found 1 instances of sleep/randomness in tests.
 ```
 
 ## ✅ UX/UI, i18n, a11y, View Tests [PASS]
@@ -40,10 +41,11 @@ Pip dependencies are consistent.
 NPM dependencies are secure.
 ```
 
-## ✅ Melhores Práticas, FP Pure, Code Smells, Loose Types, Divida Técnica [PASS]
+## ⚠️ Melhores Práticas, FP Pure, Code Smells, Loose Types, Divida Técnica [WARN]
 ```text
-Pylint Score: 8.88/10
+Pylint Score: 9.26/10
 Technical Debt: Found 0 TODO/FIXME markers.
-FP Pure Check: Passed.
+FP Pure Violation: Found 1 global state mutations.
+Loose Types: Found 6 instances of 'Any'. Consider making types stricter.
 ```
 
