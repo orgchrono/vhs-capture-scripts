@@ -5,7 +5,7 @@ import sys
 import os
 import json
 from datetime import datetime, timezone
-from typing import List
+from typing import List, Tuple
 from logging.handlers import RotatingFileHandler
 
 
@@ -55,26 +55,26 @@ class JsonFormatter(logging.Formatter):
 class MemoryLogHandler(logging.Handler):
     """Armazena logs em memoria para serem consumidos pela interface web do React."""
 
-    def __init__(self, capacity=1000):
+    def __init__(self, capacity: int = 1000) -> None:
         """Documentation for __init__."""
         super().__init__()
         self.capacity = capacity
         self.logs: List[str] = []
         self.setFormatter(logging.Formatter("[%(levelname)s] %(message)s"))
 
-    def emit(self, record):
+    def emit(self, record: logging.LogRecord) -> None:
         """Documentation for emit."""
         msg = self.format(record)
         self.logs.append(msg)
         if len(self.logs) > self.capacity:
             self.logs.pop(0)
 
-    def get_logs(self):
+    def get_logs(self) -> List[str]:
         """Documentation for get_logs."""
         return self.logs
 
 
-def setup_logger():
+def setup_logger() -> Tuple[logging.Logger, MemoryLogHandler]:
     os.makedirs("logs", exist_ok=True)
 
     logger = logging.getLogger("vhs_studio")

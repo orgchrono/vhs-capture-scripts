@@ -19,7 +19,8 @@ def get_ram_info() -> Dict[str, float]:
             import ctypes
             mem = (ctypes.c_ulonglong * 8)()
             mem[0] = 64
-            if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(mem)):
+            windll = getattr(ctypes, "windll", None)
+            if windll and windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(mem)):
                 total_gb = round(mem[1] / (1024 ** 3), 1)
                 avail_gb = round(mem[2] / (1024 ** 3), 1)
         except Exception:
