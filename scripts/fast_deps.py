@@ -2,7 +2,7 @@
 """
 fast_deps.py - High-Performance Dependency Manager & Smart Cache
 Eliminates redundant network checks and package resolution delays.
-Uses cryptographic hashing, 'uv' acceleration, and parallel worker threads.
+Uses cryptographic hashing, Rust-based 'uv' acceleration, and parallel worker threads.
 """
 
 import os
@@ -11,7 +11,7 @@ import shutil
 import hashlib
 import subprocess
 import concurrent.futures
-from typing import Tuple
+from typing import Tuple, Optional, List
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 PYPROJECT_PATH = os.path.join(PROJECT_ROOT, "pyproject.toml")
@@ -22,6 +22,51 @@ UI_PACKAGE_LOCK = os.path.join(UI_DIR, "package-lock.json")
 VENV_DIR = os.path.join(PROJECT_ROOT, ".venv")
 PYTHON_HASH_FILE = os.path.join(VENV_DIR, ".deps_hash")
 UI_HASH_FILE = os.path.join(UI_DIR, "node_modules", ".deps_hash")
+
+
+def get_uv_command() -> Optional[List[str]]:
+    """Resolve uv command (standalone binary, Python Scripts, or python -m uv)."""
+    if shutil.which("uv"):
+        return ["uv"]
+    scripts_dir = "Scripts" if os.name == "nt" else "bin"
+    candidate = os.path.join(sys.prefix, scripts_dir, "uv.exe" if os.name == "nt" else "uv")
+    if os.path.exists(candidate):
+        return [candidate]
+    try:
+        res = subprocess.run(
+            [sys.executable, "-m", "uv", "--version"],
+            capture_output=True,
+            check=False
+        )
+        if res.returncode == 0:
+            return [sys.executable, "-m", "uv"]
+    except Exception:
+        pass
+    return None
+
+
+def ensure_venv() -> bool:
+    """Ensure virtual environment exists, using uv venv if available for instant creation."""
+    if os.path.exists(VENV_DIR):
+        return True
+
+    print("[*] Criando ambiente virtual isolado (.venv)...", flush=True)
+    uv_cmd = get_uv_command()
+    if uv_cmd:
+        try:
+            res = subprocess.run(uv_cmd + ["venv", VENV_DIR], cwd=PROJECT_ROOT, check=True)
+            if res.returncode == 0:
+                print("[+] Ambiente virtual criado instantaneamente com uv!", flush=True)
+                return True
+        except Exception:
+            pass
+
+    try:
+        res = subprocess.run([sys.executable, "-m", "venv", VENV_DIR], cwd=PROJECT_ROOT, check=True)
+        return res.returncode == 0
+    except Exception as e:
+        print(f"[!] Falha ao criar venv: {e}", file=sys.stderr, flush=True)
+        return False
 
 
 def compute_file_hash(path: str) -> str:
@@ -70,30 +115,25 @@ def check_ui_deps() -> Tuple[bool, str]:
 
 
 def install_python_deps(target_hash: str) -> bool:
-    """Install Python dependencies using uv (if available or installable) or standard pip."""
+    """Install Python dependencies using Rust-based uv (if available) or standard pip."""
     print("[*] Sincronizando dependências Python...", flush=True)
 
-    use_uv = False
-    uv_path = shutil.which("uv")
-    if not uv_path:
-        # Tenta bootstrap do uv para ganho de performance de até 100x
+    uv_cmd = get_uv_command()
+    if not uv_cmd:
         try:
             res = subprocess.run(
                 [sys.executable, "-m", "pip", "install", "uv"],
                 capture_output=True,
                 check=False
             )
-            if res.returncode == 0 and shutil.which("uv"):
-                use_uv = True
-                uv_path = shutil.which("uv")
+            if res.returncode == 0:
+                uv_cmd = get_uv_command()
         except Exception:
             pass
-    else:
-        use_uv = True
 
     try:
-        if use_uv and uv_path:
-            cmd = [uv_path, "pip", "install", "-e", ".[dev,ai,cloud]"]
+        if uv_cmd:
+            cmd = uv_cmd + ["pip", "install", "-e", ".[dev,ai,cloud]"]
         else:
             cmd = [sys.executable, "-m", "pip", "install", "-e", ".[dev,ai,cloud]"]
 
@@ -134,6 +174,8 @@ def install_ui_deps(target_hash: str) -> bool:
 
 def main():
     """Main fast dependency coordinator."""
+    ensure_venv()
+
     py_ok, py_hash = check_python_deps()
     ui_ok, ui_hash = check_ui_deps()
 

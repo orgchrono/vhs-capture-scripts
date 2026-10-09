@@ -4,8 +4,8 @@ echo   VHS Studio Pro - Ambiente de Desenvolvimento
 echo ========================================================
 
 if not exist ".venv" (
-    echo [*] Criando ambiente virtual isolado
-    python -m venv .venv
+    echo [*] Criando ambiente virtual isolado (.venv)...
+    python -m uv venv .venv 2>nul || python -m venv .venv
 )
 
 echo [*] Ativando ambiente virtual...

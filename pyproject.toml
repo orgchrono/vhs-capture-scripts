@@ -38,3 +38,7 @@ extend-ignore = "E203"
 pythonpath = [
   "src"
 ]
+
+[tool.uv]
+managed = true
+package = true

@@ -7,7 +7,7 @@ echo "========================================================"
 
 if [ ! -d ".venv" ]; then
     echo "[*] Criando ambiente virtual isolado (.venv)..."
-    python3 -m venv .venv
+    python3 -m uv venv .venv 2>/dev/null || python3 -m venv .venv
 fi
 
 echo "[*] Ativando ambiente virtual..."
