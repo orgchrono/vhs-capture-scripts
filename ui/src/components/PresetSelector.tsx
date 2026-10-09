@@ -3,6 +3,7 @@ import React from 'react'
 import { Award, Zap, ShieldCheck, Wand2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+import { motion, useReducedMotion } from 'motion/react'
 import { useStudioStore } from '../store/useStudioStore'
 import type { RestorationPreset } from '../types'
 import { cn } from '../lib/utils'
@@ -10,6 +11,7 @@ import { cn } from '../lib/utils'
 export const PresetSelector: React.FC = () => {
   const { t } = useTranslation()
   const { preset, applyPreset } = useStudioStore()
+  const shouldReduceMotion = useReducedMotion()
 
   const presets: { id: RestorationPreset; name: string; desc: string; icon: any; badge?: string }[] = [
     {
@@ -55,10 +57,21 @@ export const PresetSelector: React.FC = () => {
             className={cn(
               'relative text-left p-3.5 rounded-xl border transition-all duration-200 cursor-pointer overflow-hidden flex flex-col justify-between group',
               isActive
-                ? 'bg-sky-500/10 border-sky-500/50 shadow-[0_0_20px_rgba(56,189,248,0.15)] ring-1 ring-sky-500/30'
+                ? 'border-sky-500/50 shadow-[0_0_20px_rgba(56,189,248,0.15)]'
                 : 'bg-slate-900/40 border-white/5 hover:border-sky-500/30 hover:bg-slate-900/70'
             )}
           >
+            {isActive && (
+              <motion.div
+                layoutId="active-preset-glow"
+                className="absolute inset-0 bg-sky-500/10 border-2 border-sky-400/60 rounded-xl pointer-events-none"
+                transition={
+                  shouldReduceMotion
+                    ? { duration: 0 }
+                    : { type: 'spring', stiffness: 400, damping: 32 }
+                }
+              />
+            )}
             {p.badge && (
               <span className="absolute top-2.5 right-2.5 bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
                 {p.badge}

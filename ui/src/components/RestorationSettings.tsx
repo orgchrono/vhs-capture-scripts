@@ -18,9 +18,33 @@ import { Switch } from './ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 import { Input } from './ui/input'
 import { useTranslation } from 'react-i18next'
-import { DEINTERLACER_OPTIONS, VIDEO_MODE_OPTIONS, AUDIO_MODE_OPTIONS, OUTPUT_CODEC_OPTIONS, RESOLUTION_OPTIONS } from '../lib/constants'
+import {
+  DEINTERLACER_OPTIONS,
+  VIDEO_MODE_OPTIONS,
+  AUDIO_MODE_OPTIONS,
+  OUTPUT_CODEC_OPTIONS,
+  RESOLUTION_OPTIONS,
+  AI_UPSCALER_OPTIONS,
+  WHISPER_MODEL_OPTIONS,
+  FACE_FIDELITY_CONFIG,
+} from '../lib/constants'
 import { useRestorationViewModel } from '../viewmodels/useRestorationViewModel'
 import { StorageSettings } from './StorageSettings'
+import { motion, useReducedMotion } from 'motion/react'
+
+const TabTransition: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const shouldReduceMotion = useReducedMotion()
+  return (
+    <motion.div
+      initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: -6 }}
+      transition={{ duration: 0.18, ease: 'easeOut' }}
+    >
+      {children}
+    </motion.div>
+  )
+}
 
 const GenericSelect = ({ value, onChange, options }: { value: string, onChange: (v: any) => void, options: {value: string, label: string}[] }) => (
   <Select value={value} onValueChange={onChange}>
@@ -103,140 +127,149 @@ export const RestorationSettings: React.FC = () => {
         </TabsList>
 
         <TabsContent value="video" className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            {matches(['desentrelaçamento', 'deinterlacer', 'bwdif', 'qtgmc', 'video']) && (
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-slate-400 block">Desentrelaçamento:</label>
-                <GenericSelect value={deinterlacer} onChange={setDeinterlacer} options={DEINTERLACER_OPTIONS} />
-                <p className="text-[10px] text-slate-500">O QTGMC é o padrão ouro, mas requer VapourSynth instalado.</p>
-              </div>
-            )}
-            
-            {matches(['modo', 'fps', 'video', 'interlaced']) && (
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-slate-400 block">{t('settings.fps_mode')}</label>
-                <GenericSelect value={mode} onChange={setMode} options={VIDEO_MODE_OPTIONS} />
-              </div>
-            )}
-            
-            {matches(['resolução', 'upscale', '1080p', 'video']) && (
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-slate-400 block">Resolução / Upscale:</label>
-                <GenericSelect value={resolution} onChange={setResolution} options={RESOLUTION_OPTIONS} />
-              </div>
-            )}
+          <TabTransition>
+            <div className="grid grid-cols-2 gap-4">
+              {matches(['desentrelaçamento', 'deinterlacer', 'bwdif', 'qtgmc', 'video']) && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-slate-400 block">Desentrelaçamento:</label>
+                  <GenericSelect value={deinterlacer} onChange={setDeinterlacer} options={DEINTERLACER_OPTIONS} />
+                  <p className="text-[10px] text-slate-500">O QTGMC é o padrão ouro, mas requer VapourSynth instalado.</p>
+                </div>
+              )}
+              
+              {matches(['modo', 'fps', 'video', 'interlaced']) && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-slate-400 block">{t('settings.fps_mode')}</label>
+                  <GenericSelect value={mode} onChange={setMode} options={VIDEO_MODE_OPTIONS} />
+                </div>
+              )}
+              
+              {matches(['resolução', 'upscale', '1080p', 'video']) && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-slate-400 block">Resolução / Upscale:</label>
+                  <GenericSelect value={resolution} onChange={setResolution} options={RESOLUTION_OPTIONS} />
+                </div>
+              )}
 
-            {matches(['codec', 'h264', 'h265', 'hevc', 'video']) && (
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-slate-400 block">Codec de Saída:</label>
-                <GenericSelect value={outputCodec} onChange={setOutputCodec} options={OUTPUT_CODEC_OPTIONS} />
-              </div>
-            )}
-          </div>
+              {matches(['codec', 'h264', 'h265', 'hevc', 'video']) && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-slate-400 block">Codec de Saída:</label>
+                  <GenericSelect value={outputCodec} onChange={setOutputCodec} options={OUTPUT_CODEC_OPTIONS} />
+                </div>
+              )}
+            </div>
+          </TabTransition>
         </TabsContent>
 
         <TabsContent value="audio" className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            {matches(['áudio', 'audio', 'stereo', 'mono']) && (
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-slate-400 block">Modo de Áudio:</label>
-                <GenericSelect value={audioMode} onChange={setAudioMode} options={AUDIO_MODE_OPTIONS} />
-              </div>
-            )}
-
-            {matches(['áudio', 'audio', 'delay', 'sincronização']) && (
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-slate-400 block">Sincronização de Áudio (Atraso em ms):</label>
-                <Input type="number" step="10" value={audioOffset} onChange={(e) => setAudioOffset(Number(e.target.value))}
-                  className="w-full bg-slate-950" />
-                <p className="text-[10px] text-slate-500">Valores positivos atrasam o áudio. Valores negativos adiantam.</p>
-              </div>
-            )}
-
-            {matches(['áudio', 'audio', 'tratamento', 'normalização']) && (
-              <div className="flex items-center justify-between bg-slate-950 p-4 rounded-lg border border-slate-800">
-                <div className="space-y-0.5">
-                  <label className="text-sm font-medium text-slate-200">Tratamento de Áudio EBU R128</label>
-                  <p className="text-xs text-slate-500">Normalização de volume padrão TV/Streaming (-23 LUFS).</p>
+          <TabTransition>
+            <div className="grid grid-cols-2 gap-4">
+              {matches(['áudio', 'audio', 'stereo', 'mono']) && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-slate-400 block">Modo de Áudio:</label>
+                  <GenericSelect value={audioMode} onChange={setAudioMode} options={AUDIO_MODE_OPTIONS} />
                 </div>
-                <Switch aria-label="Audio Treatment" checked={audioTreatment} onCheckedChange={setAudioTreatment} />
-              </div>
-            )}
-          </div>
+              )}
+
+              {matches(['áudio', 'audio', 'delay', 'sincronização']) && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-slate-400 block">Sincronização de Áudio (Atraso em ms):</label>
+                  <Input type="number" step="10" value={audioOffset} onChange={(e) => setAudioOffset(Number(e.target.value))}
+                    className="w-full bg-slate-950" />
+                  <p className="text-[10px] text-slate-500">Valores positivos atrasam o áudio. Valores negativos adiantam.</p>
+                </div>
+              )}
+
+              {matches(['áudio', 'audio', 'tratamento', 'normalização']) && (
+                <div className="flex items-center justify-between bg-slate-950 p-4 rounded-lg border border-slate-800">
+                  <div className="space-y-0.5">
+                    <label className="text-sm font-medium text-slate-200">Tratamento de Áudio EBU R128</label>
+                    <p className="text-xs text-slate-500">Normalização de volume padrão TV/Streaming (-23 LUFS).</p>
+                  </div>
+                  <Switch aria-label="Audio Treatment" checked={audioTreatment} onCheckedChange={setAudioTreatment} />
+                </div>
+              )}
+            </div>
+          </TabTransition>
         </TabsContent>
 
         <TabsContent value="filters" className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            {matches(['chroma', 'cores', 'filtros']) && (
-              <div className="flex items-center justify-between bg-slate-950 p-4 rounded-lg border border-slate-800">
-                <div className="space-y-0.5">
-                  <label className="text-sm font-medium text-slate-200">Chroma Shift Fix</label>
-                  <p className="text-xs text-slate-500">Corrige vazamento vermelho (Red Bleed) de fitas VHS.</p>
+          <TabTransition>
+            <div className="grid grid-cols-2 gap-4">
+              {matches(['chroma', 'cores', 'filtros']) && (
+                <div className="flex items-center justify-between bg-slate-950 p-4 rounded-lg border border-slate-800">
+                  <div className="space-y-0.5">
+                    <label className="text-sm font-medium text-slate-200">Chroma Shift Fix</label>
+                    <p className="text-xs text-slate-500">Corrige vazamento vermelho (Red Bleed) de fitas VHS.</p>
+                  </div>
+                  <Switch aria-label="Chroma Fix" checked={chromaFix} onCheckedChange={setChromaFix} />
                 </div>
-                <Switch aria-label="Chroma Fix" checked={chromaFix} onCheckedChange={setChromaFix} />
-              </div>
-            )}
+              )}
 
-            {matches(['denoise', 'ruído', 'filtros']) && (
-              <div className="flex items-center justify-between bg-slate-950 p-4 rounded-lg border border-slate-800">
-                <div className="space-y-0.5">
-                  <label className="text-sm font-medium text-slate-200">Redução de Ruído (Denoise)</label>
-                  <p className="text-xs text-slate-500">Aplica nlmeans/hqdn3d para limpar ruído analógico.</p>
+              {matches(['denoise', 'ruído', 'filtros']) && (
+                <div className="flex items-center justify-between bg-slate-950 p-4 rounded-lg border border-slate-800">
+                  <div className="space-y-0.5">
+                    <label className="text-sm font-medium text-slate-200">Redução de Ruído (Denoise)</label>
+                    <p className="text-xs text-slate-500">Aplica nlmeans/hqdn3d para limpar ruído analógico.</p>
+                  </div>
+                  <Switch aria-label="Denoise" checked={denoise} onCheckedChange={setDenoise} />
                 </div>
-                <Switch aria-label="Denoise" checked={denoise} onCheckedChange={setDenoise} />
-              </div>
-            )}
+              )}
 
-            {matches(['dotcrawl', 'comb', 'filtros']) && (
-              <div className="flex items-center justify-between bg-slate-950 p-4 rounded-lg border border-slate-800">
-                <div className="space-y-0.5">
-                  <label className="text-sm font-medium text-slate-200">Dot Crawl / Comb Filter</label>
-                  <p className="text-xs text-slate-500">Remove artefatos coloridos de conexão RCA (Composite).</p>
+              {matches(['dotcrawl', 'comb', 'filtros']) && (
+                <div className="flex items-center justify-between bg-slate-950 p-4 rounded-lg border border-slate-800">
+                  <div className="space-y-0.5">
+                    <label className="text-sm font-medium text-slate-200">Dot Crawl / Comb Filter</label>
+                    <p className="text-xs text-slate-500">Remove artefatos coloridos de conexão RCA (Composite).</p>
+                  </div>
+                  <Switch aria-label="Comb Filter" checked={combFilter} onCheckedChange={setCombFilter} />
                 </div>
-                <Switch aria-label="Comb Filter" checked={combFilter} onCheckedChange={setCombFilter} />
-              </div>
-            )}
+              )}
 
-            {matches(['overscan', 'bordas', 'filtros']) && (
-              <div className="flex items-center justify-between bg-slate-950 p-4 rounded-lg border border-slate-800">
-                <div className="space-y-0.5">
-                  <label className="text-sm font-medium text-slate-200">{t('settings.overscan')}</label>
-                  <p className="text-xs text-slate-500">Cobre bordas ruidosas (Head Switching Noise) com tarjas pretas.</p>
+              {matches(['overscan', 'bordas', 'filtros']) && (
+                <div className="flex items-center justify-between bg-slate-950 p-4 rounded-lg border border-slate-800">
+                  <div className="space-y-0.5">
+                    <label className="text-sm font-medium text-slate-200">{t('settings.overscan')}</label>
+                    <p className="text-xs text-slate-500">Cobre bordas ruidosas (Head Switching Noise) com tarjas pretas.</p>
+                  </div>
+                  <Switch aria-label="Overscan Blanking" checked={overscanBlanking} onCheckedChange={setOverscanBlanking} />
                 </div>
-                <Switch aria-label="Overscan Blanking" checked={overscanBlanking} onCheckedChange={setOverscanBlanking} />
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          </TabTransition>
         </TabsContent>
 
         <TabsContent value="advanced" className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            {matches(['crf', 'qualidade', 'avançado', 'bitrate']) && (
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-slate-400 block">Qualidade de Compressão (CRF):</label>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="range"
-                    min="14" max="28" step="1"
-                    value={crf}
-                    onChange={(e) => setCrf(Number(e.target.value))}
-                    className="w-full accent-sky-500 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer"
-                  />
-                  <span className="bg-slate-950 border border-slate-800 text-sky-400 font-mono px-3 py-1.5 rounded-lg text-sm w-16 text-center">
-                    {crf}
-                  </span>
+          <TabTransition>
+            <div className="grid grid-cols-2 gap-4">
+              {matches(['crf', 'qualidade', 'avançado', 'bitrate']) && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-slate-400 block">Qualidade de Compressão (CRF):</label>
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="range"
+                      min="14" max="28" step="1"
+                      value={crf}
+                      onChange={(e) => setCrf(Number(e.target.value))}
+                      className="w-full accent-sky-500 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <span className="bg-slate-950 border border-slate-800 text-sky-400 font-mono px-3 py-1.5 rounded-lg text-sm w-16 text-center">
+                      {crf}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-[10px] text-slate-500 px-1">
+                    <span>Maior Tamanho (14)</span>
+                    <span>Padrão (18)</span>
+                    <span>Menor Tamanho (28)</span>
+                  </div>
                 </div>
-                <div className="flex justify-between text-[10px] text-slate-500 px-1">
-                  <span>Maior Tamanho (14)</span>
-                  <span>Padrão (18)</span>
-                  <span>Menor Tamanho (28)</span>
-                </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          </TabTransition>
         </TabsContent>
       
         <TabsContent value="ai" className="space-y-5">
+          <TabTransition>
           {/* Diagnóstico Honesto de Hardware */}
           <div className="bg-slate-950/70 p-4 border border-slate-800 rounded-xl space-y-3">
             <div className="flex items-center justify-between gap-3">
@@ -392,8 +425,9 @@ export const RestorationSettings: React.FC = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="realesrgan-x4plus">Real-ESRGAN (Definição & Nitidez Digital)</SelectItem>
-                        <SelectItem value="models-se">Real-CUGAN (Preservação de Grão Analógico Natural)</SelectItem>
+                        {AI_UPSCALER_OPTIONS.map(opt => (
+                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -430,17 +464,17 @@ export const RestorationSettings: React.FC = () => {
                   </div>
                   <input
                     type="range"
-                    min="0.1"
-                    max="0.9"
-                    step="0.05"
+                    min={FACE_FIDELITY_CONFIG.MIN}
+                    max={FACE_FIDELITY_CONFIG.MAX}
+                    step={FACE_FIDELITY_CONFIG.STEP}
                     value={aiFaceFidelity}
                     onChange={(e) => setAiFaceFidelity(Number(e.target.value))}
                     className="w-full accent-indigo-500 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer"
                   />
                   <div className="flex justify-between text-[10px] text-slate-500">
-                    <span>Mais Nitidez (0.1)</span>
-                    <span>Recomendado (0.7)</span>
-                    <span>Mais Fidelidade Original (0.9)</span>
+                    <span>Mais Nitidez ({FACE_FIDELITY_CONFIG.MIN})</span>
+                    <span>Recomendado ({FACE_FIDELITY_CONFIG.DEFAULT})</span>
+                    <span>Mais Fidelidade Original ({FACE_FIDELITY_CONFIG.MAX})</span>
                   </div>
 
                   {hardwareProfile && hardwareProfile.tier <= 2 && (
@@ -472,9 +506,9 @@ export const RestorationSettings: React.FC = () => {
                     <SelectValue placeholder="Tiny (Rápido)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="tiny">Tiny (Rápido, ~40MB RAM)</SelectItem>
-                    <SelectItem value="base">Base (Equilibrado, ~75MB RAM)</SelectItem>
-                    <SelectItem value="small">Small (Preciso, ~250MB RAM)</SelectItem>
+                    {WHISPER_MODEL_OPTIONS.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -489,10 +523,13 @@ export const RestorationSettings: React.FC = () => {
               </div>
             </div>
           </div>
+          </TabTransition>
         </TabsContent>
 
         <TabsContent value="storage" className="space-y-4">
-          <StorageSettings />
+          <TabTransition>
+            <StorageSettings />
+          </TabTransition>
         </TabsContent>
       </Tabs>
     </div>

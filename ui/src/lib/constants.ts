@@ -62,3 +62,22 @@ export const RESOLUTION_OPTIONS: { value: ResolutionMode; label: string }[] = [
   { value: 'original', label: 'Original (480p / 576p)' },
   { value: '1080p', label: 'Upscale 1080p (YouTube Standard)' },
 ];
+
+export const AI_UPSCALER_OPTIONS: { value: string; label: string }[] = [
+  { value: 'realesrgan-x4plus', label: 'Real-ESRGAN (Definição & Nitidez Digital)' },
+  { value: 'models-se', label: 'Real-CUGAN (Preservação de Grão Analógico Natural)' },
+];
+
+export const WHISPER_MODEL_OPTIONS: { value: string; label: string }[] = [
+  { value: 'tiny', label: 'Tiny (Rápido, ~40MB RAM)' },
+  { value: 'base', label: 'Base (Equilibrado, ~75MB RAM)' },
+  { value: 'small', label: 'Small (Preciso, ~250MB RAM)' },
+];
+
+export const FACE_FIDELITY_CONFIG = {
+  MIN: 0.1,
+  MAX: 0.9,
+  STEP: 0.05,
+  DEFAULT: 0.7,
+} as const;
+

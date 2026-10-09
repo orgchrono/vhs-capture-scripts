@@ -19,6 +19,7 @@ import {
   ResizablePanel,
   ResizableHandle,
 } from './components/ui/resizable'
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
 
 const StudioMain: React.FC = () => {
   const { t } = useTranslation()
@@ -44,6 +45,7 @@ const StudioMain: React.FC = () => {
   } = useStudioStore()
 
   const [isDragOver, setIsDragOver] = useState(false)
+  const shouldReduceMotion = useReducedMotion()
 
   const onStart = () => {
     if (!handleStartRestoration()) {
@@ -107,13 +109,21 @@ const StudioMain: React.FC = () => {
       />
 
       {/* OS File Drag and Drop Visual Feedback Overlay */}
-      {isDragOver && (
-        <div className="absolute inset-0 z-50 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center border-4 border-dashed border-sky-400/80 m-4 rounded-2xl pointer-events-none animate-in fade-in duration-200">
-          <UploadCloud className="w-16 h-16 text-sky-400 animate-bounce mb-4" />
-          <h3 className="text-2xl font-bold text-white mb-2">Solte sua Fita de Vídeo Aqui</h3>
-          <p className="text-sm text-slate-300 font-mono">Formatos suportados: .mkv, .mp4, .avi, .mov (Ingestão Automática)</p>
-        </div>
-      )}
+      <AnimatePresence>
+        {isDragOver && (
+          <motion.div
+            initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+            className="absolute inset-0 z-50 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center border-4 border-dashed border-sky-400/80 m-4 rounded-2xl pointer-events-none"
+          >
+            <UploadCloud className="w-16 h-16 text-sky-400 animate-bounce mb-4" />
+            <h3 className="text-2xl font-bold text-white mb-2">Solte sua Fita de Vídeo Aqui</h3>
+            <p className="text-sm text-slate-300 font-mono">Formatos suportados: .mkv, .mp4, .avi, .mov (Ingestão Automática)</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ADAPTIVE MODULAR WORKSPACE (VS Code Style) */}
       <main className="flex-1 flex overflow-hidden">

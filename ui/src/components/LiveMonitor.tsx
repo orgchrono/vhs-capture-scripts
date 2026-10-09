@@ -1,43 +1,70 @@
 import React from 'react';
 import { Video, AlertTriangle, Activity } from 'lucide-react';
 import { useLiveMonitor } from '../viewmodels/useLiveMonitor';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 
 export const LiveMonitor: React.FC<{ health?: any }> = ({ health }) => {
   const { videoRef, isActive, error, obsStats, isCapturing } = useLiveMonitor();
+  const shouldReduceMotion = useReducedMotion();
+
+  const badgeMotion = {
+    initial: shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.9, y: -4 },
+    animate: { opacity: 1, scale: 1, y: 0 },
+    exit: shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.9, y: -4 },
+    transition: { duration: 0.15 },
+  };
 
   return (
     <div className="relative w-full h-full bg-black flex flex-col items-center justify-center overflow-hidden">
       
       {/* Top Left Badge */}
-      <div className="absolute top-3 left-3 z-10 flex gap-2">
+      <div className="absolute top-3 left-3 z-10 flex gap-2 items-center">
         <span className="bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-mono text-white/70 border border-white/10 shadow-sm flex items-center gap-1.5">
           <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-slate-500'}`}></span>
           LIVE PREVIEW (NATIVO)
         </span>
-        {(isCapturing || obsStats?.recording) && (
-          <span className="bg-red-600/90 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-white border border-red-500/50 shadow-sm flex items-center gap-1.5 animate-pulse tracking-wider">
-            <span className="w-1.5 h-1.5 bg-white rounded-full"></span>
-            {obsStats?.timecode ? `REC ${obsStats.timecode}` : 'REC'}
-          </span>
-        )}
-        {obsStats?.connected && obsStats?.bitrate_kbps !== undefined && obsStats.bitrate_kbps > 0 && (
-          <span className="bg-blue-950/80 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-mono font-semibold text-blue-300 border border-blue-500/40 shadow-sm flex items-center gap-1.5">
-            <Activity className="w-3 h-3 text-blue-400 animate-pulse" />
-            {obsStats.bitrate_kbps >= 1000
-              ? `${(obsStats.bitrate_kbps / 1000).toFixed(1)} Mbps`
-              : `${obsStats.bitrate_kbps} kbps`}
-          </span>
-        )}
-        {obsStats?.connected && obsStats?.fps !== undefined && obsStats.fps > 0 && (
-          <span className="bg-slate-900/80 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-mono text-slate-300 border border-white/10 shadow-sm">
-            {obsStats.fps} FPS
-          </span>
-        )}
-        {health?.dropped_frames > 0 && (
-          <span className="bg-amber-600/90 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-white border border-amber-500/50 shadow-sm flex items-center gap-1.5 animate-pulse tracking-wider">
-            <AlertTriangle className="w-3 h-3 text-white" /> FITA MASTIGADA! ({health.dropped_frames} DROPS)
-          </span>
-        )}
+        <AnimatePresence>
+          {(isCapturing || obsStats?.recording) && (
+            <motion.span
+              key="badge-rec"
+              {...badgeMotion}
+              className="bg-red-600/90 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-white border border-red-500/50 shadow-sm flex items-center gap-1.5 animate-pulse tracking-wider"
+            >
+              <span className="w-1.5 h-1.5 bg-white rounded-full"></span>
+              {obsStats?.timecode ? `REC ${obsStats.timecode}` : 'REC'}
+            </motion.span>
+          )}
+          {obsStats?.connected && obsStats?.bitrate_kbps !== undefined && obsStats.bitrate_kbps > 0 && (
+            <motion.span
+              key="badge-bitrate"
+              {...badgeMotion}
+              className="bg-blue-950/80 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-mono font-semibold text-blue-300 border border-blue-500/40 shadow-sm flex items-center gap-1.5"
+            >
+              <Activity className="w-3 h-3 text-blue-400 animate-pulse" />
+              {obsStats.bitrate_kbps >= 1000
+                ? `${(obsStats.bitrate_kbps / 1000).toFixed(1)} Mbps`
+                : `${obsStats.bitrate_kbps} kbps`}
+            </motion.span>
+          )}
+          {obsStats?.connected && obsStats?.fps !== undefined && obsStats.fps > 0 && (
+            <motion.span
+              key="badge-fps"
+              {...badgeMotion}
+              className="bg-slate-900/80 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-mono text-slate-300 border border-white/10 shadow-sm"
+            >
+              {obsStats.fps} FPS
+            </motion.span>
+          )}
+          {health?.dropped_frames > 0 && (
+            <motion.span
+              key="badge-drops"
+              {...badgeMotion}
+              className="bg-amber-600/90 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-white border border-amber-500/50 shadow-sm flex items-center gap-1.5 animate-pulse tracking-wider"
+            >
+              <AlertTriangle className="w-3 h-3 text-white" /> FITA MASTIGADA! ({health.dropped_frames} DROPS)
+            </motion.span>
+          )}
+        </AnimatePresence>
       </div>
       
       {/* Fallback / Error State */}
