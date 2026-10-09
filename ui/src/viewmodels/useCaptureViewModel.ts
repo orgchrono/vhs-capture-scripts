@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { useStudioStore } from '../store/useStudioStore';
 import {
   useStartObsCaptureMutation,
@@ -16,6 +18,7 @@ export interface UseCaptureViewModelResult {
  * and user notifications outside the presentation view.
  */
 export function useCaptureViewModel(): UseCaptureViewModelResult {
+  const { t } = useTranslation();
   const { isCapturing, setIsCapturing, addLog, setSelectedFile } = useStudioStore();
   const [startCaptureTrigger] = useStartObsCaptureMutation();
   const [stopCaptureTrigger] = useStopObsCaptureMutation();
@@ -27,11 +30,18 @@ export function useCaptureViewModel(): UseCaptureViewModelResult {
       if (res.status === 'started' || res.status === 'ok') {
         setIsCapturing(true);
         addLog('[OBS] Gravação iniciada com sucesso.');
+        toast.success(t('toast.capture_started_title'), {
+          description: t('toast.capture_started_desc'),
+        });
       } else {
-        addLog(`[OBS AVISO] ${res.message || 'Falha ao iniciar gravação'}`);
+        const msg = res.message || 'Falha ao iniciar gravação';
+        addLog(`[OBS AVISO] ${msg}`);
+        toast.warning(msg);
       }
     } catch (e: any) {
-      addLog(`[OBS ERRO] ${e.message || 'Falha de comunicação com OBS'}`);
+      const errMsg = e.message || 'Falha de comunicação com OBS';
+      addLog(`[OBS ERRO] ${errMsg}`);
+      toast.error(errMsg);
     }
   };
 
@@ -41,13 +51,18 @@ export function useCaptureViewModel(): UseCaptureViewModelResult {
       const res = await stopCaptureTrigger().unwrap();
       setIsCapturing(false);
       addLog('[OBS] Gravação finalizada.');
+      toast.info(t('toast.capture_stopped_title'), {
+        description: t('toast.capture_stopped_desc'),
+      });
       if (res.path) {
         setSelectedFile(res.path);
         addLog(`[OBS] Arquivo capturado pronto para restauração: ${res.path}`);
       }
     } catch (e: any) {
       setIsCapturing(false);
-      addLog(`[OBS ERRO] ${e.message || 'Falha ao parar gravação'}`);
+      const errMsg = e.message || 'Falha ao parar gravação';
+      addLog(`[OBS ERRO] ${errMsg}`);
+      toast.error(errMsg);
     }
   };
 

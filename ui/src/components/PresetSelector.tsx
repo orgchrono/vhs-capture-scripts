@@ -1,11 +1,14 @@
 import { Button } from "./ui/button";
 import React from 'react'
 import { Award, Zap, ShieldCheck, Wand2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import { useStudioStore } from '../store/useStudioStore'
 import type { RestorationPreset } from '../types'
 import { cn } from '../lib/utils'
 
 export const PresetSelector: React.FC = () => {
+  const { t } = useTranslation()
   const { preset, applyPreset } = useStudioStore()
 
   const presets: { id: RestorationPreset; name: string; desc: string; icon: any; badge?: string }[] = [
@@ -45,7 +48,10 @@ export const PresetSelector: React.FC = () => {
         return (
           <Button variant="outline"
             key={p.id}
-            onClick={() => applyPreset(p.id)}
+            onClick={() => {
+              applyPreset(p.id)
+              toast.info(t('toast.preset_applied', { name: p.name }))
+            }}
             className={cn(
               'relative text-left p-3.5 rounded-xl border transition-all duration-200 cursor-pointer overflow-hidden flex flex-col justify-between group',
               isActive

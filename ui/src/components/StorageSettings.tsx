@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from "react-i18next";
 import { HardDrive, Cloud, Database, Box, Server, Globe, CheckCircle2, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { useStorageViewModel } from "../viewmodels/useStorageViewModel";
@@ -19,11 +20,15 @@ export function StorageSettings() {
     setSaveFeedback(null);
     vm.handleSave(
       () => {
-        setSaveFeedback({ type: 'success', message: t("Configuração salva com sucesso!") });
+        const msg = t("toast.storage_saved", { defaultValue: "Configuração salva com sucesso!" });
+        setSaveFeedback({ type: 'success', message: msg });
+        toast.success(msg);
         setTimeout(() => setSaveFeedback(null), 4000);
       },
       (err) => {
-        setSaveFeedback({ type: 'error', message: String(err) });
+        const errMsg = String(err);
+        setSaveFeedback({ type: 'error', message: errMsg });
+        toast.error(errMsg);
       }
     );
   };

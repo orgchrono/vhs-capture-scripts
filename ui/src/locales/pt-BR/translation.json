@@ -42,5 +42,20 @@
   "Google Client ID": "Google Client ID",
   "Google Client Secret": "Google Client Secret",
   "Dropbox App Key": "App Key do Dropbox",
-  "Dropbox App Secret": "App Secret do Dropbox"
+  "Dropbox App Secret": "App Secret do Dropbox",
+  "toast": {
+    "file_loaded_title": "Fita Carregada",
+    "file_loaded_desc": "Pronta para masterização e restauração.",
+    "capture_started_title": "Gravação OBS Iniciada",
+    "capture_started_desc": "Gravando sem perdas via DeckLink em media/raw/",
+    "capture_stopped_title": "Gravação OBS Finalizada",
+    "capture_stopped_desc": "Arquivo salvo com sucesso na biblioteca.",
+    "restoration_started_title": "Restauração Iniciada",
+    "restoration_started_desc": "Executando DAG de restauração multithread.",
+    "preset_applied": "Preset ativado: {{name}}",
+    "storage_saved": "Configuração de armazenamento salva com sucesso!",
+    "subtitles_started": "Transcrição e legendagem Whisper iniciada offline.",
+    "no_file_title": "Nenhuma Fita Selecionada",
+    "no_file_desc": "Selecione uma fita de vídeo capturada antes de iniciar a restauração."
+  }
 }

@@ -12,6 +12,8 @@ import { useTranslation } from 'react-i18next'
 import { Button } from './components/ui/button'
 import { useStudioViewModel } from './viewmodels/useStudioViewModel'
 import { useStudioStore } from './store/useStudioStore'
+import { toast } from 'sonner'
+import { Toaster } from './components/ui/sonner'
 import {
   ResizablePanelGroup,
   ResizablePanel,
@@ -45,7 +47,13 @@ const StudioMain: React.FC = () => {
 
   const onStart = () => {
     if (!handleStartRestoration()) {
-      alert(t('capture.no_file'))
+      toast.error(t('toast.no_file_title'), {
+        description: t('toast.no_file_desc'),
+      })
+    } else {
+      toast.success(t('toast.restoration_started_title'), {
+        description: t('toast.restoration_started_desc'),
+      })
     }
   }
 
@@ -73,6 +81,9 @@ const StudioMain: React.FC = () => {
       const filePath = (file as any).path || file.name
       setSelectedFile(filePath)
       addLog(`[INGESTÃO DRAG-AND-DROP] Fita carregada com sucesso: ${filePath}`)
+      toast.success(t('toast.file_loaded_title'), {
+        description: `${file.name} - ${t('toast.file_loaded_desc')}`,
+      })
     }
   }
 
@@ -221,6 +232,7 @@ export default function App() {
     <>
       <PrivacyModal />
       <StudioMain />
+      <Toaster />
     </>
   )
 }

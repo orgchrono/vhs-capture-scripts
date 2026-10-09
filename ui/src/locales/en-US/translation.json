@@ -42,5 +42,20 @@
   "Google Client ID": "Google Client ID",
   "Google Client Secret": "Google Client Secret",
   "Dropbox App Key": "Dropbox App Key",
-  "Dropbox App Secret": "Dropbox App Secret"
+  "Dropbox App Secret": "Dropbox App Secret",
+  "toast": {
+    "file_loaded_title": "Tape Loaded",
+    "file_loaded_desc": "Ready for mastering and restoration.",
+    "capture_started_title": "OBS Capture Started",
+    "capture_started_desc": "Recording lossless via DeckLink into media/raw/",
+    "capture_stopped_title": "OBS Capture Stopped",
+    "capture_stopped_desc": "File saved successfully into library.",
+    "restoration_started_title": "Restoration Started",
+    "restoration_started_desc": "Running multithreaded restoration DAG.",
+    "preset_applied": "Preset applied: {{name}}",
+    "storage_saved": "Storage configuration saved successfully!",
+    "subtitles_started": "Whisper offline speech transcription started.",
+    "no_file_title": "No Tape Selected",
+    "no_file_desc": "Please select a captured video tape before starting restoration."
+  }
 }
