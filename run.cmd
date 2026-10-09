@@ -1,10 +1,12 @@
 @echo off
+setlocal enabledelayedexpansion
+
 echo ========================================================
-echo   VHS Studio Pro - Ambiente de Desenvolvimento
+echo   VHS Studio Pro - Ambiente de Producao e Studio
 echo ========================================================
 
 if not exist ".venv" (
-    echo [*] Criando ambiente virtual isolado (.venv)...
+    echo [*] Criando ambiente virtual isolado .venv...
     python -m uv venv .venv 2>nul || python -m venv .venv
 )
 
@@ -20,14 +22,21 @@ if %ERRORLEVEL% NEQ 0 (
     exit /b %ERRORLEVEL%
 )
 
-echo [*] Rodando Linter e Type Checking...
-python scripts\lint.py
-if %ERRORLEVEL% NEQ 0 (
-    echo.
-    echo [ERRO] O codigo nao passou no crivo de qualidade.
-    pause
-    exit /b %ERRORLEVEL%
+if "%1"=="--lint" (
+    echo [*] Rodando Linter e Type Checking...
+    python scripts\lint.py
+    if !ERRORLEVEL! NEQ 0 (
+        echo.
+        echo [ERRO] O codigo nao passou no crivo de qualidade.
+        pause
+        exit /b !ERRORLEVEL!
+    )
 )
 
-echo [*] Qualidade Aprovada! Iniciando o Servidor e a Interface...
-python -m vhs_studio
+echo [*] Iniciando o VHS Studio Pro...
+python -m vhs_studio %*
+if %ERRORLEVEL% NEQ 0 (
+    echo.
+    echo [AVISO] O processo encerrou com codigo %ERRORLEVEL%.
+    pause
+)

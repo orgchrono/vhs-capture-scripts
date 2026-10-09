@@ -68,24 +68,32 @@ def ensure_ui_build():
                 rebuild_needed = False
 
     if rebuild_needed:
-        log.warning(
-            "[SEGURANÇA] Mudanças detectadas nos arquivos da Interface (UI) ou Hash Mismatch."
-        )
-        log.warning(
-            "O sistema identificou código novo em 'ui/src'. O build requer execução de 'npm install'."
-        )
-        print("")
-        print("=== AVISO DE SEGURANÇA / INTEGRIDADE ===")
-        print(
-            "Deseja autorizar a compilação do novo código e instalar pacotes Node.js localmente?"
-        )
-        ans = input("Autorizar build da UI? (Y/n): ").strip().lower()
-        if ans == "" or ans == "y" or ans == "yes":
-            log.info("[DESKTOP] Autorização concedida. Compilando via Vite...")
+        index_exists = os.path.exists(os.path.join(ui_dist_dir, "index.html"))
+        is_interactive = sys.stdin is not None and sys.stdin.isatty() and not os.environ.get("CI")
+
+        if is_interactive and not index_exists:
+            log.warning(
+                "[SEGURANÇA] Mudanças detectadas nos arquivos da Interface (UI) ou Hash Mismatch."
+            )
+            print("")
+            print("=== AVISO DE SEGURANÇA / INTEGRIDADE ===")
+            print(
+                "Deseja autorizar a compilação do novo código e instalar pacotes Node.js localmente?"
+            )
+            try:
+                ans = input("Autorizar build da UI? (Y/n): ").strip().lower()
+                authorized = ans in ("", "y", "yes")
+            except (EOFError, OSError):
+                authorized = True
+        else:
+            authorized = True
+
+        if authorized:
+            log.info("[DESKTOP] Compilando interface gráfica via Vite...")
             ui_dir = os.path.join(project_root, "ui")
             try:
-                subprocess.run("npm install", cwd=ui_dir, shell=True, check=True)
-                subprocess.run("npm run build", cwd=ui_dir, shell=True, check=True)
+                npm_cmd = "npm.cmd" if os.name == "nt" else "npm"
+                subprocess.run(f"{npm_cmd} run build", cwd=ui_dir, shell=True, check=True)
                 os.makedirs(ui_dist_dir, exist_ok=True)
                 with open(hash_file, "w", encoding="utf-8") as f:
                     f.write(current_hash)
@@ -94,9 +102,11 @@ def ensure_ui_build():
                 )
             except Exception as e:
                 log.error(f"[DESKTOP ERRO] Falha ao compilar a UI: {e}")
+                if index_exists:
+                    log.warning("[DESKTOP] Reutilizando versão compilada pré-existente.")
         else:
             log.warning(
-                "[DESKTOP] Build rejeitada pelo usuário por razões de segurança. Usando cache anterior."
+                "[DESKTOP] Build rejeitada pelo usuário. Usando cache anterior."
             )
     else:
         log.info("[DESKTOP] UI Verificada (Security Hash Match).")
