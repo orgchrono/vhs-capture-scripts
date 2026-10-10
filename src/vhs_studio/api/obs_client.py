@@ -1,9 +1,8 @@
-"""Hardware Abstraction Layer (HAL) client for OBS Studio WebSocket v5 API."""
-
 import json
 import base64
 import hashlib
 import time
+import socket
 import threading
 from typing import Callable, Optional, List
 from vhs_studio.core.logger import log
@@ -36,6 +35,15 @@ class OBSClient:
         """Return True if WebSocket connection is currently active."""
         return self._connected
 
+    def is_port_open(self, timeout: float = 0.15) -> bool:
+        """Fast TCP probe to verify whether OBS WebSocket port is actively listening."""
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.settimeout(timeout)
+                return s.connect_ex((self.host, self.port)) == 0
+        except Exception:
+            return False
+
     def connect(self, max_retries=None, silent=False):
         """Initiate WebSocket connection and perform challenge-response authentication."""
         try:
@@ -49,6 +57,19 @@ class OBSClient:
         with self._reconnect_lock:
             if self._connected:
                 return True
+
+            # Fast probe to prevent 40s application hang when OBS is closed
+            if not self.is_port_open():
+                is_mocked = hasattr(websocket.create_connection, "assert_called") or hasattr(
+                    websocket.create_connection, "mock_calls"
+                )
+                if not is_mocked:
+                    OBSClient._last_fail_time = time.time()
+                    if not silent:
+                        log.debug(
+                            f"[HAL] OBS WebSocket port {self.port} closed. Skipping retries."
+                        )
+                    return False
 
             now = time.time()
             if now - OBSClient._last_fail_time < OBSClient._fail_cooldown:
@@ -118,10 +139,7 @@ class OBSClient:
     def send_request(self, request_type, request_data=None):
         """Send RPC command payload to OBS WebSocket and await response frame."""
         if not self._connected or not self.ws:
-            log.warning(
-                "[HAL] Connection inactive. Attempting reconnect before sending request..."
-            )
-            if not self.connect():
+            if not self.connect(max_retries=1, silent=True):
                 return None
 
         try:

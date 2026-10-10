@@ -50,7 +50,7 @@ def test_api_action_invalid(client):
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "error"
-    assert data["message"] == "Unknown action."
+    assert data["message"] in ("Unknown action.", "Ação desconhecida solicitada.")
 
 
 def test_api_action_stop_process_none_running(client):
@@ -62,7 +62,7 @@ def test_api_action_stop_process_none_running(client):
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "error"
-    assert data["message"] == "No process currently running."
+    assert data["message"] in ("No process currently running.", "Nenhum processo em execução no momento.")
 
 
 def test_api_action_start_restore_invalid_file(client):
@@ -74,7 +74,7 @@ def test_api_action_start_restore_invalid_file(client):
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "error"
-    assert data["message"] == "Invalid or insecure file path."
+    assert data["message"] in ("Invalid or insecure file path.", "Caminho de arquivo inválido ou não seguro.")
 
 
 @patch("vhs_studio.api.server.OBSClient")
@@ -197,7 +197,7 @@ def test_api_security_path_traversal_run(client):
             headers={"X-Session-Token": SESSION_TOKEN},
         )
         assert response.status_code == 400
-        assert response.json()["message"] == "Invalid or insecure file path."
+        assert response.json()["message"] in ("Invalid or insecure file path.", "Caminho de arquivo inválido ou não seguro.")
 
 
 def test_api_security_path_traversal_queue_enqueue(client):
@@ -209,7 +209,7 @@ def test_api_security_path_traversal_queue_enqueue(client):
             headers={"X-Session-Token": SESSION_TOKEN},
         )
         assert response.status_code == 400
-        assert response.json()["error"] == "Invalid or insecure file path."
+        assert response.json()["error"] in ("Invalid or insecure file path.", "Caminho de arquivo inválido ou não seguro.")
 
 
 def test_api_security_generate_subtitles_validation(client):
@@ -222,7 +222,7 @@ def test_api_security_generate_subtitles_validation(client):
     )
     assert res.status_code == 200
     assert res.json()["status"] == "error"
-    assert res.json()["message"] == "Invalid or insecure file path."
+    assert res.json()["message"] in ("Invalid or insecure file path.", "Caminho de arquivo inválido ou não seguro.")
 
     # Valid execution
     with patch("vhs_studio.api.server.pm.start_process") as mock_start:

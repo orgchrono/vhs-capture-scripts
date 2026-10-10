@@ -237,10 +237,14 @@ export const studioSlice = createSlice({
       state.isCapturing = action.payload;
     },
     addLog: (state, action: PayloadAction<string>) => {
+      const line = action.payload;
+      if (state.logs.length > 0 && state.logs[state.logs.length - 1] === line) {
+        return;
+      }
       if (state.logs.length > 500) {
-        state.logs = [...state.logs.slice(-500), action.payload];
+        state.logs = [...state.logs.slice(-500), line];
       } else {
-        state.logs.push(action.payload);
+        state.logs.push(line);
       }
     },
     clearLogs: (state) => {

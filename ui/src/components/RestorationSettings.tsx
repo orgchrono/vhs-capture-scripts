@@ -30,7 +30,16 @@ import {
 } from '../lib/constants'
 import { useRestorationViewModel } from '../viewmodels/useRestorationViewModel'
 import { StorageSettings } from './StorageSettings'
+import { PresetSelector } from './PresetSelector'
 import { motion, useReducedMotion } from 'motion/react'
+
+const PRESET_LABELS: Record<string, string> = {
+  gold: 'Padrão Broadcast',
+  speed: 'Ultra Rápido GPU',
+  tbc_hold: 'TBC Frame-Hold',
+  ai_master: 'AI Master Neural',
+  custom: 'Personalizado',
+}
 
 const TabTransition: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const shouldReduceMotion = useReducedMotion()
@@ -107,13 +116,17 @@ export const RestorationSettings: React.FC = () => {
     search === '' || keywords.some(k => k.toLowerCase().includes(search.toLowerCase()))
 
   return (
-    <div className="bg-slate-900/60 border border-white/10 rounded-xl p-3.5 mb-2 shadow-xl">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3">
-        <div className="flex items-center gap-2">
+    <div className="bg-slate-900/60 border border-white/10 rounded-xl p-3.5 shadow-xl flex-1 min-h-0 flex flex-col h-full">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3 shrink-0">
+        <div className="flex items-center gap-2 flex-wrap">
           <Sliders className="w-4 h-4 text-sky-400 shrink-0" />
           <h3 className="text-xs font-bold text-white uppercase tracking-wider">
             Configurações Técnicas de Restauração
           </h3>
+          <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-mono font-medium text-sky-300 bg-sky-950/80 border border-sky-500/30 px-2 py-0.5 rounded-full">
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse"></span>
+            {PRESET_LABELS[store.preset] || 'Personalizado'}
+          </span>
         </div>
         <div className="relative w-full sm:w-60">
           <Search className="absolute left-2.5 top-2 h-4 w-4 text-slate-400" />
@@ -126,17 +139,33 @@ export const RestorationSettings: React.FC = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="video" className="w-full" aria-label="Settings Tabs">
-        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 gap-1 mb-3 bg-slate-950/80 p-1 border border-white/5 rounded-lg">
+      <Tabs defaultValue="video" className="w-full flex-1 min-h-0 flex flex-col" aria-label="Settings Tabs">
+        <TabsList className="grid w-full grid-cols-4 sm:grid-cols-7 gap-1 mb-3 bg-slate-950/80 p-1 border border-white/5 rounded-lg shrink-0">
+          <TabsTrigger value="presets" className="flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium"><Sparkles className="w-3.5 h-3.5 text-amber-400"/>Pipelines</TabsTrigger>
           <TabsTrigger value="video" className="flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium"><Video className="w-3.5 h-3.5 text-sky-400"/>Vídeo</TabsTrigger>
           <TabsTrigger value="audio" className="flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium"><Music className="w-3.5 h-3.5 text-cyan-400"/>Áudio</TabsTrigger>
           <TabsTrigger value="filters" className="flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium"><ImageIcon className="w-3.5 h-3.5 text-amber-400"/>Filtros</TabsTrigger>
           <TabsTrigger value="advanced" className="flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium"><Settings2 className="w-3.5 h-3.5 text-slate-300"/>Avançado</TabsTrigger>
-          <TabsTrigger value="ai" className="flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium"><Sparkles className="w-3.5 h-3.5 text-indigo-400"/>IA</TabsTrigger>
+          <TabsTrigger value="ai" className="flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium"><Cpu className="w-3.5 h-3.5 text-indigo-400"/>IA</TabsTrigger>
           <TabsTrigger value="storage" className="flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium"><Cloud className="w-3.5 h-3.5 text-emerald-400"/>Nuvem</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="video" className="space-y-4">
+        <TabsContent value="presets" className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 space-y-3">
+          <TabTransition>
+            <div className="mb-2">
+              <h4 className="text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                Pipelines Prontas de Restauração Analógica
+              </h4>
+              <p className="text-[11px] text-slate-400">
+                Selecione uma estratégia pronta ou customize os parâmetros avançados nas outras abas.
+              </p>
+            </div>
+            <PresetSelector />
+          </TabTransition>
+        </TabsContent>
+
+        <TabsContent value="video" className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 space-y-4">
           <TabTransition>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5">
               {matches(['desentrelaçamento', 'deinterlacer', 'bwdif', 'qtgmc', 'video']) && (
@@ -171,7 +200,7 @@ export const RestorationSettings: React.FC = () => {
           </TabTransition>
         </TabsContent>
 
-        <TabsContent value="audio" className="space-y-4">
+        <TabsContent value="audio" className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 space-y-4">
           <TabTransition>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5">
               {matches(['áudio', 'audio', 'stereo', 'mono']) && (
@@ -203,7 +232,7 @@ export const RestorationSettings: React.FC = () => {
           </TabTransition>
         </TabsContent>
 
-        <TabsContent value="filters" className="space-y-4">
+        <TabsContent value="filters" className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 space-y-4">
           <TabTransition>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5">
               {matches(['chroma', 'cores', 'filtros']) && (
@@ -249,7 +278,7 @@ export const RestorationSettings: React.FC = () => {
           </TabTransition>
         </TabsContent>
 
-        <TabsContent value="advanced" className="space-y-4">
+        <TabsContent value="advanced" className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 space-y-4">
           <TabTransition>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5">
               {matches(['crf', 'qualidade', 'avançado', 'bitrate']) && (
@@ -278,7 +307,7 @@ export const RestorationSettings: React.FC = () => {
           </TabTransition>
         </TabsContent>
       
-        <TabsContent value="ai" className="space-y-5">
+        <TabsContent value="ai" className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 space-y-5">
           <TabTransition>
           {/* Diagnóstico Honesto de Hardware */}
           <div className="bg-slate-950/70 p-4 border border-slate-800 rounded-xl space-y-3">
@@ -536,7 +565,7 @@ export const RestorationSettings: React.FC = () => {
           </TabTransition>
         </TabsContent>
 
-        <TabsContent value="storage" className="space-y-4">
+        <TabsContent value="storage" className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 space-y-4">
           <TabTransition>
             <StorageSettings />
           </TabTransition>

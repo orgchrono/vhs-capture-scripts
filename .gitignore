@@ -44,6 +44,8 @@ media/work/*
 !media/work/.gitkeep
 media/output/*
 !media/output/.gitkeep
+media/restored/
+test-results/
 
 # Tools
 tools/obs/

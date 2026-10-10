@@ -64,6 +64,8 @@ def main():
         vhs_studio.pipeline.main(unknown)
     else:
         parser.print_help()
+        return 1
+    return 0
 
 
 if __name__ == "__main__":

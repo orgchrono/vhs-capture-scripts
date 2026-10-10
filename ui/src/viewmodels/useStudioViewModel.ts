@@ -44,6 +44,7 @@ export function useStudioViewModel() {
   }, [status?.health?.dropped_frames]);
 
   const { isRestoring, setIsRestoring, addLog } = store;
+  const lastPolledIndexRef = useRef(0);
 
   // Real-time Server-Sent Events (SSE) for low-latency live log streaming
   useEffect(() => {
@@ -60,6 +61,7 @@ export function useStudioViewModel() {
         }
         if (data.active === false && isRestoring) {
           setIsRestoring(false);
+          eventSource.close();
           const hasFailed = data.success === false || (typeof data.exit_code === 'number' && data.exit_code !== 0);
           if (hasFailed) {
             a11yAudio.playError();
@@ -88,7 +90,11 @@ export function useStudioViewModel() {
 
   useEffect(() => {
     if (typeof EventSource === 'undefined' && logsData?.logs?.length) {
-      logsData.logs.forEach((l) => addLog(l));
+      const newLogs = logsData.logs.slice(lastPolledIndexRef.current);
+      if (newLogs.length > 0) {
+        newLogs.forEach((l) => addLog(l));
+        lastPolledIndexRef.current = logsData.logs.length;
+      }
       if (!logsData.active && isRestoring) {
         setIsRestoring(false);
         const hasFailed = logsData.success === false || (typeof logsData.exit_code === 'number' && logsData.exit_code !== 0);
@@ -108,6 +114,7 @@ export function useStudioViewModel() {
       return false;
     }
 
+    lastPolledIndexRef.current = 0;
     addLog(`[RESTAURAÇÃO] Preparando restauração do arquivo: ${store.selectedFile}`);
     try {
       const data = await startRestorationTrigger({
@@ -144,6 +151,7 @@ export function useStudioViewModel() {
   };
 
   const handleInstallObs = async () => {
+    lastPolledIndexRef.current = 0;
     setIsInstallingObs(true);
     addLog('[OBS] Disparando instalador automatizado do OBS Portable...');
     try {
@@ -158,6 +166,7 @@ export function useStudioViewModel() {
   };
 
   const handleInstallQtgmc = async () => {
+    lastPolledIndexRef.current = 0;
     setIsInstallingQtgmc(true);
     addLog('[QTGMC] Disparando instalador automatizado do VapourSynth + QTGMC...');
     try {

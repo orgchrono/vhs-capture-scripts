@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Cpu, Film, Sparkles, Wrench, Globe, Eye, Video, Type, PanelLeft, PanelBottom, ShieldCheck } from 'lucide-react'
+import { Cpu, Film, Sparkles, Wrench, Globe, Eye, Video, Type, PanelLeft, PanelBottom, ShieldCheck, CheckCircle2 } from 'lucide-react'
 import { Button } from './ui/button'
 import type { SystemStatus } from '../types'
 import { useTranslation } from 'react-i18next'
@@ -135,9 +135,9 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="hidden sm:flex items-center gap-2 bg-slate-900/90 border border-white/10 px-2.5 py-1 rounded-lg text-xs h-8">
           <Sparkles className="w-3.5 h-3.5 text-amber-400" />
           {status?.vapoursynth_available ? (
-            <span className="flex items-center gap-1.5 text-emerald-400 font-semibold text-[11px]">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-              QTGMC
+            <span className="flex items-center gap-1.5 text-emerald-400 font-semibold text-[11px] bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              QTGMC Instalado
             </span>
           ) : (
             <Button variant="outline" size="sm" onClick={onInstallQtgmc} disabled={isInstallingQtgmc} className="h-6 px-2 text-[10px] bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border-sky-500/40">
@@ -150,9 +150,9 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="hidden sm:flex items-center gap-2 bg-slate-900/90 border border-white/10 px-2.5 py-1 rounded-lg text-xs h-8">
           <Video className="w-3.5 h-3.5 text-indigo-400" />
           {status?.obs_connected ? (
-            <span className="flex items-center gap-1.5 text-emerald-400 font-semibold text-[11px]">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-              OBS
+            <span className="flex items-center gap-1.5 text-emerald-400 font-semibold text-[11px] bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              OBS Instalado
             </span>
           ) : (
             <Button variant="outline" size="sm" onClick={onInstallObs} disabled={isInstallingObs} className="h-6 px-2 text-[10px] bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border-indigo-500/40">

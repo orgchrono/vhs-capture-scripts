@@ -36,9 +36,10 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 );
 
 describe('RestorationSettings UX/UI & Layout Tests ("Feng Shui" & Coerência Visual)', () => {
-  it('renders all 6 studio control tabs with proper semantics and icons', () => {
+  it('renders all 7 studio control tabs with proper semantics and icons', () => {
     render(<RestorationSettings />, { wrapper });
 
+    expect(screen.getByRole('tab', { name: /Pipelines/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /Vídeo/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /Áudio/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /Filtros/i })).toBeInTheDocument();

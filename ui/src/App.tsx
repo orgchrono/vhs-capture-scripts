@@ -6,7 +6,6 @@ import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
 import {
   Header,
   CaptureBar,
-  PresetSelector,
   FileSelector,
   RestorationSettings,
   ConsoleViewer,
@@ -83,7 +82,8 @@ const StudioMain: React.FC<{ onOpenPrivacy?: () => void }> = ({ onOpenPrivacy })
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const file = e.dataTransfer.files[0]
       const electronFile = file as File & { path?: string }
-      const filePath = electronFile.path || file.name
+      const matched = status?.raw_files?.find((f) => f.name === file.name)
+      const filePath = (matched && typeof matched.path === 'string' ? matched.path : electronFile.path) || file.name
       setSelectedFile(filePath)
       addLog(`[INGESTÃO DRAG-AND-DROP] Fita carregada com sucesso: ${filePath}`)
       toast.success(t('toast.file_loaded_title'), {
@@ -181,10 +181,10 @@ const StudioMain: React.FC<{ onOpenPrivacy?: () => void }> = ({ onOpenPrivacy })
                 minSize="300px"
                 className="overflow-y-auto custom-scrollbar p-3.5 lg:p-4.5 bg-gradient-to-br from-[#060911] via-[#080d18] to-[#0a0f1d]"
               >
-                <div className="w-full h-full min-h-0 grid grid-cols-1 lg:grid-cols-[minmax(320px,1.05fr)_minmax(420px,1.35fr)] 2xl:grid-cols-[minmax(420px,1.15fr)_minmax(540px,1.45fr)] gap-4 lg:gap-5 items-start">
+                <div className="w-full h-full min-h-0 grid grid-cols-1 lg:grid-cols-[minmax(320px,1.05fr)_minmax(420px,1.35fr)] 2xl:grid-cols-[minmax(420px,1.15fr)_minmax(540px,1.45fr)] gap-4 lg:gap-5 items-stretch">
                   {/* Left Column: Video Monitor (Expansível) */}
-                  <div className="flex flex-col h-full min-h-[300px] lg:min-h-[360px]">
-                    <div className="flex items-center justify-between mb-2">
+                  <div className="flex flex-col h-full min-h-[320px] lg:min-h-[380px]">
+                    <div className="flex items-center justify-between mb-2 shrink-0">
                       <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                         Monitor de Sinal CRT
@@ -198,21 +198,20 @@ const StudioMain: React.FC<{ onOpenPrivacy?: () => void }> = ({ onOpenPrivacy })
                     </div>
                   </div>
 
-                  {/* Right Column: Engine Settings (Expansível) */}
-                  <div className="flex flex-col h-full min-h-0">
-                    <div className="mb-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <h2 className="text-sm font-bold text-white flex items-center gap-2 tracking-wide">
-                          <span className="bg-sky-500 w-1.5 h-4.5 rounded-full shadow-[0_0_8px_rgba(56,189,248,0.6)]"></span>
-                          Motor de Processamento
-                        </h2>
-                        <span className="text-[10px] font-mono text-sky-400/80 uppercase">
-                          PRESETS BROADCAST & NEURAIS
-                        </span>
-                      </div>
-                      <PresetSelector />
+                  {/* Right Column: Engine Settings (Nivelado perfeitamente com o Monitor CRT) */}
+                  <div className="flex flex-col h-full min-h-[320px] lg:min-h-[380px]">
+                    <div className="flex items-center justify-between mb-2 shrink-0">
+                      <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                        <span className="bg-sky-500 w-1.5 h-4.5 rounded-full shadow-[0_0_8px_rgba(56,189,248,0.6)]"></span>
+                        Motor de Processamento
+                      </h2>
+                      <span className="text-[10px] font-mono text-sky-400/80 bg-slate-900/80 px-2 py-0.5 rounded border border-white/5 uppercase">
+                        PRESETS & RESTAURAÇÃO
+                      </span>
                     </div>
-                    <RestorationSettings />
+                    <div className="flex-1 min-h-0 flex flex-col">
+                      <RestorationSettings />
+                    </div>
                   </div>
                 </div>
               </ResizablePanel>

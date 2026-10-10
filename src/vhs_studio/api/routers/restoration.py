@@ -1,5 +1,4 @@
-"""Restoration router orchestrating pipeline triggers and studio actions."""
-
+import os
 import json
 import sys
 from typing import Dict, Mapping
@@ -8,8 +7,24 @@ from fastapi.responses import JSONResponse
 
 from vhs_studio.video.vapoursynth_qtgmc import VapourSynthQTGMC
 from vhs_studio.api.routers.security import is_safe_media_path
+from vhs_studio.core.paths import RAW_MEDIA_DIR, MEDIA_DIR
 
 restoration_router = APIRouter(prefix="/api", tags=["Restoration"])
+
+
+def resolve_media_input_path(input_file: str) -> str:
+    """Resolve plain file names to their canonical path in RAW_MEDIA_DIR or MEDIA_DIR if present."""
+    if not input_file:
+        return input_file
+    base = os.path.basename(input_file)
+    if base == input_file.strip():
+        raw_target = os.path.join(RAW_MEDIA_DIR, base)
+        if os.path.exists(raw_target):
+            return raw_target
+        media_target = os.path.join(MEDIA_DIR, base)
+        if os.path.exists(media_target):
+            return media_target
+    return input_file
 
 
 def _resolve_pm():
@@ -20,7 +35,7 @@ def _resolve_pm():
 
 def _handle_start_restore(params: Mapping[str, object], pm):
     if pm.is_running():
-        return {"status": "error", "message": "A process is already running."}
+        return {"status": "error", "message": "Já existe um processo em execução. Aguarde a finalização."}
 
     deint = str(params.get("deinterlacer", ""))
     if "qtgmc" in deint and not VapourSynthQTGMC.is_available():
@@ -28,12 +43,12 @@ def _handle_start_restore(params: Mapping[str, object], pm):
         pm.start_process(cmd)
         return {
             "status": "started",
-            "message": "QTGMC dependencies are being installed in the background.",
+            "message": "Instalando dependências do QTGMC em segundo plano.",
         }
 
-    input_file = str(params.get("input", ""))
+    input_file = resolve_media_input_path(str(params.get("input", "")))
     if not is_safe_media_path(input_file):
-        return {"status": "error", "message": "Invalid or insecure file path."}
+        return {"status": "error", "message": "Caminho de arquivo inválido ou não seguro."}
 
     cmd = [
         sys.executable,
@@ -46,37 +61,37 @@ def _handle_start_restore(params: Mapping[str, object], pm):
     ]
     success, msg = pm.start_process(cmd)
     if success:
-        return {"status": "ok", "message": "Restoration pipeline started."}
+        return {"status": "ok", "message": "Pipeline de restauração iniciada com sucesso."}
     return {"status": "error", "message": msg}
 
 
 def _handle_install_obs(pm):
     if pm.is_running():
-        return {"status": "error", "message": "Please wait for the current process to finish."}
+        return {"status": "error", "message": "Aguarde a conclusão do processo em andamento."}
     cmd = [sys.executable, "-m", "vhs_studio.cli.setup_obs"]
     success, msg = pm.start_process(cmd)
     if success:
-        return {"status": "started", "message": "OBS installer launched."}
+        return {"status": "started", "message": "Instalador do OBS Portable iniciado em segundo plano."}
     return {"status": "error", "message": msg}
 
 
 def _handle_install_vapoursynth(pm):
     if pm.is_running():
-        return {"status": "error", "message": "Please wait for the current process to finish."}
+        return {"status": "error", "message": "Aguarde a conclusão do processo em andamento."}
     cmd = [sys.executable, "-m", "vhs_studio.cli.setup_qtgmc"]
     success, msg = pm.start_process(cmd)
     if success:
-        return {"status": "ok", "message": "VapourSynth installation started."}
+        return {"status": "ok", "message": "Instalador do VapourSynth + QTGMC iniciado em segundo plano."}
     return {"status": "error", "message": msg}
 
 
 def _handle_generate_subtitles(params: Mapping[str, object], pm):
     if pm.is_running():
-        return {"status": "error", "message": "Please wait for the current process to finish."}
+        return {"status": "error", "message": "Aguarde a conclusão do processo em andamento."}
 
-    input_file = str(params.get("input", ""))
+    input_file = resolve_media_input_path(str(params.get("input", "")))
     if not is_safe_media_path(input_file):
-        return {"status": "error", "message": "Invalid or insecure file path."}
+        return {"status": "error", "message": "Caminho de arquivo inválido ou não seguro."}
 
     raw_size = str(params.get("model_size", "tiny"))
     valid_models = ("tiny", "base", "small", "medium", "large")
@@ -91,14 +106,14 @@ def _handle_generate_subtitles(params: Mapping[str, object], pm):
     ]
     success, msg = pm.start_process(cmd)
     if success:
-        return {"status": "ok", "message": "Subtitle generation started."}
+        return {"status": "ok", "message": "Geração de legendas IA iniciada com sucesso."}
     return {"status": "error", "message": msg}
 
 
 def _handle_stop_process(pm):
     if pm.terminate():
-        return {"status": "ok", "message": "Process terminated via API."}
-    return {"status": "error", "message": "No process currently running."}
+        return {"status": "ok", "message": "Processo cancelado com sucesso."}
+    return {"status": "error", "message": "Nenhum processo em execução no momento."}
 
 
 @restoration_router.post("/action")
@@ -121,7 +136,7 @@ async def perform_action(request: Request):
     if handler:
         return handler()
 
-    return {"status": "error", "message": "Unknown action."}
+    return {"status": "error", "message": "Ação desconhecida solicitada."}
 
 
 @restoration_router.post("/run")
@@ -131,11 +146,11 @@ async def run_pipeline(request: Request):
     pm = _resolve_pm()
 
     if pm.is_running():
-        return JSONResponse(status_code=400, content={"status": "error", "message": "A process is already running."})
+        return JSONResponse(status_code=400, content={"status": "error", "message": "Já existe um processo em execução. Aguarde a finalização."})
 
-    input_file = params.get("input")
+    input_file = resolve_media_input_path(params.get("input"))
     if not is_safe_media_path(input_file):
-        return JSONResponse(status_code=400, content={"status": "error", "message": "Invalid or insecure file path."})
+        return JSONResponse(status_code=400, content={"status": "error", "message": "Caminho de arquivo inválido ou não seguro."})
 
     cmd = [
         sys.executable,
@@ -148,7 +163,7 @@ async def run_pipeline(request: Request):
     ]
     success, msg = pm.start_process(cmd)
     if success:
-        return {"status": "ok", "message": "Restoration pipeline started."}
+        return {"status": "ok", "message": "Pipeline de restauração iniciada com sucesso."}
     return JSONResponse(status_code=500, content={"status": "error", "message": msg})
 
 
@@ -157,9 +172,9 @@ def install_qtgmc():
     """Launch background installer for VapourSynth and QTGMC."""
     pm = _resolve_pm()
     if pm.is_running():
-        return {"status": "error", "message": "A process is already running."}
+        return {"status": "error", "message": "Já existe um processo em execução. Aguarde a finalização."}
     cmd = [sys.executable, "-m", "vhs_studio.cli.setup_qtgmc"]
     success, msg = pm.start_process(cmd)
     if success:
-        return {"status": "started", "message": "VapourSynth installation started."}
+        return {"status": "started", "message": "Instalação do VapourSynth + QTGMC iniciada em segundo plano."}
     return {"status": "error", "message": msg}
