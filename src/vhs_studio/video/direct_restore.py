@@ -144,8 +144,9 @@ def restore_stream(args):
     frame_bytes = int(w * h * 1.5)
     y_bytes = w * h
 
+    target_1080p = not getattr(args, "no_1080p", False)
     builder = FilterBuilder(
-        target_1080p=args.target_1080p,
+        target_1080p=target_1080p,
         crf=args.crf,
         mode=args.mode,
         output_codec=args.output_codec,
@@ -161,8 +162,9 @@ def restore_stream(args):
         "passthrough": "Passthrough Puro (Sem alteração de frames, bit-perfect para uso com TBC Hardware)",
     }.get(args.mode, args.mode)
     log.info(f"[RESTAURAÇÃO] Modo de remoção de pretos: {mode_desc}")
-    if args.apply_comb_filter:
-        log.info(f"[RESTAURAÇÃO] Filtro 3D Comb ativado")
+    apply_comb = getattr(args, "apply_comb_filter", getattr(args, "comb_filter", False))
+    if apply_comb:
+        log.info("[RESTAURAÇÃO] Filtro 3D Comb ativado")
     if abs(args.audio_offset) > 0.001:
         log.info(
             f"[RESTAURAÇÃO] Ajuste de sincronia de áudio: {args.audio_offset:+.3f}s ({'adiantando' if args.audio_offset > 0 else 'atrasando'} áudio)"
@@ -530,7 +532,7 @@ def main():
             output_dir, f"{base_name}_restored_{suffix}.{ext}"
         )
 
-    log.info("\n[RESTAURAÇÃO] Arquivo de Entrada: {args.input_path}")
+    log.info(f"\n[RESTAURAÇÃO] Arquivo de Entrada: {args.input_path}")
 
     # Análise técnica prévia e resolução de estratégia
     meta = vhs_common.probe_media(args.input_path)
@@ -571,8 +573,8 @@ def main():
             pass
         sys.exit(1)
 
-    args.audio_mode = strat["audio_policy"]
-    args.target_fps = strat["args.target_fps"]
+    args.audio_mode = strat.get("audio_policy", "stereo")
+    args.target_fps = strat.get("target_fps", getattr(args, "fps", 59.94) or 59.94)
 
     if args.start_sec is not None:
         args.start_sec = args.start_sec

@@ -244,11 +244,18 @@ class FilterBuilder:
 
         audio_codec_args = resolve_codec_audio_args(self.output_codec)
 
-        mux_flags = (
-            ["-movflags", "+faststart", output_path]
-            if self.mode == "drop"
-            else ["-shortest", "-movflags", "+faststart", output_path]
+        format_flag = (
+            ["-f", "matroska"]
+            if self.output_codec == "ffv1"
+            else ["-f", "mov"]
+            if self.output_codec == "prores"
+            else ["-f", "mp4"]
         )
+        is_mov_or_mp4 = self.output_codec in ("h264", "prores")
+        mov_flags = ["-movflags", "+faststart"] if is_mov_or_mp4 else []
+        shortest_flag = [] if self.mode == "drop" else ["-shortest"]
+
+        mux_flags = shortest_flag + mov_flags + format_flag + [output_path]
 
         return (
             header_args

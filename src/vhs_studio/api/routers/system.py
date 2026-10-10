@@ -176,7 +176,13 @@ def get_hardware():
 def get_all_logs():
     """Return historical log buffer for frontend RTK Query."""
     srv = _resolve_server()
-    return {"active": srv.pm.is_running(), "logs": srv.pm.get_logs()}
+    is_running = srv.pm.is_running()
+    return {
+        "active": is_running,
+        "logs": srv.pm.get_logs(),
+        "exit_code": srv.pm.last_exit_code,
+        "success": srv.pm.last_success,
+    }
 
 
 @system_router.get("/logs/stream")
@@ -192,16 +198,26 @@ async def stream_logs(request: Request):
             if await request.is_disconnected():
                 break
             logs = srv.pm.get_logs()
+            is_running = srv.pm.is_running()
             if len(logs) > last_idx:
                 for line in logs[last_idx:]:
-                    payload = json.dumps({"line": line, "active": srv.pm.is_running()})
+                    payload = json.dumps({
+                        "line": line,
+                        "active": is_running,
+                        "exit_code": srv.pm.last_exit_code,
+                        "success": srv.pm.last_success,
+                    })
                     yield f"data: {payload}\n\n"
                 last_idx = len(logs)
                 idle_ticks = 0
-            elif not srv.pm.is_running():
+            elif not is_running:
                 idle_ticks += 1
                 if idle_ticks >= 2:
-                    yield f"data: {json.dumps({'active': False})}\n\n"
+                    yield f"data: {json.dumps({
+                        'active': False,
+                        'exit_code': srv.pm.last_exit_code,
+                        'success': srv.pm.last_success,
+                    })}\n\n"
                     break
             await asyncio.sleep(0.2)
 

@@ -59,9 +59,15 @@ export function useStudioViewModel() {
           addLog(data.line);
         }
         if (data.active === false && isRestoring) {
-          a11yAudio.playSuccess();
           setIsRestoring(false);
-          addLog('[RESTAURAÇÃO] Processo de restauração concluído com sucesso!');
+          const hasFailed = data.success === false || (typeof data.exit_code === 'number' && data.exit_code !== 0);
+          if (hasFailed) {
+            a11yAudio.playError();
+            addLog(`[RESTAURAÇÃO ERRO] Processo finalizado com falha (Código: ${data.exit_code ?? 'erro'}). Verifique o console.`);
+          } else {
+            a11yAudio.playSuccess();
+            addLog('[RESTAURAÇÃO] Processo de restauração concluído com sucesso!');
+          }
         }
       } catch {
         // Ignore JSON parse errors on keepalive comments
@@ -84,9 +90,15 @@ export function useStudioViewModel() {
     if (typeof EventSource === 'undefined' && logsData?.logs?.length) {
       logsData.logs.forEach((l) => addLog(l));
       if (!logsData.active && isRestoring) {
-        a11yAudio.playSuccess();
         setIsRestoring(false);
-        addLog('[RESTAURAÇÃO] Processo de restauração concluído com sucesso!');
+        const hasFailed = logsData.success === false || (typeof logsData.exit_code === 'number' && logsData.exit_code !== 0);
+        if (hasFailed) {
+          a11yAudio.playError();
+          addLog(`[RESTAURAÇÃO ERRO] Processo finalizado com falha (Código: ${logsData.exit_code ?? 'erro'}). Verifique o console.`);
+        } else {
+          a11yAudio.playSuccess();
+          addLog('[RESTAURAÇÃO] Processo de restauração concluído com sucesso!');
+        }
       }
     }
   }, [logsData, isRestoring, setIsRestoring, addLog]);

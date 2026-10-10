@@ -2,9 +2,40 @@
 
 import os
 import sys
-import psutil
 from typing import Optional
 from vhs_studio.core.logger import log
+
+
+def is_pid_active(pid: int) -> bool:
+    """Verifica se um PID está ativo no sistema operacional sem dependência estrita."""
+    if pid <= 0:
+        return False
+    try:
+        import psutil  # type: ignore[import-not-found]
+
+        return psutil.pid_exists(pid)
+    except ImportError:
+        pass
+
+    if sys.platform == "win32":
+        try:
+            import ctypes
+
+            kernel32 = ctypes.windll.kernel32
+            SYNCHRONIZE = 0x00100000
+            process = kernel32.OpenProcess(SYNCHRONIZE, False, pid)
+            if process:
+                kernel32.CloseHandle(process)
+                return True
+            return False
+        except Exception:
+            pass
+
+    try:
+        os.kill(pid, 0)
+        return True
+    except (OSError, ProcessLookupError):
+        return False
 
 
 class JobManager:
@@ -38,7 +69,7 @@ class JobManager:
         pid = JobManager._read_lock_pid(lock_path)
 
         if pid is not None:
-            if psutil.pid_exists(pid):
+            if is_pid_active(pid):
                 log.error(
                     f"[AVISO] Ja existe outra instancia do pipeline em execucao! (PID {pid})"
                 )

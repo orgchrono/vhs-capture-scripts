@@ -65,7 +65,7 @@ export const studioRtkApi = createApi({
       providesTags: ['ObsStats'],
     }),
 
-    getLogs: builder.query<{ active: boolean; logs: string[] }, void>({
+    getLogs: builder.query<{ active: boolean; logs: string[]; exit_code?: number | null; success?: boolean | null }, void>({
       query: () => 'api/logs',
     }),
 

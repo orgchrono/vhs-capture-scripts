@@ -31,6 +31,12 @@ def main():
         help="Tamanho do modelo",
     )
 
+    # Comando: restore
+    subparsers.add_parser("restore", help="Restauração direta FFmpeg")
+
+    # Comando: pipeline
+    subparsers.add_parser("pipeline", help="Pipeline orquestrada de restauração")
+
     args, unknown = parser.parse_known_args()
 
     if args.command == "desktop" or args.command is None:
