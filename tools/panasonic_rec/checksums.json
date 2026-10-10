@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "description": "Cryptographic fixity manifest for pre-compiled Panasonic DVR recovery binaries",
+  "binaries": {
+    "windows-x64": {
+      "extract_meihdfs.exe": {
+        "sha256": "baeced084781693b34ff7f609141e0244dc1a8838b50bb24ecc66dc5bd30bf61",
+        "size_bytes": 90624
+      },
+      "dvd-vr.exe": {
+        "sha256": "1a7f77c21ee49619a2a45e693174fe07998c83d6bd8812db8953d31b35be0384",
+        "size_bytes": 124830
+      },
+      "udf_dump.exe": {
+        "sha256": "2ee0ad33750fc86c43d634a7814987a0682a10913992f1ced7166d8bde083070",
+        "size_bytes": 112458
+      }
+    }
+  }
+}

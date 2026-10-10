@@ -1,11 +1,14 @@
-"""Toolchain resolver and dependency capabilities inspector for FFmpeg and external binaries."""
-
+import json
+import os
+import platform
 import shutil
 import subprocess
 from functools import lru_cache
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
+from vhs_studio.archive.fixity import FixityChecker
 from vhs_studio.core.logger import log
 from vhs_studio.core.paths import (
+    PANASONIC_TOOLS_DIR,
     get_ffmpeg_executable_path,
     get_panasonic_executable_path,
 )
@@ -132,3 +135,55 @@ class Toolchain:
         raise FileNotFoundError(
             f"Panasonic extractor binary '{binary_name}' was not found in PATH or tools/panasonic_rec."
         )
+
+    @staticmethod
+    def verify_panasonic_binary_integrity(binary_name: str = "extract_meihdfs") -> Tuple[bool, str]:
+        """Verify the cryptographic SHA-256 hash of a Panasonic recovery binary against checksums.json.
+
+        Returns:
+            Tuple[bool, str]: (is_valid, status_or_hash_message)
+        """
+        path = get_panasonic_executable_path(binary_name)
+        if not path or not os.path.exists(path):
+            return False, f"Binary '{binary_name}' not found."
+
+        manifest_path = os.path.join(PANASONIC_TOOLS_DIR, "checksums.json")
+        if not os.path.exists(manifest_path):
+            return True, "No fixity manifest found; integrity check skipped."
+
+        try:
+            with open(manifest_path, "r", encoding="utf-8") as f:
+                manifest = json.load(f)
+        except Exception as e:
+            return False, f"Failed reading checksums manifest: {e}"
+
+        sys_name = platform.system()
+        platform_key = "windows-x64" if sys_name == "Windows" else f"{sys_name.lower()}-{platform.machine().lower()}"
+        known_bins = manifest.get("binaries", {}).get(platform_key, {})
+
+        bin_filename = os.path.basename(path)
+        if bin_filename not in known_bins:
+            # Locally compiled or unindexed platform binary
+            return True, f"Binary '{bin_filename}' is locally compiled (not in pre-compiled manifest)."
+
+        expected_hash = known_bins[bin_filename].get("sha256", "").lower()
+        actual_hash = FixityChecker.calculate_sha256(path).lower()
+
+        if actual_hash != expected_hash:
+            msg = (
+                f"INTEGRITY MISMATCH for '{bin_filename}': "
+                f"expected {expected_hash}, calculated {actual_hash}"
+            )
+            log.error(f"[SECURITY] {msg}")
+            return False, msg
+
+        return True, f"Verified SHA-256: {actual_hash}"
+
+    @staticmethod
+    def require_verified_panasonic_extractor(binary_name: str = "extract_meihdfs") -> str:
+        """Resolve path to Panasonic extractor, verifying its SHA-256 fixity before execution."""
+        path = Toolchain.require_panasonic_extractor(binary_name)
+        is_valid, msg = Toolchain.verify_panasonic_binary_integrity(binary_name)
+        if not is_valid:
+            raise PermissionError(f"Security validation failed for '{binary_name}': {msg}")
+        return path

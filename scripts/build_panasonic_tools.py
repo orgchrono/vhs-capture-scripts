@@ -4,6 +4,8 @@ Compiles extract_meihdfs, dvd-vr, and udf_dump from vendored C sources in tools/
 Supports GCC and Clang across Windows, Linux, and macOS.
 """
 
+import hashlib
+import json
 import os
 import platform
 import shutil
@@ -13,6 +15,62 @@ import sys
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 TOOLS_DIR = os.path.join(PROJECT_ROOT, "tools", "panasonic_rec")
 SRC_DIR = os.path.join(TOOLS_DIR, "src")
+MANIFEST_PATH = os.path.join(TOOLS_DIR, "checksums.json")
+
+
+def compute_sha256(filepath: str) -> str:
+    """Compute SHA-256 hash of a file."""
+    hasher = hashlib.sha256()
+    with open(filepath, "rb") as f:
+        while chunk := f.read(65536):
+            hasher.update(chunk)
+    return hasher.hexdigest()
+
+
+def verify_precompiled_binaries() -> bool:
+    """Verify integrity of pre-existing binaries against checksums.json manifest."""
+    if not os.path.exists(MANIFEST_PATH):
+        print(f"[WARN] No fixity manifest found at {MANIFEST_PATH}", file=sys.stderr)
+        return True
+
+    try:
+        with open(MANIFEST_PATH, "r", encoding="utf-8") as f:
+            manifest = json.load(f)
+    except Exception as e:
+        print(f"[!] Failed loading checksums.json: {e}", file=sys.stderr)
+        return False
+
+    is_windows = platform.system() == "Windows"
+    platform_key = "windows-x64" if is_windows else f"{platform.system().lower()}-{platform.machine().lower()}"
+    known_bins = manifest.get("binaries", {}).get(platform_key, {})
+
+    if not known_bins:
+        # No precompiled manifest entry for this platform/arch
+        return True
+
+    print(f"[*] Verifying cryptographic SHA-256 fixity of pre-existing binaries ({platform_key})...")
+    all_ok = True
+    for bin_name, info in known_bins.items():
+        bin_path = os.path.join(TOOLS_DIR, bin_name)
+        if not os.path.exists(bin_path):
+            print(f"[!] Missing pre-compiled binary: {bin_name}", file=sys.stderr)
+            all_ok = False
+            continue
+
+        actual_sha = compute_sha256(bin_path)
+        expected_sha = info.get("sha256", "")
+        if actual_sha.lower() != expected_sha.lower():
+            print(
+                f"[SECURITY ERROR] Cryptographic hash mismatch for {bin_name}!\n"
+                f"  Expected: {expected_sha}\n"
+                f"  Actual:   {actual_sha}",
+                file=sys.stderr,
+            )
+            all_ok = False
+        else:
+            print(f"[+] Verified fixity: {bin_name} (SHA-256: {actual_sha[:16]}...)")
+
+    return all_ok
 
 
 def find_c_compiler() -> str:
@@ -32,8 +90,12 @@ def build_tools() -> bool:
     compiler = find_c_compiler()
     if not compiler:
         if is_windows and os.path.exists(os.path.join(TOOLS_DIR, "extract_meihdfs.exe")):
-            print("[INFO] No C compiler found, but pre-compiled Windows binaries are present.")
-            return True
+            print("[INFO] No C compiler found, checking cryptographic fixity of pre-compiled binaries...")
+            if verify_precompiled_binaries():
+                print("[+] Pre-compiled Windows binaries verified against checksums.json.")
+                return True
+            print("[FATAL] Pre-compiled binaries failed SHA-256 verification!", file=sys.stderr)
+            return False
         print("[ERROR] No suitable C compiler (gcc, clang) found in PATH.", file=sys.stderr)
         return False
 
@@ -54,7 +116,8 @@ def build_tools() -> bool:
             print(f"[!] Failed compiling extract_meihdfs:\n{res.stderr}", file=sys.stderr)
             success = False
         else:
-            print(f"[+] Successfully compiled extract_meihdfs ({os.path.getsize(meihdfs_out)} bytes)")
+            sha = compute_sha256(meihdfs_out)
+            print(f"[+] Successfully compiled extract_meihdfs ({os.path.getsize(meihdfs_out)} bytes, SHA-256: {sha[:16]}...)")
     else:
         print(f"[!] Source not found: {meihdfs_src}", file=sys.stderr)
         success = False
@@ -78,7 +141,8 @@ def build_tools() -> bool:
             print(f"[!] Failed compiling dvd-vr:\n{res.stderr}", file=sys.stderr)
             success = False
         else:
-            print(f"[+] Successfully compiled dvd-vr ({os.path.getsize(dvd_vr_out)} bytes)")
+            sha = compute_sha256(dvd_vr_out)
+            print(f"[+] Successfully compiled dvd-vr ({os.path.getsize(dvd_vr_out)} bytes, SHA-256: {sha[:16]}...)")
     else:
         print(f"[!] Source not found: {dvd_vr_src}", file=sys.stderr)
         success = False
@@ -105,7 +169,8 @@ def build_tools() -> bool:
             print(f"[!] Failed compiling udf_dump:\n{res.stderr}", file=sys.stderr)
             success = False
         else:
-            print(f"[+] Successfully compiled udf_dump ({os.path.getsize(udf_out)} bytes)")
+            sha = compute_sha256(udf_out)
+            print(f"[+] Successfully compiled udf_dump ({os.path.getsize(udf_out)} bytes, SHA-256: {sha[:16]}...)")
     else:
         print(f"[!] Source not found: {udf_dump_src}", file=sys.stderr)
         success = False
@@ -114,5 +179,8 @@ def build_tools() -> bool:
 
 
 if __name__ == "__main__":
+    if "--verify" in sys.argv:
+        ok = verify_precompiled_binaries()
+        sys.exit(0 if ok else 1)
     ok = build_tools()
     sys.exit(0 if ok else 1)
