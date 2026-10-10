@@ -2,6 +2,7 @@
 
 [![CI/CD Pipeline](https://github.com/orgchrono/vhs-capture-scripts/actions/workflows/ci.yml/badge.svg)](https://github.com/orgchrono/vhs-capture-scripts/actions/workflows/ci.yml)
 [![Quality Gates](https://img.shields.io/badge/Quality%20Gates-8%20of%208%20PASS-brightgreen.svg)](logs/build_report.md)
+[![Swarm Auditors](https://img.shields.io/badge/Swarm%20Auditors-7%20of%207%20PASS-brightgreen.svg)](swarm_audit_report.md)
 [![Security Bandit](https://img.shields.io/badge/Security-Bandit%20Pass%20(0%20vuln)-brightgreen.svg)](docs/SECURITY.md)
 [![Accessibility WCAG AAA](https://img.shields.io/badge/A11y-WCAG%202.1%20AAA-blue.svg)](docs/UI_UX_ACCESSIBILITY.md)
 [![License: Free & Open](https://img.shields.io/badge/License-Compliance%20Agreement-blue.svg)](docs/COMPLIANCE_LICENSE.md)
@@ -43,51 +44,58 @@ Construído sob uma **Arquitetura DAG Paralela** (Grafo Direcionado Acíclico), 
 
 ## 🏛 Arquitetura do Sistema
 
-O ecossistema implementa o padrão **MVVM Strict** aliado à **Separação de Responsabilidades (SoC)** e **Fonte Única da Verdade (SSOT)**:
+O ecossistema implementa o padrão **MVVM Strict**, **Functional Core / Imperative Shell (FP Core)**, **Separação de Responsabilidades (SoC)** e **Fonte Única da Verdade (SSOT)**:
 
 ```mermaid
 flowchart TD
     subgraph UI ["Camada de Apresentação (View)"]
         ReactUI["React 19 + Tailwind CSS"]
+        ViewModels["Custom ViewModels (Derivação Pura com useMemo)"]
         RTK["RTK Query (Redux Toolkit)"]
         Sonner["Sonner Toasts & Framer Motion"]
         i18n["i18n Engine (pt-BR / en-US / es-ES)"]
         a11y["WCAG AAA Access Suite"]
     end
 
-    subgraph API ["Camada de Serviço (ViewModel)"]
-        FastAPI["FastAPI Localhost Server (:8088)"]
+    subgraph API ["Camada de Serviço Modular (ViewModel - FastAPI :8088)"]
+        ServerFactory["server.py (App Factory & Clean Orchestrator)"]
+        Routers["routers/ (system, queue, obs, restoration, storage, security, schemas)"]
         SSE["Server-Sent Events (Log Stream)"]
-        AuthMiddleware["Local Host & Session Token CSRF Filter"]
+        AuthMiddleware["Origin & Session Token CSRF Filter"]
         SafePath["Safe Media Path Validator (CWE-22)"]
     end
 
     subgraph Core ["Motor de Restauração & HAL (Model)"]
-        HAL["Hardware Abstraction Layer (GPU/Encoders)"]
+        HAL["Hardware Abstraction Layer (TypedDicts)"]
         Queue["SQLite Batch Queue Manager"]
         ProcessMgr["Subprocess Safe Executor"]
-        OBSClient["OBS WebSocket v5 Client"]
+        OBSClient["OBS WebSocket v5 (Provider Closure)"]
+        DAGPipeline["pipeline.py (DAG Paralelo com Step Runner Closures)"]
     end
 
     subgraph Engines ["Motores de Execução Especializados"]
         VapourSynth["VapourSynth QTGMC Deinterlacer"]
-        FFmpeg["FFmpeg Custom Filterchain"]
-        Whisper["OpenAI Whisper Subtitler"]
-        ESRGAN["Real-ESRGAN x4plus Neural Engine"]
+        FFmpeg["FFmpeg Custom Filterchain (Composição Funcional)"]
+        Whisper["OpenAI Faster-Whisper Subtitler"]
+        ESRGAN["Real-ESRGAN / Real-CUGAN Neural Engine"]
+        CodeFormer["CodeFormer Face Restoration"]
         Storage["StorageManager (S3 / Drive / Dropbox)"]
     end
 
-    ReactUI --> RTK
-    RTK --> FastAPI
-    FastAPI --> AuthMiddleware
+    ReactUI --> ViewModels
+    ViewModels --> RTK
+    RTK --> ServerFactory
+    ServerFactory --> Routers
+    Routers --> AuthMiddleware
     AuthMiddleware --> SafePath
     SafePath --> ProcessMgr
     SafePath --> Queue
-    FastAPI --> SSE
-    FastAPI --> OBSClient
-    Queue --> ProcessMgr
+    Routers --> SSE
+    Routers --> OBSClient
+    Queue --> DAGPipeline
+    DAGPipeline --> ProcessMgr
     ProcessMgr --> Engines
-    HAL --> FastAPI
+    HAL --> Routers
 ```
 
 ---
