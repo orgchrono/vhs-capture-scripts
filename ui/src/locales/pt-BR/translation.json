@@ -227,5 +227,21 @@
     "no_file_title": "Nenhuma Fita Selecionada",
     "no_file_desc": "Selecione uma fita de vídeo capturada antes de iniciar a restauração.",
     "select_file_first": "Selecione um arquivo de fita antes de iniciar."
+  },
+  "telemetry": {
+    "title": "Telemetria de Masterização Analógica",
+    "stage_idle": "Em Espera / Pronto",
+    "stage_ingest": "1. Ingestão e Verificação de Sincronismo",
+    "stage_deinterlace": "2. Desentrelaçamento Neural QTGMC / BWDIF",
+    "stage_filters": "3. Correção de Croma & Denoise Espacial",
+    "stage_encode": "4. Codificação Master Broadcast",
+    "fps": "FPS",
+    "frames": "Quadros",
+    "eta": "Tempo Estimado",
+    "speed": "Velocidade",
+    "status_idle": "Sistema em Espera — Pronto para Ingestão",
+    "status_running": "Streaming Ativo — Processando DAG",
+    "status_completed": "Restauração Concluída (100%)",
+    "progress_label": "Progresso da Pipeline de Restauração"
   }
 }

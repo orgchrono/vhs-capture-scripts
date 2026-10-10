@@ -3,7 +3,7 @@ Application-wide constants and configuration defaults.
 Provides a Single Source of Truth (SSOT) to eliminate magic numbers and strings.
 """
 
-from typing import Final, Set
+from typing import Final, Set, Tuple
 
 # File encoding default
 DEFAULT_FILE_ENCODING: Final[str] = "utf-8"
@@ -76,3 +76,10 @@ VALID_MEDIA_EXTENSIONS: Final[Set[str]] = {
     ".ts",
     ".m2ts",
 }
+
+# Subprocess & System probe constants
+OBS_PROCESS_NAMES: Final[Tuple[str, ...]] = ("obs64.exe", "obs32.exe", "obs")
+DEFAULT_SOCKET_TIMEOUT_SEC: Final[float] = 0.2
+DEFAULT_PROCESS_CHECK_TIMEOUT_SEC: Final[float] = 1.0
+DEFAULT_SSE_POLL_INTERVAL_SEC: Final[float] = 0.2
+MAX_PROCESS_LOGS_HISTORY: Final[int] = 500

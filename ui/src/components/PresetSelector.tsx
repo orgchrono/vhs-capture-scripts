@@ -63,20 +63,20 @@ export const PresetSelector: React.FC = () => {
               toast.info(t('toast.preset_applied', { name: p.name }))
             }}
             className={cn(
-              'relative text-left p-4 rounded-xl border transition-all duration-200 cursor-pointer overflow-hidden flex flex-col justify-between group min-h-[96px]',
+              'relative text-left p-3.5 rounded-xl border transition-all duration-150 cursor-pointer overflow-hidden flex flex-col justify-between group min-h-[92px]',
               isActive
-                ? 'bg-slate-900/90 border-sky-500/60 shadow-[0_0_24px_rgba(56,189,248,0.2)] ring-1 ring-sky-400/40'
-                : 'bg-slate-900/50 border-white/5 hover:border-sky-500/30 hover:bg-slate-900/80'
+                ? 'bg-[#131926] border-sky-500 text-white'
+                : 'bg-[#0d1017] border-[#1e2330] hover:border-[#2c3445] hover:bg-[#11151f] text-slate-300'
             )}
           >
             {isActive && (
               <motion.div
                 layoutId="active-preset-glow"
-                className="absolute inset-0 bg-sky-500/10 border-2 border-sky-400/70 rounded-xl pointer-events-none"
+                className="absolute inset-0 border-2 border-sky-500/80 rounded-xl pointer-events-none"
                 transition={
                   shouldReduceMotion
                     ? { duration: 0 }
-                    : { type: 'spring', stiffness: 400, damping: 32 }
+                    : { type: 'spring', stiffness: 450, damping: 35 }
                 }
               />
             )}

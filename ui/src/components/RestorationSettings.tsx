@@ -351,20 +351,20 @@ export const RestorationSettings: React.FC = () => {
                 <div className="grid grid-cols-3 gap-2 text-xs">
                   <div className="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800">
                     <span className="text-[10px] text-slate-400 block mb-0.5">{t('ai.cpu_cores')}</span>
-                    <span className="text-white font-medium truncate block" title={hardwareProfile.cpu.model}>
-                      {t('ai.cores_label', { count: hardwareProfile.cpu.cores, arch: hardwareProfile.cpu.arch })}
+                    <span className="text-white font-medium truncate block" title={hardwareProfile.cpu?.model || ''}>
+                      {t('ai.cores_label', { count: hardwareProfile.cpu?.cores || 0, arch: hardwareProfile.cpu?.arch || '' })}
                     </span>
                   </div>
                   <div className="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800">
                     <span className="text-[10px] text-slate-400 block mb-0.5">{t('ai.ram')}</span>
                     <span className="text-white font-medium">
-                      {t('ai.ram_format', { total: hardwareProfile.ram.total_gb, free: hardwareProfile.ram.available_gb })}
+                      {t('ai.ram_format', { total: hardwareProfile.ram?.total_gb || 0, free: hardwareProfile.ram?.available_gb || 0 })}
                     </span>
                   </div>
                   <div className="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800">
                     <span className="text-[10px] text-slate-400 block mb-0.5">{t('ai.gpu')}</span>
-                    <span className="text-white font-medium truncate block" title={hardwareProfile.gpu.name}>
-                      {hardwareProfile.gpu.vulkan_available ? t('ai.vulkan_active') : t('ai.cpu_only')} ({hardwareProfile.gpu.name})
+                    <span className="text-white font-medium truncate block" title={hardwareProfile.gpu?.name || ''}>
+                      {hardwareProfile.gpu?.vulkan_available ? t('ai.vulkan_active') : t('ai.cpu_only')} ({hardwareProfile.gpu?.name || 'N/A'})
                     </span>
                   </div>
                 </div>

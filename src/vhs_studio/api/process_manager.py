@@ -4,6 +4,8 @@ import threading
 import subprocess
 from typing import Tuple, List, Optional
 
+from vhs_studio.core.constants import MAX_PROCESS_LOGS_HISTORY
+
 
 class ProcessManager:
     """Singleton process manager for non-blocking subprocess lifecycle and real-time log capturing."""
@@ -61,7 +63,7 @@ class ProcessManager:
                 if clean_line:
                     with self._lock:
                         self.process_logs.append(clean_line)
-                        if len(self.process_logs) > 500:
+                        if len(self.process_logs) > MAX_PROCESS_LOGS_HISTORY:
                             self.process_logs.pop(0)
 
         proc.wait()

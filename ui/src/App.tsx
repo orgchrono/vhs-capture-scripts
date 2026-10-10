@@ -11,6 +11,7 @@ import {
   ConsoleViewer,
   LiveMonitor,
   PrivacyModal,
+  BroadcastProgress,
 } from './components'
 import { Toaster } from './components/ui/sonner'
 import {
@@ -180,21 +181,21 @@ const StudioMain: React.FC<{ onOpenPrivacy?: () => void }> = ({ onOpenPrivacy })
                 id="workspace-top"
                 defaultSize={LAYOUT_CONFIG.WORKSPACE_TOP_DEFAULT_SIZE}
                 minSize={LAYOUT_CONFIG.WORKSPACE_TOP_MIN_SIZE}
-                className="overflow-y-auto custom-scrollbar p-3.5 lg:p-4.5 bg-gradient-to-br from-[#060911] via-[#080d18] to-[#0a0f1d]"
+                className="overflow-y-auto custom-scrollbar p-3 lg:p-4 bg-[#0a0d14]"
               >
                 <div className="w-full h-full min-h-0 grid grid-cols-1 lg:grid-cols-[minmax(320px,1.05fr)_minmax(420px,1.35fr)] 2xl:grid-cols-[minmax(420px,1.15fr)_minmax(540px,1.45fr)] gap-4 lg:gap-5 items-stretch">
                   {/* Left Column: Video Monitor (Expansível) */}
                   <div className="flex flex-col h-full min-h-[320px] lg:min-h-[380px]">
                     <div className="flex items-center justify-between mb-2 shrink-0">
-                      <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                      <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2 font-mono">
                         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                         {t('app.crt_monitor_title')}
                       </h2>
-                      <span className="text-[10px] font-mono text-slate-400 bg-slate-900/80 px-2 py-0.5 rounded border border-white/5">
+                      <span className="text-[10px] font-mono text-slate-400 bg-[#121622] px-2 py-0.5 rounded border border-[#202636]">
                         {t('app.crt_monitor_badge')}
                       </span>
                     </div>
-                    <div className="flex-1 min-h-[260px] bg-black rounded-xl overflow-hidden border border-white/10 shadow-2xl relative flex items-center justify-center">
+                    <div className="flex-1 min-h-[260px] bg-black rounded-xl overflow-hidden border border-[#202738] relative flex items-center justify-center">
                       <LiveMonitor health={status?.health} />
                     </div>
                   </div>
@@ -202,11 +203,11 @@ const StudioMain: React.FC<{ onOpenPrivacy?: () => void }> = ({ onOpenPrivacy })
                   {/* Right Column: Engine Settings (Nivelado perfeitamente com o Monitor CRT) */}
                   <div className="flex flex-col h-full min-h-[320px] lg:min-h-[380px]">
                     <div className="flex items-center justify-between mb-2 shrink-0">
-                      <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-                        <span className="bg-sky-500 w-1.5 h-4.5 rounded-full shadow-[0_0_8px_rgba(56,189,248,0.6)]"></span>
+                      <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2 font-mono">
+                        <span className="bg-sky-500 w-1.5 h-3.5 rounded-sm"></span>
                         {t('app.engine_title')}
                       </h2>
-                      <span className="text-[10px] font-mono text-sky-400/80 bg-slate-900/80 px-2 py-0.5 rounded border border-white/5 uppercase">
+                      <span className="text-[10px] font-mono text-sky-400 bg-[#121622] px-2 py-0.5 rounded border border-[#202636] uppercase">
                         {t('app.engine_badge')}
                       </span>
                     </div>
@@ -226,13 +227,16 @@ const StudioMain: React.FC<{ onOpenPrivacy?: () => void }> = ({ onOpenPrivacy })
                     defaultSize={LAYOUT_CONFIG.CONSOLE_DEFAULT_SIZE}
                     minSize={LAYOUT_CONFIG.CONSOLE_MIN_SIZE}
                     maxSize={LAYOUT_CONFIG.CONSOLE_MAX_SIZE}
-                    className="bg-[#080c14] flex flex-col shrink-0 p-2 lg:p-2.5"
+                    className="bg-[#080c14] flex flex-col shrink-0 p-2 lg:p-2.5 overflow-hidden"
                   >
-                    <ConsoleViewer
-                      onStart={onStart}
-                      isRestoring={isRestoring}
-                      hasSelectedFile={Boolean(selectedFile)}
-                    />
+                    <BroadcastProgress />
+                    <div className="flex-1 min-h-0 flex flex-col">
+                      <ConsoleViewer
+                        onStart={onStart}
+                        isRestoring={isRestoring}
+                        hasSelectedFile={Boolean(selectedFile)}
+                      />
+                    </div>
                   </ResizablePanel>
                 </>
               )}

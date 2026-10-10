@@ -1,0 +1,12 @@
+{
+  "threshold": 5,
+  "reporters": ["console"],
+  "ignore": [
+    "**/node_modules/**",
+    "**/locales/**",
+    "**/*.json",
+    "**/*.test.tsx",
+    "**/*.spec.ts"
+  ],
+  "absolute": true
+}

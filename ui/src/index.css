@@ -21,6 +21,18 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  /* Studio Broadcast Darkroom Palette Tokens (SSOT) */
+  --color-studio-bg: #07090e;
+  --color-studio-panel: #0b0e14;
+  --color-studio-surface: #10141e;
+  --color-studio-surface-hover: #161b26;
+  --color-studio-border: #1d2332;
+  --color-studio-border-subtle: #141822;
+  --color-studio-border-focus: #38bdf8;
+  --color-studio-tally-live: #10b981;
+  --color-studio-tally-rec: #ef4444;
+  --color-studio-tally-warn: #f59e0b;
 }
 
 @layer base {

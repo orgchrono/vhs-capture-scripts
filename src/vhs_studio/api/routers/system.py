@@ -16,11 +16,15 @@ from vhs_studio.core.constants import (
     OBS_WEBSOCKET_HOST,
     OBS_WEBSOCKET_PORT,
     VALID_MEDIA_EXTENSIONS,
+    DEFAULT_SOCKET_TIMEOUT_SEC,
+    DEFAULT_PROCESS_CHECK_TIMEOUT_SEC,
+    DEFAULT_SSE_POLL_INTERVAL_SEC,
 )
 from vhs_studio.core.paths import RAW_MEDIA_DIR, get_obs_executable_paths
 from vhs_studio.core.filter_builder import FilterBuilder
 from vhs_studio.video.vapoursynth_qtgmc import VapourSynthQTGMC
 from vhs_studio.core.hardware import get_hardware_profile
+from vhs_studio.core.logger import log
 
 system_router = APIRouter(prefix="/api", tags=["System"])
 
@@ -41,28 +45,33 @@ def is_obs_process_active() -> bool:
                 capture_output=True,
                 text=True,
                 errors="replace",
-                timeout=1,
+                timeout=DEFAULT_PROCESS_CHECK_TIMEOUT_SEC,
             )
             if "obs64.exe" in r.stdout.lower():
+                log.debug("[HAL] Active obs64.exe detected in tasklist.")
                 return True
             r32 = subprocess.run(
                 ["tasklist", "/fi", "imagename eq obs32.exe", "/fo", "csv", "/nh"],
                 capture_output=True,
                 text=True,
                 errors="replace",
-                timeout=1,
+                timeout=DEFAULT_PROCESS_CHECK_TIMEOUT_SEC,
             )
-            return "obs32.exe" in r32.stdout.lower()
+            is_active = "obs32.exe" in r32.stdout.lower()
+            if is_active:
+                log.debug("[HAL] Active obs32.exe detected in tasklist.")
+            return is_active
         else:
             r = subprocess.run(
                 ["pgrep", "-x", "obs"],
                 capture_output=True,
                 text=True,
                 errors="replace",
-                timeout=1,
+                timeout=DEFAULT_PROCESS_CHECK_TIMEOUT_SEC,
             )
             return r.returncode == 0
-    except Exception:
+    except Exception as e:
+        log.debug(f"[HAL] Exception while verifying OBS process: {e}")
         return False
 
 
@@ -72,9 +81,13 @@ def is_obs_websocket_port_open(
     """Check if OBS WebSocket TCP port is actively accepting connections."""
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            sock.settimeout(0.2)
-            return sock.connect_ex((host, port)) == 0
-    except Exception:
+            sock.settimeout(DEFAULT_SOCKET_TIMEOUT_SEC)
+            is_open = sock.connect_ex((host, port)) == 0
+            if is_open:
+                log.debug(f"[HAL] OBS WebSocket port {port} is active on {host}.")
+            return is_open
+    except Exception as e:
+        log.debug(f"[HAL] Exception checking OBS port: {e}")
         return False
 
 

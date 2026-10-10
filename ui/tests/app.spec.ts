@@ -4,6 +4,25 @@ test.describe('VHS Studio Pro E2E', () => {
 
   test.beforeEach(async ({ page }) => {
     // Intercept API calls robustly for any /api/* route to avoid console spam
+    await page.route('**/api/token', async route => {
+      await route.fulfill({ json: { token: 'mock-test-token' } });
+    });
+
+    await page.route('**/api/hardware', async route => {
+      await route.fulfill({
+        json: {
+          cpu: { model: 'AMD Ryzen / Intel Core', cores: 8, arch: 'x64' },
+          ram: { total_gb: 16, available_gb: 8 },
+          gpu: { name: 'Vulkan Dedicated GPU', vulkan_available: true },
+          tier: 'pro'
+        }
+      });
+    });
+
+    await page.route('**/api/obs/stats', async route => {
+      await route.fulfill({ json: { connected: false, recording: false, streaming: false } });
+    });
+
     await page.route('**/api/status', async route => {
       await route.fulfill({ json: { health: { dropped_frames: 0, fps: 29.97, cpu: 10 } } });
     });

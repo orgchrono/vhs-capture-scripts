@@ -1,29 +1,35 @@
 import * as React from "react"
-import * as ProgressPrimitive from "@radix-ui/react-progress"
 import { cn } from "../../lib/utils"
 
-const Progress = React.forwardRef<
-  React.ElementRef<typeof ProgressPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root>
->(({ className, value, ...props }, ref) => (
-  <ProgressPrimitive.Root
-    ref={ref}
-    role="progressbar"
-    aria-valuemin={0}
-    aria-valuemax={100}
-    aria-valuenow={value ?? 0}
-    className={cn(
-      "relative h-2 w-full overflow-hidden rounded-full bg-slate-800/80 border border-white/5",
-      className
-    )}
-    {...props}
-  >
-    <ProgressPrimitive.Indicator
-      className="h-full w-full flex-1 bg-gradient-to-r from-sky-500 to-emerald-500 transition-all duration-300 ease-out"
-      style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
-    />
-  </ProgressPrimitive.Root>
-))
-Progress.displayName = ProgressPrimitive.Root.displayName
+export interface ProgressProps extends React.HTMLAttributes<HTMLDivElement> {
+  value?: number
+}
+
+const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
+  ({ className, value = 0, ...props }, ref) => {
+    const clampedValue = Math.min(100, Math.max(0, value ?? 0))
+
+    return (
+      <div
+        ref={ref}
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={clampedValue}
+        className={cn(
+          "relative h-2 w-full overflow-hidden rounded-full bg-studio-surface border border-studio-border",
+          className
+        )}
+        {...props}
+      >
+        <div
+          className="h-full w-full flex-1 bg-gradient-to-r from-sky-500 to-emerald-500 transition-all duration-300 ease-out"
+          style={{ transform: `translateX(-${100 - clampedValue}%)` }}
+        />
+      </div>
+    )
+  }
+)
+Progress.displayName = "Progress"
 
 export { Progress }
