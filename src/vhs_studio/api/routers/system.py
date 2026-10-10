@@ -6,8 +6,9 @@ import json
 import asyncio
 import platform
 import subprocess
-import urllib.request
-from typing import List, Dict
+import socket
+import threading
+from typing import List, Dict, Callable
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 
@@ -30,28 +31,89 @@ def _resolve_server():
     return server
 
 
-def check_and_launch_obs() -> bool:
-    """Verify if OBS Studio is running and attempt launching it if offline."""
+def is_obs_process_active() -> bool:
+    """Check if an OBS Studio process is already active in the operating system."""
+    sys_name = platform.system()
     try:
-        req = urllib.request.Request(
-            f"http://{OBS_WEBSOCKET_HOST}:{OBS_WEBSOCKET_PORT}"
-        )
-        urllib.request.urlopen(req, timeout=1)  # nosec
-        return True
-    except Exception:
-        pass
-
-    import time
-    for obs_exe in get_obs_executable_paths():
-        if os.path.exists(obs_exe):
-            cwd = os.path.dirname(obs_exe) if platform.system() == "Windows" else None
-            try:
-                subprocess.Popen([obs_exe, "--minimize-to-tray"], cwd=cwd)
-                time.sleep(3)
+        if sys_name == "Windows":
+            r = subprocess.run(
+                ["tasklist", "/fi", "imagename eq obs64.exe", "/fo", "csv", "/nh"],
+                capture_output=True,
+                text=True,
+                timeout=1,
+            )
+            if "obs64.exe" in r.stdout.lower():
                 return True
-            except Exception:
-                pass
-    return False
+            r32 = subprocess.run(
+                ["tasklist", "/fi", "imagename eq obs32.exe", "/fo", "csv", "/nh"],
+                capture_output=True,
+                text=True,
+                timeout=1,
+            )
+            return "obs32.exe" in r32.stdout.lower()
+        else:
+            r = subprocess.run(
+                ["pgrep", "-x", "obs"],
+                capture_output=True,
+                text=True,
+                timeout=1,
+            )
+            return r.returncode == 0
+    except Exception:
+        return False
+
+
+def is_obs_websocket_port_open(
+    host: str = OBS_WEBSOCKET_HOST, port: int = OBS_WEBSOCKET_PORT
+) -> bool:
+    """Check if OBS WebSocket TCP port is actively accepting connections."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.settimeout(0.2)
+            return sock.connect_ex((host, port)) == 0
+    except Exception:
+        return False
+
+
+def make_obs_launcher() -> Callable[[], bool]:
+    """Closure providing controlled OBS detection and single-shot safe launcher without duplicate instances."""
+    has_attempted_launch: List[bool] = [False]
+    lock = threading.Lock()
+
+    def check_and_launch() -> bool:
+        # 1. Se a porta TCP do WebSocket do OBS já está respondendo, a instância existente está ativa!
+        if is_obs_websocket_port_open():
+            return True
+
+        # 2. Se o processo do OBS já está em execução no sistema operacional:
+        # NUNCA iniciar novo processo para evitar conflitos, pop-ups de duplicidade e Safe Mode!
+        if is_obs_process_active():
+            return True
+
+        # 3. Se nem a porta nem o processo estão ativos, podemos tentar lançar uma única vez
+        with lock:
+            if has_attempted_launch[0]:
+                return False
+            has_attempted_launch[0] = True
+
+            for obs_exe in get_obs_executable_paths():
+                if os.path.exists(obs_exe):
+                    cwd = (
+                        os.path.dirname(obs_exe)
+                        if platform.system() == "Windows"
+                        else None
+                    )
+                    try:
+                        subprocess.Popen([obs_exe, "--minimize-to-tray"], cwd=cwd)
+                        return True
+                    except Exception:
+                        pass
+        return False
+
+    return check_and_launch
+
+
+check_and_launch_obs = make_obs_launcher()
 
 
 def _get_raw_media_files() -> List[Dict[str, object]]:
