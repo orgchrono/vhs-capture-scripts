@@ -103,7 +103,27 @@
     "panasonic_detected_badge": "Panasonic DVR erkannt",
     "guidance_title": "Sicherheitshinweise und Festplatten-Imaging (Wichtig)",
     "guidance_warning": "WARNUNG: Wenn Windows oder macOS beim Anschließen der Panasonic-Festplatte auffordert, das 'Laufwerk zu formatieren', NIEMALS formatieren! Das MEIHDFS-Dateisystem ist proprietär. Durch das Formatieren werden alle Aufnahmen unwiderruflich gelöscht.",
-    "guidance_imaging": "Um die Originalfestplatte vor mechanischem Verschleiß zu schützen, können Sie mit forensischen Tools wie dd (Linux/Mac) oder Win32DiskImager (Windows) ein bitgenaues Roh-Image (.bin oder .img) erstellen und im folgenden Feld laden."
+    "guidance_imaging": "Um die Originalfestplatte vor mechanischem Verschleiß zu schützen, können Sie mit forensischen Tools wie dd (Linux/Mac) oder Win32DiskImager (Windows) ein bitgenaues Roh-Image (.bin oder .img) erstellen und im folgenden Feld laden.",
+    "hotplug_monitoring": "Hotplug Aktiv (3s)",
+    "hotplug_status": "Überwachung von USB- / SATA-Adaptern in Echtzeit",
+    "adapter_jmicron": "JMicron USB-Brücke",
+    "adapter_asmedia": "ASMedia USB-Brücke",
+    "adapter_usb": "USB-Gerät",
+    "adapter_sata": "Direkte SATA-Verbindung",
+    "recording_tree_title": "MEIHDFS-Aufnahmebaum",
+    "tree_total_titles": "{{count}} Aufnahme(n)",
+    "tree_total_size": "Gesamt: {{size}} MB",
+    "select_all": "Alle Auswählen",
+    "deselect_all": "Alle Abwählen",
+    "ingest_selected_btn": "Ausgewählte Extrahieren ({{count}})",
+    "send_to_restoration_btn": "Auf Pult Laden",
+    "chapters_count": "{{count}} Kapitel",
+    "chapters_toggle": "Kapitel Anzeigen",
+    "chapter_item": "Kapitel {{num}}: {{time}}",
+    "no_titles_found": "Keine Aufnahmesitzungen auf diesem Medium gefunden.",
+    "auto_detected_notice": "Panasonic-Disk erkannt! MEIHDFS-Partition automatisch geladen.",
+    "extracted_badge": "Extrahiert",
+    "ready_badge": "Bereit"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
@@ -289,7 +309,13 @@
     "restore_aborted_desc": "Signal und Prozess wurden sicher beendet.",
     "pause_error": "Fehler beim Pausieren des Prozesses.",
     "resume_error": "Fehler beim Fortsetzen des Prozesses.",
-    "abort_error": "Fehler beim Abbrechen des Prozesses."
+    "abort_error": "Fehler beim Abbrechen des Prozesses.",
+    "panasonic_titles_extracted": "Titel Erfolgreich Extrahiert",
+    "panasonic_titles_extracted_desc": "{{count}} Titel in media/raw/ gespeichert",
+    "loaded_to_desk": "Band auf Restaurierungspult Geladen",
+    "loaded_to_desk_desc": "Datei {{file}} bereit zur Verarbeitung.",
+    "no_titles_selected": "Keine Titel Ausgewählt",
+    "no_titles_selected_desc": "Wählen Sie mindestens eine Aufnahme zum Extrahieren aus."
   },
   "telemetry": {
     "title": "Analoge Mastering-Telemetrie",
@@ -354,7 +380,10 @@
     "panasonic_extract_error": "[PANASONIC INGEST] Fehler bei Extraktion: {{error}}",
     "restore_paused": "[WIEDERHERSTELLUNG] Wiederherstellungsprozess pausiert.",
     "restore_resumed": "[WIEDERHERSTELLUNG] Wiederherstellungsprozess fortgesetzt.",
-    "restore_aborted": "[WIEDERHERSTELLUNG] Prozess und Signal sicher abgebrochen."
+    "restore_aborted": "[WIEDERHERSTELLUNG] Prozess und Signal sicher abgebrochen.",
+    "panasonic_tree_loading": "[PANASONIC INGEST] Lade Sitzungen und Aufnahmebaum von: {{path}}",
+    "panasonic_tree_loaded": "[PANASONIC INGEST] Baum geladen: {{count}} Titel erkannt.",
+    "panasonic_extracting_selected": "[PANASONIC INGEST] Extrahiere {{count}} ausgewählte(n) Titel..."
   },
   "recovery": {
     "title": "Laufende / Unterbrochene Projekte",

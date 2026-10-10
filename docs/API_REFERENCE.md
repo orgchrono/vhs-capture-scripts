@@ -250,6 +250,9 @@ Despacha ações operacionais assíncronas do estúdio através de dispatch tabl
 - **`install_vapoursynth`**: Dispara o instalador do VapourSynth + QTGMC.
 - **`generate_subtitles`**: Executa o WhisperEngine para transcrição offline de fala (`params: {"input": "...", "model_size": "tiny"}`).
 - **`stop_process`**: Finaliza o processo externo ativo via terminação limpa de subprocesso.
+- **`pause_process`**: Suspende a execução da pipeline em tempo real (liberando CPU/GPU) sem abortar o processo.
+- **`resume_process`**: Retoma a execução imediata de uma pipeline pausada.
+- **`abort_process`**: Encerra o sinal e a pipeline de forma segura, limpando locks e arquivos corrompidos.
 
 ### `POST /api/install_qtgmc`
 Dispara diretamente o processo de configuração e download do ambiente VapourSynth + QTGMC.
@@ -288,3 +291,189 @@ Salva e valida as credenciais do provedor de armazenamento selecionado.
   ```
 - **Resposta (HTTP 200):** `{"status": "ok", "message": "Configuration saved and validated successfully."}`
 - **Erro (HTTP 400):** `{"error": "Failed to validate storage configuration."}`
+
+---
+
+## 7. Ingestão Panasonic DVR & MEIHDFS (`routers/ingest.py`)
+
+### `GET /api/ingest/panasonic/disks`
+Varre e lista as unidades físicas de armazenamento e adaptadores USB-SATA (JMicron, ASMedia) conectados ao hospedeiro com diagnóstico de assinaturas MEIHDFS.
+- **Resposta (HTTP 200):**
+  ```json
+  {
+    "disks": [
+      {
+        "device_id": "\\\\.\\PhysicalDrive2",
+        "name": "JMicron Generic USB Device",
+        "model": "JMicron JMS567 (Panasonic DMR-EH55 HDD)",
+        "size_gb": 160.0,
+        "is_panasonic": true,
+        "format": "MEIHDFS-V2.0",
+        "needs_elevation": false,
+        "is_usb": true,
+        "is_jmicron": true,
+        "is_asmedia": false,
+        "bus_type": "USB"
+      }
+    ],
+    "total": 1
+  }
+  ```
+
+### `GET /api/ingest/panasonic/inspect`
+Inspeciona uma imagem de disco (`.img`, `.bin`, `.raw`) ou unidade física de bloco (`\\.\PhysicalDriveX` / `/dev/sdX`) para verificar a presença de superblocos MEIHDFS ou Program Streams MPEG-2.
+- **Query Parameter:** `source_path` (string)
+- **Resposta (HTTP 200):**
+  ```json
+  {
+    "is_panasonic": true,
+    "format": "MEIHDFS-V2.0",
+    "details": "MEIHDFS-V2.0 detected. Superblock valid with 4 program stream titles.",
+    "can_extract": true,
+    "source_path": "C:\\dumps\\panasonic_160gb.bin"
+  }
+  ```
+
+### `GET /api/ingest/panasonic/tree`
+Retorna a árvore estruturada completa de gravações, títulos, segmentação de capítulos em intervalos de 15 minutos, timecodes formatados e URLs de miniaturas.
+- **Query Parameter:** `source_path` (string)
+- **Resposta (HTTP 200):**
+  ```json
+  {
+    "source_path": "\\\\.\\PhysicalDrive2",
+    "is_panasonic": true,
+    "format": "MEIHDFS-V2.0",
+    "total_titles": 2,
+    "total_size_mb": 4200.0,
+    "titles": [
+      {
+        "id": 1,
+        "title": "Gravação 01 - 2026-10-02",
+        "filename": "title_01.mpg",
+        "path": "C:\\...\\media\\raw\\panasonic_title_01.mpg",
+        "size_mb": 2100.0,
+        "duration_sec": 3600.0,
+        "duration_formatted": "01:00:00",
+        "recorded_date": "2026-10-02",
+        "format": "MPEG-2 PS",
+        "chapters": [
+          { "id": 1, "title": "Capítulo 1", "start_sec": 0, "start_timecode": "00:00:00" },
+          { "id": 2, "title": "Capítulo 2", "start_sec": 900, "start_timecode": "00:15:00" }
+        ],
+        "thumbnail_url": "/api/media/thumbnail?path=media%2Fraw%2Fpanasonic_title_01.mpg",
+        "is_extracted": false
+      }
+    ]
+  }
+  ```
+
+### `POST /api/ingest/panasonic/extract`
+Extrai todos os títulos da imagem ou unidade Panasonic diretamente para a pasta `media/raw/`.
+- **Payload:** `{"source_path": "\\\\.\\PhysicalDrive2", "output_dir": "media/raw"}`
+- **Resposta (HTTP 200):**
+  ```json
+  {
+    "status": "success",
+    "message": "Successfully extracted 2 title(s).",
+    "extracted_files": ["title_01.mpg", "title_02.mpg"],
+    "destination": "media/raw"
+  }
+  ```
+
+### `POST /api/ingest/panasonic/extract-titles`
+Extrai seletivamente apenas os títulos especificados por IDs, evitando leituras de disco desnecessárias.
+- **Payload Schema (`PanasonicExtractTitlesPayload`):**
+  ```json
+  {
+    "source_path": "\\\\.\\PhysicalDrive2",
+    "title_ids": [1],
+    "output_dir": "media/raw"
+  }
+  ```
+- **Resposta (HTTP 200):**
+  ```json
+  {
+    "status": "success",
+    "message": "Successfully extracted 1 title(s).",
+    "extracted_files": ["title_01.mpg"],
+    "destination": "media/raw"
+  }
+  ```
+
+---
+
+## 8. Monitor Comparativo A/B & Mídia (`routers/restoration.py` e `routers/media.py`)
+
+### `GET /api/monitor/comparison-frame`
+Extrai em alta velocidade (< 50ms) e baixa carga de CPU (< 2%) um par sincronizado de quadros (RAW Analógico vs Restaurado/Filtrado) codificados em base64 JPEG para renderização no componente `<SplitComparisonMonitor />`.
+- **Query Parameters:**
+  - `source` (string): Caminho do vídeo bruto.
+  - `timestamp` (float, padrão `5.0`): Posição em segundos para extração do quadro.
+  - `deinterlacer` (string, padrão `bwdif`): Algoritmo de desentrelaçamento rápido.
+  - `denoise` (bool, padrão `true`): Aplicação de denoise analógico.
+  - `chroma_fix` (bool, padrão `true`): Correção de alinhamento de croma.
+- **Resposta (HTTP 200):**
+  ```json
+  {
+    "status": "success",
+    "timestamp": 5.0,
+    "raw_image": "data:image/jpeg;base64,/9j/4AAQSkZJRg...",
+    "processed_image": "data:image/jpeg;base64,/9j/4AAQSkZJRg...",
+    "width": 640,
+    "height": 360
+  }
+  ```
+
+### `GET /api/media/thumbnail`
+Gera e entrega sob demanda a miniatura de um arquivo de vídeo com cache automático em disco (`media/.thumbnails/`).
+- **Query Parameter:** `path` (string, validado por `is_safe_media_path`).
+- **Resposta (HTTP 200):** Fluxo binário JPEG (`image/jpeg`).
+
+---
+
+## 9. Projetos Incompletos & Recuperação de Jobs (`routers/restoration.py`)
+
+### `GET /api/restoration/incomplete`
+Varre `media/restored/` e lista gravações ou processos que foram interrompidos acidentalmente (queda de energia, fechamento do app).
+- **Resposta (HTTP 200):**
+  ```json
+  {
+    "incomplete_jobs": [
+      {
+        "output_path": "C:\\...\\media\\restored\\tape_01\\tape_01_restored_1080p.mp4.tmp",
+        "source_path": "C:\\...\\media\\raw\\tape_01.mkv",
+        "current_frames": 45200,
+        "total_frames": 108000,
+        "progress_percent": 41.8,
+        "fps": 28.5,
+        "output_size_bytes": 4823449600,
+        "last_modified": "2026-10-10 11:45:00",
+        "can_resume": true,
+        "source_exists": true
+      }
+    ],
+    "total": 1
+  }
+  ```
+
+### `POST /api/restoration/incomplete/action`
+Executa a reconciliação do arquivo incompleto:
+- **`resume`**: Retoma a restauração a partir do último quadro processado.
+- **`finalize`**: Executa reparo do contêiner MP4/MKV via FFmpeg (`-c copy -movflags +faststart`), tornando o vídeo parcial reproduzível imediatamente sem perda do material gravado.
+- **`discard`**: Remove arquivos temporários parciais liberando espaço em disco.
+- **Payload Schema (`IncompleteJobActionPayload`):**
+  ```json
+  {
+    "output_path": "C:\\...\\media\\restored\\tape_01\\tape_01_restored_1080p.mp4.tmp",
+    "action": "finalize"
+  }
+  ```
+- **Resposta (HTTP 200):**
+  ```json
+  {
+    "status": "success",
+    "message": "Partial video container finalized successfully.",
+    "finalized_file": "tape_01_restored_1080p_partial.mp4"
+  }
+  ```
+

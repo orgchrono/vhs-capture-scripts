@@ -1,15 +1,16 @@
 # 📼 VHS Studio Pro - Plataforma Avançada de Captura e Restauração Analógica
 
 [![CI/CD Pipeline](https://github.com/orgchrono/vhs-capture-scripts/actions/workflows/ci.yml/badge.svg)](https://github.com/orgchrono/vhs-capture-scripts/actions/workflows/ci.yml)
-[![Quality Gates](https://img.shields.io/badge/Quality%20Gates-8%20of%208%20PASS-brightgreen.svg)](logs/build_report.md)
+[![Quality Gates](https://img.shields.io/badge/Quality%20Gates-9%20of%209%20PASS-brightgreen.svg)](logs/build_report.md)
 [![Swarm Auditors](https://img.shields.io/badge/Swarm%20Auditors-7%20of%207%20PASS-brightgreen.svg)](swarm_audit_report.md)
 [![Security Bandit](https://img.shields.io/badge/Security-Bandit%20Pass%20(0%20vuln)-brightgreen.svg)](docs/SECURITY.md)
 [![Accessibility WCAG AAA](https://img.shields.io/badge/A11y-WCAG%202.1%20AAA-blue.svg)](docs/UI_UX_ACCESSIBILITY.md)
+[![i18n](https://img.shields.io/badge/i18n-10%20Locales%20(100%25%20Parity)-blue.svg)](docs/UI_UX_ACCESSIBILITY.md)
 [![License: Free & Open](https://img.shields.io/badge/License-Compliance%20Agreement-blue.svg)](docs/COMPLIANCE_LICENSE.md)
 
 O **VHS Studio Pro** é uma plataforma profissional de nível arquivístico e forense projetada para digitalização, restauração, estabilização temporal e aprimoramento por inteligência artificial de mídias analógicas magnéticas (**VHS, S-VHS, VHS-C, Video8, Hi8 e Betamax**).
 
-Construído sob uma **Arquitetura DAG Paralela** (Grafo Direcionado Acíclico), o sistema orquestra a ingestão via OBS Studio (WebSocket v5), o desentrelaçamento de referência (QTGMC / VapourSynth), a remoção de ruídos (TBC frame-hold de software), a transcrição de áudio por IA (OpenAI Whisper), o upscaling de super-resolução (Real-ESRGAN x4plus) e o envio seguro para armazenamento local ou em nuvem (S3, Google Drive, Dropbox).
+Construído sob uma **Arquitetura DAG Paralela** (Grafo Direcionado Acíclico), o sistema orquestra a ingestão via OBS Studio (WebSocket v5), a recuperação direta de gravadores **Panasonic DVR (MEIHDFS-V2.0 / DVD-VR)**, o desentrelaçamento de referência (**QTGMC / VapourSynth**), a remoção de ruídos (TBC frame-hold de software), a transcrição de áudio por IA (**OpenAI Whisper**), o upscaling de super-resolução (**Real-ESRGAN x4plus**), o monitoramento comparativo **A/B Split-Screen** em tempo real e o envio seguro para armazenamento local ou em nuvem (S3, Google Drive, Dropbox).
 
 ---
 
@@ -30,15 +31,20 @@ Construído sob uma **Arquitetura DAG Paralela** (Grafo Direcionado Acíclico), 
 
 ## 🚀 Visão Geral e Destaques
 
-- **Hardware Abstraction Layer (HAL):** Diagnóstico automático de CPU, RAM e detecção nativa de encoders por hardware (NVIDIA NVENC, AMD AMF, Intel QuickSync e Apple VideoToolbox).
+- **Ingestão Forense Panasonic DVR & Hotplug Ativo:** Detecção em tempo real (3s) de unidades e adaptadores USB-SATA (**JMicron JMS567**, **ASMedia**), montagem automática da árvore de sessões MEIHDFS-V2.0 / DVD-VR, divisão em títulos/capítulos com miniaturas e extração seletiva via binários C nativos.
+- **Monitor Comparativo A/B Split-Screen:** Inspeção interativa em tempo real com cortina deslizante antes/depois (RAW vs Restaurado) operando em proxy leve de baixa latência (< 2% CPU).
+- **Hardware Abstraction Layer (HAL) & Otimização UMA:** Diagnóstico automático de CPU, RAM e memória unificada de gráficos integrados (Intel UHD 770 / Iris Xe / AMD Radeon), combinando Vulkan NCNN e encoders de silício dedicado (Intel QuickSync `h264_qsv` / AMD AMF).
 - **TBC Frame-Hold Matemático:** Compensação temporal algorítmica para evitar descompasso cumulativo de áudio/vídeo (*A/V desync*) mesmo em fitas mofadas ou com perda periódica de sincronismo horizontal/vertical.
 - **Desentrelaçamento Broadcast de Referência:** Integração com **VapourSynth + QTGMC** para reconstrução temporal de 60 campos/s para 60 frames/s progressivos fluidos, com fallback seguro para **bwdif** e **yadif**.
+- **Controle de Processos em Tempo Real & Recuperação de Jobs:** Pausa não-destrutiva liberando CPU/GPU, retomada instantânea, abort seguro e recuperação/finalização de arquivos parciais (`.tmp.mp4`).
+- **TUI & Terminal Cross-Platform:** Navegação de terminal 100% nativa e não-bloqueante simétrica em Linux/macOS (POSIX `termios`/`select`) e Windows (`msvcrt`).
 - **IA Multimodal Integrada:**
   - **Whisper AI:** Transcrição ponta a ponta e geração de legendas VTT/SRT em múltiplos idiomas.
   - **Real-ESRGAN x4plus:** Super-resolução neural treinada para restauração de texturas e eliminação de artefatos analógicos.
   - **PySceneDetect:** Detecção automática e catalogação de cenas e takes sem intervenção manual.
 - **Fila Sequencial Persistente (Batch Queue):** Motor transacional SQLite com controle de prioridades, pausa/retomada e proteção contra sobrecarga de CPU/GPU.
 - **Conectividade em Nuvem Segura:** Upload em segundo plano para AWS S3, Google Drive (OAuth2) e Dropbox com verificação de integridade BagIt e metadados de preservação.
+- **Interface Internacionalizada (10 Idiomas):** Suporte nativo completo a `pt-BR`, `en-US`, `es`, `fr`, `de`, `it`, `ja`, `ar` (RTL), `ru` e `zh-CN` com zero texto hardcoded.
 
 ---
 
@@ -239,9 +245,11 @@ Para guias aprofundados sobre cada módulo do sistema, explore a pasta [`docs/`]
 
 - 📐 [**Arquitetura do Sistema (`docs/ARCHITECTURE.md`)**](docs/ARCHITECTURE.md): Modelos MVVM, HAL, concorrência e padrões de projeto.
 - 🔌 [**Referência Completa da API REST & SSE (`docs/API_REFERENCE.md`)**](docs/API_REFERENCE.md): Contratos, payloads e schemas dos endpoints.
+- 📀 [**Manual Técnico de Ingestão Panasonic DVR (`docs/PANASONIC_DVR_GUIDE.md`)**](docs/PANASONIC_DVR_GUIDE.md): MEIHDFS-V2.0, DVD-VR, binários nativos C e hotplug.
+- 🎞️ [**Guia Prático da Pipeline de Restauração (`docs/PIPELINE_GUIDE.md`)**](docs/PIPELINE_GUIDE.md): QTGMC, Whisper AI, denoisers, UMA/GPU e presets.
+- 📦 [**Pipeline de Release, CI/CD e Distribuição (`docs/RELEASE_AND_CI.md`)**](docs/RELEASE_AND_CI.md): Compilação cruzada C, PyInstaller e SHA-256.
 - 🔒 [**Manual de Segurança e Modelo de Ameaças (`docs/SECURITY.md`)**](docs/SECURITY.md): Mitigações CWE, políticas e auditoria.
 - ⚖️ [**Termos de Compliance e Licença (`docs/COMPLIANCE_LICENSE.md`)**](docs/COMPLIANCE_LICENSE.md): Acordo legal de uso e responsabilidade.
-- 🎞️ [**Guia Prático da Pipeline de Restauração (`docs/PIPELINE_GUIDE.md`)**](docs/PIPELINE_GUIDE.md): QTGMC, Whisper AI, denoisers e presets.
-- ♿ [**Design System, A11y e i18n (`docs/UI_UX_ACCESSIBILITY.md`)**](docs/UI_UX_ACCESSIBILITY.md): Acessibilidade WCAG 2.1 AAA e localização.
+- ♿ [**Design System, A11y e i18n (`docs/UI_UX_ACCESSIBILITY.md`)**](docs/UI_UX_ACCESSIBILITY.md): Acessibilidade WCAG 2.1 AAA e 10 idiomas.
 - 📹 [**Guia de Captura no OBS Studio (`docs/OBS_GUIDE.md`)**](docs/OBS_GUIDE.md): Calibração de dispositivos e fontes.
 - 🛠️ [**Guia de Contribuição (`docs/CONTRIBUTING.md`)**](docs/CONTRIBUTING.md): Padrões de código, branches e hooks.

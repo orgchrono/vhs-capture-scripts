@@ -1,7 +1,7 @@
 """Ingestion router for Panasonic DVR media recovery and raw dumps."""
 
 import os
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
@@ -11,6 +11,8 @@ from vhs_studio.core.paths import RAW_MEDIA_DIR
 from vhs_studio.ingest.panasonic_dvr import (
     inspect_panasonic_source,
     extract_panasonic_media,
+    get_panasonic_recording_tree,
+    extract_panasonic_titles,
 )
 
 ingest_router = APIRouter(prefix="/api/ingest", tags=["Ingest"])
@@ -20,6 +22,14 @@ class PanasonicExtractPayload(BaseModel):
     """Payload for requesting Panasonic media extraction."""
 
     source_path: str
+    output_dir: Optional[str] = None
+
+
+class PanasonicExtractTitlesPayload(BaseModel):
+    """Payload for requesting selective Panasonic title extraction."""
+
+    source_path: str
+    title_ids: Optional[List[int]] = None
     output_dir: Optional[str] = None
 
 
@@ -46,6 +56,19 @@ def inspect_panasonic(source_path: str):
     }
 
 
+@ingest_router.get("/panasonic/tree")
+def get_panasonic_tree(source_path: str):
+    """Return structured recording session tree, chapters and thumbnails for Panasonic DVR."""
+    if not is_safe_ingest_path(source_path):
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Invalid or unsafe source path."},
+        )
+
+    tree = get_panasonic_recording_tree(source_path)
+    return tree
+
+
 @ingest_router.post("/panasonic/extract")
 def extract_panasonic(payload: PanasonicExtractPayload):
     """Extract recovered MPEG-2/VRO video titles from Panasonic DVR source into media/raw."""
@@ -59,6 +82,36 @@ def extract_panasonic(payload: PanasonicExtractPayload):
     out_dir = payload.output_dir or RAW_MEDIA_DIR
     try:
         extracted = extract_panasonic_media(source_path, output_dir=out_dir)
+        return {
+            "status": "success",
+            "message": f"Successfully extracted {len(extracted)} title(s).",
+            "extracted_files": [os.path.basename(f) for f in extracted],
+            "destination": out_dir,
+        }
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Extraction failed: {e}"},
+        )
+
+
+@ingest_router.post("/panasonic/extract-titles")
+def extract_selected_titles(payload: PanasonicExtractTitlesPayload):
+    """Extract all or selectively specified titles from Panasonic DVR source."""
+    source_path = payload.source_path
+    if not is_safe_ingest_path(source_path):
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Invalid or unsafe source path."},
+        )
+
+    out_dir = payload.output_dir or RAW_MEDIA_DIR
+    try:
+        extracted = extract_panasonic_titles(
+            source_path,
+            selected_title_ids=payload.title_ids,
+            output_dir=out_dir,
+        )
         return {
             "status": "success",
             "message": f"Successfully extracted {len(extracted)} title(s).",

@@ -103,7 +103,27 @@
     "panasonic_detected_badge": "Panasonic DVR Rilevato",
     "guidance_title": "Guida alla Sicurezza e Clonazione del Disco (Importante)",
     "guidance_warning": "ATTENZIONE: Se Windows o macOS chiede di 'Formattare il disco' quando colleghi l'hard disk Panasonic, NON formattarlo MAI! Il filesystem MEIHDFS è proprietario. La formattazione cancellerà permanentemente tutte le registrazioni.",
-    "guidance_imaging": "Per preservare il disco originale dall'usura meccanica, puoi creare un'immagine raw bit per bit (.bin ou .img) utilizando strumenti forensi come dd (Linux/Mac) o Win32DiskImager (Windows) e caricarla nel campo sottostante."
+    "guidance_imaging": "Per preservare il disco originale dall'usura meccanica, puoi creare un'immagine raw bit per bit (.bin ou .img) utilizando strumenti forensi come dd (Linux/Mac) o Win32DiskImager (Windows) e caricarla nel campo sottostante.",
+    "hotplug_monitoring": "Hotplug Attivo (3s)",
+    "hotplug_status": "Monitoraggio adattatori USB / SATA in tempo reale",
+    "adapter_jmicron": "Ponte USB JMicron",
+    "adapter_asmedia": "Ponte USB ASMedia",
+    "adapter_usb": "Dispositivo USB",
+    "adapter_sata": "Connessione SATA Diretta",
+    "recording_tree_title": "Struttura Registrazioni MEIHDFS",
+    "tree_total_titles": "{{count}} Registrazione/i",
+    "tree_total_size": "Totale: {{size}} MB",
+    "select_all": "Seleziona Tutto",
+    "deselect_all": "Deseleziona Tutto",
+    "ingest_selected_btn": "Estrai Selezionati ({{count}})",
+    "send_to_restoration_btn": "Carica sul Banco",
+    "chapters_count": "{{count}} capitoli",
+    "chapters_toggle": "Vedi Capitoli",
+    "chapter_item": "Capitolo {{num}}: {{time}}",
+    "no_titles_found": "Nessuna sessione di registrazione trovata su questo supporto.",
+    "auto_detected_notice": "Disco Panasonic rilevato! Partizione MEIHDFS caricata automaticamente.",
+    "extracted_badge": "Estratto",
+    "ready_badge": "Pronto"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
@@ -289,7 +309,13 @@
     "restore_aborted_desc": "Segnale e processo sono stati terminati in sicurezza.",
     "pause_error": "Impossibile mettere in pausa il processo.",
     "resume_error": "Impossibile riprendere il processo.",
-    "abort_error": "Impossibile interrompere il processo."
+    "abort_error": "Impossibile interrompere il processo.",
+    "panasonic_titles_extracted": "Titoli Estratti con Successo",
+    "panasonic_titles_extracted_desc": "{{count}} titolo/i salvati in media/raw/",
+    "loaded_to_desk": "Nastro Caricato sul Banco di Restauro",
+    "loaded_to_desk_desc": "File {{file}} pronto per l'elaborazione.",
+    "no_titles_selected": "Nessun Titolo Selezionato",
+    "no_titles_selected_desc": "Seleziona almeno una registrazione da estrarre."
   },
   "telemetry": {
     "title": "Telemetria di Restauro Analogico",
@@ -354,7 +380,10 @@
     "panasonic_extract_error": "[PANASONIC INGEST] Errore durante l'estrazione: {{error}}",
     "restore_paused": "[RESTAURO] Processo di restauro in pausa.",
     "restore_resumed": "[RESTAURO] Processo di restauro ripreso.",
-    "restore_aborted": "[RESTAURO] Processo e segnale interrotti in sicurezza."
+    "restore_aborted": "[RESTAURO] Processo e segnale interrotti in sicurezza.",
+    "panasonic_tree_loading": "[PANASONIC INGEST] Caricamento sessioni e albero registrazioni da: {{path}}",
+    "panasonic_tree_loaded": "[PANASONIC INGEST] Albero caricato: {{count}} titolo/i rilevato/i.",
+    "panasonic_extracting_selected": "[PANASONIC INGEST] Estrazione di {{count}} titolo/i selezionato/i..."
   },
   "recovery": {
     "title": "Progetti in corso / Interrotti",

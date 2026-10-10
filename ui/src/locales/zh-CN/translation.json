@@ -103,7 +103,27 @@
     "panasonic_detected_badge": "检测到松下DVR",
     "guidance_title": "安全指南与磁盘镜像克隆（重要）",
     "guidance_warning": "注意：连接松下硬盘时，若 Windows 或 macOS 提示“需要格式化磁盘”，请绝对不要格式化！MEIHDFS 为专有文件系统，格式化将永久清除所有录像。",
-    "guidance_imaging": "为防止原始机械磁盘老化磨损，您可以使用 dd (Linux/Mac) 或 Win32DiskImager (Windows) 等取证工具制作逐位原始磁盘镜像（.bin 或 .img），并在下方输入框中加载该镜像。"
+    "guidance_imaging": "为防止原始机械磁盘老化磨损，您可以使用 dd (Linux/Mac) 或 Win32DiskImager (Windows) 等取证工具制作逐位原始磁盘镜像（.bin 或 .img），并在下方输入框中加载该镜像。",
+    "hotplug_monitoring": "热插拔检测已激活 (3秒)",
+    "hotplug_status": "实时监控 USB / SATA 适配器",
+    "adapter_jmicron": "JMicron USB 桥接器",
+    "adapter_asmedia": "ASMedia USB 桥接器",
+    "adapter_usb": "USB 设备",
+    "adapter_sata": "原生 SATA 连接",
+    "recording_tree_title": "MEIHDFS 录制结构树",
+    "tree_total_titles": "{{count}} 个录像",
+    "tree_total_size": "总计: {{size}} MB",
+    "select_all": "全选",
+    "deselect_all": "取消全选",
+    "ingest_selected_btn": "提取所选 ({{count}})",
+    "send_to_restoration_btn": "载入工作台",
+    "chapters_count": "{{count}} 个章节",
+    "chapters_toggle": "查看章节",
+    "chapter_item": "章节 {{num}}: {{time}}",
+    "no_titles_found": "在此介质上未找到录制会话。",
+    "auto_detected_notice": "检测到松下硬盘！MEIHDFS 分区已自动载入。",
+    "extracted_badge": "已提取",
+    "ready_badge": "就绪"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
@@ -289,7 +309,13 @@
     "restore_aborted_desc": "信号与进程已安全终止。",
     "pause_error": "暂停进程失败。",
     "resume_error": "恢复进程失败。",
-    "abort_error": "中止进程失败。"
+    "abort_error": "中止进程失败。",
+    "panasonic_titles_extracted": "标题成功提取",
+    "panasonic_titles_extracted_desc": "{{count}} 个标题已保存至 media/raw/",
+    "loaded_to_desk": "磁带已载入修复工作台",
+    "loaded_to_desk_desc": "文件 {{file}} 已准备就绪。",
+    "no_titles_selected": "未选择任何标题",
+    "no_titles_selected_desc": "请至少选择一个录像进行提取。"
   },
   "telemetry": {
     "title": "模拟修复母带遥测数据",
@@ -354,7 +380,10 @@
     "panasonic_extract_error": "[PANASONIC INGEST] 提取过程出错: {{error}}",
     "restore_paused": "[恢复] 恢复进程已暂停。",
     "restore_resumed": "[恢复] 恢复进程已继续。",
-    "restore_aborted": "[恢复] 进程与信号已安全中止。"
+    "restore_aborted": "[恢复] 进程与信号已安全中止。",
+    "panasonic_tree_loading": "[PANASONIC INGEST] 正在从 {{path}} 加载录制会话和结构树",
+    "panasonic_tree_loaded": "[PANASONIC INGEST] 结构树已载入: 检测到 {{count}} 个标题。",
+    "panasonic_extracting_selected": "[PANASONIC INGEST] 正在提取 {{count}} 个所选标题..."
   },
   "recovery": {
     "title": "进行中 / 中断的项目",

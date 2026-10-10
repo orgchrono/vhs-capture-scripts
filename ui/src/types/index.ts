@@ -162,6 +162,10 @@ export interface PanasonicDisk {
   is_panasonic: boolean;
   format: string;
   needs_elevation: boolean;
+  is_usb?: boolean;
+  is_jmicron?: boolean;
+  is_asmedia?: boolean;
+  bus_type?: string;
 }
 
 export interface ComparisonFrameResponse {
@@ -173,5 +177,37 @@ export interface ComparisonFrameResponse {
   height: number;
   error?: string;
 }
+
+export interface PanasonicChapter {
+  id: number;
+  title: string;
+  start_sec: number;
+  start_timecode: string;
+}
+
+export interface PanasonicRecordingTitle {
+  id: number;
+  title: string;
+  filename: string;
+  path: string;
+  size_mb: number;
+  duration_sec: number;
+  duration_formatted: string;
+  recorded_date: string;
+  format: string;
+  chapters: PanasonicChapter[];
+  thumbnail_url?: string;
+  is_extracted: boolean;
+}
+
+export interface PanasonicRecordingTreeResponse {
+  source_path: string;
+  is_panasonic: boolean;
+  format: string;
+  total_titles: number;
+  total_size_mb: number;
+  titles: PanasonicRecordingTitle[];
+}
+
 
 

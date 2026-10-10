@@ -93,10 +93,12 @@ O arquivo monolítico anterior `server.py` (528 linhas) foi decomposto em sub-m�
 | **[`system.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/routers/system.py)** | Verificação de integridade, telemetria do hospedeiro e streaming reativo | `GET /api/token`<br>`GET /api/status`<br>`GET /api/hardware`<br>`GET /api/logs`<br>`GET /api/logs/stream` (SSE) |
 | **[`queue.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/routers/queue.py)** | Gerenciamento transacional da fila persistente em lote | `GET /api/queue`<br>`POST /api/queue/enqueue`<br>`POST /api/queue/cancel/{id}`<br>`POST /api/queue/start`<br>`POST /api/queue/stop` |
 | **[`obs.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/routers/obs.py)** | Integração via WebSocket v5 com OBS Studio | `GET /api/obs/stats`<br>`POST /api/obs/start`<br>`POST /api/obs/stop`<br>`POST /api/obs/virtualcam` |
-| **[`restoration.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/routers/restoration.py)** | Disparo de pipelines de restauração e instaladores automatizados | `POST /api/run`<br>`POST /api/action`<br>`POST /api/install_qtgmc` |
+| **[`restoration.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/routers/restoration.py)** | Disparo de pipelines de restauração, pausa/aborto e comparador A/B | `POST /api/run`<br>`POST /api/action`<br>`GET /api/monitor/comparison-frame`<br>`GET /api/restoration/incomplete` |
+| **[`ingest.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/routers/ingest.py)** | Hotplug, inspeção forense e extração seletiva Panasonic DVR MEIHDFS | `GET /api/ingest/panasonic/disks`<br>`GET /api/ingest/panasonic/inspect`<br>`GET /api/ingest/panasonic/tree`<br>`POST /api/ingest/panasonic/extract-titles` |
+| **[`media.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/routers/media.py)** | Entrega e cache de miniaturas de vídeo em tempo real | `GET /api/media/thumbnail` |
 | **[`storage.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/routers/storage.py)** | Configuração e validação de storage local e nuvem | `GET /api/storage/config`<br>`POST /api/storage/config` |
 | **[`security.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/routers/security.py)** | Proteção contra path traversal (CWE-22) e origin middleware | `is_safe_media_path`<br>`make_origin_verifier`<br>`SESSION_TOKEN` |
-| **[`schemas.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/routers/schemas.py)** | Modelos Pydantic para validação de entrada estrita | `StorageConfigPayload`<br>`QueueEnqueuePayload`<br>`ActionPayload`<br>`ObsVirtualCamPayload` |
+| **[`schemas.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/routers/schemas.py)** | Modelos Pydantic para validação de entrada estrita | `StorageConfigPayload`<br>`QueueEnqueuePayload`<br>`ActionPayload`<br>`PanasonicExtractTitlesPayload` |
 | **[`server.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/server.py)** | Application factory enxuta (84 linhas) e orquestrador de routers | `create_app()`<br>`run_server()` |
 
 ---
@@ -241,9 +243,11 @@ Gravadores analógicos/digitais de mesa da Panasonic (linha DMR-E, DMR-EH, DMR-E
 
 ### Arquitetura de Resolução em Toolchain:
 Em vez de misturar código C legados ao repositório Python, o sistema adota a arquitetura de **Toolchain Desacoplado**:
-- **Resolução de Binários:** O utilitário compilado `extract_meihdfs` (de `leecher1337/panasonic-rec`) é buscado prioritariamente no diretório portátil `tools/panasonic_rec/` e subsequentemente no `PATH` do sistema via [`paths.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/core/paths.py) e [`Toolchain`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/core/toolchain.py).
-- **Fallback Pure-Python:** Quando o binário nativo não estiver compilado para o sistema operacional alvo, o módulo [`panasonic_dvr.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/ingest/panasonic_dvr.py) ativa automaticamente o carver puro em Python. Ele percorre a imagem de bloco em buffers de 4MB, reconstruindo faixas contínuas de vídeo diretamente para `media/raw/`.
-- **API e UI Integradas:** Endpoints `/api/ingest/panasonic/inspect` e `/api/ingest/panasonic/extract` expostos no painel lateral de fitas (`FileSelector.tsx`), permitindo que a mídia recuperada fique imediatamente pronta para a pipeline de restauração analógica.
+- **Resolução de Binários:** Os utilitários compilados `extract_meihdfs`, `dvd-vr` e `vro2split` são buscados prioritariamente no diretório portátil `tools/panasonic_rec/` e subsequentemente no `PATH` do sistema via [`paths.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/core/paths.py) e [`Toolchain`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/core/toolchain.py).
+- **Compilação Cruzada Automatizada:** O script [`scripts/build_panasonic_tools.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/scripts/build_panasonic_tools.py) compila os binários em Windows (MinGW/MSVC), Linux (GCC) e macOS (Clang) no ambiente de desenvolvimento e durante o CI/CD.
+- **Hotplug Contínuo (3s Polling) & Auto-Config:** Polling automático detecta conexões físicas de pontes USB-SATA (**JMicron JMS567**, **ASMedia**) e unidades de bloco, auto-expandindo o card e carregando a árvore de gravações sem clique manual.
+- **Árvore de Gravações & Capítulos:** Endpoint `GET /api/ingest/panasonic/tree` decompõe a mídia em títulos, timecodes formatados, divisões de capítulos e miniaturas em tempo real.
+- **Fallback Pure-Python:** Quando os binários nativos não estiverem presentes, o carver em Python puro (`panasonic_dvr.py`) assume a recuperação diretamente dos setores brutos.
 
 ---
 
@@ -253,3 +257,48 @@ Conforme estabelecido em [`AGENTS.md`](file:///c:/Users/danie/Documents/vhs-capt
 1. **100% i18n:** Todo componente React deve utilizar `t('namespace.key')` do `react-i18next`. Strings estáticas em JSX, alertas, tooltips ou botões são proibidas.
 2. **10 Idiomas Nativos:** Suporte unificado para Português (`pt-BR`), Inglês (`en-US`), Espanhol (`es`), Francês (`fr`), Alemão (`de`), Italiano (`it`), Japonês (`ja`), Árabe (`ar`, com layout RTL), Russo (`ru`) e Chinês Simplificado (`zh-CN`).
 3. **SSOT para Constantes:** Valores numéricos, extensões e caminhos de diretório devem residir exclusivamente em `constants.py` e `paths.py`.
+
+---
+
+## 12. Monitor Comparativo A/B Split-Screen (`<SplitComparisonMonitor />`)
+
+Para inspecionar os efeitos da cadeia de restauração (desentrelaçamento, denoise, TBC e alinhamento de croma) sem competir com a masterização:
+- **Proxy Downscaler de Baixa Latência (360p / 15fps):** O endpoint `GET /api/monitor/comparison-frame` extrai e processa um par de quadros (RAW vs Tratado) consumindo menos de 2% de CPU e respondendo em menos de 50ms.
+- **Divisor Interativo:** O componente React [`SplitComparisonMonitor.tsx`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/ui/src/components/SplitComparisonMonitor.tsx) implementa uma cortina divisória com arraste contínuo de mouse, navegação por teclado (`ArrowLeft` / `ArrowRight`) e controle temporal de posição.
+- **Desativação Total (Zero Overhead):** O operador pode desligar o monitor a qualquer instante para dedicar 100% dos ciclos de máquina ao processamento principal.
+
+---
+
+## 13. Otimização de GPU Integrada (UMA) & Balanceamento de Hardware
+
+Em máquinas equipadas com gráficos integrados (Intel UHD Graphics 770 / Iris Xe / AMD Radeon Vega/RDNA):
+1. **Memória Unificada (UMA - Unified Memory Architecture):** A VRAM e a RAM compartilham fisicamente os mesmos canais de memória. Decodificar na GPU para transferir para o Python via barramento PCIe gera tráfego redundante. Mantemos a decodificação de entrada em software multi-thread na RAM nativa e transferimos dados diretamente para computação.
+2. **Vulkan NCNN (Real-ESRGAN):** Executado diretamente via backend Vulkan (`-g 0`). O NCNN aloca buffers de tensores na memória compartilhada acessível pelas Execution Units da iGPU, atingindo máxima vazão sem sobrecarregar a CPU.
+3. **Aceleração Hardware QuickSync / AMF:** Encoders como `h264_qsv` operam em blocos de função fixa (*fixed-function silicon*), deixando a CPU livre para VapourSynth QTGMC.
+4. **Calibração de Threads do Whisper:** Limitação de concorrência a 4-8 threads para evitar 100% de ocupação sustentada da CPU e estrangulamento térmico (*thermal throttling*).
+
+---
+
+## 14. Terminal TUI & Entrada Não-Bloqueante Multiplataforma
+
+A interface de linha de comando ([`tui.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/cli/tui.py)) oferece paridade simétrica entre plataformas:
+- **POSIX (Linux / macOS):** Utiliza `termios`, `tty.setcbreak()` e `select.select()` para leitura assíncrona não-bloqueante de sequências de escape ANSI (`\x1b[A`, `\x1b[B`, etc.).
+- **Windows:** Utiliza chamadas da CRT do Windows (`msvcrt.kbhit()` e `msvcrt.getch()`).
+- O operador navega pelos menus com setas (`↑`, `↓`, `←`, `→`), confirma com `ENTER`, seleciona com `ESPAÇO` e pausa/aborta com `Q` ou `ESC` de forma idêntica em Bash, Zsh, CMD e PowerShell.
+
+---
+
+## 15. Controle de Processos em Tempo Real & Recuperação de Jobs Incompletos
+
+Para evitar perda de horas de digitalização em caso de interrupções:
+1. **Pausa e Retomada Instantâneas:**
+   - `pause_process`: Suspende a execução do processo via sinais de sistema (`SIGSTOP` em POSIX / `SuspendThread` em Windows), desocupando imediatamente CPU e GPU sem perder o progresso.
+   - `resume_process`: Reativa o processo (`SIGCONT` / `ResumeThread`).
+2. **Abort Limpo:** `abort_process` encerra os subprocessos filhos, libera arquivos de lock e evita arquivos corrompidos.
+3. **Subsistema de Recuperação de Jobs ([`job_recovery.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/video/job_recovery.py)):**
+   - Detecta arquivos temporários (`.tmp.mp4`, `.tmp.mkv`) deixados por falhas de energia ou encerramento abrupto.
+   - Oferece três ações determinísticas via API (`/api/restoration/incomplete/action`):
+     - **`resume`**: Retoma do último frame processado.
+     - **`finalize`**: Repara o contêiner de vídeo via FFmpeg copiando fluxos (`-c copy`) e escrevendo o átomo `moov` no início (`-movflags +faststart`), tornando o vídeo parcial reproduzível imediatamente.
+     - **`discard`**: Limpa arquivos parciais com segurança.
+

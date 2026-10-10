@@ -25,4 +25,19 @@ describe('PanasonicIngestCard Component', () => {
     expect(screen.getByTestId('panasonic-path-input')).toBeInTheDocument();
     expect(screen.getByTestId('inspect-panasonic-btn')).toBeInTheDocument();
   });
+
+  it('allows typing into source path input and collapses upon toggle', () => {
+    renderComponent();
+
+    const toggle = screen.getByTestId('toggle-panasonic-ingest-btn');
+    fireEvent.click(toggle);
+
+    const input = screen.getByTestId('panasonic-path-input') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'C:\\dumps\\panasonic_dump.img' } });
+    expect(input.value).toBe('C:\\dumps\\panasonic_dump.img');
+
+    // Collapse again
+    fireEvent.click(toggle);
+    expect(screen.queryByTestId('panasonic-path-input')).not.toBeInTheDocument();
+  });
 });

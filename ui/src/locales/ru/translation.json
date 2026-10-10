@@ -103,7 +103,27 @@
     "panasonic_detected_badge": "Обнаружен Panasonic DVR",
     "guidance_title": "Руководство по безопасности и клонированию (Важно)",
     "guidance_warning": "ВНИМАНИЕ: Если Windows или macOS предлагает 'Форматировать диск' при подключении накопителя Panasonic, НИ В КОЕМ СЛУЧАЕ не форматируйте! Файловая система MEIHDFS является проприетарной. Форматирование навсегда сотрет все записи.",
-    "guidance_imaging": "Чтобы защитить исходный накопитель от механического износа, вы можете создать побитовый посекторный образ (.bin или .img) с помощью утилит dd (Linux/Mac) или Win32DiskImager (Windows) и загрузить его в поле ниже."
+    "guidance_imaging": "Чтобы защитить исходный накопитель от механического износа, вы можете создать побитовый посекторный образ (.bin или .img) с помощью утилит dd (Linux/Mac) или Win32DiskImager (Windows) и загрузить его в поле ниже.",
+    "hotplug_monitoring": "Горячее подключение активно (3 сек)",
+    "hotplug_status": "Мониторинг адаптеров USB / SATA в реальном времени",
+    "adapter_jmicron": "USB-мост JMicron",
+    "adapter_asmedia": "USB-мост ASMedia",
+    "adapter_usb": "USB-устройство",
+    "adapter_sata": "Прямое подключение SATA",
+    "recording_tree_title": "Дерево записей MEIHDFS",
+    "tree_total_titles": "{{count}} записей",
+    "tree_total_size": "Всего: {{size}} МБ",
+    "select_all": "Выбрать все",
+    "deselect_all": "Снять выбор",
+    "ingest_selected_btn": "Извлечь выбранные ({{count}})",
+    "send_to_restoration_btn": "Загрузить на рабочий стол",
+    "chapters_count": "{{count}} глав",
+    "chapters_toggle": "Просмотр глав",
+    "chapter_item": "Глава {{num}}: {{time}}",
+    "no_titles_found": "На этом носителе не найдено записей.",
+    "auto_detected_notice": "Диск Panasonic обнаружен! Раздел MEIHDFS загружен автоматически.",
+    "extracted_badge": "Извлечено",
+    "ready_badge": "Готово"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
@@ -289,7 +309,13 @@
     "restore_aborted_desc": "Сигнал и процесс были безопасно завершены.",
     "pause_error": "Не удалось приостановить процесс.",
     "resume_error": "Не удалось возобновить процесс.",
-    "abort_error": "Не удалось прервать процесс."
+    "abort_error": "Не удалось прервать процесс.",
+    "panasonic_titles_extracted": "Заголовки успешно извлечены",
+    "panasonic_titles_extracted_desc": "{{count}} записей сохранено в media/raw/",
+    "loaded_to_desk": "Кассета загружена на рабочий стол реставрации",
+    "loaded_to_desk_desc": "Файл {{file}} готов к обработке.",
+    "no_titles_selected": "Заголовки не выбраны",
+    "no_titles_selected_desc": "Выберите хотя бы одну запись для извлечения."
   },
   "telemetry": {
     "title": "Телеметрия аналогового мастеринга",
@@ -354,7 +380,10 @@
     "panasonic_extract_error": "[PANASONIC INGEST] Ошибка при извлечении: {{error}}",
     "restore_paused": "[ВОССТАНОВЛЕНИЕ] Процесс восстановления приостановлен.",
     "restore_resumed": "[ВОССТАНОВЛЕНИЕ] Процесс восстановления возобновлен.",
-    "restore_aborted": "[ВОССТАНОВЛЕНИЕ] Процесс и сигнал безопасно прерваны."
+    "restore_aborted": "[ВОССТАНОВЛЕНИЕ] Процесс и сигнал безопасно прерваны.",
+    "panasonic_tree_loading": "[PANASONIC INGEST] Загрузка сессий и дерева записей из: {{path}}",
+    "panasonic_tree_loaded": "[PANASONIC INGEST] Дерево загружено: обнаружено {{count}} записей.",
+    "panasonic_extracting_selected": "[PANASONIC INGEST] Извлечение {{count}} выбранных записей..."
   },
   "recovery": {
     "title": "Текущие / Прерванные проекты",

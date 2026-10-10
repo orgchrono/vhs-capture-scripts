@@ -103,7 +103,27 @@
     "panasonic_detected_badge": "Panasonic DVR Detected",
     "guidance_title": "Safety Guidance & Disk Imaging (Important)",
     "guidance_warning": "WARNING: If Windows or macOS prompts to 'Format the disk' upon connecting the Panasonic HDD, NEVER format it! The MEIHDFS filesystem is proprietary. Formatting will permanently erase all recordings.",
-    "guidance_imaging": "To preserve the original disk against mechanical wear, you can create a raw bit-for-bit disk image (.bin or .img) using forensic tools like dd (Linux/Mac) or Win32DiskImager (Windows) and load it into the field below."
+    "guidance_imaging": "To preserve the original disk against mechanical wear, you can create a raw bit-for-bit disk image (.bin or .img) using forensic tools like dd (Linux/Mac) or Win32DiskImager (Windows) and load it into the field below.",
+    "hotplug_monitoring": "Hotplug Active (3s)",
+    "hotplug_status": "Monitoring USB / SATA adapters in real time",
+    "adapter_jmicron": "JMicron USB Bridge",
+    "adapter_asmedia": "ASMedia USB Bridge",
+    "adapter_usb": "USB Device",
+    "adapter_sata": "Direct SATA Connection",
+    "recording_tree_title": "MEIHDFS Recording Tree",
+    "tree_total_titles": "{{count}} Recording(s)",
+    "tree_total_size": "Total: {{size}} MB",
+    "select_all": "Select All",
+    "deselect_all": "Deselect All",
+    "ingest_selected_btn": "Extract Selected ({{count}})",
+    "send_to_restoration_btn": "Load to Desk",
+    "chapters_count": "{{count}} chapters",
+    "chapters_toggle": "View Chapters",
+    "chapter_item": "Chapter {{num}}: {{time}}",
+    "no_titles_found": "No recording sessions found on this media.",
+    "auto_detected_notice": "Panasonic disk detected! MEIHDFS partition auto-loaded.",
+    "extracted_badge": "Extracted",
+    "ready_badge": "Ready"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
@@ -288,7 +308,13 @@
     "restore_aborted_desc": "Signal and process were safely terminated.",
     "pause_error": "Failed to pause process.",
     "resume_error": "Failed to resume process.",
-    "abort_error": "Failed to abort process."
+    "abort_error": "Failed to abort process.",
+    "panasonic_titles_extracted": "Titles Extracted Successfully",
+    "panasonic_titles_extracted_desc": "{{count}} title(s) saved to media/raw/",
+    "loaded_to_desk": "Tape Loaded to Restoration Desk",
+    "loaded_to_desk_desc": "File {{file}} ready for processing.",
+    "no_titles_selected": "No Titles Selected",
+    "no_titles_selected_desc": "Select at least one recording to extract."
   },
   "telemetry": {
     "title": "Analog Mastering Telemetry",
@@ -353,7 +379,10 @@
     "panasonic_extract_error": "[PANASONIC INGEST] Extraction error: {{error}}",
     "restore_paused": "[RESTORATION] Restoration process paused.",
     "restore_resumed": "[RESTORATION] Restoration process resumed.",
-    "restore_aborted": "[RESTORATION] Process and signal safely aborted."
+    "restore_aborted": "[RESTORATION] Process and signal safely aborted.",
+    "panasonic_tree_loading": "[PANASONIC INGEST] Loading sessions and recording tree from: {{path}}",
+    "panasonic_tree_loaded": "[PANASONIC INGEST] Tree loaded: {{count}} title(s) detected.",
+    "panasonic_extracting_selected": "[PANASONIC INGEST] Extracting {{count}} selected title(s)..."
   },
   "recovery": {
     "title": "Incomplete / Interrupted Projects",

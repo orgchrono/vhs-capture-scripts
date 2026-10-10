@@ -103,7 +103,27 @@
     "panasonic_detected_badge": "تم اكتشاف Panasonic DVR",
     "guidance_title": "إرشادات الأمان ونسخ القرص الاحتياطي (هام)",
     "guidance_warning": "تحذير: إذا طلب نظام Windows أو macOS 'تهيأة القرص' عند توصيل قرص Panasonic، فلا تقم بتهيئته مطلقًا! نظام الملفات MEIHDFS خاص وسيمحو التهيئة جميع التسجيلات نهائيًا.",
-    "guidance_imaging": "للحفاظ على القرص الأصلي من التآكل الميكانيكي، يمكنك إنشاء صورة خام متطابقة بت-بت (.bin أو .img) باستخدام أدوات مثل dd (Linux/Mac) أو Win32DiskImager (Windows) وتحميلها في الحقل أدناه."
+    "guidance_imaging": "للحفاظ على القرص الأصلي من التآكل الميكانيكي، يمكنك إنشاء صورة خام متطابقة بت-بت (.bin أو .img) باستخدام أدوات مثل dd (Linux/Mac) أو Win32DiskImager (Windows) وتحميلها في الحقل أدناه.",
+    "hotplug_monitoring": "التوصيل السريع نشط (3 ثوانٍ)",
+    "hotplug_status": "مراقبة محولات USB / SATA في الوقت الفعلي",
+    "adapter_jmicron": "جسر USB من JMicron",
+    "adapter_asmedia": "جسر USB من ASMedia",
+    "adapter_usb": "جهاز USB",
+    "adapter_sata": "اتصال SATA مباشر",
+    "recording_tree_title": "شجرة تسجيلات MEIHDFS",
+    "tree_total_titles": "{{count}} تسجيل/تسجيلات",
+    "tree_total_size": "الإجمالي: {{size}} ميغابايت",
+    "select_all": "تحديد الكل",
+    "deselect_all": "إلغاء تحديد الكل",
+    "ingest_selected_btn": "استخراج المحدد ({{count}})",
+    "send_to_restoration_btn": "تحميل إلى طاولة العمل",
+    "chapters_count": "{{count}} فصول",
+    "chapters_toggle": "عرض الفصول",
+    "chapter_item": "الفصل {{num}}: {{time}}",
+    "no_titles_found": "لم يتم العثور على جلسات تسجيل في هذه الوسائط.",
+    "auto_detected_notice": "تم اكتشاف قرص Panasonic! تم تحميل قسم MEIHDFS تلقائيًا.",
+    "extracted_badge": "تم الاستخراج",
+    "ready_badge": "جاهز"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
@@ -289,7 +309,13 @@
     "restore_aborted_desc": "تم إنهاء الإشارة والعملية بأمان.",
     "pause_error": "فشل إيقاف العملية مؤقتًا.",
     "resume_error": "فشل استئناف العملية.",
-    "abort_error": "فشل إحباط العملية."
+    "abort_error": "فشل إحباط العملية.",
+    "panasonic_titles_extracted": "تم استخراج العناوين بنجاح",
+    "panasonic_titles_extracted_desc": "تم حفظ {{count}} عنوان/عناوين في media/raw/",
+    "loaded_to_desk": "تم تحميل الشريط إلى طاولة الاستعادة",
+    "loaded_to_desk_desc": "الملف {{file}} جاهز للمعالجة.",
+    "no_titles_selected": "لم يتم تحديد أي عنوان",
+    "no_titles_selected_desc": "حدد تسجيلاً واحداً على الأقل للاستخراج."
   },
   "telemetry": {
     "title": "قياسات معالجة الفيديو التناظري المباشرة",
@@ -354,7 +380,10 @@
     "panasonic_extract_error": "[PANASONIC INGEST] خطأ أثناء الاستخراج: {{error}}",
     "restore_paused": "[استعادة] تم إيقاف عملية الاستعادة مؤقتًا.",
     "restore_resumed": "[استعادة] تم استئناف عملية الاستعادة.",
-    "restore_aborted": "[استعادة] تم إنهاء العملية والإشارة بأمان."
+    "restore_aborted": "[استعادة] تم إنهاء العملية والإشارة بأمان.",
+    "panasonic_tree_loading": "[PANASONIC INGEST] جاري تحميل الجلسات وشجرة التسجيلات من: {{path}}",
+    "panasonic_tree_loaded": "[PANASONIC INGEST] تم تحميل الشجرة: تم اكتشاف {{count}} عنوان/عناوين.",
+    "panasonic_extracting_selected": "[PANASONIC INGEST] جاري استخراج {{count}} عنوان/عناوين محددة..."
   },
   "recovery": {
     "title": "المشاريع الجارية / المعلقة",

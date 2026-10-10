@@ -112,3 +112,48 @@ A construção da linha de comando do FFmpeg é realizada de forma **funcional e
 | **Ultra Rápido Hardware** | `speed` | BWDIF (60p) + NVENC / AMF / QSV + Lanczos 1080p | Digitalização e entrega de alta velocidade (500+ fps em tempo real). |
 | **TBC Frame-Hold** | `tbc_hold` | Frame-Hold Dropout Shield + ZNEDI3 + Mono-L JVC | Recuperação de fitas mastigadas, amassadas ou com perda severa de sincronismo. |
 | **AI Master** | `ai_master` | QTGMC + Real-ESRGAN + CodeFormer + Whisper AI | Restauração completa de última geração para telas 4K modernas. |
+
+---
+
+## 7. Controle de Processos em Tempo Real (Pausa, Retomada & Abort Seguro)
+
+Para conferir controle operacional absoluto durante restaurações longas (fitas de 2 a 6 horas):
+- **Pausa Não-Destrutiva (`POST /api/action {"action": "pause_process"}`):**
+  - O orquestrador envia sinais de suspensão de thread (`SuspendThread` no Windows ou `SIGSTOP` no POSIX).
+  - O uso de CPU e GPU cai instantaneamente para 0%, permitindo que o usuário realize outras tarefas na máquina sem abortar o trabalho ou corromper buffers de vídeo.
+- **Retomada Imediata (`POST /api/action {"action": "resume_process"}`):**
+  - Desperta o subprocesso (`ResumeThread` / `SIGCONT`), continuando exatamente do frame onde parou.
+- **Interrupção e Abort Seguro (`POST /api/action {"action": "abort_process"}`):**
+  - Dispara término em cascata de processos filhos e remove locks de processo morto, prevenindo congelamentos de portas e arquivos corrompidos.
+
+---
+
+## 8. Subsistema de Recuperação de Gravações & Jobs Incompletos
+
+Quando ocorrem quedas de energia inesperadas ou o computador é reiniciado durante a digitalização:
+- **Detecção Automática:** O backend identifica arquivos residuais com terminação `.tmp.mp4` ou `.tmp.mkv` em `media/restored/` e calcula o progresso atingido via contagem de frames.
+- **Opções de Ação (`POST /api/restoration/incomplete/action`):**
+  1. **`resume`**: Retoma a restauração a partir do último checkpoint registrado.
+  2. **`finalize`**: Utiliza o FFmpeg em modo cópia de fluxo (`-c copy -movflags +faststart`) para reescrever o índice de quadros e o átomo `moov` no cabeçalho do arquivo, tornando o vídeo gravado até aquele momento perfeitamente reproduzível e editável.
+  3. **`discard`**: Limpa os arquivos temporários liberando espaço em disco.
+
+---
+
+## 9. Otimização de GPU Integrada (UMA) & Prevenção de Throttle
+
+Em sistemas com placas gráficas integradas (Intel UHD Graphics 770 / Iris Xe / AMD Radeon):
+1. **Memória Compartilhada (UMA):** Em vez de decodificar na GPU e reenviar os quadros para o Python via barramento PCIe, a decodificação de entrada permanece em software multi-thread na RAM do sistema.
+2. **Real-ESRGAN via Vulkan NCNN (`-g 0`):** Aloca tensores diretamente na memória unificada compartilhada, aliviando os núcleos x86 da CPU.
+3. **Encoders QuickSync / AMF Dedicados:** `h264_qsv` e `hevc_qsv` utilizam os circuitos integrados de função fixa, liberando a CPU para o desentrelaçamento de alta carga (QTGMC).
+4. **Concorrência Equilibrada:** Whisper ajustado para 4-8 threads, impedindo sobreaquecimento (*thermal throttling*) e mantendo a estabilidade térmica da máquina.
+
+---
+
+## 10. Ingestão Direta de Gravadores Panasonic DVR (MEIHDFS)
+
+Para recuperar discos de gravadores de mesa Panasonic (ex: DMR-EH55):
+- O sistema detecta automaticamente adaptadores USB-to-SATA (chipsets **JMicron JMS567**, **ASMedia**) e drives de bloco.
+- O utilitário nativo em C [`extract_meihdfs`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/tools/panasonic_rec/extract_meihdfs.exe) extrai o fluxo contínuo de vídeo em alta velocidade.
+- O analisador [`dvd-vr`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/tools/panasonic_rec/dvd-vr.exe) mapeia os títulos e capítulos automaticamente.
+- Para orientações completas, consulte o [Manual Técnico de Ingestão Panasonic DVR](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/docs/PANASONIC_DVR_GUIDE.md).
+

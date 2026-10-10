@@ -11,6 +11,7 @@ import type {
   IncompleteJob,
   PanasonicDisk,
   ComparisonFrameResponse,
+  PanasonicRecordingTreeResponse,
 } from '../types';
 
 
@@ -258,6 +259,23 @@ export const studioRtkApi = createApi({
       providesTags: ['Status'],
     }),
 
+    getPanasonicTree: builder.query<PanasonicRecordingTreeResponse, string>({
+      query: (sourcePath) => `api/ingest/panasonic/tree?source_path=${encodeURIComponent(sourcePath)}`,
+      providesTags: ['Status'],
+    }),
+
+    extractPanasonicTitles: builder.mutation<
+      { status: string; message: string; extracted_files: string[]; destination: string },
+      { source_path: string; title_ids: number[]; output_dir?: string }
+    >({
+      query: (body) => ({
+        url: 'api/ingest/panasonic/extract-titles',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Status'],
+    }),
+
     getComparisonFrame: builder.query<
       ComparisonFrameResponse,
       { source?: string; timestamp?: number; deinterlacer?: string; denoise?: boolean; chroma_fix?: boolean }
@@ -305,6 +323,9 @@ export const {
   useHandleIncompleteJobMutation,
   useGetPanasonicDisksQuery,
   useLazyGetPanasonicDisksQuery,
+  useGetPanasonicTreeQuery,
+  useLazyGetPanasonicTreeQuery,
+  useExtractPanasonicTitlesMutation,
   useGetComparisonFrameQuery,
   useLazyGetComparisonFrameQuery,
 } = studioRtkApi;

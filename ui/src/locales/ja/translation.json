@@ -103,7 +103,27 @@
     "panasonic_detected_badge": "Panasonic DVR検出",
     "guidance_title": "安全ガイドラインとディスクイメージ作成（重要）",
     "guidance_warning": "注意：Panasonic HDDを接続した際にWindowsやmacOSが「ディスクをフォーマットしますか」と求めてきても、絶対にフォーマットしないでください！MEIHDFSは独自ファイルシステムであり、フォーマットすると全録画が永久に消去されます。",
-    "guidance_imaging": "メカニカルな摩耗から元のディスクを保護するために、dd（Linux/Mac）やWin32DiskImager（Windows）などのツールを使用してビット単位の生イメージ（.binまたは.img）を作成し、下のフィールドに読み込むことができます。"
+    "guidance_imaging": "メカニカルな摩耗から元のディスクを保護するために、dd（Linux/Mac）やWin32DiskImager（Windows）などのツールを使用してビット単位の生イメージ（.binまたは.img）を作成し、下のフィールドに読み込むことができます。",
+    "hotplug_monitoring": "ホットプラグ有効 (3秒)",
+    "hotplug_status": "USB / SATA アダプターをリアルタイムで監視中",
+    "adapter_jmicron": "JMicron USB ブリッジ",
+    "adapter_asmedia": "ASMedia USB ブリッジ",
+    "adapter_usb": "USB デバイス",
+    "adapter_sata": "ダイレクト SATA 接続",
+    "recording_tree_title": "MEIHDFS 録画ツリー",
+    "tree_total_titles": "{{count}} 件の録画",
+    "tree_total_size": "合計: {{size}} MB",
+    "select_all": "すべて選択",
+    "deselect_all": "すべての選択を解除",
+    "ingest_selected_btn": "選択項目を抽出 ({{count}})",
+    "send_to_restoration_btn": "デスクに読み込む",
+    "chapters_count": "{{count}} チャプター",
+    "chapters_toggle": "チャプターを表示",
+    "chapter_item": "チャプター {{num}}: {{time}}",
+    "no_titles_found": "このメディアには録画セッションが見つかりませんでした。",
+    "auto_detected_notice": "Panasonic ディスクを検出しました！MEIHDFS パーティションを自動読み込みしました。",
+    "extracted_badge": "抽出済み",
+    "ready_badge": "準備完了"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
@@ -289,7 +309,13 @@
     "restore_aborted_desc": "シグナルとプロセスが安全に終了しました。",
     "pause_error": "プロセスの一時停止に失敗しました。",
     "resume_error": "プロセスの再開に失敗しました。",
-    "abort_error": "プロセスの中断に失敗しました。"
+    "abort_error": "プロセスの中断に失敗しました。",
+    "panasonic_titles_extracted": "タイトルの抽出に成功しました",
+    "panasonic_titles_extracted_desc": "{{count}} 件のタイトルが media/raw/ に保存されました",
+    "loaded_to_desk": "テープが修復デスクに読み込まれました",
+    "loaded_to_desk_desc": "ファイル {{file}} の処理準備が整いました。",
+    "no_titles_selected": "タイトルが選択されていません",
+    "no_titles_selected_desc": "抽出する録画を少なくとも1つ選択してください。"
   },
   "telemetry": {
     "title": "アナログマスタリング テレメトリ",
@@ -354,7 +380,10 @@
     "panasonic_extract_error": "[PANASONIC INGEST] 抽出中エラー: {{error}}",
     "restore_paused": "[復元] 復元プロセスが一時停止されました。",
     "restore_resumed": "[復元] 復元プロセスが再開されました。",
-    "restore_aborted": "[復元] プロセスとシグナルが安全に中断されました。"
+    "restore_aborted": "[復元] プロセスとシグナルが安全に中断されました。",
+    "panasonic_tree_loading": "[PANASONIC INGEST] セッションおよび録画ツリーを読み込み中: {{path}}",
+    "panasonic_tree_loaded": "[PANASONIC INGEST] ツリーを読み込みました: {{count}} 件のタイトルを検出。",
+    "panasonic_extracting_selected": "[PANASONIC INGEST] 選択された {{count}} 件のタイトルを抽出中..."
   },
   "recovery": {
     "title": "進行中 / 中断されたプロジェクト",
