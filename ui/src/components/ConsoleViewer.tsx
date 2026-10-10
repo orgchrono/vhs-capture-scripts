@@ -13,6 +13,7 @@ import {
 import { Button } from './ui/button'
 import { useTranslation } from 'react-i18next'
 import { useStudioStore } from '../store/useStudioStore'
+import { usePreferencesStore } from '../store/usePreferencesStore'
 
 export type LogFilterLevel = 'all' | 'info' | 'warn' | 'error'
 
@@ -37,6 +38,7 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
 }) => {
   const { t } = useTranslation()
   const { logs, clearLogs, isRestoring: storeIsRestoring, isPaused: storeIsPaused } = useStudioStore()
+  const { autoScrollConsole } = usePreferencesStore()
   const isRestoring = propIsRestoring ?? storeIsRestoring
   const isPaused = propIsPaused ?? storeIsPaused
 
@@ -78,10 +80,10 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
   }, [logs, filterLevel, searchQuery])
 
   useEffect(() => {
-    if (typeof endRef.current?.scrollIntoView === 'function') {
+    if (autoScrollConsole && typeof endRef.current?.scrollIntoView === 'function') {
       endRef.current.scrollIntoView({ behavior: 'smooth' })
     }
-  }, [filteredLogs])
+  }, [filteredLogs, autoScrollConsole])
 
   const formatLine = (line: string, index: number) => {
     let colorClass = 'text-slate-300'

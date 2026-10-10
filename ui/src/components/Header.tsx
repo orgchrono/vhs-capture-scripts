@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Cpu, Film, Sparkles, Wrench, Globe, Eye, Video, Type, PanelLeft, PanelBottom, ShieldCheck } from 'lucide-react'
+import { Cpu, Film, Sparkles, Wrench, Globe, Eye, Video, Type, PanelLeft, PanelBottom, ShieldCheck, Settings } from 'lucide-react'
 import { Button } from './ui/button'
 import type { SystemStatus } from '../types'
 import { useTranslation } from 'react-i18next'
@@ -16,6 +16,7 @@ interface HeaderProps {
   consoleCollapsed?: boolean
   onToggleConsole?: () => void
   onOpenPrivacy?: () => void
+  onOpenPreferences?: () => void
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -29,6 +30,7 @@ export const Header: React.FC<HeaderProps> = ({
   consoleCollapsed,
   onToggleConsole,
   onOpenPrivacy,
+  onOpenPreferences,
 }) => {
   const { t, i18n } = useTranslation();
   const [highContrast, setHighContrast] = useState(false)
@@ -117,6 +119,19 @@ export const Header: React.FC<HeaderProps> = ({
               title={t('header.eula_terms')}
             >
               <ShieldCheck className="w-3.5 h-3.5" />
+            </Button>
+          )}
+          {onOpenPreferences && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-7 h-7 rounded-sm hover:bg-studio-surface-hover text-slate-400 hover:text-amber-400"
+              onClick={onOpenPreferences}
+              title={t('header.preferences_title')}
+              aria-label={t('header.preferences_title')}
+              data-testid="open-preferences-btn"
+            >
+              <Settings className="w-3.5 h-3.5" />
             </Button>
           )}
         </div>

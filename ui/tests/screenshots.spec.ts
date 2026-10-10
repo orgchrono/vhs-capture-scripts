@@ -141,5 +141,59 @@ test.describe('VHS Studio Visual Inspection & Screenshots', () => {
       await page.waitForTimeout(600);
       await page.screenshot({ path: path.join(shotsDir, '06_sonner_toast.png') });
     }
+
+    // 7. Teste de Abertura do Modal de Preferências Globais
+    const openPrefsBtn = page.getByTestId('open-preferences-btn');
+    if (await openPrefsBtn.isVisible()) {
+      await openPrefsBtn.click();
+      await page.waitForTimeout(400);
+      await expect(page.getByRole('dialog')).toBeVisible();
+      await page.screenshot({ path: path.join(shotsDir, '07_app_preferences_modal.png') });
+
+      // Trocar para a aba de Hardware & IA
+      const hardwareTabBtn = page.locator('button:has-text("Hardware")');
+      if (await hardwareTabBtn.isVisible()) {
+        await hardwareTabBtn.click();
+        await page.waitForTimeout(300);
+        await page.screenshot({ path: path.join(shotsDir, '08_app_preferences_hardware.png') });
+      }
+
+      // Fechar o modal
+      const closeBtn = page.locator('button:has-text("Concluído"), button:has-text("Done")');
+      if (await closeBtn.isVisible()) {
+        await closeBtn.click();
+        await page.waitForTimeout(300);
+      }
+    }
+
+    // 8. Teste de Resizing Vertical do Painel Inferior (Console & Ribbon)
+    const resizeHandle = page.locator('[data-panel-group-direction="vertical"] [data-panel-resize-handle-enabled]').first();
+    if (await resizeHandle.isVisible()) {
+      const box = await resizeHandle.boundingBox();
+      if (box) {
+        // Simular arraste suave para cima
+        await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+        await page.mouse.down();
+        await page.mouse.move(box.x + box.width / 2, box.y - 60, { steps: 5 });
+        await page.mouse.up();
+        await page.waitForTimeout(300);
+        console.log('Vertical panel resize dragging executed successfully without lockup!');
+      }
+    }
+
+    // Sincronizar todos os screenshots com o diretório oficial de artefatos
+    const artifactsDir = 'C:/Users/danie/.gemini/antigravity/brain/98d0546c-0eb2-4a87-9de4-bf0312855c52';
+    try {
+      const fs = await import('fs');
+      if (fs.existsSync(artifactsDir)) {
+        for (const shot of fs.readdirSync(shotsDir)) {
+          if (shot.endsWith('.png')) {
+            fs.copyFileSync(path.join(shotsDir, shot), path.join(artifactsDir, shot));
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Artifacts sync notice:', e);
+    }
   });
 });

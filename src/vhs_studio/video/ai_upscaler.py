@@ -91,13 +91,16 @@ class AIUpscaler:
         cpu_cores = max(2, multiprocessing.cpu_count() // 2)
         thread_load = f"2:{cpu_cores}:2"
 
+        is_cugan = "cugan" in self.model_name.lower() or "models-" in self.model_name.lower()
+        model_flag = "-m" if is_cugan else "-n"
+
         cmd = [
             self.ncnn_path,
             "-i",
             input_video,
             "-o",
             output_video,
-            "-n",
+            model_flag,
             self.model_name,
             "-g",
             str(self.gpu_id),

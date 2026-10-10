@@ -11,8 +11,9 @@ import {
   ConsoleViewer,
   LiveMonitor,
   PrivacyModal,
+  AppPreferencesModal,
   FooterStatusBar,
-  BroadcastProgress,
+  BroadcastProgressRibbon,
 } from './components'
 import { createTelemetryParser } from './components/BroadcastProgress'
 import { Toaster } from './components/ui/sonner'
@@ -27,7 +28,10 @@ import { LAYOUT_CONFIG } from './lib/constants'
 
 const telemetryParser = createTelemetryParser()
 
-const StudioMain: React.FC<{ onOpenPrivacy?: () => void }> = ({ onOpenPrivacy }) => {
+const StudioMain: React.FC<{
+  onOpenPrivacy?: () => void
+  onOpenPreferences?: () => void
+}> = ({ onOpenPrivacy, onOpenPreferences }) => {
   const { t } = useTranslation()
   const {
     status,
@@ -144,6 +148,7 @@ const StudioMain: React.FC<{ onOpenPrivacy?: () => void }> = ({ onOpenPrivacy })
         consoleCollapsed={consoleCollapsed}
         onToggleConsole={toggleConsole}
         onOpenPrivacy={onOpenPrivacy}
+        onOpenPreferences={onOpenPreferences}
       />
 
       {/* OS File Drag and Drop Visual Feedback Overlay */}
@@ -259,41 +264,21 @@ const StudioMain: React.FC<{ onOpenPrivacy?: () => void }> = ({ onOpenPrivacy })
                     defaultSize={LAYOUT_CONFIG.CONSOLE_DEFAULT_SIZE}
                     minSize={LAYOUT_CONFIG.CONSOLE_MIN_SIZE}
                     maxSize={LAYOUT_CONFIG.CONSOLE_MAX_SIZE}
-                    className="bg-studio-panel flex flex-col shrink-0 p-2 lg:p-2.5 overflow-hidden border-t border-studio-border"
+                    className="bg-studio-panel border-t border-studio-border flex flex-col h-full overflow-hidden"
                   >
-                    <ResizablePanelGroup
-                      orientation="horizontal"
-                      className="flex-1 h-full min-h-0"
-                    >
-                      <ResizablePanel
-                        id="telemetry-panel"
-                        defaultSize={46}
-                        minSize={25}
-                        maxSize={75}
-                        className="flex flex-col h-full min-h-0 overflow-hidden pr-1.5"
-                      >
-                        <BroadcastProgress />
-                      </ResizablePanel>
-
-                      <ResizableHandle withHandle />
-
-                      <ResizablePanel
-                        id="console-viewer-panel"
-                        defaultSize={54}
-                        minSize={25}
-                        className="flex flex-col h-full min-h-0 overflow-hidden pl-1.5"
-                      >
-                        <ConsoleViewer
-                          onStart={onStart}
-                          isRestoring={isRestoring}
-                          hasSelectedFile={Boolean(selectedFile)}
-                          isPaused={isPaused}
-                          onPause={handlePauseRestore}
-                          onResume={handleResumeRestore}
-                          onAbort={handleAbortRestore}
-                        />
-                      </ResizablePanel>
-                    </ResizablePanelGroup>
+                    <div className="flex-1 min-h-0 h-full flex flex-col overflow-hidden pb-1">
+                      <ConsoleViewer
+                        onStart={onStart}
+                        isRestoring={isRestoring}
+                        hasSelectedFile={Boolean(selectedFile)}
+                        isPaused={isPaused}
+                        onPause={handlePauseRestore}
+                        onResume={handleResumeRestore}
+                        onAbort={handleAbortRestore}
+                      />
+                    </div>
+                    {/* High-Density Single-Line Broadcast Telemetry Ribbon */}
+                    <BroadcastProgressRibbon />
                   </ResizablePanel>
                 </>
               )}
@@ -310,10 +295,18 @@ const StudioMain: React.FC<{ onOpenPrivacy?: () => void }> = ({ onOpenPrivacy })
 
 export default function App() {
   const [privacyOpen, setPrivacyOpen] = useState(false)
+  const [preferencesOpen, setPreferencesOpen] = useState(false)
   return (
     <>
       <PrivacyModal isOpen={privacyOpen} onClose={() => setPrivacyOpen(false)} />
-      <StudioMain onOpenPrivacy={() => setPrivacyOpen(true)} />
+      <AppPreferencesModal
+        isOpen={preferencesOpen}
+        onClose={() => setPreferencesOpen(false)}
+      />
+      <StudioMain
+        onOpenPrivacy={() => setPrivacyOpen(true)}
+        onOpenPreferences={() => setPreferencesOpen(true)}
+      />
       <Toaster />
     </>
   )

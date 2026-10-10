@@ -3,6 +3,7 @@ import { Video, AlertTriangle, Activity, Layers } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useLiveMonitor } from '../viewmodels/useLiveMonitor';
 import { useStudioStore } from '../store/useStudioStore';
+import { usePreferencesStore } from '../store/usePreferencesStore';
 import { SplitComparisonMonitor } from './SplitComparisonMonitor';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import type { SystemHealth } from '../types';
@@ -11,6 +12,7 @@ import { formatBitrate } from '../lib/formatters';
 export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => {
   const { t } = useTranslation();
   const { selectedFile } = useStudioStore();
+  const { livePreviewEnabled } = usePreferencesStore();
   const [isSplitMode, setIsSplitMode] = useState(false);
   const { videoRef, isActive, error, obsStats, isCapturing } = useLiveMonitor();
   const shouldReduceMotion = useReducedMotion();
@@ -21,6 +23,20 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
     exit: shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.9, y: -4 },
     transition: { duration: 0.15 },
   };
+
+  if (!livePreviewEnabled) {
+    return (
+      <div className="relative w-full h-full bg-slate-950 flex flex-col items-center justify-center p-4 text-center select-none font-mono">
+        <Activity className="w-8 h-8 text-amber-500/70 mb-2" />
+        <span className="text-xs font-bold text-slate-300 uppercase tracking-wide">
+          {t('monitor.eco_mode_title')}
+        </span>
+        <span className="text-[11px] text-slate-500 max-w-xs mt-1">
+          {t('monitor.eco_mode_desc')}
+        </span>
+      </div>
+    );
+  }
 
   if (isSplitMode) {
     return (

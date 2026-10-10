@@ -1,11 +1,13 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { useDispatch, useSelector } from 'react-redux';
 import { studioSlice } from './studioSlice';
+import { preferencesSlice } from './preferencesSlice';
 import { studioRtkApi } from '../api/studioRtkApi';
 
 export const store = configureStore({
   reducer: {
     studio: studioSlice.reducer,
+    preferences: preferencesSlice.reducer,
     [studioRtkApi.reducerPath]: studioRtkApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>

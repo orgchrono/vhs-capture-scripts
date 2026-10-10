@@ -64,8 +64,11 @@ export const RESOLUTION_OPTIONS: { value: ResolutionMode; label: string }[] = [
 ];
 
 export const AI_UPSCALER_OPTIONS: { value: string; label: string }[] = [
-  { value: 'realesrgan-x4plus', label: 'Real-ESRGAN (Definição & Nitidez Digital)' },
-  { value: 'models-se', label: 'Real-CUGAN (Preservação de Grão Analógico Natural)' },
+  { value: 'realesrgan-x4plus', label: 'Real-ESRGAN x4plus (Alta Fidelidade & Nitidez)' },
+  { value: 'realesr-animevideov3-x4', label: 'Real-ESRGAN Anime 6B (V3 Desenhos/Animes)' },
+  { value: 'span-x4', label: 'SPAN x4 (Super-Pixel Attention - Ultraleve)' },
+  { value: 'models-se', label: 'Real-CUGAN SE (Preservação de Grão Analógico Natural)' },
+  { value: 'swinir-classical-sr', label: 'SwinIR Classical (Restauração Fita Severa)' },
 ];
 
 export const WHISPER_MODEL_OPTIONS: { value: string; label: string }[] = [
@@ -109,14 +112,14 @@ export const MONITOR_FORMATS = {
 
 export const LAYOUT_CONFIG = {
   SIDEBAR_DEFAULT_SIZE: '25%',
-  SIDEBAR_MIN_SIZE: '280px',
+  SIDEBAR_MIN_SIZE: '260px',
   SIDEBAR_MAX_SIZE: '450px',
   MAIN_DEFAULT_SIZE: '75%',
-  WORKSPACE_TOP_DEFAULT_SIZE: '68%',
-  WORKSPACE_TOP_MIN_SIZE: '300px',
-  CONSOLE_DEFAULT_SIZE: '32%',
-  CONSOLE_MIN_SIZE: '180px',
-  CONSOLE_MAX_SIZE: '60%',
+  WORKSPACE_TOP_DEFAULT_SIZE: '65%',
+  WORKSPACE_TOP_MIN_SIZE: '240px',
+  CONSOLE_DEFAULT_SIZE: '35%',
+  CONSOLE_MIN_SIZE: '140px',
+  CONSOLE_MAX_SIZE: '70%',
 } as const;
 
 

@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, beforeEach } from 'vitest';
 import '@testing-library/jest-dom/vitest';
-import { BroadcastProgress } from './BroadcastProgress';
+import { BroadcastProgress, BroadcastProgressRibbon } from './BroadcastProgress';
 import { store } from '../store';
 import { setIsRestoring, addLog, clearLogs } from '../store/studioSlice';
 import { Provider } from 'react-redux';
@@ -38,5 +38,16 @@ describe('BroadcastProgress Component', () => {
     expect(progressBar).toHaveAttribute('aria-valuenow', '50');
     expect(screen.getByText('50%')).toBeInTheDocument();
     expect(screen.getByText('2500/5000')).toBeInTheDocument();
+  });
+
+  it('renders BroadcastProgressRibbon in standby and active states', () => {
+    const { unmount } = renderWithStore(<BroadcastProgressRibbon />);
+    expect(screen.getByTestId('broadcast-progress-ribbon')).toBeInTheDocument();
+    unmount();
+
+    store.dispatch(setIsRestoring(true));
+    store.dispatch(addLog('PROGRESS: 34% | Frames: 29800/87600 | FPS: 28.4 | ETA: 00:33:56 | Speed: 1.18x'));
+    renderWithStore(<BroadcastProgressRibbon />);
+    expect(screen.getByText('34%')).toBeInTheDocument();
   });
 });

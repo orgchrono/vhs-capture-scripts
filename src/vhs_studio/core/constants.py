@@ -62,6 +62,13 @@ DEFAULT_RIFE_MODEL: Final[str] = "rife-v4.6"
 # AI Upscaler defaults
 DEFAULT_UPSCALER_MODEL: Final[str] = "realesrgan-x4plus"
 DEFAULT_CUGAN_MODEL: Final[str] = "models-se"
+SUPPORTED_UPSCALER_MODELS: Final[Tuple[str, ...]] = (
+    "realesrgan-x4plus",
+    "realesr-animevideov3-x4",
+    "span-x4",
+    "models-se",
+    "swinir-classical-sr",
+)
 
 # Hardware Tier thresholds
 TIER_4_MIN_VRAM_GB: Final[float] = 6.0

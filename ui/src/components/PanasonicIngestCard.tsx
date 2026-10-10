@@ -20,6 +20,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useStudioStore } from '../store/useStudioStore';
+import { usePreferencesStore } from '../store/usePreferencesStore';
 import {
   useLazyInspectPanasonicQuery,
   useExtractPanasonicMutation,
@@ -41,6 +42,7 @@ export interface PanasonicIngestCardProps {
 export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefresh }) => {
   const { t } = useTranslation();
   const { addLog, setSelectedFile } = useStudioStore();
+  const { panasonicHotplugEnabled, panasonicPollIntervalMs } = usePreferencesStore();
   const [isExpanded, setIsExpanded] = useState(false);
   const [showGuidance, setShowGuidance] = useState(false);
   const [panasonicPath, setPanasonicPath] = useState('');
@@ -49,13 +51,13 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
   const [selectedTitleIds, setSelectedTitleIds] = useState<Set<number>>(new Set());
   const [expandedChapterTitles, setExpandedChapterTitles] = useState<Set<number>>(new Set());
 
-  // Hotplug Polling: Polls every 3000ms for hardware connect/disconnect (JMicron, ASMedia, SATA)
+  // Hotplug Polling: Configurable via Preferences (Hardware tab)
   const {
     data: disksData,
     isFetching: isScanningDisks,
     refetch: refetchDisks,
   } = useGetPanasonicDisksQuery(undefined, {
-    pollingInterval: 3000,
+    pollingInterval: panasonicHotplugEnabled ? panasonicPollIntervalMs : 0,
   });
 
   const [triggerInspect, { isFetching: isInspecting }] = useLazyInspectPanasonicQuery();
@@ -247,9 +249,23 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
           {hasPanasonicDisk && (
             <span className="led-lamp led-live animate-pulse" aria-hidden="true" />
           )}
-          <span className="text-[9px] bg-studio-surface px-1.5 py-0.5 rounded-xs border border-studio-border text-slate-400 font-normal">
-            {t('files.hotplug_monitoring')}
-          </span>
+          {panasonicHotplugEnabled ? (
+            <span
+              className="flex items-center gap-1 text-[9px] bg-studio-surface px-1.5 py-0.5 rounded-xs border border-studio-border text-slate-400 font-normal cursor-help"
+              title={t('files.hotplug_tooltip')}
+            >
+              <span className="led-lamp led-idle" aria-hidden="true" />
+              <span>{t('files.hotplug_active_label')}</span>
+            </span>
+          ) : (
+            <span
+              className="flex items-center gap-1 text-[9px] bg-studio-surface px-1.5 py-0.5 rounded-xs border border-studio-border text-slate-500 font-normal cursor-help"
+              title={t('files.hotplug_disabled_tooltip')}
+            >
+              <span className="led-lamp led-off" aria-hidden="true" />
+              <span>{t('files.hotplug_disabled_label')}</span>
+            </span>
+          )}
         </div>
 
         <button
@@ -302,6 +318,12 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
                     ? t('files.adapter_jmicron')
                     : disk.is_asmedia
                     ? t('files.adapter_asmedia')
+                    : disk.bus_type === 'NVMe'
+                    ? t('files.adapter_nvme')
+                    : disk.bus_type === 'IDE'
+                    ? t('files.adapter_ide')
+                    : disk.bus_type === 'SCSI'
+                    ? t('files.adapter_scsi')
                     : disk.is_usb
                     ? t('files.adapter_usb')
                     : t('files.adapter_sata');

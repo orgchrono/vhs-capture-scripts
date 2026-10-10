@@ -474,7 +474,9 @@ export const RestorationSettings: React.FC = () => {
                       </SelectTrigger>
                       <SelectContent className="bg-studio-panel border-studio-border text-slate-200">
                         {AI_UPSCALER_OPTIONS.map(opt => (
-                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {t(`ai.model_${opt.value.replace(/-/g, '_')}`, opt.label)}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

@@ -374,6 +374,25 @@ def detect_connected_disks() -> List[Dict[str, Any]]:
                     is_jmicron = "jmicron" in model.lower() or "jms" in model.lower() or "jmicron" in pnp.lower()
                     is_asmedia = "asmedia" in model.lower() or "asmt" in model.lower() or "asmedia" in pnp.lower()
 
+                    is_nvme = (
+                        "nvme" in pnp.lower()
+                        or "nvme" in model.lower()
+                        or "nvme" in iface.lower()
+                        or "pcie" in pnp.lower()
+                        or "scsi\\disk&ven_nvme" in pnp.lower()
+                    )
+
+                    if is_usb:
+                        bus_type = "USB"
+                    elif is_nvme:
+                        bus_type = "NVMe"
+                    elif "ide" in iface.lower() or "ide" in pnp.lower():
+                        bus_type = "IDE"
+                    elif "scsi" in iface.lower() and "sata" not in pnp.lower() and "ata" not in pnp.lower():
+                        bus_type = "SCSI"
+                    else:
+                        bus_type = "SATA"
+
                     is_pana, fmt, needs_elev = _probe_disk_for_panasonic(dev_id)
                     is_pana_model = any(
                         k in model.lower()
@@ -395,7 +414,7 @@ def detect_connected_disks() -> List[Dict[str, Any]]:
                         "is_usb": is_usb,
                         "is_jmicron": is_jmicron,
                         "is_asmedia": is_asmedia,
-                        "bus_type": "USB" if is_usb else ("NVMe" if "nvme" in model.lower() else "SATA"),
+                        "bus_type": bus_type,
                     })
         except Exception as e:
             log.warning(f"[PANASONIC INGEST] Windows disk detection warning: {e}")
