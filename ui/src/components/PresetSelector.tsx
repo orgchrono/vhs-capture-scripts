@@ -80,25 +80,27 @@ export const PresetSelector: React.FC = () => {
                 }
               />
             )}
-            {p.badge && (
-              <span className="absolute top-2.5 right-2.5 bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
-                {p.badge}
-              </span>
-            )}
-            <div className="flex items-center gap-2 mb-1.5">
-              <div
-                className={cn(
-                  'p-1.5 rounded-lg transition-colors',
-                  isActive ? 'bg-sky-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-400 group-hover:text-sky-400'
-                )}
-              >
-                <Icon className="w-4 h-4" />
+            <div className="flex items-center justify-between gap-2 w-full mb-1.5">
+              <div className="flex items-center gap-2 min-w-0">
+                <div
+                  className={cn(
+                    'p-1.5 rounded-lg shrink-0 transition-colors',
+                    isActive ? 'bg-sky-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-400 group-hover:text-sky-400'
+                  )}
+                >
+                  <Icon className="w-4 h-4" />
+                </div>
+                <span className={cn('text-xs sm:text-sm font-semibold tracking-wide truncate', isActive ? 'text-white' : 'text-slate-200')}>
+                  {p.name}
+                </span>
               </div>
-              <span className={cn('text-sm font-semibold tracking-wide', isActive ? 'text-white' : 'text-slate-200')}>
-                {p.name}
-              </span>
+              {p.badge && (
+                <span className="shrink-0 bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
+                  {p.badge}
+                </span>
+              )}
             </div>
-            <p className="text-xs text-slate-400 leading-relaxed font-normal">{p.desc}</p>
+            <p className="text-[11px] sm:text-xs text-slate-400 leading-relaxed font-normal">{p.desc}</p>
           </button>
         )
       })}

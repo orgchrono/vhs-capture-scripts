@@ -27,28 +27,34 @@ export const CaptureBar: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2.5 w-full">
         {!isCapturing ? (
           <Button
             onClick={handleStartCapture}
-            className="bg-red-600/90 hover:bg-red-500 text-white font-semibold text-xs px-3.5 py-2 rounded-lg shadow-md shadow-red-600/20 transition flex items-center gap-1.5 cursor-pointer"
+            className="flex-1 w-full h-10 bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-rose-500 text-white font-bold text-xs uppercase tracking-wider rounded-lg shadow-lg shadow-red-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
           >
-            <Radio className="w-3.5 h-3.5 animate-pulse" />
-            Iniciar Gravação OBS
+            <Radio className="w-4 h-4 animate-pulse text-white" />
+            <span>Iniciar Gravação OBS</span>
           </Button>
         ) : (
           <Button
             onClick={handleStopCapture}
-            className="bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs px-3.5 py-2 rounded-lg shadow-md shadow-amber-600/20 transition flex items-center gap-1.5 cursor-pointer"
+            className="flex-1 w-full h-10 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold text-xs uppercase tracking-wider rounded-lg shadow-lg shadow-amber-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
           >
-            <Square className="w-3.5 h-3.5" />
-            {t('capture.stop_obs')}
+            <Square className="w-4 h-4 text-white" />
+            <span>{t('capture.stop_obs')}</span>
           </Button>
         )}
 
-        <div className="relative group">
-          <HelpCircle className="w-4 h-4 text-slate-500 hover:text-slate-300 cursor-help" />
-          <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block w-72 p-3 bg-slate-950 border border-white/10 rounded-lg text-xs text-slate-300 shadow-xl z-50 leading-relaxed">
+        <div className="relative group shrink-0">
+          <button
+            type="button"
+            className="h-10 w-10 flex items-center justify-center rounded-lg bg-slate-800/70 hover:bg-slate-700/80 border border-white/10 text-slate-400 hover:text-slate-200 transition cursor-help"
+            aria-label="Ajuda e compatibilidade de captura"
+          >
+            <HelpCircle className="w-4 h-4" />
+          </button>
+          <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block w-72 p-3 bg-slate-950/95 backdrop-blur-md border border-white/10 rounded-lg text-xs text-slate-300 shadow-2xl z-50 leading-relaxed pointer-events-none">
             <strong className="text-white block mb-1">Integração Multiplataforma:</strong>
             O OBS Studio grava via DeckLink SDK nativo no Windows, Mac e Linux sem perdas. Se você preferir usar o <strong>VirtualDub2</strong> ou <strong>AmaRecTV</strong> no Windows, basta salvar os arquivos na pasta <code className="text-sky-300 font-mono">media/raw/</code> que o app reconhece na hora!
           </div>

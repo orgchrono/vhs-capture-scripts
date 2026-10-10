@@ -107,38 +107,38 @@ export const RestorationSettings: React.FC = () => {
     search === '' || keywords.some(k => k.toLowerCase().includes(search.toLowerCase()))
 
   return (
-    <div className="bg-slate-900/50 border border-white/5 rounded-xl p-4 mb-2">
-      <div className="flex items-center justify-between gap-4 mb-3">
+    <div className="bg-slate-900/60 border border-white/10 rounded-xl p-3.5 mb-2 shadow-xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3">
         <div className="flex items-center gap-2">
-          <Sliders className="w-4 h-4 text-sky-400" />
-          <h3 className="text-sm font-semibold text-white uppercase tracking-wider">
+          <Sliders className="w-4 h-4 text-sky-400 shrink-0" />
+          <h3 className="text-xs font-bold text-white uppercase tracking-wider">
             Configurações Técnicas de Restauração
           </h3>
         </div>
-        <div className="relative w-64">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+        <div className="relative w-full sm:w-60">
+          <Search className="absolute left-2.5 top-2 h-4 w-4 text-slate-400" />
           <Input
             placeholder="Buscar configuração..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 bg-slate-950/50"
+            className="pl-8.5 h-8 text-xs bg-slate-950/70 border-white/10 text-white placeholder:text-slate-500 focus:border-sky-500 rounded-lg"
           />
         </div>
       </div>
 
       <Tabs defaultValue="video" className="w-full" aria-label="Settings Tabs">
-        <TabsList className="grid w-full grid-cols-6 mb-4">
-          <TabsTrigger value="video" className="flex items-center gap-1.5 text-xs"><Video className="w-3.5 h-3.5"/>Vídeo</TabsTrigger>
-          <TabsTrigger value="audio" className="flex items-center gap-1.5 text-xs"><Music className="w-3.5 h-3.5"/>Áudio</TabsTrigger>
-          <TabsTrigger value="filters" className="flex items-center gap-1.5 text-xs"><ImageIcon className="w-3.5 h-3.5"/>Filtros</TabsTrigger>
-          <TabsTrigger value="advanced" className="flex items-center gap-1.5 text-xs"><Settings2 className="w-3.5 h-3.5"/>Avançado</TabsTrigger>
-          <TabsTrigger value="ai" className="flex items-center gap-1.5 text-xs"><Sparkles className="w-3.5 h-3.5 text-indigo-400"/>IA</TabsTrigger>
-          <TabsTrigger value="storage" className="flex items-center gap-1.5 text-xs"><Cloud className="w-3.5 h-3.5 text-emerald-400"/>Nuvem</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 gap-1 mb-3 bg-slate-950/80 p-1 border border-white/5 rounded-lg">
+          <TabsTrigger value="video" className="flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium"><Video className="w-3.5 h-3.5 text-sky-400"/>Vídeo</TabsTrigger>
+          <TabsTrigger value="audio" className="flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium"><Music className="w-3.5 h-3.5 text-cyan-400"/>Áudio</TabsTrigger>
+          <TabsTrigger value="filters" className="flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium"><ImageIcon className="w-3.5 h-3.5 text-amber-400"/>Filtros</TabsTrigger>
+          <TabsTrigger value="advanced" className="flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium"><Settings2 className="w-3.5 h-3.5 text-slate-300"/>Avançado</TabsTrigger>
+          <TabsTrigger value="ai" className="flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium"><Sparkles className="w-3.5 h-3.5 text-indigo-400"/>IA</TabsTrigger>
+          <TabsTrigger value="storage" className="flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium"><Cloud className="w-3.5 h-3.5 text-emerald-400"/>Nuvem</TabsTrigger>
         </TabsList>
 
         <TabsContent value="video" className="space-y-4">
           <TabTransition>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5">
               {matches(['desentrelaçamento', 'deinterlacer', 'bwdif', 'qtgmc', 'video']) && (
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-slate-400 block">Desentrelaçamento:</label>
@@ -173,7 +173,7 @@ export const RestorationSettings: React.FC = () => {
 
         <TabsContent value="audio" className="space-y-4">
           <TabTransition>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5">
               {matches(['áudio', 'audio', 'stereo', 'mono']) && (
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-slate-400 block">Modo de Áudio:</label>
@@ -205,7 +205,7 @@ export const RestorationSettings: React.FC = () => {
 
         <TabsContent value="filters" className="space-y-4">
           <TabTransition>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5">
               {matches(['chroma', 'cores', 'filtros']) && (
                 <div className="flex items-center justify-between bg-slate-950 p-4 rounded-lg border border-slate-800">
                   <div className="space-y-0.5">
@@ -251,7 +251,7 @@ export const RestorationSettings: React.FC = () => {
 
         <TabsContent value="advanced" className="space-y-4">
           <TabTransition>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5">
               {matches(['crf', 'qualidade', 'avançado', 'bitrate']) && (
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-slate-400 block">Qualidade de Compressão (CRF):</label>
@@ -345,7 +345,7 @@ export const RestorationSettings: React.FC = () => {
               <Zap className="w-3.5 h-3.5 text-amber-400" /> Módulos Neurais de Restauração
             </h4>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {/* Áudio Neural DeepFilterNet */}
               <div className="bg-slate-950 p-3.5 rounded-lg border border-slate-800 flex items-center justify-between">
                 <div className="space-y-0.5 pr-2">

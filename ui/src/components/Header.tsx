@@ -47,15 +47,15 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="border-b border-white/10 bg-[#0b0f17] px-6 py-4 flex items-center justify-between shrink-0 h-[72px]">
+    <header className="border-b border-white/10 bg-[#080c14]/95 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between shrink-0 h-14 sm:h-16 z-20">
       <div className="flex items-center gap-3">
-        <div className="bg-gradient-to-br from-red-600 via-orange-500 to-amber-500 text-white font-extrabold text-xs px-2.5 py-1 rounded-md tracking-wider uppercase shadow-md flex items-center gap-1.5">
+        <div className="bg-gradient-to-r from-red-600 via-orange-500 to-amber-500 text-white font-extrabold text-xs px-2.5 py-1 rounded-lg tracking-wider uppercase shadow-md shadow-red-900/20 flex items-center gap-1.5 shrink-0 select-none">
           <Film className="w-4 h-4" />
-          VHS Studio
+          <span>VHS Studio</span>
         </div>
-        <div>
-          <h1 className="text-lg font-bold tracking-tight text-white flex items-center gap-2">
-            VHS Studio Pro
+        <div className="flex items-center gap-2">
+          <h1 className="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-2">
+            <span>VHS Studio Pro</span>
             <span className="text-[10px] bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded-full font-mono font-medium">
               NEXTGEN
             </span>
@@ -63,16 +63,16 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2.5">
         {/* UI Controls */}
-        <div className="flex items-center gap-1 bg-slate-900/80 border border-white/10 rounded-lg p-1">
-          <Button variant="ghost" size="icon" className="w-8 h-8 rounded-md hover:bg-slate-800 text-slate-300" onClick={toggleLanguage} title="Change Language / Mudar Idioma">
+        <div className="flex items-center gap-1 bg-slate-900/90 border border-white/10 rounded-lg p-0.5">
+          <Button variant="ghost" size="icon" className="w-7.5 h-7.5 rounded-md hover:bg-slate-800 text-slate-300" onClick={toggleLanguage} title="Change Language / Mudar Idioma">
             <Globe className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="icon" className={`w-8 h-8 rounded-md hover:bg-slate-800 ${highContrast ? 'text-amber-400' : 'text-slate-300'}`} onClick={() => setHighContrast(!highContrast)} title="Acessibilidade: Alto Contraste">
+          <Button variant="ghost" size="icon" className={`w-7.5 h-7.5 rounded-md hover:bg-slate-800 ${highContrast ? 'text-amber-400' : 'text-slate-300'}`} onClick={() => setHighContrast(!highContrast)} title="Acessibilidade: Alto Contraste">
             <Eye className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="icon" className={`w-8 h-8 rounded-md hover:bg-slate-800 ${largeText ? 'text-indigo-400' : 'text-slate-300'}`} onClick={() => {
+          <Button variant="ghost" size="icon" className={`w-7.5 h-7.5 rounded-md hover:bg-slate-800 ${largeText ? 'text-indigo-400' : 'text-slate-300'}`} onClick={() => {
             const next = !largeText;
             setLargeText(next);
             if (next) {
@@ -87,7 +87,7 @@ export const Header: React.FC<HeaderProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              className="w-8 h-8 rounded-md hover:bg-slate-800 text-slate-300 hover:text-emerald-400"
+              className="w-7.5 h-7.5 rounded-md hover:bg-slate-800 text-slate-300 hover:text-emerald-400"
               onClick={onOpenPrivacy}
               title="Termos de Licença & Conformidade (EULA)"
             >
@@ -97,12 +97,12 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Workspace Layout Controls */}
-        <div className="flex items-center gap-1 bg-slate-900/80 border border-white/10 rounded-lg p-1">
+        <div className="flex items-center gap-1 bg-slate-900/90 border border-white/10 rounded-lg p-0.5">
           {onToggleSidebar && (
             <Button
               variant="ghost"
               size="icon"
-              className={`w-8 h-8 rounded-md hover:bg-slate-800 ${sidebarCollapsed ? 'text-slate-500' : 'text-sky-400'}`}
+              className={`w-7.5 h-7.5 rounded-md hover:bg-slate-800 ${sidebarCollapsed ? 'text-slate-500' : 'text-sky-400'}`}
               onClick={onToggleSidebar}
               title={sidebarCollapsed ? "Expandir Painel Lateral" : "Recolher Painel Lateral"}
             >
@@ -113,7 +113,7 @@ export const Header: React.FC<HeaderProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              className={`w-8 h-8 rounded-md hover:bg-slate-800 ${consoleCollapsed ? 'text-slate-500' : 'text-emerald-400'}`}
+              className={`w-7.5 h-7.5 rounded-md hover:bg-slate-800 ${consoleCollapsed ? 'text-slate-500' : 'text-emerald-400'}`}
               onClick={onToggleConsole}
               title={consoleCollapsed ? "Expandir Console de Monitoramento" : "Recolher Console"}
             >
@@ -122,20 +122,20 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
 
-        <div className="w-px h-6 bg-white/10 mx-1"></div>
+        <div className="w-px h-5 bg-white/10 mx-0.5 hidden sm:block"></div>
 
         {/* Badges */}
-        <div className="flex items-center gap-2 bg-slate-900/80 border border-white/10 px-3 py-1.5 rounded-lg text-xs">
+        <div className="hidden md:flex items-center gap-2 bg-slate-900/90 border border-white/10 px-2.5 py-1 rounded-lg text-xs h-8">
           <Cpu className="w-3.5 h-3.5 text-sky-400" />
-          <strong className="text-white font-mono uppercase">
+          <strong className="text-white font-mono uppercase text-[11px]">
             {status?.encoder || t('status.detecting')}
           </strong>
         </div>
 
-        <div className="flex items-center gap-2 bg-slate-900/80 border border-white/10 px-3 py-1.5 rounded-lg text-xs">
+        <div className="hidden sm:flex items-center gap-2 bg-slate-900/90 border border-white/10 px-2.5 py-1 rounded-lg text-xs h-8">
           <Sparkles className="w-3.5 h-3.5 text-amber-400" />
           {status?.vapoursynth_available ? (
-            <span className="flex items-center gap-1 text-emerald-400 font-medium">
+            <span className="flex items-center gap-1.5 text-emerald-400 font-semibold text-[11px]">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
               QTGMC
             </span>
@@ -147,10 +147,10 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
       
-        <div className="flex items-center gap-2 bg-slate-900/80 border border-white/10 px-3 py-1.5 rounded-lg text-xs">
+        <div className="hidden sm:flex items-center gap-2 bg-slate-900/90 border border-white/10 px-2.5 py-1 rounded-lg text-xs h-8">
           <Video className="w-3.5 h-3.5 text-indigo-400" />
           {status?.obs_connected ? (
-            <span className="flex items-center gap-1 text-emerald-400 font-medium">
+            <span className="flex items-center gap-1.5 text-emerald-400 font-semibold text-[11px]">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
               OBS
             </span>
@@ -161,7 +161,7 @@ export const Header: React.FC<HeaderProps> = ({
             </Button>
           )}
         </div>
-</div>
+      </div>
     </header>
   )
 }

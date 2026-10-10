@@ -141,16 +141,18 @@ const StudioMain: React.FC<{ onOpenPrivacy?: () => void }> = ({ onOpenPrivacy })
                 defaultSize="25%"
                 minSize="280px"
                 maxSize="450px"
-                className="bg-[#0b0f17] flex flex-col h-full overflow-hidden"
+                className="bg-[#080c14] border-r border-white/10 flex flex-col h-full overflow-hidden"
               >
-                <div className="p-4 border-b border-white/5 bg-slate-900/30">
-                  <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 whitespace-nowrap">
+                <div className="p-3.5 border-b border-white/10 bg-slate-900/40">
+                  <h2 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2.5 whitespace-nowrap flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
                     1. Captura e Ingestão
                   </h2>
                   <CaptureBar />
                 </div>
-                <div className="p-4 flex-1 overflow-y-auto custom-scrollbar">
-                  <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 whitespace-nowrap">
+                <div className="p-3.5 flex-1 overflow-y-auto custom-scrollbar">
+                  <h2 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2.5 whitespace-nowrap flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
                     2. Biblioteca de Fitas
                   </h2>
                   <FileSelector
@@ -170,31 +172,42 @@ const StudioMain: React.FC<{ onOpenPrivacy?: () => void }> = ({ onOpenPrivacy })
               orientation="vertical"
               className="h-full"
             >
-              {/* Top Half: Settings & Video */}
+              {/* Top Half: Settings & Video (Expansível via CSS Grid Proporcional) */}
               <ResizablePanel
                 id="workspace-top"
                 defaultSize="68%"
                 minSize="300px"
-                className="overflow-y-auto custom-scrollbar p-6 bg-gradient-to-br from-[#080c14] to-[#0a0e16]"
+                className="overflow-y-auto custom-scrollbar p-3.5 lg:p-4.5 bg-gradient-to-br from-[#060911] via-[#080d18] to-[#0a0f1d]"
               >
-                <div className="max-w-6xl mx-auto grid grid-cols-1 xl:grid-cols-12 gap-6 h-full">
-                  {/* Left Column: Video Monitor */}
-                  <div className="xl:col-span-5 flex flex-col min-h-[300px]">
-                    <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 mb-4">
-                      Monitor de Sinal
-                    </h2>
-                    <div className="flex-1 bg-black rounded-xl overflow-hidden border border-white/5 shadow-inner">
+                <div className="w-full h-full min-h-0 grid grid-cols-1 lg:grid-cols-[minmax(320px,1.05fr)_minmax(420px,1.35fr)] 2xl:grid-cols-[minmax(420px,1.15fr)_minmax(540px,1.45fr)] gap-4 lg:gap-5 items-start">
+                  {/* Left Column: Video Monitor (Expansível) */}
+                  <div className="flex flex-col h-full min-h-[300px] lg:min-h-[360px]">
+                    <div className="flex items-center justify-between mb-2">
+                      <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        Monitor de Sinal CRT
+                      </h2>
+                      <span className="text-[10px] font-mono text-slate-400 bg-slate-900/80 px-2 py-0.5 rounded border border-white/5">
+                        DIRECT-SHOW / OBS VIRTUAL CAM
+                      </span>
+                    </div>
+                    <div className="flex-1 min-h-[260px] bg-black rounded-xl overflow-hidden border border-white/10 shadow-2xl relative flex items-center justify-center">
                       <LiveMonitor health={status?.health} />
                     </div>
                   </div>
 
-                  {/* Right Column: Engine Settings */}
-                  <div className="xl:col-span-7 flex flex-col">
-                    <div className="mb-4">
-                      <h2 className="text-lg font-bold text-white flex items-center gap-2 mb-3">
-                        <span className="bg-sky-500 w-1.5 h-5 rounded-full"></span>
-                        Motor de Processamento
-                      </h2>
+                  {/* Right Column: Engine Settings (Expansível) */}
+                  <div className="flex flex-col h-full min-h-0">
+                    <div className="mb-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <h2 className="text-sm font-bold text-white flex items-center gap-2 tracking-wide">
+                          <span className="bg-sky-500 w-1.5 h-4.5 rounded-full shadow-[0_0_8px_rgba(56,189,248,0.6)]"></span>
+                          Motor de Processamento
+                        </h2>
+                        <span className="text-[10px] font-mono text-sky-400/80 uppercase">
+                          PRESETS BROADCAST & NEURAIS
+                        </span>
+                      </div>
                       <PresetSelector />
                     </div>
                     <RestorationSettings />
@@ -211,7 +224,7 @@ const StudioMain: React.FC<{ onOpenPrivacy?: () => void }> = ({ onOpenPrivacy })
                     defaultSize="32%"
                     minSize="180px"
                     maxSize="60%"
-                    className="bg-[#0b0f17] flex flex-col shrink-0 p-2"
+                    className="bg-[#080c14] flex flex-col shrink-0 p-2 lg:p-2.5"
                   >
                     <ConsoleViewer
                       onStart={onStart}

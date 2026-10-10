@@ -114,6 +114,59 @@ def ensure_ui_build():
     return project_root
 
 
+def setup_windows_native_icon(window_title: str, icon_path: str) -> None:
+    """Aplica o ícone oficial da marca na janela nativa e barra de tarefas do Windows."""
+    if sys.platform != "win32" or not os.path.exists(icon_path):
+        return
+
+    def _apply_icon():
+        import time
+        import ctypes
+
+        try:
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+                "vhs_studio.pro.desktop"
+            )
+        except Exception as e:
+            log.debug(f"[DESKTOP] AppUserModelID falhou: {e}")
+
+        IMAGE_ICON = 1
+        LR_LOADFROMFILE = 0x00000010
+        WM_SETICON = 0x0080
+        ICON_SMALL = 0
+        ICON_BIG = 1
+
+        try:
+            hicon_big = ctypes.windll.user32.LoadImageW(
+                None, icon_path, IMAGE_ICON, 32, 32, LR_LOADFROMFILE
+            )
+            hicon_small = ctypes.windll.user32.LoadImageW(
+                None, icon_path, IMAGE_ICON, 16, 16, LR_LOADFROMFILE
+            )
+
+            # Localiza o HWND da janela criada e injeta os ícones nativos
+            for _ in range(30):
+                hwnd = ctypes.windll.user32.FindWindowW(None, window_title)
+                if hwnd:
+                    if hicon_big:
+                        ctypes.windll.user32.SendMessageW(
+                            hwnd, WM_SETICON, ICON_BIG, hicon_big
+                        )
+                    if hicon_small:
+                        ctypes.windll.user32.SendMessageW(
+                            hwnd, WM_SETICON, ICON_SMALL, hicon_small
+                        )
+                    log.info(
+                        "[DESKTOP] Ícone oficial do VHS Studio aplicado à janela nativa."
+                    )
+                    break
+                time.sleep(0.1)
+        except Exception as e:
+            log.warning(f"[DESKTOP] Não foi possível injetar o ícone na janela: {e}")
+
+    threading.Thread(target=_apply_icon, daemon=True).start()
+
+
 def run_desktop():
     """Documentation for run_desktop."""
     try:
@@ -124,17 +177,25 @@ def run_desktop():
         )
         sys.exit(1)
 
-    ensure_ui_build()
+    project_root = ensure_ui_build()
 
     port = DEFAULT_API_PORT
     t = threading.Thread(target=run_server, args=(port,), daemon=True)
     t.start()
 
+    window_title = "VHS Studio Pro"
+    icon_ico = os.path.join(project_root, "assets", "vhs_icon.ico")
+    icon_png = os.path.join(project_root, "assets", "vhs_icon.png")
+    chosen_icon = icon_ico if os.path.exists(icon_ico) else (icon_png if os.path.exists(icon_png) else None)
+
+    if chosen_icon:
+        setup_windows_native_icon(window_title, chosen_icon)
+
     log.info(
         f"[DESKTOP] Iniciando janela nativa Desktop Pro em http://{DEFAULT_API_HOST}:{port}"
     )
     webview.create_window(
-        title="VHS Studio",
+        title=window_title,
         url=f"http://{DEFAULT_API_HOST}:{port}",
         width=1440,
         height=900,
@@ -142,7 +203,7 @@ def run_desktop():
         min_size=(1024, 700),
         background_color="#080c14",
     )
-    webview.start(debug=False)
+    webview.start(debug=False, icon=chosen_icon)
 
 
 if __name__ == "main":

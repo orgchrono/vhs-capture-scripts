@@ -47,7 +47,7 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
 
   return (
     <div className="bg-[#06090e] border border-white/10 rounded-xl flex flex-col h-full overflow-hidden shadow-2xl">
-      <div className="flex items-center justify-between px-4 py-2.5 bg-slate-950/80 border-b border-white/5">
+      <div className="flex items-center justify-between px-3.5 py-2 bg-slate-950/90 border-b border-white/5">
         <div className="flex items-center gap-2">
           <Terminal className="w-3.5 h-3.5 text-sky-400" />
           <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider font-mono">
@@ -61,8 +61,9 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
           )}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={() => {
                 const logs = useStudioStore.getState().logs.join('\n');
                 const blob = new Blob([logs], { type: 'text/plain' });
@@ -79,6 +80,7 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
             <span>Exportar</span>
           </button>
           <button
+            type="button"
             onClick={clearLogs}
             className="text-slate-400 hover:text-red-400 transition text-xs flex items-center gap-1.5 cursor-pointer px-2.5 py-1 rounded hover:bg-white/5"
             title="Limpar console"
@@ -92,7 +94,7 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
               onClick={onStart}
               disabled={isRestoring}
               title={!hasSelectedFile ? t('toast.select_file_first') : undefined}
-              className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold py-1 px-5 shadow-lg shadow-emerald-500/20 transition-all text-xs rounded-md h-8 ml-2 cursor-pointer"
+              className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold py-1 px-4 shadow-lg shadow-emerald-500/20 transition-all text-xs rounded-lg h-8 ml-1 cursor-pointer active:scale-[0.98]"
             >
               {isRestoring ? (
                 <>

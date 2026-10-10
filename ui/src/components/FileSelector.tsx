@@ -13,20 +13,21 @@ export const FileSelector: React.FC<FileSelectorProps> = ({ files, onRefresh, is
   const { selectedFile, setSelectedFile } = useStudioStore()
 
   return (
-    <div className="bg-slate-900/50 border border-white/5 rounded-xl p-4 mb-6">
+    <div className="bg-slate-900/60 border border-white/10 rounded-xl p-3.5 mb-4 shadow-lg">
       <div className="flex items-center justify-between mb-2">
         <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
           <Folder className="w-3.5 h-3.5 text-sky-400" />
           Arquivo de Entrada (media/raw/)
         </label>
         <button
+          type="button"
           onClick={onRefresh}
           disabled={isRefetching}
-          className="text-slate-400 hover:text-sky-400 transition text-xs flex items-center gap-1 cursor-pointer"
+          className="text-slate-400 hover:text-sky-400 transition text-xs flex items-center gap-1 cursor-pointer hover:bg-white/5 px-2 py-0.5 rounded"
           title="Atualizar lista de arquivos"
         >
           <RefreshCw className={`w-3 h-3 ${isRefetching ? 'animate-spin' : ''}`} />
-          Atualizar
+          <span>Atualizar</span>
         </button>
       </div>
 
