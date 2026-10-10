@@ -1,11 +1,12 @@
+import asyncio
 import os
 import json
 import sys
 import base64
 import subprocess
-from typing import Dict, Mapping
+from typing import Dict, Mapping, Union
 from fastapi import APIRouter, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from vhs_studio.video.vapoursynth_qtgmc import VapourSynthQTGMC
 from vhs_studio.api.routers.security import is_safe_media_path
@@ -388,3 +389,142 @@ def get_comparison_frame(
         }
     except Exception as e:
         return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
+
+
+@restoration_router.get("/monitor/stream-proxy")
+async def get_stream_proxy(
+    source: str = "",
+    mode: str = "raw",
+    deinterlacer: str = "bwdif",
+    denoise: bool = True,
+    chroma_fix: bool = True,
+    fps: int = 15,
+):
+    target_path = resolve_media_input_path(source) if source else ""
+    if source and not is_safe_media_path(target_path):
+        return JSONResponse(
+            status_code=400,
+            content={"status": "error", "message": "Caminho de arquivo inválido ou não seguro."},
+        )
+
+    is_valid_source = bool(target_path and os.path.exists(target_path) and is_safe_media_path(target_path))
+
+    try:
+        ffmpeg_bin = Toolchain.get_ffmpeg_path()
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "message": f"FFmpeg não disponível: {e}"},
+        )
+
+    fps_val = max(1, min(60, int(fps)))
+
+    if is_valid_source:
+        if mode == "raw":
+            cmd = [
+                ffmpeg_bin,
+                "-hide_banner",
+                "-loglevel", "error",
+                "-re",
+                "-stream_loop", "-1",
+                "-i", target_path,
+                "-vf", f"scale=640:360,fps={fps_val}",
+                "-c:v", "mjpeg",
+                "-q:v", "8",
+                "-f", "mpjpeg",
+                "-boundary_tag", "frame",
+                "pipe:1",
+            ]
+        else:
+            vf_filters = []
+            if deinterlacer in ("bwdif", "qtgmc", "yadif"):
+                vf_filters.append("bwdif")
+            if chroma_fix:
+                vf_filters.append("colorchannelmixer=rr=1.0:gg=1.0:bb=1.0")
+            if denoise:
+                vf_filters.append("hqdn3d=3:2:6:4")
+            vf_filters.append("scale=640:360")
+            vf_filters.append(f"fps={fps_val}")
+            vf_str = ",".join(vf_filters)
+
+            cmd = [
+                ffmpeg_bin,
+                "-hide_banner",
+                "-loglevel", "error",
+                "-re",
+                "-stream_loop", "-1",
+                "-i", target_path,
+                "-vf", vf_str,
+                "-c:v", "mjpeg",
+                "-q:v", "8",
+                "-f", "mpjpeg",
+                "-boundary_tag", "frame",
+                "pipe:1",
+            ]
+    else:
+        if mode == "raw":
+            cmd = [
+                ffmpeg_bin,
+                "-hide_banner",
+                "-loglevel", "error",
+                "-re",
+                "-f", "lavfi",
+                "-i", f"smptebars=size=640x360:rate={fps_val},noise=c0s=18:allf=t+u,tinterlace=mode=interleave_top",
+                "-c:v", "mjpeg",
+                "-q:v", "8",
+                "-f", "mpjpeg",
+                "-boundary_tag", "frame",
+                "pipe:1",
+            ]
+        else:
+            cmd = [
+                ffmpeg_bin,
+                "-hide_banner",
+                "-loglevel", "error",
+                "-re",
+                "-f", "lavfi",
+                "-i", f"smptebars=size=640x360:rate={fps_val}",
+                "-c:v", "mjpeg",
+                "-q:v", "8",
+                "-f", "mpjpeg",
+                "-boundary_tag", "frame",
+                "pipe:1",
+            ]
+
+    async def stream_generator():
+        proc = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            bufsize=64 * 1024,
+        )
+        try:
+            while True:
+                if proc.stdout is None:
+                    break
+                chunk = await asyncio.to_thread(proc.stdout.read, 16384)
+                if not chunk:
+                    break
+                yield chunk
+        except asyncio.CancelledError:
+            pass
+        finally:
+            try:
+                proc.terminate()
+                try:
+                    await asyncio.to_thread(proc.wait, timeout=1.0)
+                except Exception:
+                    proc.kill()
+            except Exception:
+                pass
+
+    return StreamingResponse(
+        stream_generator(),
+        media_type="multipart/x-mixed-replace; boundary=frame",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+            "Connection": "close",
+        },
+    )

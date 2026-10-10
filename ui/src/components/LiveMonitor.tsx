@@ -40,16 +40,17 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
 
   if (isSplitMode) {
     return (
-      <SplitComparisonMonitor
-        source={selectedFile}
-        onClose={() => setIsSplitMode(false)}
-      />
+      <div className="relative w-full h-full bg-black overflow-hidden" data-testid="live-monitor-container">
+        <SplitComparisonMonitor
+          source={selectedFile}
+          onClose={() => setIsSplitMode(false)}
+        />
+      </div>
     );
   }
 
   return (
-    <div className="relative w-full h-full bg-black flex flex-col items-center justify-center overflow-hidden">
-      
+    <div className="relative w-full h-full bg-black flex flex-col items-center justify-center overflow-hidden" data-testid="live-monitor-container">
       {/* Top Left Badge & A/B Split Toggle */}
       <div className="absolute top-3 left-3 right-3 z-10 flex items-center justify-between pointer-events-auto">
         <div className="flex gap-2 items-center">
@@ -168,4 +169,3 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
     </div>
   );
 };
-

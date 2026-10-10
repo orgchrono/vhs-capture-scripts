@@ -7,6 +7,8 @@ import {
   Power,
   Layers,
   Sparkles,
+  Film,
+  Radio,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useGetComparisonFrameQuery } from '../api/studioRtkApi';
@@ -14,16 +16,20 @@ import { useGetComparisonFrameQuery } from '../api/studioRtkApi';
 export interface SplitComparisonMonitorProps {
   source?: string;
   onClose?: () => void;
+  initialMode?: 'stream' | 'freeze';
 }
 
 export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
   source = '',
   onClose,
+  initialMode = 'stream',
 }) => {
   const { t } = useTranslation();
   const [splitPos, setSplitPos] = useState<number>(50);
   const [timestamp, setTimestamp] = useState<number>(5.0);
   const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [viewMode, setViewMode] = useState<'stream' | 'freeze'>(initialMode);
+  const [streamKey, setStreamKey] = useState<number>(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -108,8 +114,26 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
     }
   };
 
+  const handleRefresh = () => {
+    if (viewMode === 'stream') {
+      setStreamKey((prev) => prev + 1);
+    } else {
+      refetch();
+    }
+  };
+
+  const handleSeek = (delta: number) => {
+    if (viewMode === 'stream') {
+      setViewMode('freeze');
+    }
+    setTimestamp((prev) => Math.max(0, prev + delta));
+  };
+
   const rawImg = frameData?.raw_image;
   const procImg = frameData?.processed_image;
+
+  const rawStreamUrl = `/api/monitor/stream-proxy?mode=raw&source=${encodeURIComponent(source)}&fps=15&k=${streamKey}`;
+  const procStreamUrl = `/api/monitor/stream-proxy?mode=processed&source=${encodeURIComponent(source)}&fps=15&k=${streamKey}`;
 
   return (
     <div
@@ -121,7 +145,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
       data-testid="split-comparison-monitor"
     >
       {/* Top Header Bar */}
-      <div className="absolute top-2.5 left-2.5 right-2.5 z-20 flex items-center justify-between pointer-events-auto">
+      <div className="absolute top-2.5 left-2.5 right-2.5 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-auto">
         <div className="flex items-center gap-1.5">
           <span className="bg-black/85 backdrop-blur-md px-2.5 py-1 rounded-sm text-[10px] font-mono text-amber-300 border border-amber-500/40 shadow-sm flex items-center gap-1.5 uppercase font-bold">
             <Layers className="w-3.5 h-3.5 text-amber-400" />
@@ -133,17 +157,51 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           </span>
         </div>
 
+        {/* View Mode Toggle: Live Sub-Stream vs Freeze Frame */}
+        <div className="flex items-center gap-1 bg-black/85 backdrop-blur-md p-0.5 rounded-sm border border-studio-border">
+          <button
+            type="button"
+            onClick={() => setViewMode('stream')}
+            className={`px-2 py-1 rounded-xs text-[10px] font-mono flex items-center gap-1.5 transition cursor-pointer ${
+              viewMode === 'stream'
+                ? 'bg-amber-500/25 text-amber-300 font-bold border border-amber-500/50 shadow-xs'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+            title={t('monitor.mode_live_stream')}
+            aria-label={t('monitor.mode_live_stream')}
+            data-testid="mode-stream-btn"
+          >
+            <Radio className={`w-3 h-3 ${viewMode === 'stream' ? 'text-amber-400 animate-pulse' : 'text-slate-400'}`} />
+            <span>{t('monitor.mode_live_stream')}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('freeze')}
+            className={`px-2 py-1 rounded-xs text-[10px] font-mono flex items-center gap-1.5 transition cursor-pointer ${
+              viewMode === 'freeze'
+                ? 'bg-amber-500/25 text-amber-300 font-bold border border-amber-500/50 shadow-xs'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+            title={t('monitor.mode_freeze_frame')}
+            aria-label={t('monitor.mode_freeze_frame')}
+            data-testid="mode-freeze-btn"
+          >
+            <Film className={`w-3 h-3 ${viewMode === 'freeze' ? 'text-amber-400' : 'text-slate-400'}`} />
+            <span>{t('monitor.mode_freeze_frame')}</span>
+          </button>
+        </div>
+
         <div className="flex items-center gap-1.5">
           <button
             type="button"
-            onClick={() => refetch()}
-            disabled={isFetching}
+            onClick={handleRefresh}
+            disabled={viewMode === 'freeze' && isFetching}
             className="bg-black/80 hover:bg-studio-surface text-slate-300 hover:text-white px-2 py-1 rounded-sm text-[10px] font-mono border border-studio-border flex items-center gap-1 transition cursor-pointer"
             title={t('monitor.split_refresh')}
             aria-label={t('monitor.split_refresh')}
             data-testid="split-refresh-btn"
           >
-            <RefreshCw className={`w-3 h-3 ${isFetching ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3 h-3 ${viewMode === 'freeze' && isFetching ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">{t('monitor.split_refresh')}</span>
           </button>
 
@@ -163,7 +221,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
         </div>
       </div>
 
-      {/* Main Split Image Viewer */}
+      {/* Main Split Image Viewer with Interactive Sliding Curtain */}
       <div
         ref={containerRef}
         onMouseDown={handleMouseDown}
@@ -171,7 +229,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
         className="relative w-full flex-1 cursor-ew-resize overflow-hidden flex items-center justify-center bg-slate-950"
         data-testid="split-slider-container"
       >
-        {isFetching && !rawImg && (
+        {viewMode === 'freeze' && isFetching && !rawImg && (
           <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/75 backdrop-blur-xs text-xs font-mono text-slate-400 gap-2">
             <RefreshCw className="w-6 h-6 text-amber-400 animate-spin" />
             <span>{t('monitor.split_loading')}</span>
@@ -180,7 +238,14 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
 
         {/* Side B: Restored / Processed (Underneath, Full Width) */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          {procImg ? (
+          {viewMode === 'stream' ? (
+            <img
+              src={procStreamUrl}
+              alt={t('monitor.split_restored')}
+              className="w-full h-full object-contain"
+              data-testid="split-proc-stream"
+            />
+          ) : procImg ? (
             <img
               src={procImg}
               alt={t('monitor.split_restored')}
@@ -193,10 +258,10 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           )}
 
           {/* Restored Badge (Top Right) */}
-          <div className="absolute top-10 right-3 z-10">
+          <div className="absolute top-12 right-3 z-10">
             <span className="bg-emerald-950/90 text-emerald-300 border border-emerald-600/60 px-2 py-0.5 rounded-xs text-[9px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 shadow-md">
               <Sparkles className="w-2.5 h-2.5 text-emerald-400" />
-              {t('monitor.split_restored')}
+              {t('monitor.qtgmc_filtered')}
             </span>
           </div>
         </div>
@@ -206,7 +271,14 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           className="absolute inset-0 overflow-hidden pointer-events-none flex items-center justify-center"
           style={{ clipPath: `polygon(0 0, ${splitPos}% 0, ${splitPos}% 100%, 0 100%)` }}
         >
-          {rawImg ? (
+          {viewMode === 'stream' ? (
+            <img
+              src={rawStreamUrl}
+              alt={t('monitor.split_raw')}
+              className="w-full h-full object-contain"
+              data-testid="split-raw-stream"
+            />
+          ) : rawImg ? (
             <img
               src={rawImg}
               alt={t('monitor.split_raw')}
@@ -219,7 +291,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           )}
 
           {/* Raw Analog Badge (Top Left) */}
-          <div className="absolute top-10 left-3 z-10">
+          <div className="absolute top-12 left-3 z-10">
             <span className="bg-amber-950/90 text-amber-300 border border-amber-600/60 px-2 py-0.5 rounded-xs text-[9px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 shadow-md">
               <span className="led-lamp led-live" aria-hidden="true" />
               {t('monitor.split_raw')}
@@ -259,10 +331,11 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setTimestamp((prev) => Math.max(0, prev - 5))}
+            onClick={() => handleSeek(-5)}
             className="p-1 rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-slate-300 hover:text-white transition cursor-pointer"
-            title="-5s"
-            aria-label="-5s"
+            title={t('monitor.split_seek_backward')}
+            aria-label={t('monitor.split_seek_backward')}
+            data-testid="split-seek-prev-btn"
           >
             <ChevronLeft className="w-3.5 h-3.5" />
           </button>
@@ -271,10 +344,11 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           </span>
           <button
             type="button"
-            onClick={() => setTimestamp((prev) => prev + 5)}
+            onClick={() => handleSeek(5)}
             className="p-1 rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-slate-300 hover:text-white transition cursor-pointer"
-            title="+5s"
-            aria-label="+5s"
+            title={t('monitor.split_seek_forward')}
+            aria-label={t('monitor.split_seek_forward')}
+            data-testid="split-seek-next-btn"
           >
             <ChevronRight className="w-3.5 h-3.5" />
           </button>

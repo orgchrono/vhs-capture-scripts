@@ -75,7 +75,14 @@
     "split_loading": "Caricamento fotogrammi comparativi...",
     "split_hint": "Trascina il cursore o usa le frecce della tastiera per confrontare prima e dopo.",
     "eco_mode_title": "Modalità Eco 0% CPU / GPU",
-    "eco_mode_desc": "Monitor disattivato nelle preferenze per allocare le massime risorse hardware al restauro."
+    "eco_mode_desc": "Monitor disattivato nelle preferenze per allocare le massime risorse hardware al restauro.",
+    "mode_live_stream": "Sub-stream dal vivo (15fps)",
+    "mode_freeze_frame": "Fermo immagine (Scrubber)",
+    "stream_mode_label": "Modalità di visualizzazione",
+    "qtgmc_filtered": "Filtro QTGMC / AI Master",
+    "stream_connecting": "Connessione al sub-stream leggero in corso...",
+    "split_seek_backward": "-5s",
+    "split_seek_forward": "+5s"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",

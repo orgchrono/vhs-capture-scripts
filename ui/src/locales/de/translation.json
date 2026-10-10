@@ -75,7 +75,14 @@
     "split_loading": "Vergleichsbilder werden geladen...",
     "split_hint": "Ziehen Sie den Schieberegler oder nutzen Sie die Pfeiltasten zum Vergleichen.",
     "eco_mode_title": "Eco-Modus 0% CPU / GPU",
-    "eco_mode_desc": "Monitor in den Einstellungen deaktiviert, um maximale Hardware-Ressourcen für die Wiederherstellung bereitzustellen."
+    "eco_mode_desc": "Monitor in den Einstellungen deaktiviert, um maximale Hardware-Ressourcen für die Wiederherstellung bereitzustellen.",
+    "mode_live_stream": "Live-Sub-Stream (15fps)",
+    "mode_freeze_frame": "Standbild (Scrubber)",
+    "stream_mode_label": "Ansichtsmodus",
+    "qtgmc_filtered": "QTGMC / AI Master gefiltert",
+    "stream_connecting": "Verbindung zum Sub-Stream wird hergestellt...",
+    "split_seek_backward": "-5s",
+    "split_seek_forward": "+5s"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",

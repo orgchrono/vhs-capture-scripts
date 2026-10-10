@@ -75,7 +75,14 @@
     "split_loading": "Chargement des images comparatives...",
     "split_hint": "Faites glisser le curseur ou utilisez les touches fléchées pour comparer avant et après.",
     "eco_mode_title": "Mode Éco 0% CPU / GPU",
-    "eco_mode_desc": "Moniteur désactivé dans les préférences pour allouer un maximum de ressources matérielles à la restauration."
+    "eco_mode_desc": "Moniteur désactivé dans les préférences pour allouer un maximum de ressources matérielles à la restauration.",
+    "mode_live_stream": "Sous-flux en direct (15fps)",
+    "mode_freeze_frame": "Image figée (Scrubber)",
+    "stream_mode_label": "Mode de visualisation",
+    "qtgmc_filtered": "Filtre QTGMC / AI Master",
+    "stream_connecting": "Connexion au sous-flux léger...",
+    "split_seek_backward": "-5s",
+    "split_seek_forward": "+5s"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",

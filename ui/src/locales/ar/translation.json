@@ -75,7 +75,14 @@
     "split_loading": "جارٍ تحميل إطارات المقارنة...",
     "split_hint": "اسحب شريط التمرير أو استخدم مفاتيح الأسهم للمقارنة بين ما قبل وما بعد.",
     "eco_mode_title": "الوضع الاقتصادي 0% CPU / GPU",
-    "eco_mode_desc": "تم تعطيل الشاشة في التفضيلات لتخصيص أقصى موارد العتاد لعملية الاستعادة."
+    "eco_mode_desc": "تم تعطيل الشاشة في التفضيلات لتخصيص أقصى موارد العتاد لعملية الاستعادة.",
+    "mode_live_stream": "بث فرعي مباشر (15 إطار/ث)",
+    "mode_freeze_frame": "إطار مجمد (شريط تمرير)",
+    "stream_mode_label": "وضع العرض",
+    "qtgmc_filtered": "تصفية QTGMC / AI Master",
+    "stream_connecting": "جارٍ الاتصال بالبث الفرعي الخفيف...",
+    "split_seek_backward": "-5s",
+    "split_seek_forward": "+5s"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",

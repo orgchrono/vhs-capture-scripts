@@ -1,5 +1,4 @@
-import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { LiveMonitor } from './LiveMonitor';
@@ -43,4 +42,12 @@ describe('LiveMonitor Component', () => {
     expect(await screen.findByText(/15.4 Mbps/i)).toBeInTheDocument();
     expect(await screen.findByText(/REC 00:15:30/i)).toBeInTheDocument();
   });
+
+  it('toggles into split comparison monitor when split button is clicked', async () => {
+    render(<LiveMonitor />, { wrapper });
+    const toggleBtn = screen.getByTestId('toggle-split-view-btn');
+    fireEvent.click(toggleBtn);
+    expect(screen.getByTestId('split-comparison-monitor')).toBeInTheDocument();
+  });
 });
+

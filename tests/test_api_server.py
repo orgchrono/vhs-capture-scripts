@@ -246,3 +246,45 @@ def test_api_security_generate_subtitles_validation(client):
         assert "sys.argv[1]" in called_cmd[2]
         assert called_cmd[3] == "media/raw/tape.mkv"
         assert called_cmd[4] == "small"
+
+
+def test_api_monitor_stream_proxy_security(client):
+    """Verify that insecure paths in stream-proxy are rejected with 400."""
+    res = client.get("/api/monitor/stream-proxy?source=../../etc/passwd")
+    assert res.status_code == 400
+    assert "Caminho de arquivo inválido" in res.json()["message"]
+
+
+def test_api_monitor_stream_proxy_stream(client):
+    """Verify that /api/monitor/stream-proxy initiates a multipart MJPEG stream."""
+    with patch("vhs_studio.core.toolchain.Toolchain.get_ffmpeg_path") as mock_ff, \
+         patch("subprocess.Popen") as mock_popen:
+        mock_ff.return_value = "ffmpeg"
+        mock_proc = MagicMock()
+        mock_proc.stdout.read.side_effect = [b"--frame\r\nContent-Type: image/jpeg\r\n\r\nfakejpeg\r\n", b""]
+        mock_proc.wait.return_value = 0
+        mock_popen.return_value = mock_proc
+
+        with client.stream("GET", "/api/monitor/stream-proxy?mode=raw&fps=15") as res:
+            assert res.status_code == 200
+            assert "multipart/x-mixed-replace; boundary=frame" in res.headers["content-type"]
+            chunk = next(res.iter_bytes())
+            assert b"--frame" in chunk
+
+
+def test_api_monitor_comparison_frame(client):
+    """Verify that /api/monitor/comparison-frame returns valid base64 images."""
+    with patch("vhs_studio.core.toolchain.Toolchain.get_ffmpeg_path") as mock_ff, \
+         patch("subprocess.run") as mock_run:
+        mock_ff.return_value = "ffmpeg"
+        mock_res = MagicMock()
+        mock_res.returncode = 0
+        mock_res.stdout = b"\xff\xd8\xff\xe0\x00\x10JFIF"
+        mock_run.return_value = mock_res
+
+        res = client.get("/api/monitor/comparison-frame?timestamp=5.0")
+        assert res.status_code == 200
+        data = res.json()
+        assert data["status"] == "ok"
+        assert "data:image/jpeg;base64," in data["raw_image"]
+        assert "data:image/jpeg;base64," in data["processed_image"]

@@ -75,7 +75,14 @@
     "split_loading": "Loading comparison frames...",
     "split_hint": "Drag slider or use arrow keys to compare before and after.",
     "eco_mode_title": "Eco Mode 0% CPU / GPU",
-    "eco_mode_desc": "Monitor disabled in preferences to allocate maximum hardware resources to restoration."
+    "eco_mode_desc": "Monitor disabled in preferences to allocate maximum hardware resources to restoration.",
+    "mode_live_stream": "Live Sub-Stream (15fps)",
+    "mode_freeze_frame": "Freeze Frame (Scrubber)",
+    "stream_mode_label": "Viewing Mode",
+    "qtgmc_filtered": "QTGMC / AI Master Filtered",
+    "stream_connecting": "Connecting lightweight sub-stream...",
+    "split_seek_backward": "-5s",
+    "split_seek_forward": "+5s"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",

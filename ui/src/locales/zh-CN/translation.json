@@ -75,7 +75,14 @@
     "split_loading": "正在加载对比画面...",
     "split_hint": "拖动滑块或使用键盘方向键对比处理前后的画质差异。",
     "eco_mode_title": "节能模式 0% CPU / GPU",
-    "eco_mode_desc": "已在首选项中禁用实时监视器，以将最大硬件资源分配给修复处理。"
+    "eco_mode_desc": "已在首选项中禁用实时监视器，以将最大硬件资源分配给修复处理。",
+    "mode_live_stream": "实时子流 (15fps)",
+    "mode_freeze_frame": "定格帧 (拖动检查)",
+    "stream_mode_label": "查看模式",
+    "qtgmc_filtered": "QTGMC / AI Master 滤镜处理",
+    "stream_connecting": "正在连接轻量子流...",
+    "split_seek_backward": "-5s",
+    "split_seek_forward": "+5s"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",

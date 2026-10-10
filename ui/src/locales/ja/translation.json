@@ -75,7 +75,14 @@
     "split_loading": "比較フレームを読み込み中...",
     "split_hint": "スライダーをドラッグするか矢印キーを使用して、前後の比較を行えます。",
     "eco_mode_title": "エコモード 0% CPU / GPU",
-    "eco_mode_desc": "修復処理に最大限のハードウェアリソースを割り当てるため、プレビューモニターは設定で無効化されています。"
+    "eco_mode_desc": "修復処理に最大限のハードウェアリソースを割り当てるため、プレビューモニターは設定で無効化されています。",
+    "mode_live_stream": "ライブサブストリーム (15fps)",
+    "mode_freeze_frame": "フリーズフレーム (スクラバー)",
+    "stream_mode_label": "表示モード",
+    "qtgmc_filtered": "QTGMC / AI Master フィルター適用",
+    "stream_connecting": "軽量サブストリームに接続中...",
+    "split_seek_backward": "-5s",
+    "split_seek_forward": "+5s"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
