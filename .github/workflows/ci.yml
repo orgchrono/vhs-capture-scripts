@@ -10,8 +10,6 @@ jobs:
   lint-and-test:
     name: CI on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    env:
-      ACTIONS_RUNNER_FORCE_NODE24: "true"
     strategy:
       fail-fast: false
       matrix:

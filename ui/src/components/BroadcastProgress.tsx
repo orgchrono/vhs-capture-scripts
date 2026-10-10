@@ -321,8 +321,8 @@ export const BroadcastProgressRibbon: React.FC = () => {
       aria-label={t('telemetry.progress_label')}
       className="w-full bg-studio-surface border border-studio-border rounded-sm px-2.5 py-1.5 flex flex-wrap items-center justify-between gap-2 text-xs font-mono select-none shrink-0"
     >
-      {/* Left: Stage LED & Name */}
-      <div className="flex items-center gap-2 min-w-0">
+      {/* Left: Stage LED & Active Stage */}
+      <div className="flex items-center gap-2 shrink-0">
         <span
           className={`led-lamp ${
             isRestoring
@@ -333,24 +333,24 @@ export const BroadcastProgressRibbon: React.FC = () => {
           }`}
           aria-hidden="true"
         />
-        <span className="text-[11px] font-bold text-slate-200 truncate">
-          {isRestoring
-            ? isPaused
+        {isRestoring && (
+          <span className="text-[11px] font-bold text-slate-200 truncate max-w-[200px]">
+            {isPaused
               ? t('telemetry.status_paused', 'PAUSADO')
-              : `${telemetry.stage}/${stages.length} ${t(telemetry.stageNameKey)}`
-            : t('telemetry.stage_idle')}
-        </span>
+              : `${telemetry.stage}/${stages.length} ${t(telemetry.stageNameKey)}`}
+          </span>
+        )}
       </div>
 
-      {/* Center: Micro Progress Bar & Percentage */}
-      <div className="flex items-center gap-2 shrink-0">
+      {/* Center: Expanded Progress Bar & Percentage */}
+      <div className="flex-1 flex items-center gap-2.5 min-w-[160px]">
         <div
           role="progressbar"
           aria-valuenow={telemetry.progressPercent}
           aria-valuemin={0}
           aria-valuemax={100}
           aria-label={t('telemetry.progress_label')}
-          className="w-24 sm:w-36 md:w-48 h-2 bg-studio-panel rounded-xs overflow-hidden border border-studio-border"
+          className="flex-1 h-2 bg-studio-panel rounded-xs overflow-hidden border border-studio-border"
         >
           <div
             className={`h-full transition-all duration-300 ${
@@ -360,7 +360,7 @@ export const BroadcastProgressRibbon: React.FC = () => {
           />
         </div>
         <span
-          className={`text-[11px] font-bold tabular-nums ${
+          className={`text-[11px] font-bold tabular-nums shrink-0 ${
             isPaused ? 'text-amber-400' : 'text-emerald-400'
           }`}
         >

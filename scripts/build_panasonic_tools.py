@@ -25,13 +25,17 @@ def find_c_compiler() -> str:
 
 def build_tools() -> bool:
     """Compile Panasonic recovery utilities."""
+    is_windows = platform.system() == "Windows"
+    is_macos = platform.system() == "Darwin"
+    exe_suffix = ".exe" if is_windows else ""
+
     compiler = find_c_compiler()
     if not compiler:
+        if is_windows and os.path.exists(os.path.join(TOOLS_DIR, "extract_meihdfs.exe")):
+            print("[INFO] No C compiler found, but pre-compiled Windows binaries are present.")
+            return True
         print("[ERROR] No suitable C compiler (gcc, clang) found in PATH.", file=sys.stderr)
         return False
-
-    is_windows = platform.system() == "Windows"
-    exe_suffix = ".exe" if is_windows else ""
 
     os.makedirs(TOOLS_DIR, exist_ok=True)
     success = True
@@ -40,7 +44,10 @@ def build_tools() -> bool:
     meihdfs_src = os.path.join(SRC_DIR, "meihdfs", "extract", "extract_meihdfs.c")
     meihdfs_out = os.path.join(TOOLS_DIR, f"extract_meihdfs{exe_suffix}")
     if os.path.exists(meihdfs_src):
-        cmd = [compiler, "-O2", "-s", "-o", meihdfs_out, meihdfs_src]
+        cmd = [compiler, "-O2"]
+        if not is_macos:
+            cmd.append("-s")
+        cmd.extend(["-o", meihdfs_out, meihdfs_src])
         print(f"[*] Compiling extract_meihdfs -> {meihdfs_out}")
         res = subprocess.run(cmd, capture_output=True, text=True)
         if res.returncode != 0:
