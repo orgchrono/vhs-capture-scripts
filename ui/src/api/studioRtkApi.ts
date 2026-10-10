@@ -54,7 +54,7 @@ export const studioRtkApi = createApi({
       return headers;
     },
   }),
-  tagTypes: ['Status', 'ObsStats', 'Queue', 'Storage'],
+  tagTypes: ['Status', 'ObsStats', 'Queue', 'Storage', 'Preferences'],
   endpoints: (builder) => ({
     getStatus: builder.query<SystemStatus, void>({
       query: () => 'api/status',
@@ -291,6 +291,23 @@ export const studioRtkApi = createApi({
         },
       }),
     }),
+
+    getPreferences: builder.query<Record<string, unknown>, void>({
+      query: () => 'api/preferences',
+      providesTags: ['Preferences'],
+    }),
+
+    savePreferences: builder.mutation<
+      { success: boolean; preferences: Record<string, unknown> },
+      Record<string, unknown>
+    >({
+      query: (body) => ({
+        url: 'api/preferences',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Preferences'],
+    }),
   }),
 });
 
@@ -328,5 +345,8 @@ export const {
   useExtractPanasonicTitlesMutation,
   useGetComparisonFrameQuery,
   useLazyGetComparisonFrameQuery,
+  useGetPreferencesQuery,
+  useSavePreferencesMutation,
 } = studioRtkApi;
+
 

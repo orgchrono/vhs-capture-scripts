@@ -1,46 +1,60 @@
-# 📀 Manual Técnico de Ingestão Panasonic DVR & MEIHDFS-V2.0
+# 📀 Panasonic DVR & MEIHDFS-V2.0 Ingest Technical Manual
 
-Este documento descreve detalhadamente a arquitetura forense, o sistema de arquivos proprietário **MEIHDFS**, os binários nativos em C, o sistema de hotplug com auto-detecção em tempo real e os fluxos de extração de gravações e capítulos a partir de gravadores de DVD/HDD da Panasonic (família **DMR-EH**, **DMR-ES**, **DMR-E**).
+<div align="justify">
+
+This manual provides a detailed technical specification of the forensic acquisition architecture, the proprietary Matsushita **MEIHDFS** file system, native C toolchain binaries, continuous hardware hotplug polling, and automated title/chapter extraction flows for Panasonic DVD/HDD field recorders (**DMR-EH**, **DMR-ES**, and **DMR-E** families).
+
+</div>
 
 ---
 
-## 1. Contexto Histórico & O Desafio do Sistema MEIHDFS
+## 1. Historical Context & The MEIHDFS Challenge
 
-Os gravadores de mesa Panasonic (ex: **DMR-EH50, DMR-EH55, DMR-EH65, DMR-ES10**) utilizam drives de disco rígido IDE/PATA ou SATA formatados com um sistema de arquivos proprietário desenvolvido pela Matsushita: o **MEIHDFS** (*Matsushita Electronic Industrial Hard Disk File System*), principalmente nas versões:
-- **MEIHDFS-V1.0**: Modelos da primeira geração de gravadores com HDD (família DMR-E80H, DMR-E85H, DMR-E100H).
-- **MEIHDFS-V2.0**: Modelos a partir de 2005/2006 (família DMR-EH50, DMR-EH55, DMR-EH60D, etc.).
-- **DVD-VR (Video Recording Format)**: Estrutura lógica de vídeo baseada em pacotes MPEG-2 Program Stream multiplexados (`VR_MOVIE.VRO`) e gerenciamento de títulos e capítulos (`VR_MANGR.IFO`).
+<div align="justify">
 
-### ⚠️ Alerta Forense Crítico de Integridade
+Panasonic standalone consumer and broadcast DVR recorders (e.g., **DMR-EH50, DMR-EH55, DMR-EH65, DMR-ES10**) write audio/video streams to internal IDE/PATA or SATA hard drives formatted with a proprietary, undocumented filesystem developed by Matsushita Electric Industrial: **MEIHDFS** (*Matsushita Electronic Industrial Hard Disk File System*).
+
+Across production generations, three primary logical storage formats are encountered:
+- **MEIHDFS-V1.0:** Utilized in first-generation HDD recorder models (such as the DMR-E80H, DMR-E85H, and DMR-E100H series).
+- **MEIHDFS-V2.0:** Introduced around 2005/2006 for enhanced sector allocation and larger hard drives (DMR-EH50, DMR-EH55, DMR-EH60D, DMR-EH65, etc.).
+- **DVD-VR (Video Recording Format):** The logical video stream encapsulation layer based on multiplexed MPEG-2 Program Stream (`VR_MOVIE.VRO`) data containers and structured navigation metadata management (`VR_MANGR.IFO`).
+
+</div>
+
+### ⚠️ Critical Forensic Data Integrity Warning
 > [!CAUTION]
-> **NUNCA FORMATE O DISCO QUANDO O SISTEMA OPERACIONAL SOLICITAR!**
-> Sistemas operacionais convencionais (Windows, macOS e Linux) não reconhecem partições MEIHDFS nativamente. Ao conectar o disco do gravador via adaptador USB-to-SATA ou porta SATA direta, o Windows emitirá um diálogo: *"O disco precisa ser formatado antes de poder ser usado"*.
-> **Se você clicar em Formatar, a tabela de alocação de blocos e todos os cabeçalhos de gravação serão destruídos permanentemente.** O VHS Studio Pro lê a mídia em modo bruto de baixo nível e dispensa qualquer formatação pelo SO.
+> **NEVER FORMAT THE DISK WHEN PROMPTED BY THE OPERATING SYSTEM!**
+> Standard operating systems (Windows, macOS, and Linux) cannot mount MEIHDFS partitions natively. When connecting an extracted recorder hard drive via a USB-to-SATA adapter bridge or direct SATA port, Windows will prompt: *"You need to format the disk before you can use it"*.
+> **Clicking "Format" permanently destroys the root inode allocation tables and recording headers.** VHS Studio Pro accesses the media in raw, read-only low-level block mode and never requires OS-level mounting or formatting.
 
 ---
 
-## 2. Métodos de Conexão e Clonagem Forense
+## 2. Forensic Acquisition & Physical Connection Methods
 
-O VHS Studio Pro suporta tanto o acesso a **discos físicos conectados** quanto a **imagens brutas de disco (bit-a-bit)**.
+<div align="justify">
+
+VHS Studio Pro supports both **directly attached physical block drives** and **raw sector-by-sector disk image files**.
+
+</div>
 
 ```mermaid
 flowchart TD
-    subgraph Origem ["Origem da Mídia"]
-        HDD["Disco Panasonic Original (PATA/SATA)"]
-        USB_Adapter["Ponte USB-to-SATA (JMicron, ASMedia)"]
-        Raw_Image["Imagem de Disco Bruta (.img, .bin, .raw)"]
+    subgraph Origin ["Media Origin"]
+        HDD["Original Panasonic HDD (PATA/SATA)"]
+        USB_Adapter["USB-to-SATA Bridge (JMicron, ASMedia, Realtek)"]
+        Raw_Image["Raw Bitstream Disk Image (.img, .bin, .raw, .dd)"]
     end
 
-    subgraph Deteccao ["Mecanismo de Detecção (panasonic_dvr.py)"]
-        Hotplug["Hotplug Polling (a cada 3s)"]
-        Bus_Detect["Identificação de Barramento WMI / udev / diskutil"]
-        Signature["Verificação de Assinatura (MEIHDFS / DVD-VR)"]
+    subgraph Detection ["Detection Subsystem (panasonic_dvr.py)"]
+        Hotplug["Hotplug Polling (Every 3,000 ms)"]
+        Bus_Detect["Bus & Controller Query (WMI / udev / diskutil)"]
+        Signature["Filesystem Signature Check (MEIHDFS / DVD-VR)"]
     end
 
-    subgraph Extracao ["Motores de Extração & Árvore"]
-        Native_C["Tier 1: Utilitários Nativos C (extract_meihdfs, dvd-vr)"]
-        Pure_Python["Tier 2: Fallback Forense Python (Carver de PS 0x000001BA)"]
-        Tree_Gen["Árvore de Gravações (Títulos, Capítulos, Miniaturas)"]
+    subgraph Extraction ["Extraction Engines & Media Hierarchy"]
+        Native_C["Tier 1: Native C Utilities (extract_meihdfs, dvd-vr)"]
+        Pure_Python["Tier 2: Pure-Python Fallback Carver (0x000001BA Sync)"]
+        Tree_Gen["Interactive Tree (Titles, Chapters, Live Thumbnails)"]
     end
 
     HDD --> USB_Adapter
@@ -54,87 +68,116 @@ flowchart TD
     Pure_Python --> Tree_Gen
 ```
 
-### 2.1 Conexão Física Direta & Adaptadores USB Recomendados
-Ao conectar o HDD do Panasonic ao computador, utilize adaptadores USB-to-SATA de alta compatibilidade:
-- Chipsets testados: **JMicron JMS567**, **ASMedia ASM1153E**, **Realtek RTL9210B**.
-- O backend identifica automaticamente as assinaturas de hardware do adaptador (`is_jmicron`, `is_asmedia`, `is_usb`) através de consultas WMI no Windows, `udev` no Linux e `diskutil` no macOS.
+### 2.1 Direct Hardware Connection & Recommended USB Adapters
+<div align="justify">
 
-### 2.2 Criação de Imagem de Disco Bruta (Dump Bit-a-Bit)
-Para preservar o drive mecânico original contra desgaste ou riscos de falha física na cabeça de leitura, recomenda-se gerar uma imagem bit-a-bit:
+When connecting a Panasonic DVR hard drive to the workstation, select high-compatibility USB-to-SATA bridges that support pass-through of raw 512-byte / 4096-byte sectors without proprietary hardware encryption:
+- **Verified Chipsets:** **JMicron JMS567**, **ASMedia ASM1153E**, **Realtek RTL9210B**.
+- The backend automatically detects hardware controller signatures (`is_jmicron`, `is_asmedia`, `is_usb`) via WMI queries on Windows, `udev` attributes on Linux, and `diskutil` / IOKit properties on macOS.
+
+</div>
+
+### 2.2 Forensic Bit-Level Disk Image Creation (Raw Dump)
+<div align="justify">
+
+To prevent physical wear on fragile mechanical drive bearings and reading heads, best practice dictates cloning an uncompressed bitstream image before extraction:
 - **Linux / macOS:**
   ```bash
-  sudo dd if=/dev/sdX of=/caminho/panasonic_dump.img bs=64k status=progress conv=noerror,sync
+  sudo dd if=/dev/sdX of=/path/to/panasonic_dump.img bs=64k status=progress conv=noerror,sync
   ```
-- **Windows:** Utilize ferramentas como **FTK Imager** (Create Disk Image -> Raw dd) ou **Win32DiskImager** para criar um arquivo `.img` ou `.bin`.
+- **Windows:** Utilize **FTK Imager** (*Create Disk Image -> Raw dd*) or **Win32DiskImager** to generate a flat `.img` or `.raw` bitstream container.
+
+</div>
 
 ---
 
-## 3. Binários Nativos em C (`tools/panasonic_rec/`)
+## 3. Vendored Native C Utilities (`tools/panasonic_rec/`)
 
-O VHS Studio Pro integra ferramentas de recuperação de baixo nível desenvolvidas originalmente em C (referência: [leecher1337/panasonic-rec](https://github.com/leecher1337/panasonic-rec)):
+<div align="justify">
 
-| Binário / Utilitário | Descrição e Finalidade |
+VHS Studio Pro integrates low-level extraction and demuxing tools originally authored in C (upstream reference: [leecher1337/panasonic-rec](https://github.com/leecher1337/panasonic-rec)):
+
+</div>
+
+| Utility / Binary | Architecture & Purpose |
 | :--- | :--- |
-| **`extract_meihdfs`** | Utilitário primário de inspeção e extração do sistema de arquivos MEIHDFS-V2.0. Lê o superbloco, localiza inodes e extrai o fluxo contínuo de vídeo em bloco para arquivos `.vro`. |
-| **`dvd-vr`** | Analisador lógico da especificação DVD-VR. Lê arquivos de gerenciamento (`VR_MANGR.IFO`), mapeia a divisão de programas, timecodes de início/fim e índices de capítulos. |
-| **`vro2split`** | Ferramenta especializada em segmentação de arquivos `.vro` fragmentados em títulos MPEG-2 Program Stream individuais (`.mpg` / `.m2v` / `.ac3`). |
+| **`extract_meihdfs`** | Primary MEIHDFS-V2.0 inspection and extraction engine. Reads the superblock, traverses the inode table, and extracts contiguous recording blocks directly into intact `.vro` streams. |
+| **`dvd-vr`** | Logical parser for the DVD-VR specification. Parses `VR_MANGR.IFO`, maps program division, calculates frame-accurate start/stop timecodes, and indexes chapter markers. |
+| **`vro2split`** | Stream demuxer specialized in segmenting fragmented `.vro` containers into isolated MPEG-2 Program Stream files (`.mpg`, `.m2v`, `.ac3`). |
+| **`udf_dump`** | Deserializer and extractor for legacy first-generation recorders utilizing UDF 1.02/1.50 filesystems. |
 
-### 3.1 Script de Compilação Multiplataforma (`scripts/build_panasonic_tools.py`)
-Para garantir 100% de compatibilidade entre sistemas operacionais sem dependência de binários proprietários pré-compilados:
-- **Windows:** Compilação com MinGW GCC (`gcc -O2 ...`) gerando executáveis `.exe`.
-- **Linux:** Compilação nativa com GCC (`gcc -O2 ...`) gerando binários ELF em `tools/panasonic_rec/`.
-- **macOS:** Compilação nativa com Clang / Apple LLVM gerando binários Mach-O (Intel x86_64 e Apple Silicon ARM64), com compatibilidade POSIX para offsets de 64-bit (`off_t` / `lseek`).
+### 3.1 Cross-Platform Compilation Pipeline (`scripts/build_panasonic_tools.py`)
+<div align="justify">
 
-Para compilar no ambiente local:
+To eliminate reliance on untrusted external precompiled binaries while maintaining complete platform independence:
+- **Windows:** Compiled with MinGW GCC (`gcc -O2 -s ...`) generating standalone `.exe` executables.
+- **Linux:** Native compilation via GCC (`gcc -O2 -s ...`) producing static/dynamic ELF binaries in `tools/panasonic_rec/`.
+- **macOS:** Native compilation with Clang / Apple LLVM generating Mach-O binaries (supporting both x86_64 and Apple Silicon ARM64) with 64-bit file offset compatibility (`off_t` / `lseek`).
+
+Compile locally using:
 ```bash
 python scripts/build_panasonic_tools.py
 ```
 
-### 3.2 Fixity Criptográfico & Supply-Chain Zero Trust (`checksums.json`)
-Assim como gerenciadores de pacotes de missão crítica (ex: `package-lock.json` no ecossistema TypeScript com `integrity: "sha512-..."`), o VHS Studio Pro não executa binários pré-compilados de terceiros sem antes atestar sua integridade criptográfica:
+</div>
 
-1. **Manifesto Canônico ([`tools/panasonic_rec/checksums.json`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/tools/panasonic_rec/checksums.json)):**
-   Contém os hashes SHA-256 e tamanhos em bytes dos binários oficiais por plataforma (`windows-x64`, etc.).
-2. **Validação Automática no Build:**
-   Se uma máquina sem GCC/Clang utilizar binários pré-existentes, o script valida byte a byte o hash SHA-256. Caso haja discrepância (arquivo corrompido ou adulterado), o processo é abortado com erro de segurança fatal (`[SECURITY ERROR] / [FATAL]`).
-3. **Auditoria Sob Demanda:**
+### 3.2 Cryptographic Fixity & Zero-Trust Supply Chain (`checksums.json`)
+<div align="justify">
+
+Following zero-trust supply chain best practices, VHS Studio Pro enforces strict binary verification before executing native executables:
+
+1. **Canonical Fixity Manifest ([`tools/panasonic_rec/checksums.json`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/tools/panasonic_rec/checksums.json)):**
+   Maintains cryptographic SHA-256 digests and file sizes for official platform builds (`windows-x64`, `linux-x86_64`, `darwin-arm64`).
+2. **Build Verification:**
+   When running on systems utilizing pre-compiled binaries, the toolchain verifies hashes byte-for-byte. Any mismatch halts execution immediately with a fatal security exception (`[SECURITY ERROR] / [FATAL]`).
+3. **On-Demand Manifest Audit:**
    ```bash
    python scripts/build_panasonic_tools.py --verify
    ```
-4. **Atualização Explícita de Release (Mantenedor):**
+4. **Maintainer Manifest Update:**
    ```bash
    python scripts/build_panasonic_tools.py --update-manifest
    ```
-5. **Verificação em Tempo de Execução:**
-   A classe [`Toolchain`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/core/toolchain.py) realiza a checagem via [`FixityChecker`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/archive/fixity.py) antes de cada chamada a processos de extração física.
+5. **Runtime Fixity Enforcement:**
+   [`Toolchain`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/core/toolchain.py) invokes [`FixityChecker`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/archive/fixity.py) prior to launching physical drive extraction subprocesses.
+
+</div>
 
 ---
 
-## 4. Hotplug em Tempo Real & Auto-Configuração
+## 4. Real-Time Hotplug & Autonomous Configuration
 
-O fluxo de ingestão no componente [`PanasonicIngestCard.tsx`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/ui/src/components/PanasonicIngestCard.tsx) opera de forma **100% autônoma e reativa**:
+<div align="justify">
 
-1. **Monitoramento Hotplug Contínuo:**
-   - O RTK Query executa polling a cada **3.000 ms** chamando `GET /api/ingest/panasonic/disks`.
-   - Quando um novo dispositivo de bloco com partição MEIHDFS ou adaptador USB (JMicron/ASMedia) é conectado, o estado reativo dispara o evento.
-2. **Auto-Configuração Imediata (Sem Botão "Conectar"):**
-   - O card expande automaticamente na barra lateral do estúdio.
-   - O caminho do dispositivo é associado e a requisição `GET /api/ingest/panasonic/tree` é emitida.
-   - Um toast informativo notifica o operador: *"Disco Panasonic detectado! Partição MEIHDFS carregada automaticamente."*
-3. **Árvore de Gravações Interativa:**
-   - Apresenta a lista completa de gravações encontradas no disco.
-   - Cada gravação exibe miniatura gerada em tempo real (`/api/media/thumbnail?path=...`), tamanho (`MB` ou `GB`), duração formatada (`HH:MM:SS`) e data de gravação.
-   - **Accordion de Capítulos:** Expande a segmentação de capítulos em intervalos de 15 minutos ou marcas de corte do operador original.
-4. **Extração Seletiva e Envio para a Mesa:**
-   - **Extrair Selecionados:** Extrai em alta velocidade via binário C apenas os títulos selecionados para `media/raw/`.
-   - **Carregar na Mesa:** Com 1 clique, define o arquivo diretamente como entrada ativa no `useStudioStore` para restauração direta ou desentrelaçamento QTGMC.
+The ingest workflow in [`PanasonicIngestCard.tsx`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/ui/src/components/PanasonicIngestCard.tsx) operates autonomously and reactively:
+
+1. **Continuous Hotplug Polling:**
+   - RTK Query polls `GET /api/ingest/panasonic/disks` every **3,000 ms**.
+   - Connecting a block drive with a MEIHDFS partition or a compatible USB bridge automatically triggers state updates.
+2. **Instant Auto-Configuration (Zero "Connect" Buttons):**
+   - The card auto-expands within the studio sidebar.
+   - The device path is bound, and `GET /api/ingest/panasonic/tree` is requested.
+   - An accessible toast notifies the operator: *"Panasonic disk detected! MEIHDFS partition loaded automatically."*
+3. **Interactive Recording Tree:**
+   - Displays all recordings detected on the physical volume or disk dump.
+   - Each entry features a real-time thumbnail (`/api/media/thumbnail?path=...`), formatted file size, duration (`HH:MM:SS`), and original recording timestamp.
+   - **Chapter Accordion:** Visualizes chapter segmentations at 15-minute intervals or operator cut points.
+4. **Selective Ingest & Direct Deck Loading:**
+   - **Extract Selected:** Selectively extracts chosen titles via native C tools to `media/raw/` at maximum bus speed.
+   - **Load onto Desk:** In 1 click, routes the extracted title into active state within `useStudioStore` for direct QTGMC deinterlacing and neural enhancement.
+
+</div>
 
 ---
 
-## 5. Tier 2: Carver Forense em Python Puro (Fallback)
+## 5. Tier 2: Pure-Python Forensic Carver (Fallback Engine)
 
-Caso os binários compilados em C não estejam presentes no sistema ou o superbloco MEIHDFS esteja severamente corrompido, o módulo [`src/vhs_studio/ingest/panasonic_dvr.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/ingest/panasonic_dvr.py) ativa o **Carver Forense Pure-Python**:
-1. Lê o disco ou imagem em blocos alinhados de 64 KB.
-2. Localiza cabeçalhos de pacote MPEG-2 Program Stream (`0x00 0x00 0x01 0xBA`).
-3. Reconstitui os fluxos contínuos de vídeo e áudio descartando blocos corrompidos ou não-alinhados.
-4. Salva os títulos recuperados na pasta `media/raw/` prontos para ingestão.
+<div align="justify">
+
+If compiled C binaries are unavailable on the host or the MEIHDFS superblock is severely damaged, [`src/vhs_studio/ingest/panasonic_dvr.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/ingest/panasonic_dvr.py) initiates the **Pure-Python Forensic Carver**:
+1. Scans the drive or disk image in aligned 64 KB sector chunks.
+2. Identifies MPEG-2 Program Stream packet start code headers (`0x00 0x00 0x01 0xBA`) and PES video headers (`0x00 0x00 0x01 0xE0`).
+3. Reassembles contiguous Program Streams, discarding unaligned noise and invalid run lengths.
+4. Emits recovered titles directly to `media/raw/` ready for immediate restoration.
+
+</div>

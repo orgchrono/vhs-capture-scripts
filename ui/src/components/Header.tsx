@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect } from 'react'
 import { Cpu, Film, Sparkles, Wrench, Globe, Eye, Video, Type, PanelLeft, PanelBottom, ShieldCheck, Settings } from 'lucide-react'
 import { Button } from './ui/button'
 import type { SystemStatus } from '../types'
 import { useTranslation } from 'react-i18next'
 import { SUPPORTED_LANGUAGES } from '../i18n'
+import { usePreferencesStore } from '../store/usePreferencesStore'
 
 interface HeaderProps {
   status?: SystemStatus
@@ -33,16 +34,35 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenPreferences,
 }) => {
   const { t, i18n } = useTranslation();
-  const [highContrast, setHighContrast] = useState(false)
-  const [largeText, setLargeText] = useState(false);
+  const prefs = usePreferencesStore();
 
   useEffect(() => {
-    if (highContrast) {
+    if (prefs.highContrast) {
       document.body.classList.add('high-contrast');
     } else {
       document.body.classList.remove('high-contrast');
     }
-  }, [highContrast]);
+  }, [prefs.highContrast]);
+
+  useEffect(() => {
+    if (prefs.largeText) {
+      document.documentElement.classList.add('large-text');
+      document.body.classList.add('large-text');
+    } else {
+      document.documentElement.classList.remove('large-text');
+      document.body.classList.remove('large-text');
+    }
+  }, [prefs.largeText]);
+
+  useEffect(() => {
+    if (prefs.theme === 'oled_black') {
+      document.documentElement.classList.add('oled-theme');
+      document.body.classList.add('oled-theme');
+    } else {
+      document.documentElement.classList.remove('oled-theme');
+      document.body.classList.remove('oled-theme');
+    }
+  }, [prefs.theme]);
 
   return (
     <header className="border-b border-studio-border bg-studio-panel px-4 sm:px-6 flex items-center justify-between shrink-0 h-14 sm:h-15 z-20 select-none">
@@ -87,26 +107,20 @@ export const Header: React.FC<HeaderProps> = ({
           <Button
             variant="ghost"
             size="icon"
-            className={`w-7 h-7 rounded-sm hover:bg-studio-surface-hover ${highContrast ? 'text-amber-400' : 'text-slate-400'}`}
-            onClick={() => setHighContrast(!highContrast)}
+            className={`w-7 h-7 rounded-sm hover:bg-studio-surface-hover ${prefs.highContrast ? 'text-amber-400' : 'text-slate-400'}`}
+            onClick={() => prefs.setHighContrast(!prefs.highContrast)}
             title={t('header.accessibility_contrast')}
+            aria-label={t('header.accessibility_contrast')}
           >
             <Eye className="w-3.5 h-3.5" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
-            className={`w-7 h-7 rounded-sm hover:bg-studio-surface-hover ${largeText ? 'text-slate-200' : 'text-slate-400'}`}
-            onClick={() => {
-              const next = !largeText;
-              setLargeText(next);
-              if (next) {
-                document.documentElement.classList.add('large-text');
-              } else {
-                document.documentElement.classList.remove('large-text');
-              }
-            }}
+            className={`w-7 h-7 rounded-sm hover:bg-studio-surface-hover ${prefs.largeText ? 'text-amber-400' : 'text-slate-400'}`}
+            onClick={() => prefs.setLargeText(!prefs.largeText)}
             title={t('header.accessibility_text_size')}
+            aria-label={t('header.accessibility_text_size')}
           >
             <Type className="w-3.5 h-3.5" />
           </Button>

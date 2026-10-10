@@ -26,6 +26,7 @@ REALESRGAN_DIR = os.path.join(TOOLS_DIR, "realesrgan")
 USER_HOME = os.path.expanduser("~")
 VHS_STUDIO_DIR = os.path.join(USER_HOME, ".vhs_studio")
 STORAGE_CONFIG_PATH = os.path.join(VHS_STUDIO_DIR, "storage.json")
+PREFERENCES_CONFIG_PATH = os.path.join(VHS_STUDIO_DIR, "preferences.json")
 ADVANCED_CONFIG_PATH = os.path.join(PROJECT_ROOT, "vhs_advanced_config.toml")
 
 

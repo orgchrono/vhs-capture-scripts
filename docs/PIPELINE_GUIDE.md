@@ -1,47 +1,62 @@
-# 🎞️ Manual Técnico da Pipeline de Restauração - VHS Studio Pro
+# 🎞️ Restoration Pipeline Technical Guide - VHS Studio Pro
 
-Este guia fornece instruções detalhadas sobre a orquestração do Grafo Direcionado Acíclico (DAG), os motores de processamento, algoritmos de desentrelaçamento, filtros de redução de ruído analógico e modelos de inteligência artificial empregados no **VHS Studio Pro**.
+<div align="justify">
 
----
+This guide provides technical specifications for the Directed Acyclic Graph (DAG) orchestration engine, processing pipelines, motion-compensated deinterlacing algorithms, analog noise reduction filterchains, and multimodal neural network models implemented in **VHS Studio Pro**.
 
-## 1. O Desafio do Sinal Analógico de Vídeo
-
-O vídeo analógico (VHS, S-VHS, Betamax, Video8, Hi8) possui particularidades que tornam a sua restauração digital muito mais complexa do que uma simples conversão de formato:
-
-1. **Campos Entrelaçados (Interlacing):** O sinal é composto por 59.94 (NTSC) ou 50 (PAL) *campos* temporais por segundo, onde linhas pares e ímpares foram capturadas em instantes diferentes no tempo.
-2. **Ruído de Croma (Chroma Noise / Rainbowing):** A largura de banda da subportadora de cor no VHS é extremamente limitada (~0.6 MHz), gerando manchas avermelhadas e azuladas flutuantes.
-3. **Instabilidade Temporal (Jitter / TBC Errors):** Variações mecânicas na velocidade da fita causam linhas tortas horizontais (*flagging*) e perda de sincronismo entre quadros.
-4. **Descompasso A/V Cumulativo:** Quedas de sinal sem um TBC de hardware levam a dessincronia crônica entre o áudio contínuo e os quadros de vídeo dropados.
+</div>
 
 ---
 
-## 2. Orquestração DAG Paralela (`pipeline.py`)
+## 1. The Physics and Characteristics of Analog Video Signals
 
-O VHS Studio Pro substitui scripts lineares monolíticos por um orquestrador modular concorrente baseado em **Grafo Direcionado Acíclico (DAG)**:
+<div align="justify">
+
+Restoring legacy magnetic tape media (VHS, S-VHS, Betamax, Video8, Hi8) requires domain-specific signal processing fundamentally distinct from typical digital format transcoding:
+
+1. **Interlacing (Temporal Fields):** The analog video signal consists of 59.94 (NTSC) or 50 (PAL) temporal *fields* per second. Alternating odd and even horizontal scanlines were captured at distinct moments in time. Improper merging creates severe combing artifacts (*interlace combing*).
+2. **Chroma Subcarrier Bandwidth Limitation (~0.6 MHz):** Color difference subcarrier bandwidth in VHS is restricted to roughly 0.6 MHz (compared to > 3.0 MHz for luminance). This results in prominent color bleeding, horizontal chroma delay, and high-frequency noise spikes (*rainbowing* / chroma noise).
+3. **Mechanical Time Base Jitter (TBC Errors):** Mechanical imperfections in capstan motors, tape tension arms, and head drum rotation induce horizontal displacement (*line jitter* and *flagging* at the top of the raster).
+4. **Cumulative Audio/Video Desynchronization:** Signal dropouts without a hardware Time Base Corrector cause capture devices to drop corrupted video frames while recording continuous audio, producing acute cumulative drift over a 2-hour capture.
+
+</div>
+
+---
+
+## 2. Parallel DAG Orchestration (`pipeline.py`)
+
+<div align="justify">
+
+VHS Studio Pro replaces monolithic sequential scripts with a modular, concurrent **Directed Acyclic Graph (DAG)** execution pipeline:
+
+</div>
 
 ```mermaid
 flowchart TD
-    Raw["Fita Bruta Capturada (raw/tape.mkv)"] --> BaseRestore["Fase 1: BaseRestorationStep\n(Desentrelaçamento + Filtros de Luma/Croma)"]
-    Raw --> Whisper["Fase 1 (Paralela): WhisperStep\n(Extração de Áudio + Transcrição IA)"]
+    Raw["Raw Capture (raw/tape.mkv)"] --> BaseRestore["Phase 1: BaseRestorationStep\n(Deinterlacing + Luma/Chroma Filters)"]
+    Raw --> Whisper["Phase 1 (Concurrent): WhisperStep\n(Audio Extraction + AI Transcription)"]
     
-    BaseRestore --> PostCheck{"Pós-Passos Habilitados?"}
+    BaseRestore --> PostCheck{"Post-Steps Enabled?"}
     
-    PostCheck -->|ai_face_restore| FaceStep["Fase 2: FaceRestorationStep\n(CodeFormer)"]
-    PostCheck -->|ai_rife_60fps| RifeStep["Fase 2: RifeInterpolationStep\n(RIFE v4.6)"]
-    PostCheck -->|ai_upscaler| UpscaleStep["Fase 2: AIUpscalerStep\n(Real-ESRGAN / Real-CUGAN)"]
+    PostCheck -->|ai_face_restore| FaceStep["Phase 2: FaceRestorationStep\n(CodeFormer)"]
+    PostCheck -->|ai_rife_60fps| RifeStep["Phase 2: RifeInterpolationStep\n(RIFE v4.6)"]
+    PostCheck -->|ai_upscaler| UpscaleStep["Phase 2: AIUpscalerStep\n(Real-ESRGAN / Real-CUGAN)"]
     
-    FaceStep --> SceneStep["Fase 3: SceneSegmentationStep\n(PySceneDetect)"]
+    FaceStep --> SceneStep["Phase 3: SceneSegmentationStep\n(PySceneDetect)"]
     RifeStep --> SceneStep
     UpscaleStep --> SceneStep
-    PostCheck -->|Nenhum| SceneStep
+    PostCheck -->|None| SceneStep
     
-    SceneStep --> CloudStep["Fase 4: CloudOffloadStep\n(Sync S3 / Drive / Dropbox)"]
+    SceneStep --> CloudStep["Phase 4: CloudOffloadStep\n(Sync S3 / Drive / Dropbox)"]
     Whisper --> CloudStep
-    CloudStep --> Output["Arquivo Master Concluído\n(restored/tape_name/)"]
+    CloudStep --> Output["Master Archive Complete\n(restored/tape_name/)"]
 ```
 
-### 2.1 Isolamento de Erros via Closures (`make_step_runner`)
-Cada pós-processamento neural executa dentro de uma closure de fronteira de erro funcional:
+### 2.1 Fault Isolation via Functional Closures (`make_step_runner`)
+<div align="justify">
+
+Each optional neural post-processing phase is encapsulated inside a functional error-boundary closure:
+
 ```python
 def make_step_runner(step_name: str, fn: Callable[[], Optional[str]]) -> Callable[[], Optional[str]]:
     def run() -> Optional[str]:
@@ -54,106 +69,146 @@ def make_step_runner(step_name: str, fn: Callable[[], Optional[str]]) -> Callabl
             return None
     return run
 ```
-Se um modelo de IA opcional (como CodeFormer) falhar por falta de pesos baixados ou limitação de VRAM, a pipeline registra o aviso e preserva integralmente o arquivo master restaurado pela fase base.
+
+If an optional model (such as CodeFormer) encounters an unhandled runtime error (e.g., missing network weights or GPU out-of-memory), the pipeline logs the diagnostic error cleanly and preserves the master video produced during the base restoration phase without corrupting the pipeline.
+
+</div>
 
 ---
 
-## 3. Comparativo de Desentrelaçadores
+## 3. Motion-Compensated Deinterlacing Benchmark
 
-| Algoritmo | Motor | Taxa de Saída | Carga Computacional | Nível de Detalhe e Reconstrução | Recomendação |
+<div align="justify">
+
+The deinterlacing engine synthesizes interlaced fields into full-rate progressive frames (59.94p / 50p):
+
+</div>
+
+| Algorithm | Engine | Output Rate | Computational Complexity | Reconstruction & Motion Stability | Primary Use Case |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **QTGMC (Slower/Slow)** | VapourSynth | 59.94p / 50p | Altíssima (CPU multi-core) | **Excelente.** Reconstrói bordas, elimina cintilação (*bob shimmer*) e interpola vetores de movimento com compensação temporal contínua. | **Masters de Arquivo e Produções Finais** |
-| **QTGMC (Fast)** | VapourSynth | 59.94p / 50p | Alta | **Muito Bom.** Menor densidade de vetores de movimento, mas mantém a estabilidade temporal superior do QTGMC. | **Lotes Grandes / Computadores Médios** |
-| **bwdif** | FFmpeg nativo | 59.94p / 50p | Média (1x–3x tempo real) | **Bom.** Bob deinterlacer adaptativo baseado em direções ponderadas. Muito superior ao yadif. | **Velocidade Máxima / Fallback Seguro** |
-| **znedi3 / nnedi** | VapourSynth / FFmpeg | 59.94p / 50p | Média-Alta | **Especializado.** Rede neural de interpolação direcional. Ideal para preservação de linhas diagonais em fitas limpas. | **Fitas JVC com TBC Ativo** |
+| **QTGMC (Slower/Slow)** | VapourSynth | 59.94p / 50p | Very High (Multi-core CPU) | **Reference Grade.** Motion-vector temporal smoothing, edge refinement, and complete elimination of bob shimmer. | **Archival Masters & Final Deliverables** |
+| **QTGMC (Fast)** | VapourSynth | 59.94p / 50p | High | **Very Good.** Lower motion vector density while preserving temporal stability. | **Batch Archives / Mid-Range Workstations** |
+| **bwdif** | Native FFmpeg | 59.94p / 50p | Moderate (1x–3x real-time) | **Good.** Direction-adaptive bob deinterlacing. Substantially superior to basic yadif. | **High-Speed Ingestion & Safe Fallback** |
+| **znedi3 / nnedi3** | VapourSynth / FFmpeg | 59.94p / 50p | Moderate-High | **Specialized.** Neural directional interpolation for sharp edge recreation. | **High-Bandwidth S-VHS / TBC Captures** |
 
 ---
 
-## 4. Redução de Ruído Analógico e Cadeia de Filtros (`filter_builder.py`)
+## 4. Analog Noise Reduction & Declarative Filterchain (`filter_builder.py`)
 
-A construção da linha de comando do FFmpeg é realizada de forma **funcional e declarativa**, sem mutações imperativas:
+<div align="justify">
 
-1. **Separação de Luma e Croma:**
-   - Filtros espaciais atuam sobre os planos de crominância (`U` e `V`) para eliminar o *chroma bleed* e manchas avermelhadas sem prejudicar a nitidez da luminância (`Y`).
-2. **HQDN3D (High Quality 3D Denoise):**
-   - Analisa a consistência do grão analógico temporalmente quadro a quadro, limpando o "chuvisco" de fundo sem gerar fantasmas (*ghosting*).
+The FFmpeg filtergraph is generated through **pure, declarative functional composition** without global mutable state:
+
+1. **Luma and Chroma Planar Separation:**
+   - Spatial filters operate independently on chrominance planes (`U` and `V`) to suppress color bleeding and cross-color rainbowing without softening the high-frequency luminance (`Y`) plane.
+2. **HQDN3D (High-Quality 3D Denoise):**
+   - Evaluates spatio-temporal noise variance across frames, eliminating high-frequency analog snow without creating trailing ghosts (*ghosting*).
 3. **Dropout Cleaner:**
-   - Detecta e substitui linhas horizontais brancas decorrentes de perda de óxido magnético na fita através de interpolação temporal de campos adjacentes.
-4. **Overscan Blanking:**
-   - Mascara de forma limpa as linhas inferiores com ruído de comutação dos cabeçotes de vídeo (*head-switching noise*), evitando faixas piscantes na reprodução moderna.
+   - Detects horizontal white dropout streaks caused by magnetic oxide loss and replaces damaged raster segments via temporal interpolation from adjacent fields.
+4. **Overscan Blanking (12px Mask):**
+   - Cleanly blanks out the bottom 12 scanlines containing helical head-switching noise, preventing flashing bars on modern digital displays.
+
+</div>
 
 ---
 
-## 5. Inteligência Artificial Multimodal Integrada
+## 5. Multimodal Artificial Intelligence Suite
 
-### 5.1 Restauração Facial Neural (CodeFormer)
-- Reconstrói expressões faciais, olhos e detalhes fisionômicos distantes que foram borrados pela baixa resolução do VHS.
-- Parâmetro calibrável de fidelidade (`ai_face_fidelity` entre `0.1` e `0.9`), prevenindo o "efeito boneco de cera" e respeitando a fisionomia histórica.
+<div align="justify">
 
-### 5.2 Interpolação de Movimento (RIFE v4.6)
-- Redes neurais de fluxo óptico bidirecional para criar transições naturais entre campos em capturas de 25p/30p que exigem saída a 60fps sem duplicação de quadros (*frame judder*).
+### 5.1 Blind Face Restoration (CodeFormer)
+- Restores facial landmarks, iris definition, and lip contours degraded by VHS low horizontal resolution (~240 lines).
+- Configurable fidelity weighting (`ai_face_fidelity` between `0.1` and `0.9`) strikes the optimal balance between natural historical likeness and clarity enhancement, preventing waxy synthetic skin textures.
 
-### 5.3 Super-Resolução Neural (Real-ESRGAN / Real-CUGAN)
-- **Real-ESRGAN x4plus:** Foco em máxima definição, nitidez digital e reconstrução de bordas.
-- **Real-CUGAN (models-se):** Foco em preservação do grão analógico natural e estética orgânica de película/filme.
+### 5.2 Optical Flow Motion Interpolation (RIFE v4.6)
+- Employs deep bidirectional optical flow networks to generate smooth transitions in 25p/30p material targeted for 60fps presentation without telecine judder.
 
-### 5.4 Transcrição e Legendas (Faster-Whisper)
-- Extração automática de áudio com normalização em broadcast LUFS.
-- Transcrição offline sem envio de dados para a nuvem.
-- Emissão sincronizada de arquivos `.vtt` (Web Video Text Tracks para a UI) e `.srt` (SubRip para edição profissional).
+### 5.3 Deep Convolutional Super-Resolution (Real-ESRGAN / Real-CUGAN)
+- **Real-ESRGAN x4plus:** Focuses on sharp edge delineation, crisp typography, and textural definition.
+- **Real-CUGAN (`models-se`):** Optimized for retaining organic film grain and subtle analog gradations.
+
+### 5.4 Acoustic Speech Recognition & Subtitling (Faster-Whisper)
+- Audio extraction normalized to broadcast LUFS standards.
+- 100% offline neural transcription with automatic language identification.
+- Produces synchronized `.vtt` (Web Video Text Tracks) for browser rendering and `.srt` (SubRip) for professional NLE suites.
+
+</div>
 
 ---
 
-## 6. Presets Canônicos do Estúdio
+## 6. Canonical Studio Presets
 
-| Preset | ID | Configuração de Filtros | Objetivo |
+<div align="justify">
+
+Restoration configurations are mapped to four core profiles in [`vhs_advanced_config.toml`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/vhs_advanced_config.toml):
+
+</div>
+
+| Preset | ID | Filter & Codec Configuration | Operational Objective |
 | :--- | :--- | :--- | :--- |
-| **Padrão Broadcast** | `gold` | QTGMC Slow (60p) + ProRes 422 / H.264 + Passthrough TBC | Máxima fidelidade arquivística de referência para fitas familiares e históricas. |
-| **Ultra Rápido Hardware** | `speed` | BWDIF (60p) + NVENC / AMF / QSV + Lanczos 1080p | Digitalização e entrega de alta velocidade (500+ fps em tempo real). |
-| **TBC Frame-Hold** | `tbc_hold` | Frame-Hold Dropout Shield + ZNEDI3 + Mono-L JVC | Recuperação de fitas mastigadas, amassadas ou com perda severa de sincronismo. |
-| **AI Master** | `ai_master` | QTGMC + Real-ESRGAN + CodeFormer + Whisper AI | Restauração completa de última geração para telas 4K modernas. |
+| **Broadcast Standard** | `gold` | QTGMC Slow (60p) + ProRes 422 / H.264 CRF 18 + TBC Passthrough | Reference archival master for heritage collections and precious family tapes. |
+| **Hardware Ultrafast** | `speed` | BWDIF (60p) + NVENC / AMF / QSV CRF 22 + Lanczos 1080p | High-throughput batch transfer (300+ fps processing rate). |
+| **TBC Frame-Hold** | `tbc_hold` | Frame-Hold Dropout Shield + ZNEDI3 + Mono-L JVC | Salvaging damaged, creased, or severely out-of-sync tapes. |
+| **AI Master** | `ai_master` | QTGMC + Real-ESRGAN x4plus + CodeFormer + Faster-Whisper | Comprehensive 4K digital restoration for modern large displays. |
 
 ---
 
-## 7. Controle de Processos em Tempo Real (Pausa, Retomada & Abort Seguro)
+## 7. Real-Time Process Control (Pause, Resume & Safe Abort)
 
-Para conferir controle operacional absoluto durante restaurações longas (fitas de 2 a 6 horas):
-- **Pausa Não-Destrutiva (`POST /api/action {"action": "pause_process"}`):**
-  - O orquestrador envia sinais de suspensão de thread (`SuspendThread` no Windows ou `SIGSTOP` no POSIX).
-  - O uso de CPU e GPU cai instantaneamente para 0%, permitindo que o usuário realize outras tarefas na máquina sem abortar o trabalho ou corromper buffers de vídeo.
-- **Retomada Imediata (`POST /api/action {"action": "resume_process"}`):**
-  - Desperta o subprocesso (`ResumeThread` / `SIGCONT`), continuando exatamente do frame onde parou.
-- **Interrupção e Abort Seguro (`POST /api/action {"action": "abort_process"}`):**
-  - Dispara término em cascata de processos filhos e remove locks de processo morto, prevenindo congelamentos de portas e arquivos corrompidos.
+<div align="justify">
 
----
+Long restoration runs (tapes spanning 2 to 6 hours) require deterministic operational control:
 
-## 8. Subsistema de Recuperação de Gravações & Jobs Incompletos
+- **Non-Destructive Pause (`POST /api/action {"action": "pause_process"}`):**
+  - Sends operating system thread suspension signals (`SuspendThread` on Windows, `SIGSTOP` on POSIX).
+  - CPU and GPU utilization drops to 0% immediately, allowing the host system to perform critical tasks without aborting or desynchronizing video buffers.
+- **Instant Resume (`POST /api/action {"action": "resume_process"}`):**
+  - Resumes the process tree (`ResumeThread` / `SIGCONT`), continuing from the exact frame where it paused.
+- **Safe Abort (`POST /api/action {"action": "abort_process"}`):**
+  - Cascades termination signals through all child worker processes and releases file locks, preventing frozen ports and damaged output headers.
 
-Quando ocorrem quedas de energia inesperadas ou o computador é reiniciado durante a digitalização:
-- **Detecção Automática:** O backend identifica arquivos residuais com terminação `.tmp.mp4` ou `.tmp.mkv` em `media/restored/` e calcula o progresso atingido via contagem de frames.
-- **Opções de Ação (`POST /api/restoration/incomplete/action`):**
-  1. **`resume`**: Retoma a restauração a partir do último checkpoint registrado.
-  2. **`finalize`**: Utiliza o FFmpeg em modo cópia de fluxo (`-c copy -movflags +faststart`) para reescrever o índice de quadros e o átomo `moov` no cabeçalho do arquivo, tornando o vídeo gravado até aquele momento perfeitamente reproduzível e editável.
-  3. **`discard`**: Limpa os arquivos temporários liberando espaço em disco.
+</div>
 
 ---
 
-## 9. Otimização de GPU Integrada (UMA) & Prevenção de Throttle
+## 8. Incomplete Job Recovery Subsystem
 
-Em sistemas com placas gráficas integradas (Intel UHD Graphics 770 / Iris Xe / AMD Radeon):
-1. **Memória Compartilhada (UMA):** Em vez de decodificar na GPU e reenviar os quadros para o Python via barramento PCIe, a decodificação de entrada permanece em software multi-thread na RAM do sistema.
-2. **Real-ESRGAN via Vulkan NCNN (`-g 0`):** Aloca tensores diretamente na memória unificada compartilhada, aliviando os núcleos x86 da CPU.
-3. **Encoders QuickSync / AMF Dedicados:** `h264_qsv` e `hevc_qsv` utilizam os circuitos integrados de função fixa, liberando a CPU para o desentrelaçamento de alta carga (QTGMC).
-4. **Concorrência Equilibrada:** Whisper ajustado para 4-8 threads, impedindo sobreaquecimento (*thermal throttling*) e mantendo a estabilidade térmica da máquina.
+<div align="justify">
+
+In the event of unexpected power loss or system restarts during digitization:
+
+- **Automatic Residual Detection:** The backend detects unfinished files ending in `.tmp.mp4` or `.tmp.mkv` in `media/restored/` and evaluates recovered frame counts.
+- **Recovery Actions (`POST /api/restoration/incomplete/action`):**
+  1. **`resume`**: Continues the restoration job from the last recorded frame checkpoint.
+  2. **`finalize`**: Uses FFmpeg stream-copy mode (`-c copy -movflags +faststart`) to rewrite the container indices and relocate the `moov` atom to the file header, making the partial video immediately playable and editable.
+  3. **`discard`**: Removes orphaned temporary files and reclaims storage space.
+
+</div>
 
 ---
 
-## 10. Ingestão Direta de Gravadores Panasonic DVR (MEIHDFS)
+## 9. Integrated GPU (UMA) Optimization & Thermal Throttling Prevention
 
-Para recuperar discos de gravadores de mesa Panasonic (ex: DMR-EH55):
-- O sistema detecta automaticamente adaptadores USB-to-SATA (chipsets **JMicron JMS567**, **ASMedia**) e drives de bloco.
-- O utilitário nativo em C [`extract_meihdfs`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/tools/panasonic_rec/extract_meihdfs.exe) extrai o fluxo contínuo de vídeo em alta velocidade.
-- O analisador [`dvd-vr`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/tools/panasonic_rec/dvd-vr.exe) mapeia os títulos e capítulos automaticamente.
-- Para orientações completas, consulte o [Manual Técnico de Ingestão Panasonic DVR](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/docs/PANASONIC_DVR_GUIDE.md).
+<div align="justify">
 
+On workstations featuring integrated graphics architectures (Intel UHD Graphics 770 / Iris Xe / AMD Radeon):
+
+1. **Unified Memory Architecture (UMA):** System RAM and VRAM share the same physical memory channels. Rather than incurring PCIe bus transfer overhead, input video decoding remains in multi-threaded software within host memory.
+2. **Real-ESRGAN via Vulkan NCNN (`-g 0`):** Allocates tensor buffers directly into shared unified memory accessible by the iGPU's Execution Units.
+3. **Fixed-Function Silicon Encoders:** Intel QuickSync (`h264_qsv` / `hevc_qsv`) and AMD AMF encode video using dedicated ASIC hardware, leaving CPU cores available for compute-heavy QTGMC deinterlacing.
+4. **Whisper Thread Balancing:** Concurrency is constrained to 4–8 worker threads to prevent sustained 100% CPU saturation and avoid thermal throttling.
+
+</div>
+
+---
+
+## 10. Direct Panasonic DVR Ingestion (MEIHDFS)
+
+<div align="justify">
+
+To extract recordings directly from Panasonic DMR hard drives:
+- USB-to-SATA bridge controllers (**JMicron JMS567**, **ASMedia**, **Realtek**) and raw block devices are automatically detected.
+- Native C utilities ([`extract_meihdfs`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/tools/panasonic_rec/extract_meihdfs.exe) and [`dvd-vr`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/tools/panasonic_rec/dvd-vr.exe)) parse proprietary inodes and demux MPEG-2 Program Streams at maximum disk read speeds.
+- For complete operational guidance, consult the [Panasonic DVR Ingest Technical Manual](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/docs/PANASONIC_DVR_GUIDE.md).
+
+</div>

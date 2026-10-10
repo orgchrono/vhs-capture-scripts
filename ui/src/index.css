@@ -119,6 +119,20 @@ body.high-contrast * {
   border-color: rgba(255, 255, 255, 0.3) !important;
 }
 
-html.large-text {
-  font-size: 20px;
+html.large-text,
+body.large-text {
+  font-size: 18px;
 }
+
+html.oled-theme,
+body.oled-theme {
+  --background: #000000;
+  --card: #050505;
+  --popover: #050505;
+  --secondary: #0a0a0a;
+  --color-studio-bg: #000000;
+  --color-studio-panel: #060608;
+  --color-studio-surface: #0c0d10;
+  background-color: #000000 !important;
+}
+

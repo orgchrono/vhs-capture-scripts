@@ -22,6 +22,7 @@ import {
 } from './ui/select';
 import { useTranslation } from 'react-i18next';
 import { usePreferencesStore } from '../store/usePreferencesStore';
+import { useSavePreferencesMutation } from '../api/studioRtkApi';
 
 interface AppPreferencesModalProps {
   isOpen: boolean;
@@ -37,6 +38,34 @@ export const AppPreferencesModal: React.FC<AppPreferencesModalProps> = ({
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabType>('directories');
   const prefs = usePreferencesStore();
+  const [savePreferencesTrigger] = useSavePreferencesMutation();
+
+  const handleSaveAndClose = () => {
+    void savePreferencesTrigger({
+      rawDir: prefs.rawDir,
+      restoredDir: prefs.restoredDir,
+      cacheDir: prefs.cacheDir,
+      livePreviewEnabled: prefs.livePreviewEnabled,
+      previewFps: prefs.previewFps,
+      verboseConsole: prefs.verboseConsole,
+      autoScrollConsole: prefs.autoScrollConsole,
+      maxConsoleLines: prefs.maxConsoleLines,
+      panasonicHotplugEnabled: prefs.panasonicHotplugEnabled,
+      panasonicPollIntervalMs: prefs.panasonicPollIntervalMs,
+      preferredAiDevice: prefs.preferredAiDevice,
+      whisperMaxThreads: prefs.whisperMaxThreads,
+      hardwareEncoderPreference: prefs.hardwareEncoderPreference,
+      highContrast: prefs.highContrast,
+      largeText: prefs.largeText,
+      theme: prefs.theme,
+    });
+    onClose();
+  };
+
+  const handleReset = () => {
+    prefs.resetPreferences();
+    void savePreferencesTrigger({});
+  };
 
   if (!isOpen) return null;
 
@@ -495,7 +524,7 @@ export const AppPreferencesModal: React.FC<AppPreferencesModalProps> = ({
           <Button
             variant="outline"
             size="sm"
-            onClick={prefs.resetPreferences}
+            onClick={handleReset}
             className="h-8 text-xs font-mono rounded-sm border-studio-border bg-slate-800 text-slate-300 hover:text-white flex items-center gap-1.5"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -504,7 +533,7 @@ export const AppPreferencesModal: React.FC<AppPreferencesModalProps> = ({
 
           <Button
             size="sm"
-            onClick={onClose}
+            onClick={handleSaveAndClose}
             className="h-8 text-xs font-mono rounded-sm bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold flex items-center gap-1.5"
           >
             <Check className="w-3.5 h-3.5" />

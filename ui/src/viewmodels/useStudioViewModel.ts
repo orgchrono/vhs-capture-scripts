@@ -151,6 +151,13 @@ export function useStudioViewModel() {
         comb_filter: store.combFilter,
         overscan_blanking: store.overscanBlanking,
         audio_treatment: store.audioTreatment,
+        dropout_clean: store.dropoutClean,
+        ai_audio_denoise: store.aiAudioDenoise,
+        ai_face_restore: store.aiFaceRestore,
+        ai_face_fidelity: store.aiFaceFidelity,
+        ai_rife_60fps: store.aiRife60fps,
+        ai_upscaler: store.aiUpscaler,
+        ai_upscaler_model: store.aiUpscalerModel,
         output_codec: store.outputCodec,
       }).unwrap();
 

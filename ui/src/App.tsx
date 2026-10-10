@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { UploadCloud } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -24,6 +24,8 @@ import {
 } from './components/ui/resizable'
 import { useStudioViewModel } from './viewmodels'
 import { useStudioStore } from './store/useStudioStore'
+import { usePreferencesStore } from './store/usePreferencesStore'
+import { useGetPreferencesQuery } from './api/studioRtkApi'
 import { LAYOUT_CONFIG } from './lib/constants'
 
 const telemetryParser = createTelemetryParser()
@@ -296,6 +298,15 @@ const StudioMain: React.FC<{
 export default function App() {
   const [privacyOpen, setPrivacyOpen] = useState(false)
   const [preferencesOpen, setPreferencesOpen] = useState(false)
+  const { data: serverPrefs } = useGetPreferencesQuery()
+  const { updatePreferences } = usePreferencesStore()
+
+  useEffect(() => {
+    if (serverPrefs && typeof serverPrefs === 'object') {
+      updatePreferences(serverPrefs)
+    }
+  }, [serverPrefs, updatePreferences])
+
   return (
     <>
       <PrivacyModal isOpen={privacyOpen} onClose={() => setPrivacyOpen(false)} />

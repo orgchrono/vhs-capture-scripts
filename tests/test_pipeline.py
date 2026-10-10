@@ -1,22 +1,30 @@
-﻿import os
-import pytest
+"""Unit tests for the production PipelineOrchestrator."""
+
 from unittest.mock import patch
-from vhs_studio.api.orchestrator_mock import PipelineOrchestrator
+from vhs_studio.pipeline import PipelineOrchestrator
 
 
-@patch("vhs_studio.api.orchestrator_mock.transcribe_and_generate_vtt")
-@patch("scenedetect.detect")
-def test_orchestrator_run_dag(mock_detect, mock_whisper, tmp_path):
-    # Setup mocks
+@patch.object(PipelineOrchestrator, "_task_whisper")
+@patch.object(PipelineOrchestrator, "_task_scenedetect_and_split")
+@patch.object(PipelineOrchestrator, "_task_restoration")
+def test_orchestrator_run_dag(mock_restore, mock_scene, mock_whisper, tmp_path):
+    output_path = tmp_path / "out.mp4"
+    mock_restore.return_value = str(output_path)
     mock_whisper.return_value = str(tmp_path / "test.vtt")
-    mock_detect.return_value = []
+    mock_scene.return_value = []
 
-    # Create dummy raw file
     raw_file = tmp_path / "raw.mkv"
     raw_file.write_text("dummy")
 
-    orc = PipelineOrchestrator(max_workers=3)
-    orc.run_dag(str(raw_file), {})
+    orc = PipelineOrchestrator(
+        raw_file=str(raw_file),
+        output_path=str(output_path),
+        opts={"esrgan": False},
+        params={"auto_upload": False},
+    )
+    orc.start()
 
-    mock_whisper.assert_called_once_with(str(raw_file))
-    mock_detect.assert_called_once()
+    mock_restore.assert_called_once()
+    mock_whisper.assert_called_once()
+    mock_scene.assert_called_once()
+    assert orc.results["Restoration"] == str(output_path)

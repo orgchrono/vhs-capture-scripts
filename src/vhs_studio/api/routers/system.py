@@ -269,3 +269,24 @@ def get_panasonic_disks() -> Dict[str, object]:
     from vhs_studio.ingest.panasonic_dvr import detect_connected_disks
     disks = detect_connected_disks()
     return {"disks": disks, "total": len(disks)}
+
+
+@system_router.get("/preferences")
+def get_system_preferences() -> Dict[str, object]:
+    """Retrieve persisted preferences from disk."""
+    from vhs_studio.config.preferences_config import load_preferences
+    return load_preferences()
+
+
+@system_router.post("/preferences")
+async def save_system_preferences(request: Request) -> Dict[str, object]:
+    """Persist updated preferences dictionary to disk."""
+    from vhs_studio.config.preferences_config import save_preferences, load_preferences
+    try:
+        body = await request.json()
+        if isinstance(body, dict):
+            ok = save_preferences(body)
+            return {"success": ok, "preferences": load_preferences()}
+    except Exception as err:
+        log.error(f"[PREFERENCES] Erro ao decodificar payload de preferências: {err}")
+    return {"success": False, "preferences": load_preferences()}

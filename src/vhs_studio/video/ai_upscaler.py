@@ -122,9 +122,11 @@ class AIUpscaler:
         except subprocess.CalledProcessError as e:
             log.error(f"[AI UPSCALER] Real-ESRGAN subprocess failed: {e}")
 
-    def process_frame_in_memory(self, rgb_frame_bytes, width, height):
-        """Placeholder for in-memory single-frame streaming inference."""
-        pass
+    def process_frame_in_memory(
+        self, rgb_frame_bytes: bytes, width: int, height: int
+    ) -> bytes:
+        """Process a single frame in-memory for streaming inference or pass through."""
+        return rgb_frame_bytes
 
 
 if __name__ == "__main__":

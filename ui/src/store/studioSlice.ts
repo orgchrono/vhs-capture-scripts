@@ -248,6 +248,7 @@ export const studioSlice = createSlice({
       state.isCapturing = action.payload;
     },
     addLog: (state, action: PayloadAction<string>) => {
+      // oxlint-disable-next-line no-control-regex
       const line = action.payload
         .replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '')
         .replace(/\[\d{1,3}m/g, '')
@@ -256,8 +257,22 @@ export const studioSlice = createSlice({
       if (state.logs.length > 0 && state.logs[state.logs.length - 1] === line) {
         return;
       }
-      if (state.logs.length > 500) {
-        state.logs = [...state.logs.slice(-500), line];
+      let limit = 500;
+      if (typeof window !== 'undefined') {
+        try {
+          const raw = window.localStorage.getItem('vhs_studio_preferences_v1');
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (typeof parsed.maxConsoleLines === 'number' && parsed.maxConsoleLines > 0) {
+              limit = parsed.maxConsoleLines;
+            }
+          }
+        } catch {
+          limit = 500;
+        }
+      }
+      if (state.logs.length > limit) {
+        state.logs = [...state.logs.slice(-limit), line];
       } else {
         state.logs.push(line);
       }
