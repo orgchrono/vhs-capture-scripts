@@ -109,10 +109,10 @@ export const createTelemetryParser = () => {
     const progressMatch = progressLine ? progressLine.match(/PROGRESS:\s*(\d+)%/i) : null;
     const explicitPercent = progressMatch ? parseInt(progressMatch[1], 10) : null;
 
-    const latestFrameLine = reversedLogs.find((line) => /Frames:\s*(\d+)(?:\s*\/\s*(\d+))?/i.test(line));
-    const frameMatch = latestFrameLine ? latestFrameLine.match(/Frames:\s*(\d+)(?:\s*\/\s*(\d+))?/i) : null;
-    const currentFrames = frameMatch ? parseInt(frameMatch[1], 10) : 0;
-    const totalFrames = frameMatch && frameMatch[2] ? parseInt(frameMatch[2], 10) : 0;
+    const latestFrameLine = reversedLogs.find((line) => /Frames:\s*([\d,.]+)(?:\s*\/\s*([\d,.]+))?/i.test(line));
+    const frameMatch = latestFrameLine ? latestFrameLine.match(/Frames:\s*([\d,.]+)(?:\s*\/\s*([\d,.]+))?/i) : null;
+    const currentFrames = frameMatch ? parseInt(frameMatch[1].replace(/,/g, ''), 10) : 0;
+    const totalFrames = frameMatch && frameMatch[2] ? parseInt(frameMatch[2].replace(/,/g, ''), 10) : 0;
 
     const calculatedPercent =
       explicitPercent !== null
@@ -123,17 +123,26 @@ export const createTelemetryParser = () => {
         ? Math.min(99, Math.round(((detectedStage - 1) / totalSteps) * 100))
         : 0;
 
-    const latestFpsLine = reversedLogs.find((line) => /FPS:\s*([\d.]+)/i.test(line));
-    const fpsMatch = latestFpsLine ? latestFpsLine.match(/FPS:\s*([\d.]+)/i) : null;
+    const latestFpsLine = reversedLogs.find((line) => /(?:FPS|Velocidade):\s*([\d.]+)(?:\s*fps)?/i.test(line));
+    const fpsMatch = latestFpsLine ? latestFpsLine.match(/(?:FPS|Velocidade):\s*([\d.]+)(?:\s*fps)?/i) : null;
     const fps = fpsMatch ? parseFloat(fpsMatch[1]) : 59.94;
 
     const latestEtaLine = reversedLogs.find((line) => /ETA:\s*([0-9:]+)/i.test(line));
     const etaMatch = latestEtaLine ? latestEtaLine.match(/ETA:\s*([0-9:]+)/i) : null;
-    const eta = etaMatch ? etaMatch[1] : '--:--:--';
+    let eta = etaMatch ? etaMatch[1] : '--:--:--';
+    if (eta === '--:--:--' && totalFrames > 0 && currentFrames > 0 && fps > 0) {
+      const remainingFrames = Math.max(0, totalFrames - currentFrames);
+      const remainingSeconds = Math.round(remainingFrames / fps);
+      const h = Math.floor(remainingSeconds / 3600);
+      const m = Math.floor((remainingSeconds % 3600) / 60);
+      const s = remainingSeconds % 60;
+      eta = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
 
-    const latestSpeedLine = reversedLogs.find((line) => /(?:Velocidade|Speed):\s*([\d.]+x)/i.test(line));
-    const speedMatch = latestSpeedLine ? latestSpeedLine.match(/(?:Velocidade|Speed):\s*([\d.]+x)/i) : null;
-    const speed = speedMatch ? speedMatch[1] : '1.0x';
+    const latestSpeedLine = reversedLogs.find((line) => /(?:Speed|Velocidade):\s*([\d.]+(?:x|\s*fps)?)/i.test(line));
+    const speedMatch = latestSpeedLine ? latestSpeedLine.match(/(?:Speed|Velocidade):\s*([\d.]+(?:x|\s*fps)?)/i) : null;
+    const rawSpeed = speedMatch ? speedMatch[1].trim() : '';
+    const speed = rawSpeed.endsWith('x') ? rawSpeed : rawSpeed.endsWith('fps') ? `${(parseFloat(rawSpeed) / 59.94).toFixed(2)}x` : rawSpeed ? `${rawSpeed}x` : '1.0x';
 
     return {
       stage: detectedStage,
@@ -153,7 +162,7 @@ const telemetryParser = createTelemetryParser();
 
 export const BroadcastProgress: React.FC = () => {
   const { t } = useTranslation();
-  const { isRestoring, logs, preset } = useStudioStore();
+  const { isRestoring, isPaused, logs, preset } = useStudioStore();
 
   const telemetry = useMemo(() => {
     return telemetryParser(logs, isRestoring, preset);
@@ -167,20 +176,30 @@ export const BroadcastProgress: React.FC = () => {
     <div
       role="region"
       aria-label={t('telemetry.title', 'Telemetria de Masterização')}
-      className="bg-studio-panel border border-studio-border rounded-md p-2.5 mb-2 flex flex-col gap-2 text-slate-200 select-none shadow-sm"
+      className="bg-studio-panel border border-studio-border rounded-md p-2.5 flex flex-col justify-between gap-2 text-slate-200 select-none h-full"
     >
       {/* Top Header: Title, Active Stage and Tally LED */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span
-            className={`led-lamp ${isRestoring ? 'led-live animate-pulse' : 'led-idle'}`}
+            className={`led-lamp ${
+              isRestoring
+                ? isPaused
+                  ? 'led-warn animate-pulse'
+                  : 'led-live animate-pulse'
+                : 'led-idle'
+            }`}
             aria-hidden="true"
           />
           <span className="text-[11px] font-bold uppercase tracking-wider font-mono text-slate-200">
             {t('telemetry.title', 'Telemetria de Masterização')}
           </span>
           <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-studio-surface border border-studio-border text-slate-300">
-            {isRestoring ? t(telemetry.stageNameKey) : t('telemetry.stage_idle')}
+            {isRestoring
+              ? isPaused
+                ? t('telemetry.status_paused', 'PAUSADO')
+                : t(telemetry.stageNameKey)
+              : t('telemetry.stage_idle')}
           </span>
         </div>
 
@@ -190,9 +209,17 @@ export const BroadcastProgress: React.FC = () => {
           className="text-xs font-mono font-bold tracking-tight text-white flex items-center gap-1.5"
         >
           <span className="text-slate-400 text-[10px] font-normal uppercase">
-            {isRestoring ? t('telemetry.status_running') : t('telemetry.status_idle')}
+            {isRestoring
+              ? isPaused
+                ? t('telemetry.status_paused', 'PAUSADO')
+                : t('telemetry.status_running')
+              : t('telemetry.status_idle')}
           </span>
-          <span className="bg-studio-surface border border-studio-border px-2 py-0.5 rounded-sm text-emerald-400 tabular-nums">
+          <span
+            className={`bg-studio-surface border border-studio-border px-2 py-0.5 rounded-sm tabular-nums ${
+              isPaused ? 'text-amber-400' : 'text-emerald-400'
+            }`}
+          >
             {telemetry.progressPercent}%
           </span>
         </div>
@@ -202,19 +229,25 @@ export const BroadcastProgress: React.FC = () => {
       <Progress
         value={telemetry.progressPercent}
         aria-label={t('telemetry.progress_label')}
-        aria-valuetext={`${telemetry.progressPercent}% - ${isRestoring ? t(telemetry.stageNameKey) : t('telemetry.stage_idle')}`}
+        aria-valuetext={`${telemetry.progressPercent}% - ${
+          isRestoring
+            ? isPaused
+              ? t('telemetry.status_paused', 'PAUSADO')
+              : t(telemetry.stageNameKey)
+            : t('telemetry.stage_idle')
+        }`}
         className="h-2"
       />
 
       {/* Dynamic Stage Step Breadcrumbs (Matches Selected Preset Strategy) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-1.5 pt-0.5">
+      <div className="flex flex-wrap gap-1.5 pt-0.5">
         {stages.map((st) => {
           const isDone = telemetry.stage > st.step || (!isRestoring && telemetry.stage === stages.length);
           const isCurrent = isRestoring && telemetry.stage === st.step;
           return (
             <div
               key={st.id}
-              className={`flex items-center gap-1.5 px-2 py-1 rounded-sm text-[10px] font-mono border transition-colors ${
+              className={`flex items-center gap-1.5 px-2 py-1 rounded-sm text-[10px] font-mono border transition-colors flex-1 min-w-[110px] ${
                 isCurrent
                   ? 'bg-emerald-950/50 border-emerald-500/50 text-emerald-300 font-semibold'
                   : isDone
@@ -248,7 +281,7 @@ export const BroadcastProgress: React.FC = () => {
             {telemetry.totalFrames > 0
               ? `${telemetry.currentFrames}/${telemetry.totalFrames}`
               : isRestoring
-              ? 'STREAMING'
+              ? t('telemetry.streaming', 'STREAMING')
               : '0'}
           </span>
         </div>

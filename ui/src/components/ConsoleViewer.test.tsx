@@ -66,4 +66,50 @@ describe('ConsoleViewer Component with Live Search', () => {
 
     expect(screen.getByText('[INFO] System initialized.')).toBeInTheDocument();
   });
+
+  it('renders pause and abort buttons when isRestoring is true and handles clicks', () => {
+    const onPause = vi.fn();
+    const onAbort = vi.fn();
+    render(
+      <Provider store={store}>
+        <ConsoleViewer
+          isRestoring={true}
+          isPaused={false}
+          onPause={onPause}
+          onAbort={onAbort}
+        />
+      </Provider>
+    );
+
+    const pauseBtn = screen.getByTestId('pause-restore-btn');
+    const abortBtn = screen.getByTestId('abort-restore-btn');
+
+    expect(pauseBtn).toBeInTheDocument();
+    expect(abortBtn).toBeInTheDocument();
+
+    fireEvent.click(pauseBtn);
+    expect(onPause).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(abortBtn);
+    expect(onAbort).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders resume button when isRestoring is true and isPaused is true', () => {
+    const onResume = vi.fn();
+    render(
+      <Provider store={store}>
+        <ConsoleViewer
+          isRestoring={true}
+          isPaused={true}
+          onResume={onResume}
+        />
+      </Provider>
+    );
+
+    const resumeBtn = screen.getByTestId('resume-restore-btn');
+    expect(resumeBtn).toBeInTheDocument();
+
+    fireEvent.click(resumeBtn);
+    expect(onResume).toHaveBeenCalledTimes(1);
+  });
 });

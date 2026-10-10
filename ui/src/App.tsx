@@ -35,7 +35,11 @@ const StudioMain: React.FC<{ onOpenPrivacy?: () => void }> = ({ onOpenPrivacy })
     isRefetching,
     isInstallingQtgmc,
     isRestoring,
+    isPaused,
     handleStartRestoration,
+    handlePauseRestore,
+    handleResumeRestore,
+    handleAbortRestore,
     handleInstallQtgmc,
     isInstallingObs,
     handleInstallObs,
@@ -257,14 +261,39 @@ const StudioMain: React.FC<{ onOpenPrivacy?: () => void }> = ({ onOpenPrivacy })
                     maxSize={LAYOUT_CONFIG.CONSOLE_MAX_SIZE}
                     className="bg-studio-panel flex flex-col shrink-0 p-2 lg:p-2.5 overflow-hidden border-t border-studio-border"
                   >
-                    <div className="flex-1 min-h-0 flex flex-col">
-                      <BroadcastProgress />
-                      <ConsoleViewer
-                        onStart={onStart}
-                        isRestoring={isRestoring}
-                        hasSelectedFile={Boolean(selectedFile)}
-                      />
-                    </div>
+                    <ResizablePanelGroup
+                      orientation="horizontal"
+                      className="flex-1 h-full min-h-0"
+                    >
+                      <ResizablePanel
+                        id="telemetry-panel"
+                        defaultSize={46}
+                        minSize={25}
+                        maxSize={75}
+                        className="flex flex-col h-full min-h-0 overflow-hidden pr-1.5"
+                      >
+                        <BroadcastProgress />
+                      </ResizablePanel>
+
+                      <ResizableHandle withHandle />
+
+                      <ResizablePanel
+                        id="console-viewer-panel"
+                        defaultSize={54}
+                        minSize={25}
+                        className="flex flex-col h-full min-h-0 overflow-hidden pl-1.5"
+                      >
+                        <ConsoleViewer
+                          onStart={onStart}
+                          isRestoring={isRestoring}
+                          hasSelectedFile={Boolean(selectedFile)}
+                          isPaused={isPaused}
+                          onPause={handlePauseRestore}
+                          onResume={handleResumeRestore}
+                          onAbort={handleAbortRestore}
+                        />
+                      </ResizablePanel>
+                    </ResizablePanelGroup>
                   </ResizablePanel>
                 </>
               )}

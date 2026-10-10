@@ -4,7 +4,8 @@ import {
   Trash2,
   Download,
   Play,
-  Loader2,
+  Pause,
+  Square,
   Filter,
   Search,
   X,
@@ -17,18 +18,28 @@ export type LogFilterLevel = 'all' | 'info' | 'warn' | 'error'
 
 interface ConsoleViewerProps {
   onStart?: () => void
+  onPause?: () => void
+  onResume?: () => void
+  onAbort?: () => void
   isRestoring?: boolean
+  isPaused?: boolean
   hasSelectedFile?: boolean
 }
 
 export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
   onStart,
+  onPause,
+  onResume,
+  onAbort,
   isRestoring: propIsRestoring,
+  isPaused: propIsPaused,
   hasSelectedFile = true,
 }) => {
   const { t } = useTranslation()
-  const { logs, clearLogs, isRestoring: storeIsRestoring } = useStudioStore()
+  const { logs, clearLogs, isRestoring: storeIsRestoring, isPaused: storeIsPaused } = useStudioStore()
   const isRestoring = propIsRestoring ?? storeIsRestoring
+  const isPaused = propIsPaused ?? storeIsPaused
+
   const [filterLevel, setFilterLevel] = useState<LogFilterLevel>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const endRef = useRef<HTMLDivElement>(null)
@@ -114,21 +125,21 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
 
   return (
     <div className="bg-studio-panel border border-studio-border rounded-md flex flex-col h-full overflow-hidden select-none">
-      <div className="flex items-center justify-between px-2.5 py-1.5 bg-studio-surface border-b border-studio-border gap-2 flex-wrap sm:flex-nowrap">
-        <div className="flex items-center gap-2 flex-wrap">
-          <Terminal className="w-3.5 h-3.5 text-slate-400" />
-          <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider font-mono">
+      <div className="flex items-center justify-between px-2.5 py-1.5 bg-studio-surface border-b border-studio-border gap-2 flex-nowrap min-w-0">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <Terminal className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider font-mono shrink-0">
             {t('console.title')}
           </span>
           {isRestoring && (
-            <span className="flex items-center gap-1.5 text-[10px] bg-emerald-950/40 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-sm font-mono">
+            <span className="hidden md:flex items-center gap-1.5 text-[10px] bg-emerald-950/40 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-sm font-mono shrink-0">
               <span className="led-lamp led-live animate-pulse" />
               {t('console.processing_stream')}
             </span>
           )}
 
           {/* Industry Standard Log Level Filter */}
-          <div className="hidden sm:flex items-center gap-1 ml-1 bg-studio-panel px-1 py-0.5 rounded-sm border border-studio-border text-[10px] font-mono">
+          <div className="hidden xl:flex items-center gap-1 ml-1 bg-studio-panel px-1 py-0.5 rounded-sm border border-studio-border text-[10px] font-mono shrink-0">
             <Filter className="w-3 h-3 text-slate-500 mr-0.5" />
             <button
               type="button"
@@ -177,15 +188,15 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
           </div>
 
           {/* Real-time Log Search Input */}
-          <div className="relative flex items-center ml-1">
-            <Search className="w-3 h-3 text-slate-500 absolute left-2 pointer-events-none" />
+          <div className="relative flex items-center min-w-[100px] max-w-[200px] flex-1">
+            <Search className="w-3 h-3 text-slate-500 absolute left-2 pointer-events-none shrink-0" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t('console.search_placeholder', 'Buscar logs...')}
               aria-label={t('console.search_placeholder', 'Buscar logs')}
-              className="bg-studio-panel border border-studio-border rounded-sm pl-6 pr-6 py-0.5 text-[10px] text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-studio-border-focus focus:ring-1 focus:ring-studio-border-focus w-28 sm:w-36 transition font-mono"
+              className="bg-studio-panel border border-studio-border rounded-sm pl-6 pr-6 py-0.5 text-[10px] text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-studio-border-focus focus:ring-1 focus:ring-studio-border-focus w-full transition font-mono"
             />
             {searchQuery && (
               <button
@@ -200,13 +211,13 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
           </div>
 
           {searchQuery && (
-            <span className="text-[9px] font-mono text-slate-300 bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border">
+            <span className="text-[9px] font-mono text-slate-300 bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border shrink-0">
               {filteredLogs.length}/{logs.length}
             </span>
           )}
         </div>
 
-        <div className="flex items-center gap-1.5 font-mono">
+        <div className="flex items-center gap-1.5 font-mono shrink-0">
           <button
             type="button"
             onClick={() => {
@@ -219,12 +230,17 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
               })
               const url = URL.createObjectURL(blob)
               const a = document.createElement('a')
+              a.style.display = 'none'
               a.href = url
               a.download = `vhs_studio_diagnostic_${new Date()
                 .toISOString()
                 .replace(/[:.]/g, '-')}.log`
+              document.body.appendChild(a)
               a.click()
-              URL.revokeObjectURL(url)
+              setTimeout(() => {
+                document.body.removeChild(a)
+                URL.revokeObjectURL(url)
+              }, 1000)
             }}
             className="text-slate-300 hover:text-white transition text-[11px] flex items-center gap-1.5 cursor-pointer px-2 py-1 rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border"
             title={t('console.export_title')}
@@ -243,27 +259,51 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
             <span>{t('console.clear')}</span>
           </button>
 
-          {onStart && (
+          {isRestoring ? (
+            <div className="flex items-center gap-1.5 ml-1">
+              {isPaused ? (
+                <Button
+                  data-testid="resume-restore-btn"
+                  onClick={onResume}
+                  title={t('console.resume_tooltip')}
+                  className="bg-amber-600 hover:bg-amber-500 text-white font-mono font-bold text-xs uppercase tracking-wider px-2.5 h-7 rounded-sm border border-amber-500/40 cursor-pointer flex items-center gap-1 shadow-xs"
+                >
+                  <Play className="w-3 h-3 fill-current" />
+                  <span>{t('console.resume')}</span>
+                </Button>
+              ) : (
+                <Button
+                  data-testid="pause-restore-btn"
+                  onClick={onPause}
+                  title={t('console.pause_tooltip')}
+                  className="bg-amber-700/80 hover:bg-amber-600 text-amber-200 font-mono font-bold text-xs uppercase tracking-wider px-2.5 h-7 rounded-sm border border-amber-500/40 cursor-pointer flex items-center gap-1 shadow-xs"
+                >
+                  <Pause className="w-3 h-3" />
+                  <span>{t('console.pause')}</span>
+                </Button>
+              )}
+              <Button
+                data-testid="abort-restore-btn"
+                onClick={onAbort}
+                title={t('console.abort_tooltip')}
+                className="bg-red-800 hover:bg-red-700 text-white font-mono font-bold text-xs uppercase tracking-wider px-2.5 h-7 rounded-sm border border-red-500/40 cursor-pointer flex items-center gap-1 shadow-xs"
+              >
+                <Square className="w-3 h-3 fill-current" />
+                <span>{t('console.abort')}</span>
+              </Button>
+            </div>
+          ) : onStart ? (
             <Button
               data-testid="start-restore-btn"
               onClick={onStart}
-              disabled={isRestoring}
               title={!hasSelectedFile ? t('toast.select_file_first') : undefined}
               className="bg-emerald-700 hover:bg-emerald-600 text-white font-mono font-bold text-xs uppercase tracking-wider px-3.5 h-7 rounded-sm border border-emerald-500/40 active:scale-[0.99] transition-all ml-1 cursor-pointer disabled:opacity-50"
             >
-              {isRestoring ? (
-                <>
-                  <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />
-                  <span>{t('console.processing')}</span>
-                </>
-              ) : (
-                <>
-                  <Play className="w-3 h-3 mr-1.5 fill-current" />
-                  <span>{t('capture.start_restore')}</span>
-                </>
-              )}
+              <Play className="w-3 h-3 mr-1.5 fill-current" />
+              <span>{t('capture.start_restore')}</span>
             </Button>
-          )}
+          ) : null}
+
         </div>
       </div>
 

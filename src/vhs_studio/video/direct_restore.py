@@ -137,7 +137,7 @@ def print_log_tail(log_path, lines=20):
 
 def restore_stream(args):
     """Documentation for restore_stream."""
-    w, h, detected_fps, _, _ = get_stream_info(args.input_path)
+    w, h, detected_fps, duration, _ = get_stream_info(args.input_path)
     fps = args.target_fps if args.target_fps else detected_fps
     if fps <= 0:
         fps = VideoConfig.DEFAULT_FPS
@@ -151,6 +151,21 @@ def restore_stream(args):
         mode=args.mode,
         output_codec=args.output_codec,
     )
+
+    checkpoint_path = f"{args.output_path}.checkpoint.json"
+    if getattr(args, "resume", False):
+        if os.path.exists(checkpoint_path) and os.path.exists(args.output_path):
+            try:
+                with open(checkpoint_path, "r", encoding="utf-8") as f:
+                    chk = json.load(f)
+                if chk.get("status") == "completed" and os.path.getsize(args.output_path) > 1024:
+                    log.info(
+                        f"[RESTAURAÇÃO] Checkpoint concluído encontrado para {args.output_path}. "
+                        "Processamento já realizado com sucesso. Pulando."
+                    )
+                    return
+            except Exception:
+                pass
 
     log.info(f"[RESTAURAÇÃO] Resolução de entrada: {w}x{h} @ {fps:.2f} fps")
     log.info(f"[RESTAURAÇÃO] Modo de desentrelaçamento: {args.deinterlacer}")
@@ -176,7 +191,12 @@ def restore_stream(args):
     )  # pylint: disable=consider-using-with
 
     # Inicia decodificador rawvideo do vídeo
-    cmd_in = [Toolchain.get_ffmpeg_path(), "-hide_banner", "-threads", "0"]
+    cmd_in = [
+        Toolchain.get_ffmpeg_path(),
+        "-hide_banner",
+        "-threads",
+        "0",
+    ]
     if args.start_sec > 0.05:
         cmd_in += ["-ss", f"{args.start_sec:.3f}"]
     if args.duration:
@@ -254,13 +274,41 @@ def restore_stream(args):
         cmd_out, stdin=subprocess.PIPE, stderr=log_file, bufsize=16 * 1024 * 1024
     )
 
+    total_duration = args.duration if args.duration else max(0.0, duration - (args.start_sec or 0.0))
+    total_expected_frames = int(total_duration * fps) if total_duration > 0 else 0
+
     runner = StreamRunner(
         mode=args.mode,
         frame_bytes=frame_bytes,
         y_bytes=y_bytes,
         luma_threshold=VideoConfig.LUMA_THRESHOLD,
+        total_expected_frames=total_expected_frames,
     )
-    stats = runner.run(p_in, p_out, detected_fps)
+
+    def on_stream_progress(total, kept, frozen, dropped, elap):
+        try:
+            tmp_chk = f"{checkpoint_path}.tmp"
+            with open(tmp_chk, "w", encoding="utf-8") as f:
+                json.dump(
+                    {
+                        "source": args.input_path,
+                        "destination": args.output_path,
+                        "status": "in_progress",
+                        "total_frames": total,
+                        "kept_frames": kept,
+                        "frozen_frames": frozen,
+                        "dropped_frames": dropped,
+                        "elapsed_seconds": elap,
+                        "fps": fps,
+                    },
+                    f,
+                    indent=2,
+                )
+            os.replace(tmp_chk, checkpoint_path)
+        except Exception:
+            pass
+
+    stats = runner.run(p_in, p_out, detected_fps, on_progress=on_stream_progress)
 
     p_in.stdout.close()
     rc_in = p_in.wait()
@@ -284,8 +332,36 @@ def restore_stream(args):
             pass
         sys.exit(1)
 
+    # Atomic commit to target output path
+    AtomicIO.commit_file(part_path, args.output_path)
+    if final_output_path != args.output_path and os.path.exists(args.output_path):
+        import shutil
+        try:
+            shutil.copy2(args.output_path, final_output_path)
+        except Exception:
+            pass
+
+    # Save completed checkpoint
+    try:
+        with open(checkpoint_path, "w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "source": args.input_path,
+                    "destination": args.output_path,
+                    "status": "completed",
+                    "total_frames": stats["total_frames"],
+                    "kept_frames": stats["kept_frames"],
+                    "elapsed_seconds": stats["elapsed"],
+                    "fps": fps,
+                },
+                f,
+                indent=2,
+            )
+    except Exception:
+        pass
+
     final_size_bytes = (
-        os.path.getsize(final_output_path) if os.path.exists(final_output_path) else 0
+        os.path.getsize(args.output_path) if os.path.exists(args.output_path) else 0
     )
     final_size_mb = final_size_bytes / (1024 * 1024)
     if final_size_mb >= 1000:
@@ -468,9 +544,14 @@ def main():
     parser.add_argument(
         "--output-codec",
         type=str,
-        choices=["h264", "prores", "ffv1"],
+        choices=["h264", "hevc", "prores", "ffv1"],
         default="h264",
         help="Formato de exportação (Delivery vs Archival)",
+    )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Retoma restauração a partir do último checkpoint disponível",
     )
     parser.add_argument(
         "--start-sec",

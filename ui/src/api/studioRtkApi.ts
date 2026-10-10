@@ -8,7 +8,9 @@ import type {
   QueueStats,
   StorageStatus,
   PanasonicInspection,
+  IncompleteJob,
 } from '../types';
+
 
 let cachedSessionToken: string | null = null;
 
@@ -204,6 +206,50 @@ export const studioRtkApi = createApi({
       }),
       invalidatesTags: ['Status'],
     }),
+
+    pauseProcess: builder.mutation<{ status: string; message?: string }, void>({
+      query: () => ({
+        url: 'api/action',
+        method: 'POST',
+        body: { action: 'pause_process' },
+      }),
+      invalidatesTags: ['Status'],
+    }),
+
+    resumeProcess: builder.mutation<{ status: string; message?: string }, void>({
+      query: () => ({
+        url: 'api/action',
+        method: 'POST',
+        body: { action: 'resume_process' },
+      }),
+      invalidatesTags: ['Status'],
+    }),
+
+    abortProcess: builder.mutation<{ status: string; message?: string }, void>({
+      query: () => ({
+        url: 'api/action',
+        method: 'POST',
+        body: { action: 'abort_process' },
+      }),
+      invalidatesTags: ['Status'],
+    }),
+
+    getIncompleteJobs: builder.query<{ incomplete_jobs: IncompleteJob[]; total: number }, void>({
+      query: () => 'api/restoration/incomplete',
+      providesTags: ['Status'],
+    }),
+
+    handleIncompleteJob: builder.mutation<
+      { status: string; message?: string; finalized_file?: string },
+      { output_path: string; action: 'resume' | 'finalize' | 'discard' }
+    >({
+      query: (body) => ({
+        url: 'api/restoration/incomplete/action',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Status'],
+    }),
   }),
 });
 
@@ -229,4 +275,10 @@ export const {
   useInspectPanasonicQuery,
   useLazyInspectPanasonicQuery,
   useExtractPanasonicMutation,
+  usePauseProcessMutation,
+  useResumeProcessMutation,
+  useAbortProcessMutation,
+  useGetIncompleteJobsQuery,
+  useHandleIncompleteJobMutation,
 } = studioRtkApi;
+

@@ -27,8 +27,28 @@ class BaseRestorationStep:
 
     @staticmethod
     def execute(raw_file: str, output_path: str, params: Mapping[str, object], python_exe: str) -> str:
+        chk_file = f"{output_path}.checkpoint.json"
+        is_resume = bool(params.get("resume")) or os.environ.get("VHS_RESUME", "0") == "1"
+        if is_resume and os.path.exists(output_path) and os.path.getsize(output_path) > 1024:
+            if os.path.exists(chk_file):
+                try:
+                    import json
+
+                    with open(chk_file, "r", encoding="utf-8") as f:
+                        chk = json.load(f)
+                    if chk.get("status") == "completed":
+                        log.info(
+                            f"[RESTORATION STEP] Checkpoint concluído encontrado para {output_path}. "
+                            "Pulando etapa primária e retomando."
+                        )
+                        return output_path
+                except Exception:
+                    pass
+
         log.info(f"[RESTORATION STEP] Executing primary restoration on: {raw_file}")
         cmd = build_restore_command_args(raw_file, output_path, params, python_exe)
+        if is_resume:
+            cmd.append("--resume")
         subprocess.run(cmd, check=True)
         return output_path
 
@@ -39,10 +59,19 @@ class WhisperStep:
     @staticmethod
     def execute(raw_file: str, output_path: str) -> Optional[str]:
         try:
-            from vhs_studio.ai.whisper_engine import transcribe_and_generate_vtt
-
             base_dir = os.path.dirname(output_path)
             os.makedirs(base_dir, exist_ok=True)
+            base_name = os.path.splitext(os.path.basename(output_path))[0]
+            target_vtt = os.path.join(base_dir, f"{base_name}.vtt")
+
+            if os.path.exists(target_vtt) and os.path.getsize(target_vtt) > 10:
+                log.info(
+                    f"[WHISPER] Checkpoint: Legendas já existentes ({target_vtt}). Pulando transcrição."
+                )
+                return target_vtt
+
+            from vhs_studio.ai.whisper_engine import transcribe_and_generate_vtt
+
             vtt = transcribe_and_generate_vtt(raw_file, model_size="tiny")
 
             vtt_name = os.path.basename(vtt)
@@ -74,6 +103,11 @@ class FaceRestorationStep:
             base_dir, filename = os.path.split(output_path)
             name, ext = os.path.splitext(filename)
             faced_path = os.path.join(base_dir, f"{name}_codeformer{ext}")
+            if os.path.exists(faced_path) and os.path.getsize(faced_path) > 1024:
+                log.info(
+                    f"[FACE RESTORER] Checkpoint: Restauração facial já existente ({faced_path})."
+                )
+                return faced_path
             if restorer.process_video(output_path, faced_path):
                 return faced_path
         return None
@@ -92,6 +126,11 @@ class RifeInterpolationStep:
             base_dir, filename = os.path.split(output_path)
             name, ext = os.path.splitext(filename)
             rife_path = os.path.join(base_dir, f"{name}_60fps{ext}")
+            if os.path.exists(rife_path) and os.path.getsize(rife_path) > 1024:
+                log.info(
+                    f"[RIFE] Checkpoint: Interpolação 60fps já existente ({rife_path})."
+                )
+                return rife_path
             if interpolator.interpolate_video(output_path, rife_path):
                 return rife_path
         return None
@@ -111,6 +150,11 @@ class AIUpscalerStep:
             base_dir, filename = os.path.split(output_path)
             name, ext = os.path.splitext(filename)
             upscaled_path = os.path.join(base_dir, f"{name}_ai_upscale{ext}")
+            if os.path.exists(upscaled_path) and os.path.getsize(upscaled_path) > 1024:
+                log.info(
+                    f"[AI UPSCALER] Checkpoint: Vídeo super-resolução já existente ({upscaled_path})."
+                )
+                return upscaled_path
             upscaler.process_video(output_path, upscaled_path)
             return upscaled_path
         return output_path

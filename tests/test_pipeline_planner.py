@@ -89,3 +89,32 @@ def test_resolve_upscaler_model():
     assert resolve_upscaler_model({"ai_upscaler_model": "custom-model"}) == "custom-model"
     assert resolve_upscaler_model({"realcugan": True}) == DEFAULT_CUGAN_MODEL
     assert resolve_upscaler_model({}) == DEFAULT_UPSCALER_MODEL
+
+
+def test_build_restore_command_args_normalization():
+    params = {
+        "mode": "double",
+        "deinterlacer": "qtgmc_slow",
+        "audio_mode": "mono",
+        "output_codec": "unknown_codec",
+    }
+    cmd = build_restore_command_args("in.mkv", "out.mp4", params)
+    assert "--mode" in cmd
+    idx_mode = cmd.index("--mode")
+    assert cmd[idx_mode + 1] == "freeze"
+
+    assert "--deinterlacer" in cmd
+    idx_deint = cmd.index("--deinterlacer")
+    assert cmd[idx_deint + 1] == "qtgmc"
+
+    assert "--audio-mode" in cmd
+    idx_audio = cmd.index("--audio-mode")
+    assert cmd[idx_audio + 1] == "mono_l"
+
+    assert "--output-codec" in cmd
+    idx_codec = cmd.index("--output-codec")
+    assert cmd[idx_codec + 1] == "h264"
+
+    cmd_hevc = build_restore_command_args("in.mkv", "out.mp4", {"output_codec": "hevc"})
+    idx_hevc = cmd_hevc.index("--output-codec")
+    assert cmd_hevc[idx_hevc + 1] == "hevc"

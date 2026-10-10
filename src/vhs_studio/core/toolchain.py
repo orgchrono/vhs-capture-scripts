@@ -104,6 +104,26 @@ class Toolchain:
         return get_panasonic_executable_path(binary_name) is not None
 
     @staticmethod
+    def get_dvd_vr_path() -> Optional[str]:
+        """Return path to dvd-vr binary if portable or available in PATH."""
+        return get_panasonic_executable_path("dvd-vr")
+
+    @staticmethod
+    def is_dvd_vr_available() -> bool:
+        """Check whether dvd-vr binary is available."""
+        return get_panasonic_executable_path("dvd-vr") is not None
+
+    @staticmethod
+    def get_udf_dump_path() -> Optional[str]:
+        """Return path to udf_dump binary if portable or available in PATH."""
+        return get_panasonic_executable_path("udf_dump")
+
+    @staticmethod
+    def is_udf_dump_available() -> bool:
+        """Check whether udf_dump binary is available."""
+        return get_panasonic_executable_path("udf_dump") is not None
+
+    @staticmethod
     def require_panasonic_extractor(binary_name: str = "extract_meihdfs") -> str:
         """Resolve path to Panasonic extractor or raise FileNotFoundError."""
         path = get_panasonic_executable_path(binary_name)

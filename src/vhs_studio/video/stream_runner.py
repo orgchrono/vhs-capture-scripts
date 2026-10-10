@@ -7,14 +7,15 @@ from vhs_studio.core.logger import log
 class StreamRunner:
     """Documentation for StreamRunner."""
 
-    def __init__(self, mode, frame_bytes, y_bytes, luma_threshold=18.0):
+    def __init__(self, mode, frame_bytes, y_bytes, luma_threshold=18.0, total_expected_frames=0):
         """Documentation for __init__."""
         self.mode = mode
         self.frame_bytes = frame_bytes
         self.y_bytes = y_bytes
         self.luma_threshold = luma_threshold
+        self.total_expected_frames = total_expected_frames
 
-    def run(self, p_in, p_out, fps):
+    def run(self, p_in, p_out, fps, on_progress=None):
         """Documentation for run."""
         total_frames = 0
         dropped_frames = 0
@@ -26,6 +27,7 @@ class StreamRunner:
 
         t0 = time.time()
         last_log_time = t0
+        last_window_frames = 0
 
         log.info("[RESTAURAÇÃO] Iniciando processamento streaming frame-by-frame...")
 
@@ -63,13 +65,40 @@ class StreamRunner:
                 break
 
             now = time.time()
-            if now - last_log_time >= 5.0:
+            if now - last_log_time >= 1.0:
+                elapsed_window = now - last_log_time
+                frames_window = total_frames - last_window_frames if 'last_window_frames' in locals() else total_frames
+                last_window_frames = total_frames
                 last_log_time = now
                 elapsed = now - t0
-                fps_proc = total_frames / elapsed if elapsed > 0 else 0
+                if on_progress:
+                    try:
+                        on_progress(total_frames, kept_frames, frozen_frames, dropped_frames, elapsed)
+                    except Exception:
+                        pass
+                fps_proc = frames_window / elapsed_window if elapsed_window > 0 else (total_frames / elapsed if elapsed > 0 else 0)
+                speed_x = fps_proc / fps if fps > 0 else 1.0
+
+                prog_prefix = ""
+                eta_str = "--:--:--"
+                if self.total_expected_frames > 0:
+                    prog_pct = min(100.0, (total_frames / self.total_expected_frames) * 100.0)
+                    prog_prefix = f"PROGRESS: {int(prog_pct)}% | "
+                    rem_frames = max(0, self.total_expected_frames - total_frames)
+                    rem_sec = rem_frames / fps_proc if fps_proc > 0 else 0
+                    eta_str = f"{int(rem_sec // 3600):02d}:{int((rem_sec % 3600) // 60):02d}:{int(rem_sec % 60):02d}"
+
+                telemetry_suffix = (
+                    f" | FPS: {fps_proc:.1f} | ETA: {eta_str} | Speed: {speed_x:.2f}x | Velocidade: {fps_proc:.0f} fps"
+                )
+                if self.total_expected_frames > 0:
+                    frame_str = f"Frames: {total_frames:,}/{self.total_expected_frames:,}"
+                else:
+                    frame_str = f"Frames: {total_frames:,}"
+
                 if self.mode == "passthrough":
                     log.info(
-                        f"  -> Frames: {total_frames:,} | Mantidos: {kept_frames:,} (Passthrough Puro 100%) | Velocidade: {fps_proc:.0f} fps"  # noqa: E501
+                        f"  -> {prog_prefix}{frame_str} | Mantidos: {kept_frames:,} (Passthrough Puro 100%){telemetry_suffix}"  # noqa: E501
                     )
                 elif self.mode == "freeze":
                     pct_elim = (
@@ -78,14 +107,14 @@ class StreamRunner:
                         else 0
                     )
                     log.info(
-                        f"  -> Frames: {total_frames:,} | Válidos: {kept_frames:,} | Congelados TBC: {frozen_frames:,} | Pretos neutralizados: {frozen_frames+dropped_frames:,} ({pct_elim:.1f}%) | Velocidade: {fps_proc:.0f} fps"  # noqa: E501
+                        f"  -> {prog_prefix}{frame_str} | Válidos: {kept_frames:,} | Congelados TBC: {frozen_frames:,} | Pretos neutralizados: {frozen_frames+dropped_frames:,} ({pct_elim:.1f}%){telemetry_suffix}"  # noqa: E501
                     )
                 else:
                     pct_dropped = (
                         (dropped_frames / total_frames) * 100 if total_frames > 0 else 0
                     )
                     log.info(
-                        f"  -> Frames: {total_frames:,} | Mantidos: {kept_frames:,} | Pretos descartados: {dropped_frames:,} ({pct_dropped:.1f}%) | Velocidade: {fps_proc:.0f} fps"  # noqa: E501
+                        f"  -> {prog_prefix}{frame_str} | Mantidos: {kept_frames:,} | Pretos descartados: {dropped_frames:,} ({pct_dropped:.1f}%){telemetry_suffix}"  # noqa: E501
                     )
 
             if is_bad:

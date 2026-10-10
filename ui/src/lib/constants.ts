@@ -13,7 +13,7 @@ export const DEFAULTS = {
   RESOLUTION: '1080p' as ResolutionMode,
   OUTPUT_CODEC: 'h264' as OutputCodec,
   DEINTERLACER: 'bwdif' as DeinterlacerType,
-  VIDEO_MODE: 'double' as VideoMode,
+  VIDEO_MODE: 'passthrough' as VideoMode,
   AUDIO_MODE: 'stereo' as AudioMode,
 } as const;
 

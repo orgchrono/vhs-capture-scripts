@@ -47,7 +47,16 @@
     "clear": "Clear",
     "clear_title": "Clear Console",
     "processing": "Processing...",
-    "ready_message": "VHS Studio Pro ready. Select a file and click \"Start Restoration\" to monitor real-time frame streaming."
+    "ready_message": "VHS Studio Pro ready. Select a file and click \"Start Restoration\" to monitor real-time frame streaming.",
+    "search_placeholder": "ログを検索...",
+    "clear_search": "検索をクリア",
+    "no_matches": "一致するログが見つかりませんでした。",
+    "pause": "一時停止",
+    "pause_tooltip": "リアルタイムでプロセスを一時停止（CPU/GPUを解放）",
+    "resume": "再開",
+    "resume_tooltip": "一時停止したプロセスを再開",
+    "abort": "中断",
+    "abort_tooltip": "シグナルを中断し安全にプロセスを終了"
   },
   "monitor": {
     "live_preview": "LIVE PREVIEW (NATIVE)",
@@ -75,7 +84,8 @@
     "binary_native": "ネイティブツール",
     "carver_python": "Pure-Python カーバー",
     "extracting": "タイトルを media/raw/ に抽出中...",
-    "extract_btn": "media/raw/ に抽出"
+    "extract_btn": "media/raw/ に抽出",
+    "library_explorer_title": "テープコレクション"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
@@ -85,7 +95,8 @@
     "crt_monitor_title": "CRT Signal Monitor",
     "crt_monitor_badge": "DIRECT-SHOW / OBS VIRTUAL CAM",
     "engine_title": "Processing Engine",
-    "engine_badge": "PRESETS & RESTORATION"
+    "engine_badge": "PRESETS & RESTORATION",
+    "sidebar_panasonic_title": "3. Panasonic DVR 取り込み"
   },
   "settings": {
     "technical_title": "Restoration Technical Settings",
@@ -124,7 +135,8 @@
     "crf_label": "Constant Rate Factor (CRF):",
     "crf_larger": "Larger File (14)",
     "crf_default": "Standard (18)",
-    "crf_smaller": "Smaller File (28)"
+    "crf_smaller": "Smaller File (28)",
+    "tab_presets": "モード"
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",
@@ -242,7 +254,24 @@
     "subtitles_started": "Whisper offline speech transcription started.",
     "no_file_title": "No Tape Selected",
     "no_file_desc": "Please select a captured video tape before starting restoration.",
-    "select_file_first": "Select a tape file before starting."
+    "select_file_first": "Select a tape file before starting.",
+    "panasonic_found_title": "Panasonic DVR を検出",
+    "panasonic_not_found": "Panasonic 署名が見つかりませんでした",
+    "panasonic_extracted": "抽出完了",
+    "inspect_error": "パスの検査に失敗しました",
+    "extract_error": "抽出に失敗しました",
+    "restore_error": "復元の開始に失敗しました",
+    "network_error": "通信エラー",
+    "request_error": "リクエストエラー: {{error}}",
+    "restore_paused_title": "復元が一時停止されました",
+    "restore_paused_desc": "復元プロセスが一時停止されました。",
+    "restore_resumed_title": "復元が再開されました",
+    "restore_resumed_desc": "復元プロセスの実行が再開されました。",
+    "restore_aborted_title": "復元が中断されました",
+    "restore_aborted_desc": "シグナルとプロセスが安全に終了しました。",
+    "pause_error": "プロセスの一時停止に失敗しました。",
+    "resume_error": "プロセスの再開に失敗しました。",
+    "abort_error": "プロセスの中断に失敗しました。"
   },
   "telemetry": {
     "title": "アナログマスタリング テレメトリ",
@@ -258,12 +287,76 @@
     "status_idle": "待機中 — 取り込み準備完了",
     "status_running": "ストリーミング処理中 — DAG パイプライン実行",
     "status_completed": "映像レストレーション完了 (100%)",
-    "progress_label": "映像レストレーション パイプライン進捗"
+    "progress_label": "映像レストレーション パイプライン進捗",
+    "stage_qtgmc": "2. QTGMC (倍速フレームレート 60fps)",
+    "stage_bwdif": "2. BWDIF GPU 加速",
+    "stage_tbc_hold": "2. TBC 信号ホールド & フレーム同期",
+    "stage_chroma_dropout": "3. クロマ位置補正 & ドロップアウト除去",
+    "stage_audio_ebu": "4. 音声補正 & 放送規格 EBU R128",
+    "stage_face_restore": "3. CodeFormer AI 顔修復",
+    "stage_rife_interpolation": "4. RIFE 60fps ニューラル補間",
+    "stage_ai_upscale": "5. Real-ESRGAN 4K 超解像",
+    "stage_encode_master": "5. 最終 ProRes / x264 マスター",
+    "stage_encode_fast": "3. 高速 NVENC ハードウェアエンコード",
+    "stage_encode_ai": "6. AI マスターエクスポート",
+    "stage_export": "4. 高速エクスポート",
+    "stage_progress": "進捗",
+    "streaming": "ストリーミング中",
+    "status_paused": "一時停止中"
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",
     "supabase_url_placeholder": "https://xyz.supabase.co",
     "bucket_placeholder": "vhs-archive",
     "s3_endpoint_placeholder": "https://<account>.r2.cloudflarestorage.com"
+  },
+  "logs": {
+    "preparing_restore": "[復元] ファイルの復元を準備中: {{file}}",
+    "restore_started": "[復元] ストリーミング処理を開始しました！",
+    "restore_failed": "[復元エラー] 処理が失敗しました (コード: {{code}})。コンソールを確認してください。",
+    "restore_success": "[復元] 復元プロセスが正常に完了しました！",
+    "obs_installing": "[OBS] OBS Portable 自動インストーラーを起動中...",
+    "obs_installer_started": "[OBS] インストーラーがバックグラウンドで開始されました。コンソールで確認してください。",
+    "qtgmc_installing": "[QTGMC] VapourSynth + QTGMC 自動インストーラーを起動中...",
+    "qtgmc_installer_started": "[QTGMC] インストーラーがバックグラウンドで開始されました。コンソールで確認してください。",
+    "qtgmc_install_error": "[QTGMC エラー] インストーラーの起動に失敗しました: {{error}}",
+    "obs_capture_requesting": "[OBS 録画] OBS Studio に録画開始を要求中...",
+    "obs_capture_started": "[OBS 録画] ロスレス録画が正常に開始されました！",
+    "obs_warning_prefix": "[OBS 警告] {{message}}",
+    "obs_not_connected": "[OBS 警告] OBS Studio が実行されていないか、WebSocket がアクティブではありません。",
+    "obs_profile_hint": "[OBS ヒント] 設定されたプロファイルで OBS Studio を開いてください。",
+    "obs_capture_stopping": "[OBS 録画] OBS Studio の録画を終了中...",
+    "obs_capture_saved": "[OBS 録画] ファイルが正常に保存されました: {{path}}",
+    "obs_capture_error": "[OBS エラー] 録画の終了に失敗しました: {{error}}",
+    "tape_loaded": "[取り込み] テープを読み込みました: {{name}}",
+    "panasonic_inspecting": "[PANASONIC INGEST] 検査中: {{path}}",
+    "panasonic_extracting": "[PANASONIC INGEST] 抽出中: {{path}}",
+    "panasonic_extracted": "[PANASONIC INGEST] 抽出完了: {{count}} タイトルを media/raw/ に保存しました",
+    "panasonic_inspect_error": "[PANASONIC INGEST] 検査エラー: {{error}}",
+    "panasonic_extract_error": "[PANASONIC INGEST] 抽出中エラー: {{error}}",
+    "restore_paused": "[復元] 復元プロセスが一時停止されました。",
+    "restore_resumed": "[復元] 復元プロセスが再開されました。",
+    "restore_aborted": "[復元] プロセスとシグナルが安全に中断されました。"
+  },
+  "recovery": {
+    "title": "進行中 / 中断されたプロジェクト",
+    "badge": "リカバリ",
+    "empty": "不完全なプロジェクトは検出されませんでした。",
+    "scan": "中断されたファイルをスキャン",
+    "resume_button": "再開",
+    "resume_tooltip": "チェックポイントから処理を再開",
+    "finalize_button": "部分確定",
+    "finalize_tooltip": "コンテナヘッダーを修復し部分動画を即座に再生可能にする",
+    "discard_button": "破棄",
+    "discard_tooltip": "一時ファイルを削除してディスク容量を解放",
+    "frames_info": "{{current}} / {{total}} フレーム",
+    "progress_label": "中断プロジェクトの進行状況",
+    "status_in_progress": "中断",
+    "status_paused": "一時停止中",
+    "status_aborted": "キャンセル",
+    "toast_resumed": "復元処理が再開されました。",
+    "toast_finalized": "部分動画が正常に修復・確定されました。",
+    "toast_discarded": "不完全なプロジェクトが破棄されました。",
+    "toast_action_error": "リカバリアクションの実行に失敗しました。"
   }
 }

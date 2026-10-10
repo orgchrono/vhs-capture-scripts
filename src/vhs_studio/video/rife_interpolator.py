@@ -44,6 +44,7 @@ class RifeInterpolator:
             "-i", input_video,
             "-o", output_video,
             "-m", self.model_name,
+            "-g", "0",
         ]
         try:
             res = subprocess.run(cmd, capture_output=True, text=True, errors="replace", check=True)

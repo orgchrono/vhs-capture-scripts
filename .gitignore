@@ -24,8 +24,8 @@ workspace/
 data/
 tmp*/
 
-# Legacy Rust builds
-legado/
+# Binaries
+bin/
 
 # OBS Studio
 capture/obs/bin/

@@ -58,24 +58,56 @@ def build_restore_command_args(
         flag for key, flag in boolean_flag_specs if bool(params.get(key))
     ]
 
-    value_option_specs = (
-        ("deinterlacer", "--deinterlacer"),
-        ("audio_mode", "--audio-mode"),
-        ("mode", "--mode"),
-        ("crf", "--crf"),
-        ("output_codec", "--output-codec"),
-    )
+    value_options: List[str] = []
 
-    active_value_options = [
-        arg
-        for key, opt in value_option_specs
-        if params.get(key) is not None
-        for arg in (opt, str(params[key]))
-    ]
+    deint = params.get("deinterlacer")
+    if deint is not None:
+        deint_str = str(deint)
+        if deint_str.startswith("qtgmc"):
+            normalized_deint = "qtgmc"
+        elif deint_str in ("auto", "bwdif", "bwdif_single", "znedi3", "nnedi", "none"):
+            normalized_deint = deint_str
+        else:
+            normalized_deint = "auto"
+        value_options.extend(["--deinterlacer", normalized_deint])
+
+    audio_mode = params.get("audio_mode")
+    if audio_mode is not None:
+        audio_str = str(audio_mode)
+        audio_map = {
+            "mono": "mono_l",
+            "left_only": "mono_l",
+            "right_only": "mono_r",
+        }
+        normalized_audio = audio_map.get(audio_str, audio_str)
+        if normalized_audio in ("auto", "stereo", "mono_l", "mono_r"):
+            value_options.extend(["--audio-mode", normalized_audio])
+        else:
+            value_options.extend(["--audio-mode", "auto"])
+
+    mode = params.get("mode")
+    if mode is not None:
+        mode_str = str(mode)
+        if mode_str in ("freeze", "drop", "passthrough"):
+            value_options.extend(["--mode", mode_str])
+        else:
+            value_options.extend(["--mode", "freeze"])
+
+    crf = params.get("crf")
+    if crf is not None:
+        value_options.extend(["--crf", str(crf)])
+
+    codec = params.get("output_codec")
+    if codec is not None:
+        codec_str = str(codec)
+        if codec_str in ("h264", "hevc", "prores", "ffv1"):
+            value_options.extend(["--output-codec", codec_str])
+        else:
+            value_options.extend(["--output-codec", "h264"])
 
     resolution_flag = ["--no-1080p"] if params.get("no_1080p") else []
 
-    return base_cmd + active_bool_flags + active_value_options + resolution_flag
+    return base_cmd + active_bool_flags + value_options + resolution_flag
 
 
 def build_scene_split_command(

@@ -9,7 +9,6 @@ from vhs_studio.api.server import app
 from vhs_studio.core.toolchain import Toolchain
 from vhs_studio.ingest.panasonic_dvr import (
     inspect_panasonic_source,
-    carve_mpeg2_streams,
     extract_panasonic_media,
     SIG_MEIHDFS_V2,
     SIG_MEIHDFS_V1,
@@ -123,30 +122,32 @@ def test_inspect_unknown_data():
             os.remove(f_path)
 
 
-def test_carve_mpeg2_streams_and_extraction():
-    """Verify pure-Python stream carver extracts valid continuous Program Streams."""
+def test_native_panasonic_extraction_toolchain():
+    """Verify native toolchain extraction execution and missing binary handling."""
     with tempfile.TemporaryDirectory() as tmp_dir:
         src_path = os.path.join(tmp_dir, "test_raw_disk.img")
-        out_dir = os.path.join(tmp_dir, "carved_output")
+        out_dir = os.path.join(tmp_dir, "output")
 
-        # Create a synthetic dump containing a 200KB stream of MPEG-2 pack headers
         with open(src_path, "wb") as f:
-            f.write(b"\x00" * 1024)  # initial junk
-            for _ in range(120):     # 120 * 2048 = 245,760 bytes (>128KB threshold)
-                f.write(MPEG2_PACK_HEADER + b"\x44\x55\x66" * 681 + b"\x00")
+            f.write(SIG_MEIHDFS_V2 + b"\x00" * 4096)
 
-        # Run extraction
-        extracted = carve_mpeg2_streams(src_path, out_dir)
-        assert len(extracted) == 1
-        assert os.path.exists(extracted[0])
-        assert extracted[0].endswith(".mpg")
-        assert os.path.getsize(extracted[0]) >= 128 * 1024
+        # When toolchain binary is absent, returns empty list without carving
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(Toolchain, "get_panasonic_extractor_path", lambda: None)
+            res = extract_panasonic_media(src_path, output_dir=out_dir)
+            assert res == []
 
-        # Run extract_panasonic_media fallback wrapper
-        fallback_out = os.path.join(tmp_dir, "fallback_output")
-        extracted_fb = extract_panasonic_media(src_path, output_dir=fallback_out)
-        assert len(extracted_fb) == 1
-        assert os.path.exists(extracted_fb[0])
+        # When toolchain binary is present, runs extraction
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(Toolchain, "get_panasonic_extractor_path", lambda: "fake_extractor")
+            mp.setattr("subprocess.run", lambda *args, **kwargs: type("Obj", (), {"returncode": 0, "stdout": "", "stderr": ""})())
+            # Create a mock output media file in destination
+            mock_video = os.path.join(out_dir, "title_01.mpg")
+            with open(mock_video, "w") as f:
+                f.write("mock media")
+            res = extract_panasonic_media(src_path, output_dir=out_dir)
+            assert len(res) == 1
+            assert res[0] == mock_video
 
 
 def test_api_panasonic_endpoints():
@@ -179,3 +180,38 @@ def test_api_panasonic_endpoints():
     finally:
         if os.path.exists(img_path):
             os.remove(img_path)
+
+
+def test_toolchain_extended_panasonic_binaries():
+    """Verify Toolchain provides dvd-vr and udf_dump discovery methods."""
+    dvd_vr = Toolchain.get_dvd_vr_path()
+    assert dvd_vr is None or isinstance(dvd_vr, str)
+    assert isinstance(Toolchain.is_dvd_vr_available(), bool)
+
+    udf_dump = Toolchain.get_udf_dump_path()
+    assert udf_dump is None or isinstance(udf_dump, str)
+    assert isinstance(Toolchain.is_udf_dump_available(), bool)
+
+
+def test_inspect_panasonic_firmware_service_image():
+    """Verify inspection correctly classifies 100MB HDD firmware/bootloader replacement image."""
+    firmware_path = os.path.join("bin", "panasonic DMR EH-55 Firmware hdd_100.bin")
+    if os.path.exists(firmware_path):
+        res = inspect_panasonic_source(firmware_path)
+        assert res.is_panasonic is True
+        assert res.format == "PANASONIC_FIRMWARE_SERVICE_IMAGE"
+        assert res.can_extract is False
+        assert "Service Bootloader" in res.details
+    else:
+        # Create a mock 100MB dummy firmware file with name matching pattern
+        with tempfile.NamedTemporaryFile(prefix="panasonic_dmr_firmware_hdd_100", suffix=".bin", delete=False) as f:
+            f.write(b"\x00" * 4096)
+            tmp_path = f.name
+        try:
+            res = inspect_panasonic_source(tmp_path)
+            assert res.is_panasonic is True
+            assert res.format == "PANASONIC_FIRMWARE_SERVICE_IMAGE"
+            assert res.can_extract is False
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)

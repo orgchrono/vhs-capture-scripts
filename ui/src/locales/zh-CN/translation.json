@@ -47,7 +47,16 @@
     "clear": "Clear",
     "clear_title": "Clear Console",
     "processing": "Processing...",
-    "ready_message": "VHS Studio Pro ready. Select a file and click \"Start Restoration\" to monitor real-time frame streaming."
+    "ready_message": "VHS Studio Pro ready. Select a file and click \"Start Restoration\" to monitor real-time frame streaming.",
+    "search_placeholder": "搜索日志...",
+    "clear_search": "清空搜索",
+    "no_matches": "未找到匹配的日志条目。",
+    "pause": "暂停",
+    "pause_tooltip": "实时暂停进程（释放 CPU/GPU）",
+    "resume": "恢复",
+    "resume_tooltip": "恢复已暂停的进程",
+    "abort": "中止",
+    "abort_tooltip": "中止信号并安全终止进程"
   },
   "monitor": {
     "live_preview": "LIVE PREVIEW (NATIVE)",
@@ -75,7 +84,8 @@
     "binary_native": "本地原生工具",
     "carver_python": "纯 Python 扫描器",
     "extracting": "正在提取节目至 media/raw/...",
-    "extract_btn": "提取至 media/raw/"
+    "extract_btn": "提取至 media/raw/",
+    "library_explorer_title": "录像带库"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
@@ -85,7 +95,8 @@
     "crt_monitor_title": "CRT Signal Monitor",
     "crt_monitor_badge": "DIRECT-SHOW / OBS VIRTUAL CAM",
     "engine_title": "Processing Engine",
-    "engine_badge": "PRESETS & RESTORATION"
+    "engine_badge": "PRESETS & RESTORATION",
+    "sidebar_panasonic_title": "3. 松下 Panasonic DVR 硬盘提取"
   },
   "settings": {
     "technical_title": "Restoration Technical Settings",
@@ -124,7 +135,8 @@
     "crf_label": "Constant Rate Factor (CRF):",
     "crf_larger": "Larger File (14)",
     "crf_default": "Standard (18)",
-    "crf_smaller": "Smaller File (28)"
+    "crf_smaller": "Smaller File (28)",
+    "tab_presets": "预设模式"
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",
@@ -242,7 +254,24 @@
     "subtitles_started": "Whisper offline speech transcription started.",
     "no_file_title": "No Tape Selected",
     "no_file_desc": "Please select a captured video tape before starting restoration.",
-    "select_file_first": "Select a tape file before starting."
+    "select_file_first": "Select a tape file before starting.",
+    "panasonic_found_title": "检测到松下 Panasonic DVR",
+    "panasonic_not_found": "未发现松下 DVR 文件签名",
+    "panasonic_extracted": "提取完成",
+    "inspect_error": "路径检查失败",
+    "extract_error": "提取失败",
+    "restore_error": "启动修复失败",
+    "network_error": "网络通信失败",
+    "request_error": "请求错误: {{error}}",
+    "restore_paused_title": "恢复处理已暂停",
+    "restore_paused_desc": "恢复进程已临时暂停。",
+    "restore_resumed_title": "恢复处理已继续",
+    "restore_resumed_desc": "恢复进程已继续执行。",
+    "restore_aborted_title": "恢复处理已中止",
+    "restore_aborted_desc": "信号与进程已安全终止。",
+    "pause_error": "暂停进程失败。",
+    "resume_error": "恢复进程失败。",
+    "abort_error": "中止进程失败。"
   },
   "telemetry": {
     "title": "模拟修复母带遥测数据",
@@ -258,12 +287,76 @@
     "status_idle": "系统就绪 — 等待任务启动",
     "status_running": "实时流传输处理中 — 执行计算拓扑图",
     "status_completed": "母带修复流程已全部完成 (100%)",
-    "progress_label": "视频母带修复管线进度"
+    "progress_label": "视频母带修复管线进度",
+    "stage_qtgmc": "2. QTGMC (60fps 双倍帧率反交错)",
+    "stage_bwdif": "2. BWDIF GPU 硬件加速",
+    "stage_tbc_hold": "2. TBC 信号保持与帧同步",
+    "stage_chroma_dropout": "3. 色度校准与丢帧修复",
+    "stage_audio_ebu": "4. 音频处理与广播级 EBU R128",
+    "stage_face_restore": "3. CodeFormer AI 人脸高清修复",
+    "stage_rife_interpolation": "4. RIFE 60fps 神经网络补帧",
+    "stage_ai_upscale": "5. Real-ESRGAN 4K 超分辨率",
+    "stage_encode_master": "5. ProRes / x264 终极母带导出",
+    "stage_encode_fast": "3. NVENC 硬件快速编码",
+    "stage_encode_ai": "6. AI 旗舰母带导出",
+    "stage_export": "4. 快速导出",
+    "stage_progress": "进度",
+    "streaming": "实时处理中",
+    "status_paused": "已暂停"
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",
     "supabase_url_placeholder": "https://xyz.supabase.co",
     "bucket_placeholder": "vhs-archive",
     "s3_endpoint_placeholder": "https://<account>.r2.cloudflarestorage.com"
+  },
+  "logs": {
+    "preparing_restore": "[修复] 正在准备修复文件: {{file}}",
+    "restore_started": "[修复] 实时流式处理已启动！",
+    "restore_failed": "[修复错误] 处理失败（退出码: {{code}}）。请查看控制台。",
+    "restore_success": "[修复] 修复流程已圆满完成！",
+    "obs_installing": "[OBS] 正在启动 OBS Portable 自动化安装程序...",
+    "obs_installer_started": "[OBS] 安装程序已在后台启动。请在控制台查看进度。",
+    "qtgmc_installing": "[QTGMC] 正在启动 VapourSynth + QTGMC 自动化安装程序...",
+    "qtgmc_installer_started": "[QTGMC] 安装程序已在后台启动。请在控制台查看进度。",
+    "qtgmc_install_error": "[QTGMC 错误] 启动安装程序失败: {{error}}",
+    "obs_capture_requesting": "[OBS 采集] 正在请求 OBS Studio 开始录制...",
+    "obs_capture_started": "[OBS 采集] 无损录制已成功启动！",
+    "obs_warning_prefix": "[OBS 警告] {{message}}",
+    "obs_not_connected": "[OBS 警告] OBS Studio 未运行或默认端口 WebSocket 未启用。",
+    "obs_profile_hint": "[OBS 提示] 请打开配置好预设的 OBS Studio。",
+    "obs_capture_stopping": "[OBS 采集] 正在结束 OBS Studio 录制...",
+    "obs_capture_saved": "[OBS 采集] 文件已成功保存: {{path}}",
+    "obs_capture_error": "[OBS 错误] 结束录制失败: {{error}}",
+    "tape_loaded": "[载入] 录像带已载入: {{name}}",
+    "panasonic_inspecting": "[PANASONIC INGEST] 正在检查源文件: {{path}}",
+    "panasonic_extracting": "[PANASONIC INGEST] 正在提取源文件: {{path}}",
+    "panasonic_extracted": "[PANASONIC INGEST] 提取完成: {{count}} 个标题已成功导出至 media/raw/",
+    "panasonic_inspect_error": "[PANASONIC INGEST] 检查失败: {{error}}",
+    "panasonic_extract_error": "[PANASONIC INGEST] 提取过程出错: {{error}}",
+    "restore_paused": "[恢复] 恢复进程已暂停。",
+    "restore_resumed": "[恢复] 恢复进程已继续。",
+    "restore_aborted": "[恢复] 进程与信号已安全中止。"
+  },
+  "recovery": {
+    "title": "进行中 / 中断的项目",
+    "badge": "恢复",
+    "empty": "未检测到未完成的项目。",
+    "scan": "扫描未完成的文件",
+    "resume_button": "继续",
+    "resume_tooltip": "从检查点继续处理",
+    "finalize_button": "生成部分成品",
+    "finalize_tooltip": "修复视频容器使部分视频可立即播放",
+    "discard_button": "丢弃",
+    "discard_tooltip": "删除临时文件并释放磁盘空间",
+    "frames_info": "{{current}} / {{total}} 帧",
+    "progress_label": "未完成项目进度",
+    "status_in_progress": "已中断",
+    "status_paused": "已暂停",
+    "status_aborted": "已取消",
+    "toast_resumed": "项目已恢复处理。",
+    "toast_finalized": "部分视频已成功修复并封装。",
+    "toast_discarded": "已丢弃未完成的项目。",
+    "toast_action_error": "执行恢复操作失败。"
   }
 }

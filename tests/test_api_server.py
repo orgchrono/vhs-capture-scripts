@@ -62,7 +62,11 @@ def test_api_action_stop_process_none_running(client):
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "error"
-    assert data["message"] in ("No process currently running.", "Nenhum processo em execução no momento.")
+    assert data["message"] in (
+        "No process currently running.",
+        "Nenhum processo em execução no momento.",
+        "Nenhum processo em execução para interromper.",
+    )
 
 
 def test_api_action_start_restore_invalid_file(client):

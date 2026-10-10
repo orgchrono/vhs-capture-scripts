@@ -33,6 +33,7 @@ export interface StudioState {
   aiUpscaler: boolean;
   aiUpscalerModel: string;
   isRestoring: boolean;
+  isPaused: boolean;
   isCapturing: boolean;
   logs: string[];
   sidebarCollapsed: boolean;
@@ -40,10 +41,11 @@ export interface StudioState {
   workspacePreset: WorkspacePreset;
 }
 
+
 export const initialStudioState: StudioState = {
   selectedFile: '',
   preset: 'gold',
-  mode: 'double',
+  mode: 'passthrough',
   deinterlacer: 'bwdif',
   audioMode: 'stereo',
   outputCodec: 'h264',
@@ -63,12 +65,14 @@ export const initialStudioState: StudioState = {
   aiUpscaler: false,
   aiUpscalerModel: 'realesrgan-x4plus',
   isRestoring: false,
+  isPaused: false,
   isCapturing: false,
   logs: [],
   sidebarCollapsed: false,
   consoleCollapsed: false,
   workspacePreset: 'default',
 };
+
 
 export const studioSlice = createSlice({
   name: 'studio',
@@ -138,7 +142,7 @@ export const studioSlice = createSlice({
         state.deinterlacer = 'bwdif';
         state.mode = 'freeze';
         state.audioMode = 'auto';
-        state.outputCodec = 'prores';
+        state.outputCodec = 'h264';
         state.resolution = '1080p';
         state.chromaFix = true;
         state.denoise = true;
@@ -232,8 +236,15 @@ export const studioSlice = createSlice({
     },
     setIsRestoring: (state, action: PayloadAction<boolean>) => {
       state.isRestoring = action.payload;
+      if (!action.payload) {
+        state.isPaused = false;
+      }
+    },
+    setIsPaused: (state, action: PayloadAction<boolean>) => {
+      state.isPaused = action.payload;
     },
     setIsCapturing: (state, action: PayloadAction<boolean>) => {
+
       state.isCapturing = action.payload;
     },
     addLog: (state, action: PayloadAction<string>) => {
@@ -309,7 +320,9 @@ export const {
   setAiUpscaler,
   setAiUpscalerModel,
   setIsRestoring,
+  setIsPaused,
   setIsCapturing,
+
   addLog,
   clearLogs,
   toggleSidebar,

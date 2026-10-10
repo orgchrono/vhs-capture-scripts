@@ -50,7 +50,13 @@
     "search_placeholder": "Search logs...",
     "clear_search": "Clear search",
     "no_matches": "No matching log entries found.",
-    "ready_message": "VHS Studio Pro ready. Select a file and click \"Start Restoration\" to monitor real-time frame streaming."
+    "ready_message": "VHS Studio Pro ready. Select a file and click \"Start Restoration\" to monitor real-time frame streaming.",
+    "pause": "Pause",
+    "pause_tooltip": "Pause process in real time (frees CPU/GPU)",
+    "resume": "Resume",
+    "resume_tooltip": "Resume paused process",
+    "abort": "Abort",
+    "abort_tooltip": "Abort signal and terminate process safely"
   },
   "monitor": {
     "live_preview": "LIVE PREVIEW (NATIVE)",
@@ -89,7 +95,8 @@
     "crt_monitor_title": "CRT Signal Monitor",
     "crt_monitor_badge": "DIRECT-SHOW / OBS VIRTUAL CAM",
     "engine_title": "Processing Engine",
-    "engine_badge": "PRESETS & RESTORATION"
+    "engine_badge": "PRESETS & RESTORATION",
+    "sidebar_panasonic_title": "3. Panasonic DVR Ingest"
   },
   "settings": {
     "technical_title": "Restoration Technical Settings",
@@ -251,7 +258,19 @@
     "panasonic_not_found": "No Panasonic signatures found",
     "panasonic_extracted": "Extraction Completed",
     "inspect_error": "Failed to inspect path",
-    "extract_error": "Extraction failed"
+    "extract_error": "Extraction failed",
+    "restore_error": "Failed to start restoration",
+    "network_error": "Communication failure",
+    "request_error": "Request error: {{error}}",
+    "restore_paused_title": "Restoration Paused",
+    "restore_paused_desc": "The restoration process has been paused temporarily.",
+    "restore_resumed_title": "Restoration Resumed",
+    "restore_resumed_desc": "The restoration process resumed execution.",
+    "restore_aborted_title": "Restoration Aborted",
+    "restore_aborted_desc": "Signal and process were safely terminated.",
+    "pause_error": "Failed to pause process.",
+    "resume_error": "Failed to resume process.",
+    "abort_error": "Failed to abort process."
   },
   "telemetry": {
     "title": "Analog Mastering Telemetry",
@@ -280,12 +299,63 @@
     "status_idle": "System Idle — Ready for Ingest",
     "status_running": "Streaming Active — Processing DAG",
     "status_completed": "Restoration Completed (100%)",
-    "progress_label": "Restoration Pipeline Progress"
+    "progress_label": "Restoration Pipeline Progress",
+    "streaming": "STREAMING",
+    "status_paused": "PAUSED"
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",
     "supabase_url_placeholder": "https://xyz.supabase.co",
     "bucket_placeholder": "vhs-archive",
     "s3_endpoint_placeholder": "https://<account>.r2.cloudflarestorage.com"
+  },
+  "logs": {
+    "preparing_restore": "[RESTORATION] Preparing file restoration: {{file}}",
+    "restore_started": "[RESTORATION] Streaming process started!",
+    "restore_failed": "[RESTORATION ERROR] Process terminated with failure (Code: {{code}}). Check the console.",
+    "restore_success": "[RESTORATION] Restoration process completed successfully!",
+    "obs_installing": "[OBS] Launching automated OBS Portable installer...",
+    "obs_installer_started": "[OBS] Installer started in background. Follow installation in Console.",
+    "qtgmc_installing": "[QTGMC] Launching automated VapourSynth + QTGMC installer...",
+    "qtgmc_installer_started": "[QTGMC] Installer started in background. Follow installation in Console.",
+    "qtgmc_install_error": "[QTGMC ERROR] Failed to start installer: {{error}}",
+    "obs_capture_requesting": "[OBS CAPTURE] Requesting recording start in OBS Studio...",
+    "obs_capture_started": "[OBS CAPTURE] Lossless recording started successfully!",
+    "obs_warning_prefix": "[OBS WARNING] {{message}}",
+    "obs_not_connected": "[OBS WARNING] OBS Studio is not running or WebSocket is inactive on default port.",
+    "obs_profile_hint": "[OBS HINT] Open OBS Studio with configured profile.",
+    "obs_capture_stopping": "[OBS CAPTURE] Finishing recording in OBS Studio...",
+    "obs_capture_saved": "[OBS CAPTURE] File finalized successfully: {{path}}",
+    "obs_capture_error": "[OBS ERROR] Failed to finalize recording: {{error}}",
+    "tape_loaded": "[INGEST] Tape Loaded: {{name}}",
+    "panasonic_inspecting": "[PANASONIC INGEST] Inspecting: {{path}}",
+    "panasonic_extracting": "[PANASONIC INGEST] Extracting: {{path}}",
+    "panasonic_extracted": "[PANASONIC INGEST] Extraction Completed: {{count}} title(s) extracted to media/raw/",
+    "panasonic_inspect_error": "[PANASONIC INGEST] Inspection error: {{error}}",
+    "panasonic_extract_error": "[PANASONIC INGEST] Extraction error: {{error}}",
+    "restore_paused": "[RESTORATION] Restoration process paused.",
+    "restore_resumed": "[RESTORATION] Restoration process resumed.",
+    "restore_aborted": "[RESTORATION] Process and signal safely aborted."
+  },
+  "recovery": {
+    "title": "Incomplete / Interrupted Projects",
+    "badge": "Recovery",
+    "empty": "No incomplete projects detected.",
+    "scan": "Scan for Incomplete Files",
+    "resume_button": "Resume",
+    "resume_tooltip": "Resume processing from checkpoint",
+    "finalize_button": "Finalize Partial",
+    "finalize_tooltip": "Repair video container to make partial video playable immediately",
+    "discard_button": "Discard",
+    "discard_tooltip": "Delete partial files and free disk space",
+    "frames_info": "{{current}} / {{total}} frames",
+    "progress_label": "Incomplete project progress",
+    "status_in_progress": "Interrupted",
+    "status_paused": "Paused",
+    "status_aborted": "Aborted",
+    "toast_resumed": "Project resumed for restoration.",
+    "toast_finalized": "Partial video repaired and finalized successfully.",
+    "toast_discarded": "Incomplete project discarded.",
+    "toast_action_error": "Failed to perform recovery action."
   }
 }

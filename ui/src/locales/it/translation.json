@@ -47,7 +47,16 @@
     "clear": "Clear",
     "clear_title": "Clear Console",
     "processing": "Processing...",
-    "ready_message": "VHS Studio Pro ready. Select a file and click \"Start Restoration\" to monitor real-time frame streaming."
+    "ready_message": "VHS Studio Pro ready. Select a file and click \"Start Restoration\" to monitor real-time frame streaming.",
+    "search_placeholder": "Cerca nei log...",
+    "clear_search": "Cancella ricerca",
+    "no_matches": "Nessuna voce di log corrispondente trovata.",
+    "pause": "Pausa",
+    "pause_tooltip": "Metti in pausa il processo in tempo reale (libera CPU/GPU)",
+    "resume": "Riprendi",
+    "resume_tooltip": "Riprendi processo in pausa",
+    "abort": "Interrompi",
+    "abort_tooltip": "Interrompi segnale e termina il processo in sicurezza"
   },
   "monitor": {
     "live_preview": "LIVE PREVIEW (NATIVE)",
@@ -75,7 +84,8 @@
     "binary_native": "Binario Nativo",
     "carver_python": "Carver Pure-Python",
     "extracting": "Estrazione titoli in media/raw/...",
-    "extract_btn": "Estrai in media/raw/"
+    "extract_btn": "Estrai in media/raw/",
+    "library_explorer_title": "Archivio Nastri"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
@@ -85,7 +95,8 @@
     "crt_monitor_title": "CRT Signal Monitor",
     "crt_monitor_badge": "DIRECT-SHOW / OBS VIRTUAL CAM",
     "engine_title": "Processing Engine",
-    "engine_badge": "PRESETS & RESTORATION"
+    "engine_badge": "PRESETS & RESTORATION",
+    "sidebar_panasonic_title": "3. Acquisizione Panasonic DVR"
   },
   "settings": {
     "technical_title": "Restoration Technical Settings",
@@ -124,7 +135,8 @@
     "crf_label": "Constant Rate Factor (CRF):",
     "crf_larger": "Larger File (14)",
     "crf_default": "Standard (18)",
-    "crf_smaller": "Smaller File (28)"
+    "crf_smaller": "Smaller File (28)",
+    "tab_presets": "Modalità"
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",
@@ -242,7 +254,24 @@
     "subtitles_started": "Whisper offline speech transcription started.",
     "no_file_title": "No Tape Selected",
     "no_file_desc": "Please select a captured video tape before starting restoration.",
-    "select_file_first": "Select a tape file before starting."
+    "select_file_first": "Select a tape file before starting.",
+    "panasonic_found_title": "Panasonic DVR Rilevato",
+    "panasonic_not_found": "Nessuna firma Panasonic trovata",
+    "panasonic_extracted": "Estrazione Completata",
+    "inspect_error": "Ispezione del percorso non riuscita",
+    "extract_error": "Estrazione non riuscita",
+    "restore_error": "Avvio ripristino non riuscito",
+    "network_error": "Errore di comunicazione",
+    "request_error": "Errore richiesta: {{error}}",
+    "restore_paused_title": "Restauro in pausa",
+    "restore_paused_desc": "Il processo di restauro è stato temporaneamente sospeso.",
+    "restore_resumed_title": "Restauro ripreso",
+    "restore_resumed_desc": "Il processo di restauro è ripreso.",
+    "restore_aborted_title": "Restauro interrotto",
+    "restore_aborted_desc": "Segnale e processo sono stati terminati in sicurezza.",
+    "pause_error": "Impossibile mettere in pausa il processo.",
+    "resume_error": "Impossibile riprendere il processo.",
+    "abort_error": "Impossibile interrompere il processo."
   },
   "telemetry": {
     "title": "Telemetria di Restauro Analogico",
@@ -258,12 +287,76 @@
     "status_idle": "Sistema in Attesa — Pronto per Ingest",
     "status_running": "Flusso Attivo — Elaborazione DAG in corso",
     "status_completed": "Restauro Completato (100%)",
-    "progress_label": "Avanzamento Pipeline di Restauro"
+    "progress_label": "Avanzamento Pipeline di Restauro",
+    "stage_qtgmc": "2. QTGMC (Doppia Frequenza 60fps)",
+    "stage_bwdif": "2. BWDIF Accelerazione GPU",
+    "stage_tbc_hold": "2. TBC Signal Hold & Sincronizzazione",
+    "stage_chroma_dropout": "3. Allineamento Croma & Pulizia Dropout",
+    "stage_audio_ebu": "4. Trattamento Audio & Broadcast EBU R128",
+    "stage_face_restore": "3. Ripristino Facciale CodeFormer IA",
+    "stage_rife_interpolation": "4. Interpolazione Neurale RIFE 60fps",
+    "stage_ai_upscale": "5. Super-Risoluzione Real-ESRGAN 4K",
+    "stage_encode_master": "5. Master Finale ProRes / x264",
+    "stage_encode_fast": "3. Codifica Hardware NVENC Rapida",
+    "stage_encode_ai": "6. Esportazione Master IA",
+    "stage_export": "4. Esportazione Rapida",
+    "stage_progress": "Progresso",
+    "streaming": "STREAMING",
+    "status_paused": "IN PAUSA"
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",
     "supabase_url_placeholder": "https://xyz.supabase.co",
     "bucket_placeholder": "vhs-archive",
     "s3_endpoint_placeholder": "https://<account>.r2.cloudflarestorage.com"
+  },
+  "logs": {
+    "preparing_restore": "[RIPRISTINO] Preparazione ripristino file: {{file}}",
+    "restore_started": "[RIPRISTINO] Processo streaming avviato!",
+    "restore_failed": "[RIPRISTINO ERRORE] Processo terminato con errore (Codice: {{code}}). Controlla la console.",
+    "restore_success": "[RIPRISTINO] Processo di ripristino completato con successo!",
+    "obs_installing": "[OBS] Avvio programma di installazione automatico OBS Portable...",
+    "obs_installer_started": "[OBS] Installazione avviata in background. Segui nella Console.",
+    "qtgmc_installing": "[QTGMC] Avvio programma di installazione automatico VapourSynth + QTGMC...",
+    "qtgmc_installer_started": "[QTGMC] Installazione avviata in background. Segui nella Console.",
+    "qtgmc_install_error": "[QTGMC ERRORE] Impossibile avviare il programma di installazione: {{error}}",
+    "obs_capture_requesting": "[OBS ACQUISIZIONE] Richiesta avvio registrazione in OBS Studio...",
+    "obs_capture_started": "[OBS ACQUISIZIONE] Registrazione lossless avviata con successo!",
+    "obs_warning_prefix": "[OBS AVVISO] {{message}}",
+    "obs_not_connected": "[OBS AVVISO] OBS Studio non è aperto o WebSocket non attivo sulla porta predefinita.",
+    "obs_profile_hint": "[OBS SUGGERIMENTO] Apri OBS Studio con il profilo configurato.",
+    "obs_capture_stopping": "[OBS ACQUISIZIONE] Finalizzazione registrazione in OBS Studio...",
+    "obs_capture_saved": "[OBS ACQUISIZIONE] File finalizzato con successo: {{path}}",
+    "obs_capture_error": "[OBS ERRORE] Impossibile finalizzare la registrazione: {{error}}",
+    "tape_loaded": "[ACQUISIZIONE] Nastro caricato: {{name}}",
+    "panasonic_inspecting": "[PANASONIC INGEST] Ispezione: {{path}}",
+    "panasonic_extracting": "[PANASONIC INGEST] Estrazione: {{path}}",
+    "panasonic_extracted": "[PANASONIC INGEST] Estrazione completata: {{count}} titoli estratti in media/raw/",
+    "panasonic_inspect_error": "[PANASONIC INGEST] Errore di ispezione: {{error}}",
+    "panasonic_extract_error": "[PANASONIC INGEST] Errore durante l'estrazione: {{error}}",
+    "restore_paused": "[RESTAURO] Processo di restauro in pausa.",
+    "restore_resumed": "[RESTAURO] Processo di restauro ripreso.",
+    "restore_aborted": "[RESTAURO] Processo e segnale interrotti in sicurezza."
+  },
+  "recovery": {
+    "title": "Progetti in corso / Interrotti",
+    "badge": "Recupero",
+    "empty": "Nessun progetto incompleto rilevato.",
+    "scan": "Cerca file incompleti",
+    "resume_button": "Riprendi",
+    "resume_tooltip": "Riprendi l'elaborazione dal punto di controllo",
+    "finalize_button": "Finalizza Parziale",
+    "finalize_tooltip": "Ripara il contenitore video per rendere il file parziale riproducibile",
+    "discard_button": "Elimina",
+    "discard_tooltip": "Elimina i file parziali e libera spazio",
+    "frames_info": "{{current}} / {{total}} fotogrammi",
+    "progress_label": "Avanzamento del progetto incompleto",
+    "status_in_progress": "Interrotto",
+    "status_paused": "In pausa",
+    "status_aborted": "Annullato",
+    "toast_resumed": "Progetto ripreso per il restauro.",
+    "toast_finalized": "Video parziale riparato e finalizzato con successo.",
+    "toast_discarded": "Progetto incompleto eliminato.",
+    "toast_action_error": "Errore durante l'azione di recupero."
   }
 }

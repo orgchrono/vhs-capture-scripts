@@ -110,3 +110,28 @@ def test_pipeline_cli_main(mock_start, tmp_path):
 
     main(unknown_args)
     mock_start.assert_called_once()
+
+
+def test_base_restoration_step_resumes_from_completed_checkpoint(tmp_path):
+    from vhs_studio.pipeline_steps import BaseRestorationStep
+    import json
+
+    output_path = tmp_path / "output.mp4"
+    output_path.write_bytes(b"0" * 2048)
+    chk_file = tmp_path / "output.mp4.checkpoint.json"
+    chk_file.write_text(json.dumps({"status": "completed"}))
+
+    # With resume=True, should skip subprocess execution
+    res = BaseRestorationStep.execute("raw.mkv", str(output_path), {"resume": True}, "python")
+    assert res == str(output_path)
+
+
+def test_whisper_step_skips_when_vtt_exists(tmp_path):
+    from vhs_studio.pipeline_steps import WhisperStep
+
+    output_path = tmp_path / "output.mp4"
+    target_vtt = tmp_path / "output.vtt"
+    target_vtt.write_text("WEBVTT\n\n00:00:00.000 --> 00:00:01.000\nHello")
+
+    res = WhisperStep.execute("raw.mkv", str(output_path))
+    assert res == str(target_vtt)

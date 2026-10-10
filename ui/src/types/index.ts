@@ -136,3 +136,21 @@ export interface StorageStatus {
   free_space_gb?: number | string;
   [key: string]: unknown;
 }
+
+export interface IncompleteJob {
+  job_id: string;
+  source_file: string;
+  output_file: string;
+  checkpoint_file: string;
+  status: string;
+  processed_frames: number;
+  total_expected_frames: number;
+  progress_percent: number;
+  elapsed_seconds: number;
+  fps: number;
+  output_size_bytes: number;
+  last_modified: string;
+  can_resume: boolean;
+  source_exists: boolean;
+}
+

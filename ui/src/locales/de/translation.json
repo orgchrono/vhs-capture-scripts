@@ -47,7 +47,16 @@
     "clear": "Clear",
     "clear_title": "Clear Console",
     "processing": "Processing...",
-    "ready_message": "VHS Studio Pro ready. Select a file and click \"Start Restoration\" to monitor real-time frame streaming."
+    "ready_message": "VHS Studio Pro ready. Select a file and click \"Start Restoration\" to monitor real-time frame streaming.",
+    "search_placeholder": "Protokolle durchsuchen...",
+    "clear_search": "Suche löschen",
+    "no_matches": "Keine übereinstimmenden Protokolleinträge gefunden.",
+    "pause": "Pausieren",
+    "pause_tooltip": "Prozess in Echtzeit pausieren (gibt CPU/GPU frei)",
+    "resume": "Fortsetzen",
+    "resume_tooltip": "Pausierten Prozess fortsetzen",
+    "abort": "Abbrechen",
+    "abort_tooltip": "Signal abbrechen und Prozess sicher beenden"
   },
   "monitor": {
     "live_preview": "LIVE PREVIEW (NATIVE)",
@@ -75,7 +84,8 @@
     "binary_native": "Natives Tool",
     "carver_python": "Pure-Python Carver",
     "extracting": "Titel nach media/raw/ extrahieren...",
-    "extract_btn": "Nach media/raw/ extrahieren"
+    "extract_btn": "Nach media/raw/ extrahieren",
+    "library_explorer_title": "Kassetten-Archiv"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
@@ -85,7 +95,8 @@
     "crt_monitor_title": "CRT Signal Monitor",
     "crt_monitor_badge": "DIRECT-SHOW / OBS VIRTUAL CAM",
     "engine_title": "Processing Engine",
-    "engine_badge": "PRESETS & RESTORATION"
+    "engine_badge": "PRESETS & RESTORATION",
+    "sidebar_panasonic_title": "3. Panasonic DVR Ingest"
   },
   "settings": {
     "technical_title": "Restoration Technical Settings",
@@ -124,7 +135,8 @@
     "crf_label": "Constant Rate Factor (CRF):",
     "crf_larger": "Larger File (14)",
     "crf_default": "Standard (18)",
-    "crf_smaller": "Smaller File (28)"
+    "crf_smaller": "Smaller File (28)",
+    "tab_presets": "Modus"
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",
@@ -242,7 +254,24 @@
     "subtitles_started": "Whisper offline speech transcription started.",
     "no_file_title": "No Tape Selected",
     "no_file_desc": "Please select a captured video tape before starting restoration.",
-    "select_file_first": "Select a tape file before starting."
+    "select_file_first": "Select a tape file before starting.",
+    "panasonic_found_title": "Panasonic DVR Erkannt",
+    "panasonic_not_found": "Keine Panasonic-Signaturen gefunden",
+    "panasonic_extracted": "Extraktion Abgeschlossen",
+    "inspect_error": "Pfadinspektion fehlgeschlagen",
+    "extract_error": "Extraktion fehlgeschlagen",
+    "restore_error": "Start der Wiederherstellung fehlgeschlagen",
+    "network_error": "Kommunikationsfehler",
+    "request_error": "Anforderungsfehler: {{error}}",
+    "restore_paused_title": "Wiederherstellung pausiert",
+    "restore_paused_desc": "Der Wiederherstellungsprozess wurde vorübergehend pausiert.",
+    "restore_resumed_title": "Wiederherstellung fortgesetzt",
+    "restore_resumed_desc": "Der Wiederherstellungsprozess wird fortgesetzt.",
+    "restore_aborted_title": "Wiederherstellung abgebrochen",
+    "restore_aborted_desc": "Signal und Prozess wurden sicher beendet.",
+    "pause_error": "Fehler beim Pausieren des Prozesses.",
+    "resume_error": "Fehler beim Fortsetzen des Prozesses.",
+    "abort_error": "Fehler beim Abbrechen des Prozesses."
   },
   "telemetry": {
     "title": "Analoge Mastering-Telemetrie",
@@ -258,12 +287,76 @@
     "status_idle": "System im Leerlauf — Bereit für Ingest",
     "status_running": "Streaming aktiv — DAG-Verarbeitung",
     "status_completed": "Restauration abgeschlossen (100%)",
-    "progress_label": "Fortschritt der Restaurations-Pipeline"
+    "progress_label": "Fortschritt der Restaurations-Pipeline",
+    "stage_qtgmc": "2. QTGMC (Doppelte Bildrate 60fps)",
+    "stage_bwdif": "2. BWDIF GPU-Beschleunigung",
+    "stage_tbc_hold": "2. TBC Signal-Hold & Frame-Synchronisation",
+    "stage_chroma_dropout": "3. Chroma-Ausrichtung & Dropout-Bereinigung",
+    "stage_audio_ebu": "4. Audiobehandlung & EBU R128 Broadcast",
+    "stage_face_restore": "3. CodeFormer KI-Gesichtsrestaurierung",
+    "stage_rife_interpolation": "4. RIFE 60fps Neuronale Interpolation",
+    "stage_ai_upscale": "5. Real-ESRGAN 4K Super-Auflösung",
+    "stage_encode_master": "5. ProRes / x264 Final-Master",
+    "stage_encode_fast": "3. Schnelle NVENC-Hardwarekodierung",
+    "stage_encode_ai": "6. KI-Master-Export",
+    "stage_export": "4. Schneller Export",
+    "stage_progress": "Fortschritt",
+    "streaming": "STREAMING",
+    "status_paused": "PAUSIERT"
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",
     "supabase_url_placeholder": "https://xyz.supabase.co",
     "bucket_placeholder": "vhs-archive",
     "s3_endpoint_placeholder": "https://<account>.r2.cloudflarestorage.com"
+  },
+  "logs": {
+    "preparing_restore": "[WIEDERHERSTELLUNG] Dateiwiederherstellung wird vorbereitet: {{file}}",
+    "restore_started": "[WIEDERHERSTELLUNG] Streaming-Prozess gestartet!",
+    "restore_failed": "[WIEDERHERSTELLUNG FEHLER] Prozess fehlgeschlagen (Code: {{code}}). Überprüfen Sie die Konsole.",
+    "restore_success": "[WIEDERHERSTELLUNG] Wiederherstellungsprozess erfolgreich abgeschlossen!",
+    "obs_installing": "[OBS] Automatisierter OBS Portable Installer wird gestartet...",
+    "obs_installer_started": "[OBS] Installer im Hintergrund gestartet. Verfolgen Sie die Installation in der Konsole.",
+    "qtgmc_installing": "[QTGMC] Automatisierter VapourSynth + QTGMC Installer wird gestartet...",
+    "qtgmc_installer_started": "[QTGMC] Installer im Hintergrund gestartet. Verfolgen Sie die Installation in der Konsole.",
+    "qtgmc_install_error": "[QTGMC FEHLER] Starten des Installers fehlgeschlagen: {{error}}",
+    "obs_capture_requesting": "[OBS AUFNAHME] Aufnahme in OBS Studio wird angefordert...",
+    "obs_capture_started": "[OBS AUFNAHME] Verlustfreie Aufnahme erfolgreich gestartet!",
+    "obs_warning_prefix": "[OBS WARNUNG] {{message}}",
+    "obs_not_connected": "[OBS WARNUNG] OBS Studio läuft nicht oder WebSocket ist inaktiv.",
+    "obs_profile_hint": "[OBS HINWEIS] Öffnen Sie OBS Studio mit konfiguriertem Profil.",
+    "obs_capture_stopping": "[OBS AUFNAHME] Aufnahme in OBS Studio wird beendet...",
+    "obs_capture_saved": "[OBS AUFNAHME] Datei erfolgreich abgeschlossen: {{path}}",
+    "obs_capture_error": "[OBS FEHLER] Fehler beim Beenden der Aufnahme: {{error}}",
+    "tape_loaded": "[INGEST] Band geladen: {{name}}",
+    "panasonic_inspecting": "[PANASONIC INGEST] Inspektion: {{path}}",
+    "panasonic_extracting": "[PANASONIC INGEST] Extraktion: {{path}}",
+    "panasonic_extracted": "[PANASONIC INGEST] Extraktion abgeschlossen: {{count}} Titel nach media/raw/ extrahiert",
+    "panasonic_inspect_error": "[PANASONIC INGEST] Inspektionsfehler: {{error}}",
+    "panasonic_extract_error": "[PANASONIC INGEST] Fehler bei Extraktion: {{error}}",
+    "restore_paused": "[WIEDERHERSTELLUNG] Wiederherstellungsprozess pausiert.",
+    "restore_resumed": "[WIEDERHERSTELLUNG] Wiederherstellungsprozess fortgesetzt.",
+    "restore_aborted": "[WIEDERHERSTELLUNG] Prozess und Signal sicher abgebrochen."
+  },
+  "recovery": {
+    "title": "Laufende / Unterbrochene Projekte",
+    "badge": "Wiederherstellung",
+    "empty": "Keine unvollständigen Projekte erkannt.",
+    "scan": "Nach unvollständigen Dateien suchen",
+    "resume_button": "Fortsetzen",
+    "resume_tooltip": "Verarbeitung am Kontrollpunkt fortsetzen",
+    "finalize_button": "Teilweise Fertigstellen",
+    "finalize_tooltip": "Videocontainer reparieren, um Teilvideo sofort abspielbar zu machen",
+    "discard_button": "Verwerfen",
+    "discard_tooltip": "Temporäre Dateien löschen und Speicherplatz freigeben",
+    "frames_info": "{{current}} / {{total}} Frames",
+    "progress_label": "Fortschritt des unvollständigen Projekts",
+    "status_in_progress": "Unterbrochen",
+    "status_paused": "Pausiert",
+    "status_aborted": "Abgebrochen",
+    "toast_resumed": "Projekt zur Wiederherstellung fortgesetzt.",
+    "toast_finalized": "Teilvideo erfolgreich repariert und finalisiert.",
+    "toast_discarded": "Unvollständiges Projekt verworfen.",
+    "toast_action_error": "Fehler bei der Wiederherstellungsaktion."
   }
 }

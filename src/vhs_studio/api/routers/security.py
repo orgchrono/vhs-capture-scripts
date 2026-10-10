@@ -63,18 +63,21 @@ def is_safe_media_path(raw_path: str | None) -> bool:
 
 def is_safe_ingest_path(raw_path: str | None) -> bool:
     """Validate that raw_path is safe against traversal and is a valid disk image/media source."""
-    if is_safe_media_path(raw_path):
-        return True
     if not raw_path or not isinstance(raw_path, str):
         return False
     if "\0" in raw_path or ".." in raw_path:
         return False
+    if is_safe_media_path(raw_path):
+        return True
+
+    # Physical block device support: Windows (\\.\PhysicalDrive), Linux (/dev/sd, /dev/nvme), macOS (/dev/rdisk, /dev/disk)
+    if raw_path.startswith(("\\\\.\\PhysicalDrive", "/dev/sd", "/dev/nvme", "/dev/rdisk", "/dev/disk")):
+        return True
 
     try:
-        if os.path.isabs(raw_path) and os.path.isfile(raw_path):
-            ext = os.path.splitext(raw_path)[1].lower()
-            if ext in VALID_INGEST_EXTENSIONS:
-                return True
+        ext = os.path.splitext(raw_path)[1].lower()
+        if ext in VALID_INGEST_EXTENSIONS or ext in VALID_MEDIA_EXTENSIONS:
+            return True
     except Exception:
         pass
 

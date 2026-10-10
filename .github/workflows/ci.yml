@@ -10,6 +10,8 @@ jobs:
   lint-and-test:
     name: CI on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    env:
+      ACTIONS_RUNNER_FORCE_NODE24: "true"
     strategy:
       fail-fast: false
       matrix:
@@ -40,6 +42,10 @@ jobs:
     - name: Install Python dependencies
       run: |
         uv pip install --system -e .[dev,ai,cloud]
+
+    - name: Build Native Panasonic C Tools
+      run: |
+        python scripts/build_panasonic_tools.py
 
     - name: Lint Python with flake8 (Strict)
       if: matrix.os == 'ubuntu-latest'

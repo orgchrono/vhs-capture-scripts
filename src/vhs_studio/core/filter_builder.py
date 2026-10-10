@@ -58,6 +58,16 @@ def resolve_codec_video_args(output_codec: str, encoder: Optional[str], crf: int
         return ["-c:v", "h264_vaapi", "-qp", str(crf)]
     if encoder == "h264_qsv":
         return ["-c:v", "h264_qsv", "-global_quality", str(crf)]
+    if encoder == "hevc_videotoolbox":
+        return ["-c:v", "hevc_videotoolbox", "-q:v", str(min(100, max(1, 100 - crf * 2))), "-pix_fmt", "yuv420p"]
+    if encoder == "hevc_nvenc":
+        return ["-c:v", "hevc_nvenc", "-preset", "p4", "-cq", str(crf), "-rc", "vbr"]
+    if encoder == "hevc_amf":
+        return ["-c:v", "hevc_amf", "-quality", "speed", "-rc", "cqp", "-qp_i", str(crf), "-qp_p", str(crf)]
+    if encoder == "hevc_qsv":
+        return ["-c:v", "hevc_qsv", "-global_quality", str(crf)]
+    if output_codec == "hevc":
+        return ["-c:v", "libx265", "-preset", "veryfast", "-crf", str(crf), "-pix_fmt", "yuv420p"]
     return ["-c:v", "libx264", "-preset", "veryfast", "-crf", str(crf), "-pix_fmt", "yuv420p"]
 
 
@@ -79,7 +89,7 @@ class FilterBuilder:
         output_codec: str = "h264",
     ):
         self.output_codec = output_codec
-        self.encoder = self.detect_best_encoder() if output_codec == "h264" else None
+        self.encoder = self.detect_best_encoder(output_codec) if output_codec in ("h264", "hevc") else None
         self.target_1080p = target_1080p
         self.crf = crf
         self.mode = mode
@@ -117,8 +127,21 @@ class FilterBuilder:
             return False
 
     @classmethod
-    def detect_best_encoder(cls) -> str:
-        """Auto-detect optimal hardware encoder (NVIDIA, Apple, AMD, VAAPI, Intel) or fallback to libx264."""
+    def detect_best_encoder(cls, output_codec: str = "h264") -> str:
+        """Auto-detect optimal hardware encoder (NVIDIA, Apple, AMD, VAAPI, Intel) or fallback."""
+        if output_codec == "hevc":
+            if sys.platform == "darwin":
+                if cls.check_encoder_support("hevc_videotoolbox"):
+                    return "hevc_videotoolbox"
+                return "libx265"
+            if cls.check_encoder_support("hevc_nvenc"):
+                return "hevc_nvenc"
+            if sys.platform == "win32" and cls.check_encoder_support("hevc_amf"):
+                return "hevc_amf"
+            if cls.check_encoder_support("hevc_qsv"):
+                return "hevc_qsv"
+            return "libx265"
+
         if sys.platform == "darwin":
             if cls.check_encoder_support("h264_videotoolbox"):
                 return "h264_videotoolbox"
@@ -252,7 +275,7 @@ class FilterBuilder:
             if self.output_codec == "prores"
             else ["-f", "mp4"]
         )
-        is_mov_or_mp4 = self.output_codec in ("h264", "prores")
+        is_mov_or_mp4 = self.output_codec in ("h264", "hevc", "prores")
         mov_flags = ["-movflags", "+faststart"] if is_mov_or_mp4 else []
         shortest_flag = [] if self.mode == "drop" else ["-shortest"]
 

@@ -50,6 +50,35 @@ def format_timestamp(seconds: float) -> str:
     return f"{h:02d}:{m:02d}:{s:02d}.{ms:03d}"
 
 
+def load_audio_wav(wav_path: str):
+    """Load 16kHz mono PCM WAV into normalized float32 numpy array for Whisper."""
+    import wave
+    import numpy as np
+
+    if not os.path.exists(wav_path):
+        return np.zeros(16000, dtype=np.float32)
+
+    with wave.open(wav_path, "rb") as wf:
+        n_channels = wf.getnchannels()
+        sampwidth = wf.getsampwidth()
+        n_frames = wf.getnframes()
+        raw_bytes = wf.readframes(n_frames)
+
+    if sampwidth == 2:
+        audio = np.frombuffer(raw_bytes, dtype=np.int16).astype(np.float32) / 32768.0
+    elif sampwidth == 4:
+        audio = np.frombuffer(raw_bytes, dtype=np.int32).astype(np.float32) / 2147483648.0
+    elif sampwidth == 1:
+        audio = (np.frombuffer(raw_bytes, dtype=np.uint8).astype(np.float32) - 128.0) / 128.0
+    else:
+        audio = np.frombuffer(raw_bytes, dtype=np.int16).astype(np.float32) / 32768.0
+
+    if n_channels > 1:
+        audio = audio.reshape(-1, n_channels).mean(axis=1)
+
+    return audio
+
+
 def transcribe_and_generate_vtt(video_path: str, model_size: str = "tiny") -> str:
     """
     Extracts audio, transcribes with faster-whisper, and writes a .vtt sidecar.
@@ -78,8 +107,9 @@ def transcribe_and_generate_vtt(video_path: str, model_size: str = "tiny") -> st
     except ImportError:
         pass
 
-    cpu_threads = max(4, os.cpu_count() or 4)
-    num_workers = max(1, (os.cpu_count() or 4) // 2)
+    total_cpus = os.cpu_count() or 4
+    cpu_threads = max(2, min(8, total_cpus // 2 if total_cpus > 4 else total_cpus))
+    num_workers = max(1, min(2, cpu_threads // 2))
     log.info(
         f"[WHISPER] Carregando modelo {model_size} "
         f"(Device: {device}, Compute: {compute_type}, Threads: {cpu_threads})..."
@@ -92,8 +122,11 @@ def transcribe_and_generate_vtt(video_path: str, model_size: str = "tiny") -> st
         num_workers=num_workers,
     )
 
-    log.info(f"[WHISPER] Transcrevendo {temp_wav}...")
-    segments, info = model.transcribe(temp_wav, beam_size=5)
+    log.info("[WHISPER] Carregando waveform de áudio para transcrição...")
+    audio_data = load_audio_wav(temp_wav)
+    duration_sec = len(audio_data) / 16000.0 if len(audio_data) > 0 else 0.0
+    log.info(f"[WHISPER] Transcrevendo {temp_wav} ({duration_sec:.1f}s)...")
+    segments, info = model.transcribe(audio_data, beam_size=5)
 
     log.info(
         f"[WHISPER] Idioma detectado: {info.language} (probabilidade {info.language_probability:.2f})"

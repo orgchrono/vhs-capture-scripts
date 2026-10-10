@@ -175,7 +175,7 @@ def get_token():
 
 
 @system_router.get("/status")
-def get_status():
+def get_status() -> Dict[str, object]:
     """Return comprehensive system, encoder, file and process health status."""
     srv = _resolve_server()
     encoder = FilterBuilder.detect_best_encoder()
@@ -186,8 +186,8 @@ def get_status():
 
     internal_logs: List[str] = []
     for h in log.handlers:
-        if type(h).__name__ == "MemoryLogHandler":
-            internal_logs = h.get_logs()
+        if type(h).__name__ == "MemoryLogHandler" and hasattr(h, "get_logs"):
+            internal_logs = getattr(h, "get_logs")()
             break
 
     combined_logs = internal_logs + srv.pm.get_logs()
@@ -261,3 +261,11 @@ async def stream_logs(request: Request):
             await asyncio.sleep(0.2)
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+@system_router.get("/ingest/panasonic/disks")
+def get_panasonic_disks() -> Dict[str, object]:
+    """Scan and return physical drives and optical media detected on the host system."""
+    from vhs_studio.ingest.panasonic_dvr import detect_connected_disks
+    disks = detect_connected_disks()
+    return {"disks": disks, "total": len(disks)}

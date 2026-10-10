@@ -81,11 +81,16 @@ def get_panasonic_executable_path(binary_name="extract_meihdfs"):
     """Return path to Panasonic recovery binary if portable or available in system PATH."""
     sys_name = platform.system()
     bin_name = f"{binary_name}.exe" if sys_name == "Windows" else binary_name
-    portable_path = os.path.join(PANASONIC_TOOLS_DIR, bin_name)
-    if os.path.exists(portable_path):
-        return portable_path
+    candidates = [
+        os.path.join(PANASONIC_TOOLS_DIR, bin_name),
+        os.path.join(PANASONIC_TOOLS_DIR, "bin", bin_name),
+        os.path.join(PANASONIC_TOOLS_DIR, binary_name),
+    ]
+    for cand in candidates:
+        if os.path.exists(cand):
+            return cand
 
-    which_path = shutil.which(binary_name)
+    which_path = shutil.which(bin_name) or shutil.which(binary_name)
     if which_path:
         return which_path
 

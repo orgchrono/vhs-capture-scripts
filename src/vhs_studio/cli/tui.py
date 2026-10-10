@@ -170,10 +170,12 @@ def _get_key_input() -> Optional[str]:
     if sys.platform == "win32":
         try:
             import msvcrt
-            if msvcrt.kbhit():
-                ch = msvcrt.getch()
+            kbhit_fn = getattr(msvcrt, "kbhit", None)
+            getch_fn = getattr(msvcrt, "getch", None)
+            if kbhit_fn is not None and getch_fn is not None and kbhit_fn():
+                ch = getch_fn()
                 if ch in (b"\x00", b"\xe0"):
-                    ch2 = msvcrt.getch()
+                    ch2 = getch_fn()
                     if ch2 == b"H":
                         return "UP"
                     if ch2 == b"P":

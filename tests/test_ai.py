@@ -11,6 +11,7 @@ from vhs_studio.ai.whisper_engine import (
     extract_audio,
     format_timestamp,
     transcribe_and_generate_vtt,
+    load_audio_wav,
 )
 
 
@@ -18,6 +19,30 @@ def test_format_timestamp():
     assert format_timestamp(0) == "00:00:00.000"
     assert format_timestamp(3661.123) == "01:01:01.123"
     assert format_timestamp(59.999) == "00:00:59.999"
+
+
+def test_load_audio_wav_missing_file():
+    arr = load_audio_wav("non_existent_file.wav")
+    assert len(arr) == 16000
+    assert arr.dtype.name == "float32"
+
+
+def test_load_audio_wav_valid(tmp_path):
+    import wave
+    import numpy as np
+
+    wav_file = tmp_path / "test.wav"
+    samples = np.array([0, 16384, -16384, 0], dtype=np.int16)
+    with wave.open(str(wav_file), "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(16000)
+        wf.writeframes(samples.tobytes())
+
+    arr = load_audio_wav(str(wav_file))
+    assert len(arr) == 4
+    assert arr[1] == pytest.approx(0.5, abs=0.01)
+    assert arr[2] == pytest.approx(-0.5, abs=0.01)
 
 
 @patch("vhs_studio.core.toolchain.Toolchain.get_ffmpeg_path", return_value="ffmpeg")

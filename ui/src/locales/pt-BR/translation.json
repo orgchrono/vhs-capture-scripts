@@ -50,7 +50,13 @@
     "search_placeholder": "Buscar nos logs...",
     "clear_search": "Limpar busca",
     "no_matches": "Nenhum log correspondente encontrado.",
-    "ready_message": "VHS Studio Pro pronto. Selecione o arquivo e clique em \"Iniciar Restauração Direta\" para acompanhar o streaming de quadros em tempo real."
+    "ready_message": "VHS Studio Pro pronto. Selecione o arquivo e clique em \"Iniciar Restauração Direta\" para acompanhar o streaming de quadros em tempo real.",
+    "pause": "Pausar",
+    "pause_tooltip": "Pausar processo em tempo real (libera CPU/GPU)",
+    "resume": "Retomar",
+    "resume_tooltip": "Retomar processo pausado",
+    "abort": "Interromper",
+    "abort_tooltip": "Interromper sinal e finalizar processo com segurança"
   },
   "monitor": {
     "live_preview": "LIVE PREVIEW (NATIVO)",
@@ -89,7 +95,8 @@
     "crt_monitor_title": "Monitor de Sinal CRT",
     "crt_monitor_badge": "DIRECT-SHOW / OBS VIRTUAL CAM",
     "engine_title": "Motor de Processamento",
-    "engine_badge": "PRESETS & RESTAURAÇÃO"
+    "engine_badge": "PRESETS & RESTAURAÇÃO",
+    "sidebar_panasonic_title": "3. Ingestão Panasonic DVR"
   },
   "settings": {
     "technical_title": "Configurações Técnicas de Restauração",
@@ -251,7 +258,19 @@
     "panasonic_not_found": "Nenhuma assinatura Panasonic encontrada",
     "panasonic_extracted": "Extração Concluída",
     "inspect_error": "Falha ao inspecionar caminho",
-    "extract_error": "Falha na extração"
+    "extract_error": "Falha na extração",
+    "restore_error": "Falha ao iniciar restauração",
+    "network_error": "Falha de comunicação",
+    "request_error": "Erro na requisição: {{error}}",
+    "restore_paused_title": "Restauração Pausada",
+    "restore_paused_desc": "O processo de restauração foi congelado temporariamente.",
+    "restore_resumed_title": "Restauração Retomada",
+    "restore_resumed_desc": "O processo de restauração continuou a execução.",
+    "restore_aborted_title": "Restauração Interrompida",
+    "restore_aborted_desc": "O sinal e processo foram finalizados com segurança.",
+    "pause_error": "Falha ao pausar processo.",
+    "resume_error": "Falha ao retomar processo.",
+    "abort_error": "Falha ao interromper processo."
   },
   "telemetry": {
     "title": "Telemetria de Masterização Analógica",
@@ -280,12 +299,63 @@
     "status_idle": "Sistema em Espera — Pronto para Ingestão",
     "status_running": "Streaming Ativo — Processando DAG",
     "status_completed": "Restauração Concluída (100%)",
-    "progress_label": "Progresso da Pipeline de Restauração"
+    "progress_label": "Progresso da Pipeline de Restauração",
+    "streaming": "STREAMING",
+    "status_paused": "PAUSADO"
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",
     "supabase_url_placeholder": "https://xyz.supabase.co",
     "bucket_placeholder": "vhs-archive",
     "s3_endpoint_placeholder": "https://<account>.r2.cloudflarestorage.com"
+  },
+  "logs": {
+    "preparing_restore": "[RESTAURAÇÃO] Preparando restauração do arquivo: {{file}}",
+    "restore_started": "[RESTAURAÇÃO] Processo streaming iniciado!",
+    "restore_failed": "[RESTAURAÇÃO ERRO] Processo finalizado com falha (Código: {{code}}). Verifique o console.",
+    "restore_success": "[RESTAURAÇÃO] Processo de restauração concluído com sucesso!",
+    "obs_installing": "[OBS] Disparando instalador automatizado do OBS Portable...",
+    "obs_installer_started": "[OBS] Instalador iniciado em segundo plano. Acompanhe a instalação no Console.",
+    "qtgmc_installing": "[QTGMC] Disparando instalador automatizado do VapourSynth + QTGMC...",
+    "qtgmc_installer_started": "[QTGMC] Instalador iniciado em segundo plano. Acompanhe a instalação no Console.",
+    "qtgmc_install_error": "[QTGMC ERRO] Falha ao iniciar instalador: {{error}}",
+    "obs_capture_requesting": "[OBS CAPTURA] Solicitando início de gravação no OBS Studio...",
+    "obs_capture_started": "[OBS CAPTURA] Gravação Lossless iniciada com sucesso!",
+    "obs_warning_prefix": "[OBS AVISO] {{message}}",
+    "obs_not_connected": "[OBS AVISO] OBS Studio não está aberto ou WebSocket não está ativo na porta padrão.",
+    "obs_profile_hint": "[OBS DICA] Abra o OBS Studio com o perfil configurado.",
+    "obs_capture_stopping": "[OBS CAPTURA] Finalizando gravação no OBS Studio...",
+    "obs_capture_saved": "[OBS CAPTURA] Arquivo finalizado com sucesso: {{path}}",
+    "obs_capture_error": "[OBS ERRO] Falha ao finalizar gravação: {{error}}",
+    "tape_loaded": "[INGESTÃO] Fita Carregada: {{name}}",
+    "panasonic_inspecting": "[PANASONIC INGEST] Inspecionando: {{path}}",
+    "panasonic_extracting": "[PANASONIC INGEST] Extraindo: {{path}}",
+    "panasonic_extracted": "[PANASONIC INGEST] Extração Concluída: {{count}} títulos extraídos para media/raw/",
+    "panasonic_inspect_error": "[PANASONIC INGEST] Erro na inspeção: {{error}}",
+    "panasonic_extract_error": "[PANASONIC INGEST] Erro durante extração: {{error}}",
+    "restore_paused": "[RESTAURAÇÃO] Processo de restauração pausado.",
+    "restore_resumed": "[RESTAURAÇÃO] Processo de restauração retomado.",
+    "restore_aborted": "[RESTAURAÇÃO] Processo e sinal interrompidos com segurança."
+  },
+  "recovery": {
+    "title": "Projetos em Andamento / Interrompidos",
+    "badge": "Recuperação",
+    "empty": "Nenhum projeto incompleto detectado.",
+    "scan": "Escanear Arquivos",
+    "resume_button": "Retomar",
+    "resume_tooltip": "Retomar processamento a partir do checkpoint",
+    "finalize_button": "Finalizar Parcial",
+    "finalize_tooltip": "Reparar contêiner de vídeo para tornar arquivo parcial reproduzível imediatamente",
+    "discard_button": "Descartar",
+    "discard_tooltip": "Excluir arquivos parciais e liberar espaço",
+    "frames_info": "{{current}} / {{total}} quadros",
+    "progress_label": "Progresso do projeto incompleto",
+    "status_in_progress": "Interrompido",
+    "status_paused": "Pausado",
+    "status_aborted": "Abortado",
+    "toast_resumed": "Projeto retomado para restauração.",
+    "toast_finalized": "Vídeo parcial reparado e finalizado com sucesso.",
+    "toast_discarded": "Projeto incompleto descartado.",
+    "toast_action_error": "Falha ao processar ação de recuperação."
   }
 }

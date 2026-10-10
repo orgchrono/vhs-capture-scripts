@@ -47,7 +47,16 @@
     "clear": "Clear",
     "clear_title": "Clear Console",
     "processing": "Processing...",
-    "ready_message": "VHS Studio Pro ready. Select a file and click \"Start Restoration\" to monitor real-time frame streaming."
+    "ready_message": "VHS Studio Pro ready. Select a file and click \"Start Restoration\" to monitor real-time frame streaming.",
+    "search_placeholder": "Поиск по логам...",
+    "clear_search": "Очистить поиск",
+    "no_matches": "Совпадающих записей не найдено.",
+    "pause": "Пауза",
+    "pause_tooltip": "Приостановить процесс в реальном времени (освобождает CPU/GPU)",
+    "resume": "Возобновить",
+    "resume_tooltip": "Возобновить приостановленный процесс",
+    "abort": "Прервать",
+    "abort_tooltip": "Прервать сигнал и безопасно завершить процесс"
   },
   "monitor": {
     "live_preview": "LIVE PREVIEW (NATIVE)",
@@ -75,7 +84,8 @@
     "binary_native": "Системный бинарник",
     "carver_python": "Pure-Python карвер",
     "extracting": "Извлечение заголовков в media/raw/...",
-    "extract_btn": "Извлечь в media/raw/"
+    "extract_btn": "Извлечь в media/raw/",
+    "library_explorer_title": "Архив видеокассет"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
@@ -85,7 +95,8 @@
     "crt_monitor_title": "CRT Signal Monitor",
     "crt_monitor_badge": "DIRECT-SHOW / OBS VIRTUAL CAM",
     "engine_title": "Processing Engine",
-    "engine_badge": "PRESETS & RESTORATION"
+    "engine_badge": "PRESETS & RESTORATION",
+    "sidebar_panasonic_title": "3. Импорт Panasonic DVR"
   },
   "settings": {
     "technical_title": "Restoration Technical Settings",
@@ -124,7 +135,8 @@
     "crf_label": "Constant Rate Factor (CRF):",
     "crf_larger": "Larger File (14)",
     "crf_default": "Standard (18)",
-    "crf_smaller": "Smaller File (28)"
+    "crf_smaller": "Smaller File (28)",
+    "tab_presets": "Режим"
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",
@@ -242,7 +254,24 @@
     "subtitles_started": "Whisper offline speech transcription started.",
     "no_file_title": "No Tape Selected",
     "no_file_desc": "Please select a captured video tape before starting restoration.",
-    "select_file_first": "Select a tape file before starting."
+    "select_file_first": "Select a tape file before starting.",
+    "panasonic_found_title": "Panasonic DVR обнаружен",
+    "panasonic_not_found": "Сигнатуры Panasonic не найдены",
+    "panasonic_extracted": "Извлечение завершено",
+    "inspect_error": "Ошибка проверки пути",
+    "extract_error": "Ошибка извлечения",
+    "restore_error": "Не удалось запустить восстановление",
+    "network_error": "Ошибка связи",
+    "request_error": "Ошибка запроса: {{error}}",
+    "restore_paused_title": "Восстановление приостановлено",
+    "restore_paused_desc": "Процесс восстановления временно приостановлен.",
+    "restore_resumed_title": "Восстановление возобновлено",
+    "restore_resumed_desc": "Процесс восстановления возобновил выполнение.",
+    "restore_aborted_title": "Восстановление прервано",
+    "restore_aborted_desc": "Сигнал и процесс были безопасно завершены.",
+    "pause_error": "Не удалось приостановить процесс.",
+    "resume_error": "Не удалось возобновить процесс.",
+    "abort_error": "Не удалось прервать процесс."
   },
   "telemetry": {
     "title": "Телеметрия аналогового мастеринга",
@@ -258,12 +287,76 @@
     "status_idle": "Система в режиме ожидания — готова к захвату",
     "status_running": "Поток активен — выполнение DAG",
     "status_completed": "Реставрация завершена (100%)",
-    "progress_label": "Прогресс пайплайна реставрации"
+    "progress_label": "Прогресс пайплайна реставрации",
+    "stage_qtgmc": "2. QTGMC (удвоенная частота 60fps)",
+    "stage_bwdif": "2. BWDIF GPU ускорение",
+    "stage_tbc_hold": "2. TBC Signal Hold и кадровая синхронизация",
+    "stage_chroma_dropout": "3. Коррекция цветности и удаление дропаутов",
+    "stage_audio_ebu": "4. Обработка звука и вещательный стандарт EBU R128",
+    "stage_face_restore": "3. CodeFormer ИИ восстановление лиц",
+    "stage_rife_interpolation": "4. RIFE 60fps нейросетевая интерполяция",
+    "stage_ai_upscale": "5. Real-ESRGAN 4K супер-разрешение",
+    "stage_encode_master": "5. Финальный мастер ProRes / x264",
+    "stage_encode_fast": "3. Быстрое аппаратное кодирование NVENC",
+    "stage_encode_ai": "6. Экспорт ИИ мастера",
+    "stage_export": "4. Быстрый экспорт",
+    "stage_progress": "Прогресс",
+    "streaming": "ПОТОКОВАЯ ОБРАБОТКА",
+    "status_paused": "ПАУЗА"
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",
     "supabase_url_placeholder": "https://xyz.supabase.co",
     "bucket_placeholder": "vhs-archive",
     "s3_endpoint_placeholder": "https://<account>.r2.cloudflarestorage.com"
+  },
+  "logs": {
+    "preparing_restore": "[ВОССТАНОВЛЕНИЕ] Подготовка к восстановлению файла: {{file}}",
+    "restore_started": "[ВОССТАНОВЛЕНИЕ] Потоковая обработка запущена!",
+    "restore_failed": "[ОШИБКА ВОССТАНОВЛЕНИЯ] Процесс завершился с ошибкой (Код: {{code}}). Проверьте консоль.",
+    "restore_success": "[ВОССТАНОВЛЕНИЕ] Процесс восстановления успешно завершён!",
+    "obs_installing": "[OBS] Запуск автоматического установщика OBS Portable...",
+    "obs_installer_started": "[OBS] Установщик запущен в фоновом режиме. Следите в консоли.",
+    "qtgmc_installing": "[QTGMC] Запуск автоматического установщика VapourSynth + QTGMC...",
+    "qtgmc_installer_started": "[QTGMC] Установщик запущен в фоновом режиме. Следите в консоли.",
+    "qtgmc_install_error": "[ОШИБКА QTGMC] Не удалось запустить установщик: {{error}}",
+    "obs_capture_requesting": "[OBS ЗАХВАТ] Запрос на начало записи в OBS Studio...",
+    "obs_capture_started": "[OBS ЗАХВАТ] Запись без потерь успешно начата!",
+    "obs_warning_prefix": "[ПРЕДУПРЕЖДЕНИЕ OBS] {{message}}",
+    "obs_not_connected": "[ПРЕДУПРЕЖДЕНИЕ OBS] OBS Studio не запущена или WebSocket неактивен.",
+    "obs_profile_hint": "[СОВЕТ OBS] Откройте OBS Studio с настроенным профилем.",
+    "obs_capture_stopping": "[OBS ЗАХВАТ] Завершение записи в OBS Studio...",
+    "obs_capture_saved": "[OBS ЗАХВАТ] Файл успешно сохранён: {{path}}",
+    "obs_capture_error": "[ОШИБКА OBS] Не удалось завершить запись: {{error}}",
+    "tape_loaded": "[ИМПОРТ] Кассета загружена: {{name}}",
+    "panasonic_inspecting": "[PANASONIC INGEST] Проверка: {{path}}",
+    "panasonic_extracting": "[PANASONIC INGEST] Извлечение: {{path}}",
+    "panasonic_extracted": "[PANASONIC INGEST] Извлечение завершено: {{count}} записей извлечено в media/raw/",
+    "panasonic_inspect_error": "[PANASONIC INGEST] Ошибка проверки: {{error}}",
+    "panasonic_extract_error": "[PANASONIC INGEST] Ошибка при извлечении: {{error}}",
+    "restore_paused": "[ВОССТАНОВЛЕНИЕ] Процесс восстановления приостановлен.",
+    "restore_resumed": "[ВОССТАНОВЛЕНИЕ] Процесс восстановления возобновлен.",
+    "restore_aborted": "[ВОССТАНОВЛЕНИЕ] Процесс и сигнал безопасно прерваны."
+  },
+  "recovery": {
+    "title": "Текущие / Прерванные проекты",
+    "badge": "Восстановление",
+    "empty": "Незавершенных проектов не обнаружено.",
+    "scan": "Поиск незавершенных файлов",
+    "resume_button": "Возобновить",
+    "resume_tooltip": "Возобновить обработку с контрольной точки",
+    "finalize_button": "Завершить часть",
+    "finalize_tooltip": "Восстановить медиа-контейнер для воспроизведения частичного видео",
+    "discard_button": "Удалить",
+    "discard_tooltip": "Удалить временные файлы и освободить место",
+    "frames_info": "{{current}} / {{total}} кадров",
+    "progress_label": "Прогресс незавершенного проекта",
+    "status_in_progress": "Прервано",
+    "status_paused": "На паузе",
+    "status_aborted": "Отменено",
+    "toast_resumed": "Проект возобновлен для восстановления.",
+    "toast_finalized": "Частичное видео успешно восстановлено и завершено.",
+    "toast_discarded": "Незавершенный проект удален.",
+    "toast_action_error": "Ошибка при выполнении действия восстановления."
   }
 }
