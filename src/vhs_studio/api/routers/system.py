@@ -191,7 +191,8 @@ async def stream_logs(request: Request):
     srv = _resolve_server()
 
     async def event_generator():
-        yield f"data: {json.dumps({'connected': True, 'active': srv.pm.is_running()})}\n\n"
+        conn_payload = json.dumps({"connected": True, "active": srv.pm.is_running()})
+        yield f"data: {conn_payload}\n\n"
         last_idx = 0
         idle_ticks = 0
         while True:
@@ -213,11 +214,12 @@ async def stream_logs(request: Request):
             elif not is_running:
                 idle_ticks += 1
                 if idle_ticks >= 2:
-                    yield f"data: {json.dumps({
-                        'active': False,
-                        'exit_code': srv.pm.last_exit_code,
-                        'success': srv.pm.last_success,
-                    })}\n\n"
+                    end_payload = json.dumps({
+                        "active": False,
+                        "exit_code": srv.pm.last_exit_code,
+                        "success": srv.pm.last_success,
+                    })
+                    yield f"data: {end_payload}\n\n"
                     break
             await asyncio.sleep(0.2)
 
