@@ -167,23 +167,19 @@ export const BroadcastProgress: React.FC = () => {
     <div
       role="region"
       aria-label={t('telemetry.title', 'Telemetria de Masterização')}
-      className="bg-studio-panel border border-studio-border rounded-xl p-3 mb-2 flex flex-col gap-2.5 text-slate-200 select-none"
+      className="bg-studio-panel border border-studio-border rounded-md p-2.5 mb-2 flex flex-col gap-2 text-slate-200 select-none shadow-sm"
     >
       {/* Top Header: Title, Active Stage and Tally LED */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span
-            className={`w-2 h-2 rounded-full ${
-              isRestoring
-                ? 'bg-studio-tally-live shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse'
-                : 'bg-slate-600'
-            }`}
+            className={`led-lamp ${isRestoring ? 'led-live animate-pulse' : 'led-idle'}`}
             aria-hidden="true"
           />
-          <span className="text-[11px] font-bold uppercase tracking-wider font-mono text-slate-300">
+          <span className="text-[11px] font-bold uppercase tracking-wider font-mono text-slate-200">
             {t('telemetry.title', 'Telemetria de Masterização')}
           </span>
-          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-studio-surface border border-studio-border text-slate-400">
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-studio-surface border border-studio-border text-slate-300">
             {isRestoring ? t(telemetry.stageNameKey) : t('telemetry.stage_idle')}
           </span>
         </div>
@@ -196,7 +192,7 @@ export const BroadcastProgress: React.FC = () => {
           <span className="text-slate-400 text-[10px] font-normal uppercase">
             {isRestoring ? t('telemetry.status_running') : t('telemetry.status_idle')}
           </span>
-          <span className="bg-studio-surface border border-studio-border px-2 py-0.5 rounded text-studio-tally-live">
+          <span className="bg-studio-surface border border-studio-border px-2 py-0.5 rounded-sm text-emerald-400 tabular-nums">
             {telemetry.progressPercent}%
           </span>
         </div>
@@ -206,6 +202,7 @@ export const BroadcastProgress: React.FC = () => {
       <Progress
         value={telemetry.progressPercent}
         aria-label={t('telemetry.progress_label')}
+        aria-valuetext={`${telemetry.progressPercent}% - ${isRestoring ? t(telemetry.stageNameKey) : t('telemetry.stage_idle')}`}
         className="h-2"
       />
 
@@ -217,16 +214,16 @@ export const BroadcastProgress: React.FC = () => {
           return (
             <div
               key={st.id}
-              className={`flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-mono border transition-colors ${
+              className={`flex items-center gap-1.5 px-2 py-1 rounded-sm text-[10px] font-mono border transition-colors ${
                 isCurrent
-                  ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300'
+                  ? 'bg-emerald-950/50 border-emerald-500/50 text-emerald-300 font-semibold'
                   : isDone
                   ? 'bg-studio-surface border-studio-border text-slate-300'
-                  : 'bg-studio-surface/40 border-studio-border-subtle text-slate-600'
+                  : 'bg-studio-surface/40 border-studio-border-subtle text-slate-500'
               }`}
             >
               <span
-                className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${
+                className={`w-3.5 h-3.5 rounded-sm flex items-center justify-center text-[9px] font-bold font-mono shrink-0 ${
                   isCurrent
                     ? 'bg-emerald-500 text-slate-950'
                     : isDone
@@ -243,9 +240,9 @@ export const BroadcastProgress: React.FC = () => {
       </div>
 
       {/* Hardware Telemetry Strip (Frames, FPS, ETA, Speed) */}
-      <div className="grid grid-cols-4 gap-2 pt-1 border-t border-studio-border text-[11px] font-mono">
-        <div className="flex items-center gap-1.5 bg-studio-surface px-2 py-1 rounded border border-studio-border">
-          <Film className="w-3 h-3 text-sky-400 shrink-0" />
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-1 border-t border-studio-border text-[11px] font-mono">
+        <div className="flex items-center gap-1.5 bg-studio-surface px-2 py-1 rounded-sm border border-studio-border">
+          <Film className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           <span className="text-slate-400 text-[10px]">{t('telemetry.frames')}:</span>
           <span className="text-white font-medium truncate tabular-nums">
             {telemetry.totalFrames > 0
@@ -256,20 +253,20 @@ export const BroadcastProgress: React.FC = () => {
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5 bg-studio-surface px-2 py-1 rounded border border-studio-border">
-          <Gauge className="w-3 h-3 text-emerald-400 shrink-0" />
+        <div className="flex items-center gap-1.5 bg-studio-surface px-2 py-1 rounded-sm border border-studio-border">
+          <Gauge className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
           <span className="text-slate-400 text-[10px]">{t('telemetry.fps')}:</span>
           <span className="text-white font-medium tabular-nums">{telemetry.fps.toFixed(2)}</span>
         </div>
 
-        <div className="flex items-center gap-1.5 bg-studio-surface px-2 py-1 rounded border border-studio-border">
-          <Clock className="w-3 h-3 text-amber-400 shrink-0" />
+        <div className="flex items-center gap-1.5 bg-studio-surface px-2 py-1 rounded-sm border border-studio-border">
+          <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
           <span className="text-slate-400 text-[10px]">{t('telemetry.eta')}:</span>
           <span className="text-white font-medium tabular-nums">{telemetry.eta}</span>
         </div>
 
-        <div className="flex items-center gap-1.5 bg-studio-surface px-2 py-1 rounded border border-studio-border">
-          <Activity className="w-3 h-3 text-indigo-400 shrink-0" />
+        <div className="flex items-center gap-1.5 bg-studio-surface px-2 py-1 rounded-sm border border-studio-border">
+          <Activity className="w-3.5 h-3.5 text-slate-300 shrink-0" />
           <span className="text-slate-400 text-[10px]">{t('telemetry.speed')}:</span>
           <span className="text-white font-medium tabular-nums">{telemetry.speed}</span>
         </div>

@@ -234,6 +234,7 @@
   "toast": {
     "file_loaded_title": "Fita Carregada",
     "file_loaded_desc": "Pronta para masterização e restauração.",
+    "file_loaded_log": "[INGESTÃO DRAG-AND-DROP] Fita carregada com sucesso: {{file}}",
     "capture_started_title": "Gravação OBS Iniciada",
     "capture_started_desc": "Gravando sem perdas via DeckLink em media/raw/",
     "capture_stopped_title": "Gravação OBS Finalizada",
@@ -280,5 +281,11 @@
     "status_running": "Streaming Ativo — Processando DAG",
     "status_completed": "Restauração Concluída (100%)",
     "progress_label": "Progresso da Pipeline de Restauração"
+  },
+  "storage": {
+    "path_placeholder": "C:\\VHS_Archive",
+    "supabase_url_placeholder": "https://xyz.supabase.co",
+    "bucket_placeholder": "vhs-archive",
+    "s3_endpoint_placeholder": "https://<account>.r2.cloudflarestorage.com"
   }
 }

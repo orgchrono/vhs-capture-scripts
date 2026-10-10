@@ -61,12 +61,12 @@ export const FooterStatusBar: React.FC = () => {
       <div className="flex items-center gap-3 min-w-0">
         <div className="flex items-center gap-1.5 shrink-0">
           <span
-            className={`w-2 h-2 rounded-full ${
+            className={`led-lamp ${
               isCapturing
-                ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-pulse'
+                ? 'led-rec animate-pulse'
                 : isRestoring
-                ? 'bg-studio-tally-live shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse'
-                : 'bg-slate-600'
+                ? 'led-live animate-pulse'
+                : 'led-idle'
             }`}
             aria-hidden="true"
           />
@@ -81,10 +81,10 @@ export const FooterStatusBar: React.FC = () => {
 
         {fileName && (
           <div
-            className="hidden sm:flex items-center gap-1 text-[10px] text-slate-400 bg-studio-surface px-2 py-0.5 rounded border border-studio-border truncate max-w-[200px]"
+            className="hidden sm:flex items-center gap-1 text-[10px] text-slate-400 bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border truncate max-w-[200px]"
             title={selectedFile}
           >
-            <FileVideo className="w-3 h-3 text-sky-400 shrink-0" />
+            <FileVideo className="w-3 h-3 text-slate-400 shrink-0" />
             <span className="truncate">{fileName}</span>
           </div>
         )}
@@ -95,16 +95,16 @@ export const FooterStatusBar: React.FC = () => {
         {isRestoring ? (
           <>
             {/* Mini Progress Pill */}
-            <div className="flex items-center gap-1.5 bg-studio-surface px-2 py-0.5 rounded border border-studio-border">
+            <div className="flex items-center gap-1.5 bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border">
               <span className="text-[10px] text-slate-400">{t('telemetry.stage_progress', 'Progresso')}:</span>
-              <span className="text-studio-tally-live font-bold tabular-nums">
+              <span className="text-emerald-400 font-bold tabular-nums">
                 {telemetry.progressPercent}%
               </span>
             </div>
 
             {/* Frames */}
-            <div className="hidden md:flex items-center gap-1 text-[10px] bg-studio-surface px-2 py-0.5 rounded border border-studio-border">
-              <Film className="w-3 h-3 text-sky-400 shrink-0" />
+            <div className="hidden md:flex items-center gap-1 text-[10px] bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border">
+              <Film className="w-3 h-3 text-slate-400 shrink-0" />
               <span className="text-slate-400">{t('telemetry.frames', 'Quadros')}:</span>
               <span className="text-white font-medium tabular-nums">
                 {telemetry.totalFrames > 0
@@ -116,7 +116,7 @@ export const FooterStatusBar: React.FC = () => {
             </div>
 
             {/* FPS */}
-            <div className="hidden lg:flex items-center gap-1 text-[10px] bg-studio-surface px-2 py-0.5 rounded border border-studio-border">
+            <div className="hidden lg:flex items-center gap-1 text-[10px] bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border">
               <Gauge className="w-3 h-3 text-emerald-400 shrink-0" />
               <span className="text-slate-400">{t('telemetry.fps', 'FPS')}:</span>
               <span className="text-white font-medium tabular-nums">
@@ -125,7 +125,7 @@ export const FooterStatusBar: React.FC = () => {
             </div>
 
             {/* ETA */}
-            <div className="hidden sm:flex items-center gap-1 text-[10px] bg-studio-surface px-2 py-0.5 rounded border border-studio-border">
+            <div className="hidden sm:flex items-center gap-1 text-[10px] bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border">
               <Clock className="w-3 h-3 text-amber-400 shrink-0" />
               <span className="text-slate-400">{t('telemetry.eta', 'ETA')}:</span>
               <span className="text-white font-medium tabular-nums">
@@ -134,8 +134,8 @@ export const FooterStatusBar: React.FC = () => {
             </div>
 
             {/* Speed */}
-            <div className="hidden xl:flex items-center gap-1 text-[10px] bg-studio-surface px-2 py-0.5 rounded border border-studio-border">
-              <Activity className="w-3 h-3 text-indigo-400 shrink-0" />
+            <div className="hidden xl:flex items-center gap-1 text-[10px] bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border">
+              <Activity className="w-3 h-3 text-slate-300 shrink-0" />
               <span className="text-slate-400">{t('telemetry.speed', 'Vel')}:</span>
               <span className="text-white font-medium tabular-nums">
                 {telemetry.speed}
@@ -153,7 +153,7 @@ export const FooterStatusBar: React.FC = () => {
       {/* RIGHT SECTION: Active Preset & Terminal Drawer Toggle */}
       <div className="flex items-center gap-2.5">
         {/* Active Strategy Badge */}
-        <div className="hidden sm:flex items-center gap-1 text-[10px] bg-studio-surface px-2 py-0.5 rounded border border-studio-border text-slate-300">
+        <div className="hidden sm:flex items-center gap-1 text-[10px] bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border text-slate-300">
           <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />
           <span className="truncate max-w-[130px]">{presetLabels[preset] || preset}</span>
         </div>
@@ -164,10 +164,10 @@ export const FooterStatusBar: React.FC = () => {
           onClick={toggleConsole}
           aria-expanded={!consoleCollapsed}
           aria-label={t('console.toggle', 'Alternar Console de Logs')}
-          className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono border transition-colors cursor-pointer ${
+          className={`flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[10px] font-mono border transition-colors cursor-pointer ${
             !consoleCollapsed
-              ? 'bg-sky-950/80 border-sky-500/50 text-sky-300 shadow-sm'
-              : 'bg-studio-surface border-studio-border text-slate-400 hover:text-slate-200 hover:bg-studio-surface/80'
+              ? 'bg-studio-surface-hover border-studio-border-focus text-slate-200 shadow-sm'
+              : 'bg-studio-surface border-studio-border text-slate-400 hover:text-slate-200 hover:bg-studio-surface-hover'
           }`}
         >
           <Terminal className="w-3 h-3 shrink-0" />

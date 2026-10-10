@@ -113,27 +113,27 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
   }
 
   return (
-    <div className="bg-studio-panel border border-studio-border rounded-xl flex flex-col h-full overflow-hidden select-none">
-      <div className="flex items-center justify-between px-3 py-1.5 bg-studio-surface border-b border-studio-border gap-2 flex-wrap sm:flex-nowrap">
+    <div className="bg-studio-panel border border-studio-border rounded-md flex flex-col h-full overflow-hidden select-none">
+      <div className="flex items-center justify-between px-2.5 py-1.5 bg-studio-surface border-b border-studio-border gap-2 flex-wrap sm:flex-nowrap">
         <div className="flex items-center gap-2 flex-wrap">
-          <Terminal className="w-3.5 h-3.5 text-sky-400" />
+          <Terminal className="w-3.5 h-3.5 text-slate-400" />
           <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider font-mono">
             {t('console.title')}
           </span>
           {isRestoring && (
-            <span className="flex items-center gap-1.5 text-[10px] bg-emerald-950/30 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-mono">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span className="flex items-center gap-1.5 text-[10px] bg-emerald-950/40 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-sm font-mono">
+              <span className="led-lamp led-live animate-pulse" />
               {t('console.processing_stream')}
             </span>
           )}
 
           {/* Industry Standard Log Level Filter */}
-          <div className="hidden sm:flex items-center gap-1 ml-1 bg-studio-panel px-1 py-0.5 rounded border border-studio-border text-[10px] font-mono">
+          <div className="hidden sm:flex items-center gap-1 ml-1 bg-studio-panel px-1 py-0.5 rounded-sm border border-studio-border text-[10px] font-mono">
             <Filter className="w-3 h-3 text-slate-500 mr-0.5" />
             <button
               type="button"
               onClick={() => setFilterLevel('all')}
-              className={`px-1.5 py-0.5 rounded cursor-pointer ${
+              className={`px-1.5 py-0.5 rounded-sm cursor-pointer ${
                 filterLevel === 'all'
                   ? 'bg-studio-surface text-white font-bold'
                   : 'text-slate-400 hover:text-slate-200'
@@ -144,10 +144,10 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
             <button
               type="button"
               onClick={() => setFilterLevel('info')}
-              className={`px-1.5 py-0.5 rounded cursor-pointer ${
+              className={`px-1.5 py-0.5 rounded-sm cursor-pointer ${
                 filterLevel === 'info'
-                  ? 'bg-sky-950/60 text-sky-300 font-bold'
-                  : 'text-slate-400 hover:text-sky-300'
+                  ? 'bg-slate-800 text-slate-200 font-bold'
+                  : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               INFO
@@ -155,7 +155,7 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
             <button
               type="button"
               onClick={() => setFilterLevel('warn')}
-              className={`px-1.5 py-0.5 rounded cursor-pointer ${
+              className={`px-1.5 py-0.5 rounded-sm cursor-pointer ${
                 filterLevel === 'warn'
                   ? 'bg-amber-950/60 text-amber-300 font-bold'
                   : 'text-slate-400 hover:text-amber-300'
@@ -166,7 +166,7 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
             <button
               type="button"
               onClick={() => setFilterLevel('error')}
-              className={`px-1.5 py-0.5 rounded cursor-pointer ${
+              className={`px-1.5 py-0.5 rounded-sm cursor-pointer ${
                 filterLevel === 'error'
                   ? 'bg-red-950/60 text-red-300 font-bold'
                   : 'text-slate-400 hover:text-red-300'
@@ -185,7 +185,7 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t('console.search_placeholder', 'Buscar logs...')}
               aria-label={t('console.search_placeholder', 'Buscar logs')}
-              className="bg-studio-panel border border-studio-border rounded pl-6 pr-6 py-0.5 text-[10px] text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 w-28 sm:w-36 transition font-mono"
+              className="bg-studio-panel border border-studio-border rounded-sm pl-6 pr-6 py-0.5 text-[10px] text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-studio-border-focus focus:ring-1 focus:ring-studio-border-focus w-28 sm:w-36 transition font-mono"
             />
             {searchQuery && (
               <button
@@ -200,7 +200,7 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
           </div>
 
           {searchQuery && (
-            <span className="text-[9px] font-mono text-sky-400 bg-sky-950/60 px-1.5 py-0.5 rounded border border-sky-800">
+            <span className="text-[9px] font-mono text-slate-300 bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border">
               {filteredLogs.length}/{logs.length}
             </span>
           )}
@@ -226,7 +226,7 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
               a.click()
               URL.revokeObjectURL(url)
             }}
-            className="text-slate-400 hover:text-sky-300 transition text-[11px] flex items-center gap-1.5 cursor-pointer px-2 py-1 rounded bg-studio-surface hover:bg-studio-surface-hover border border-studio-border"
+            className="text-slate-300 hover:text-white transition text-[11px] flex items-center gap-1.5 cursor-pointer px-2 py-1 rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border"
             title={t('console.export_title')}
           >
             <Download className="w-3 h-3" />
@@ -236,7 +236,7 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
           <button
             type="button"
             onClick={clearLogs}
-            className="text-slate-400 hover:text-red-400 transition text-[11px] flex items-center gap-1.5 cursor-pointer px-2 py-1 rounded bg-studio-surface hover:bg-studio-surface-hover border border-studio-border"
+            className="text-slate-300 hover:text-red-400 transition text-[11px] flex items-center gap-1.5 cursor-pointer px-2 py-1 rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border"
             title={t('console.clear_title')}
           >
             <Trash2 className="w-3 h-3" />
@@ -249,7 +249,7 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
               onClick={onStart}
               disabled={isRestoring}
               title={!hasSelectedFile ? t('toast.select_file_first') : undefined}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-bold text-xs uppercase tracking-wider px-3.5 h-7 rounded border border-emerald-400/40 active:scale-[0.99] transition-all ml-1 cursor-pointer disabled:opacity-50"
+              className="bg-emerald-700 hover:bg-emerald-600 text-white font-mono font-bold text-xs uppercase tracking-wider px-3.5 h-7 rounded-sm border border-emerald-500/40 active:scale-[0.99] transition-all ml-1 cursor-pointer disabled:opacity-50"
             >
               {isRestoring ? (
                 <>

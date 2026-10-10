@@ -230,6 +230,7 @@
   "toast": {
     "file_loaded_title": "Tape Loaded",
     "file_loaded_desc": "Ready for mastering and restoration.",
+    "file_loaded_log": "[INGESTION DRAG-AND-DROP] Cassette chargée avec succès: {{file}}",
     "capture_started_title": "OBS Recording Started",
     "capture_started_desc": "Lossless recording via DeckLink into media/raw/",
     "capture_stopped_title": "OBS Recording Stopped",
@@ -258,5 +259,11 @@
     "status_running": "Flux Actif — Traitement en cours",
     "status_completed": "Restauration Terminée (100%)",
     "progress_label": "Progression du Pipeline de Restauration"
+  },
+  "storage": {
+    "path_placeholder": "C:\\VHS_Archive",
+    "supabase_url_placeholder": "https://xyz.supabase.co",
+    "bucket_placeholder": "vhs-archive",
+    "s3_endpoint_placeholder": "https://<account>.r2.cloudflarestorage.com"
   }
 }

@@ -64,16 +64,16 @@ export const PresetSelector: React.FC = () => {
               toast.info(t('toast.preset_applied', { name: p.name }))
             }}
             className={cn(
-              'relative text-left p-3.5 rounded-xl border transition-all duration-150 cursor-pointer overflow-hidden flex flex-col justify-between group min-h-[92px]',
+              'relative text-left p-3 rounded-sm border transition-all duration-150 cursor-pointer overflow-hidden flex flex-col justify-between group min-h-[88px]',
               isActive
-                ? 'bg-[#131926] border-sky-500 text-white'
-                : 'bg-[#0d1017] border-[#1e2330] hover:border-[#2c3445] hover:bg-[#11151f] text-slate-300'
+                ? 'bg-studio-surface border-slate-300 text-white shadow-sm'
+                : 'bg-studio-panel border-studio-border hover:border-slate-600 hover:bg-studio-surface text-slate-300'
             )}
           >
             {isActive && (
               <motion.div
                 layoutId="active-preset-glow"
-                className="absolute inset-0 border-2 border-sky-500/80 rounded-xl pointer-events-none"
+                className="absolute inset-0 border-2 border-slate-400/80 rounded-sm pointer-events-none"
                 transition={
                   shouldReduceMotion
                     ? { duration: 0 }
@@ -85,23 +85,23 @@ export const PresetSelector: React.FC = () => {
               <div className="flex items-center gap-2 min-w-0">
                 <div
                   className={cn(
-                    'p-1.5 rounded-lg shrink-0 transition-colors',
-                    isActive ? 'bg-sky-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-400 group-hover:text-sky-400'
+                    'p-1.5 rounded-sm shrink-0 transition-colors',
+                    isActive ? 'bg-slate-200 text-slate-950 font-bold' : 'bg-studio-surface text-slate-400 group-hover:text-slate-200 border border-studio-border'
                   )}
                 >
                   <Icon className="w-4 h-4" />
                 </div>
-                <span className={cn('text-xs sm:text-sm font-semibold tracking-wide truncate', isActive ? 'text-white' : 'text-slate-200')}>
+                <span className={cn('text-xs font-semibold tracking-wide truncate font-mono', isActive ? 'text-white' : 'text-slate-200')}>
                   {p.name}
                 </span>
               </div>
               {p.badge && (
-                <span className="shrink-0 bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
+                <span className="shrink-0 bg-amber-950/60 text-amber-300 border border-amber-500/40 text-[9px] font-bold px-1.5 py-0.5 rounded-sm uppercase tracking-wider font-mono">
                   {p.badge}
                 </span>
               )}
             </div>
-            <p className="text-[11px] sm:text-xs text-slate-400 leading-relaxed font-normal">{p.desc}</p>
+            <p className="text-[11px] text-slate-400 leading-relaxed font-normal font-mono">{p.desc}</p>
           </button>
         )
       })}

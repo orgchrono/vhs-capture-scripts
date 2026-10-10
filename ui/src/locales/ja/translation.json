@@ -230,6 +230,7 @@
   "toast": {
     "file_loaded_title": "Tape Loaded",
     "file_loaded_desc": "Ready for mastering and restoration.",
+    "file_loaded_log": "[インジェスト DRAG-AND-DROP] テープが正常に読み込まれました: {{file}}",
     "capture_started_title": "OBS Recording Started",
     "capture_started_desc": "Lossless recording via DeckLink into media/raw/",
     "capture_stopped_title": "OBS Recording Stopped",
@@ -258,5 +259,11 @@
     "status_running": "ストリーミング処理中 — DAG パイプライン実行",
     "status_completed": "映像レストレーション完了 (100%)",
     "progress_label": "映像レストレーション パイプライン進捗"
+  },
+  "storage": {
+    "path_placeholder": "C:\\VHS_Archive",
+    "supabase_url_placeholder": "https://xyz.supabase.co",
+    "bucket_placeholder": "vhs-archive",
+    "s3_endpoint_placeholder": "https://<account>.r2.cloudflarestorage.com"
   }
 }

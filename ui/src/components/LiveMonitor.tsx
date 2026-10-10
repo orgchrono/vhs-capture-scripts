@@ -23,8 +23,8 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
       
       {/* Top Left Badge */}
       <div className="absolute top-3 left-3 z-10 flex gap-2 items-center">
-        <span className="bg-[#0b0e14]/90 px-2.5 py-1 rounded-md text-[10px] font-mono text-slate-300 border border-[#202636] shadow-sm flex items-center gap-1.5">
-          <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-slate-500'}`}></span>
+        <span className="bg-studio-panel/90 px-2.5 py-1 rounded-sm text-[10px] font-mono text-slate-300 border border-studio-border shadow-sm flex items-center gap-1.5">
+          <span className={`led-lamp ${isActive ? 'led-live' : 'led-idle'}`}></span>
           {t('monitor.live_preview')}
         </span>
         <AnimatePresence>
@@ -32,9 +32,9 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
             <motion.span
               key="badge-rec"
               {...badgeMotion}
-              className="bg-red-800/90 px-2.5 py-1 rounded-md text-[10px] font-bold text-white border border-red-500/50 shadow-sm flex items-center gap-1.5 animate-pulse tracking-wider font-mono"
+              className="bg-red-900/90 px-2.5 py-1 rounded-sm text-[10px] font-bold text-white border border-red-600/50 shadow-sm flex items-center gap-1.5 animate-pulse tracking-wider font-mono"
             >
-              <span className="w-1.5 h-1.5 bg-white rounded-full"></span>
+              <span className="led-lamp led-rec"></span>
               {obsStats?.timecode ? `REC ${obsStats.timecode}` : 'REC'}
             </motion.span>
           )}
@@ -42,9 +42,9 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
             <motion.span
               key="badge-bitrate"
               {...badgeMotion}
-              className="bg-[#0b1326]/90 px-2.5 py-1 rounded-md text-[10px] font-mono font-semibold text-blue-300 border border-blue-500/40 shadow-sm flex items-center gap-1.5"
+              className="bg-studio-panel/90 px-2.5 py-1 rounded-sm text-[10px] font-mono font-semibold text-slate-200 border border-studio-border shadow-sm flex items-center gap-1.5"
             >
-              <Activity className="w-3 h-3 text-blue-400 animate-pulse" />
+              <Activity className="w-3 h-3 text-slate-400" />
               {formatBitrate(obsStats.bitrate_kbps)}
             </motion.span>
           )}
@@ -52,7 +52,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
             <motion.span
               key="badge-fps"
               {...badgeMotion}
-              className="bg-[#0b0e14]/90 px-2.5 py-1 rounded-md text-[10px] font-mono text-slate-300 border border-[#202636] shadow-sm"
+              className="bg-studio-panel/90 px-2.5 py-1 rounded-sm text-[10px] font-mono text-slate-300 border border-studio-border shadow-sm tabular-nums"
             >
               {obsStats.fps} FPS
             </motion.span>
@@ -61,7 +61,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
             <motion.span
               key="badge-drops"
               {...badgeMotion}
-              className="bg-amber-800/90 px-2.5 py-1 rounded-md text-[10px] font-bold text-white border border-amber-500/50 shadow-sm flex items-center gap-1.5 animate-pulse tracking-wider font-mono"
+              className="bg-amber-900/90 px-2.5 py-1 rounded-sm text-[10px] font-bold text-white border border-amber-600/50 shadow-sm flex items-center gap-1.5 animate-pulse tracking-wider font-mono"
             >
               <AlertTriangle className="w-3 h-3 text-white" /> {t('monitor.dropped_frames', { count: health?.dropped_frames })}
             </motion.span>
@@ -75,14 +75,14 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
           {error ? (
             <>
               <AlertTriangle className="w-10 h-10 mb-3 text-amber-500/70" />
-              <span className="text-xs font-semibold text-slate-400 max-w-[200px] text-center leading-relaxed">
+              <span className="text-xs font-semibold text-slate-400 max-w-[200px] text-center leading-relaxed font-mono">
                 {error}
               </span>
             </>
           ) : (
             <>
               <Video className="w-10 h-10 mb-3 text-slate-700 animate-pulse" />
-              <span className="text-xs font-semibold text-slate-500 tracking-wider">
+              <span className="text-xs font-semibold text-slate-500 tracking-wider font-mono">
                 {t('monitor.connecting_signal')}
               </span>
             </>
@@ -101,7 +101,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
       />
 
       {/* Broadcast Safety Reticle Overlay */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-3 z-10 border border-white/5 rounded-lg">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-3 z-10 border border-white/5 rounded-sm">
         <div className="absolute top-0 left-0 w-2.5 h-2.5 border-t-2 border-l-2 border-white/20" />
         <div className="absolute top-0 right-0 w-2.5 h-2.5 border-t-2 border-r-2 border-white/20" />
         <div className="absolute bottom-0 left-0 w-2.5 h-2.5 border-b-2 border-l-2 border-white/20" />
@@ -110,7 +110,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
 
       {/* Bottom Right Format Badge */}
       <div className="absolute bottom-3 right-3 z-10 flex items-center gap-2">
-        <span className="bg-black/70 backdrop-blur-md px-2 py-0.5 rounded text-[9px] font-mono text-slate-400 border border-white/10 shadow-sm">
+        <span className="bg-black/70 backdrop-blur-md px-2 py-0.5 rounded-sm text-[9px] font-mono text-slate-400 border border-white/10 shadow-sm">
           {t('monitor.smpte_format')}
         </span>
       </div>

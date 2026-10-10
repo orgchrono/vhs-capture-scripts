@@ -23,40 +23,41 @@
   --color-ring: var(--ring);
 
   /* Studio Broadcast Darkroom Palette Tokens (SSOT) */
-  --color-studio-bg: #07090e;
-  --color-studio-panel: #0b0e14;
-  --color-studio-surface: #10141e;
-  --color-studio-surface-hover: #161b26;
-  --color-studio-border: #1d2332;
-  --color-studio-border-subtle: #141822;
-  --color-studio-border-focus: #38bdf8;
+  --color-studio-bg: #121316;
+  --color-studio-panel: #18191d;
+  --color-studio-surface: #1f2126;
+  --color-studio-surface-hover: #262930;
+  --color-studio-border: #2c3038;
+  --color-studio-border-subtle: #202227;
+  --color-studio-border-focus: #4f5562;
   --color-studio-tally-live: #10b981;
   --color-studio-tally-rec: #ef4444;
   --color-studio-tally-warn: #f59e0b;
+  --color-studio-tally-idle: #4b5563;
 }
 
 @layer base {
   :root {
-    --background: #080c14;
-    --foreground: #f1f5f9;
-    --card: #0f172a;
-    --card-foreground: #f1f5f9;
-    --popover: #0f172a;
-    --popover-foreground: #f1f5f9;
-    --primary: #38bdf8;
-    --primary-foreground: #080c14;
-    --secondary: #1e293b;
-    --secondary-foreground: #f8fafc;
-    --muted: #1e293b;
-    --muted-foreground: #94a3b8;
-    --accent: #334155;
-    --accent-foreground: #f8fafc;
+    --background: #121316;
+    --foreground: #f3f4f6;
+    --card: #18191d;
+    --card-foreground: #f3f4f6;
+    --popover: #18191d;
+    --popover-foreground: #f3f4f6;
+    --primary: #3b82f6;
+    --primary-foreground: #ffffff;
+    --secondary: #1f2126;
+    --secondary-foreground: #f3f4f6;
+    --muted: #1f2126;
+    --muted-foreground: #9ca3af;
+    --accent: #25282e;
+    --accent-foreground: #ffffff;
     --destructive: #ef4444;
-    --destructive-foreground: #f8fafc;
-    --border: rgba(255, 255, 255, 0.08);
-    --input: rgba(255, 255, 255, 0.08);
-    --ring: #38bdf8;
-    --radius: 0.75rem;
+    --destructive-foreground: #ffffff;
+    --border: #2c3038;
+    --input: #2c3038;
+    --ring: #4f5562;
+    --radius: 0.375rem;
   }
 }
 
@@ -70,20 +71,46 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Custom scrollbar */
+/* Hardware-grade recessed status LED indicator styles */
+.led-lamp {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.6);
+}
+.led-live {
+  background-color: #10b981;
+  box-shadow: 0 0 3px rgba(16, 185, 129, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+}
+.led-rec {
+  background-color: #ef4444;
+  box-shadow: 0 0 3px rgba(239, 68, 68, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+}
+.led-warn {
+  background-color: #f59e0b;
+  box-shadow: 0 0 3px rgba(245, 158, 11, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+}
+.led-idle {
+  background-color: #4b5563;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* Precision NLE Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.6);
+  background: #141518;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(56, 189, 248, 0.25);
-  border-radius: 4px;
+  background: #2e333d;
+  border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(56, 189, 248, 0.5);
+  background: #3f4654;
 }
 body.high-contrast {
   filter: contrast(1.3);

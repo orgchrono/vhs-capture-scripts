@@ -167,7 +167,7 @@ class TuiState:
 
 def _get_key_input() -> Optional[str]:
     """Capture non-blocking keyboard input across Windows and POSIX systems."""
-    if os.name == "nt":
+    if sys.platform == "win32":
         try:
             import msvcrt
             if msvcrt.kbhit():
@@ -194,6 +194,25 @@ def _get_key_input() -> Optional[str]:
                     return "REFRESH"
                 elif ch in (b"1", b"2", b"3", b"4"):
                     return ch.decode("ascii")
+        except Exception:
+            return None
+    else:
+        try:
+            import select
+            if select.select([sys.stdin], [], [], 0)[0]:
+                ch_str = sys.stdin.read(1)
+                if ch_str in ("\r", "\n"):
+                    return "ENTER"
+                elif ch_str == " ":
+                    return "SPACE"
+                elif ch_str == "\t":
+                    return "TAB"
+                elif ch_str in ("\x1b", "q", "Q"):
+                    return "QUIT"
+                elif ch_str in ("r", "R"):
+                    return "REFRESH"
+                elif ch_str in ("1", "2", "3", "4"):
+                    return ch_str
         except Exception:
             return None
     return None

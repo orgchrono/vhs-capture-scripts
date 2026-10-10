@@ -230,6 +230,7 @@
   "toast": {
     "file_loaded_title": "Tape Loaded",
     "file_loaded_desc": "Ready for mastering and restoration.",
+    "file_loaded_log": "[采集 DRAG-AND-DROP] 磁带加载成功: {{file}}",
     "capture_started_title": "OBS Recording Started",
     "capture_started_desc": "Lossless recording via DeckLink into media/raw/",
     "capture_stopped_title": "OBS Recording Stopped",
@@ -258,5 +259,11 @@
     "status_running": "实时流传输处理中 — 执行计算拓扑图",
     "status_completed": "母带修复流程已全部完成 (100%)",
     "progress_label": "视频母带修复管线进度"
+  },
+  "storage": {
+    "path_placeholder": "C:\\VHS_Archive",
+    "supabase_url_placeholder": "https://xyz.supabase.co",
+    "bucket_placeholder": "vhs-archive",
+    "s3_endpoint_placeholder": "https://<account>.r2.cloudflarestorage.com"
   }
 }
