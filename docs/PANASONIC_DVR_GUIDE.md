@@ -83,12 +83,30 @@ O VHS Studio Pro integra ferramentas de recuperação de baixo nível desenvolvi
 Para garantir 100% de compatibilidade entre sistemas operacionais sem dependência de binários proprietários pré-compilados:
 - **Windows:** Compilação com MinGW GCC (`gcc -O2 ...`) gerando executáveis `.exe`.
 - **Linux:** Compilação nativa com GCC (`gcc -O2 ...`) gerando binários ELF em `tools/panasonic_rec/`.
-- **macOS:** Compilação nativa com Clang / Apple LLVM gerando binários Mach-O (Intel x86_64 e Apple Silicon ARM64).
+- **macOS:** Compilação nativa com Clang / Apple LLVM gerando binários Mach-O (Intel x86_64 e Apple Silicon ARM64), com compatibilidade POSIX para offsets de 64-bit (`off_t` / `lseek`).
 
-Para compilar manualmente no ambiente local:
+Para compilar no ambiente local:
 ```bash
 python scripts/build_panasonic_tools.py
 ```
+
+### 3.2 Fixity Criptográfico & Supply-Chain Zero Trust (`checksums.json`)
+Assim como gerenciadores de pacotes de missão crítica (ex: `package-lock.json` no ecossistema TypeScript com `integrity: "sha512-..."`), o VHS Studio Pro não executa binários pré-compilados de terceiros sem antes atestar sua integridade criptográfica:
+
+1. **Manifesto Canônico ([`tools/panasonic_rec/checksums.json`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/tools/panasonic_rec/checksums.json)):**
+   Contém os hashes SHA-256 e tamanhos em bytes dos binários oficiais por plataforma (`windows-x64`, etc.).
+2. **Validação Automática no Build:**
+   Se uma máquina sem GCC/Clang utilizar binários pré-existentes, o script valida byte a byte o hash SHA-256. Caso haja discrepância (arquivo corrompido ou adulterado), o processo é abortado com erro de segurança fatal (`[SECURITY ERROR] / [FATAL]`).
+3. **Auditoria Sob Demanda:**
+   ```bash
+   python scripts/build_panasonic_tools.py --verify
+   ```
+4. **Atualização Explícita de Release (Mantenedor):**
+   ```bash
+   python scripts/build_panasonic_tools.py --update-manifest
+   ```
+5. **Verificação em Tempo de Execução:**
+   A classe [`Toolchain`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/core/toolchain.py) realiza a checagem via [`FixityChecker`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/archive/fixity.py) antes de cada chamada a processos de extração física.
 
 ---
 

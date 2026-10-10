@@ -490,5 +490,17 @@
     "theme_oled": "OLED Deep Black (Preto Absoluto)",
     "reset_defaults": "Restaurar Padrões",
     "close": "Concluído"
+  },
+  "build": {
+    "no_compiler_found": "Nenhum compilador C (GCC ou Clang) encontrado no PATH do sistema.",
+    "checking_fixity": "Nenhum compilador C encontrado. Validando integridade criptográfica SHA-256 dos binários pré-compilados...",
+    "fixity_verified": "Todos os binários pré-compilados foram validados com sucesso no manifesto de fixity.",
+    "fixity_failed": "Falha crítica de segurança: binários pré-compilados falharam na verificação SHA-256!",
+    "verifying_platform": "Verificando integridade SHA-256 dos binários para a plataforma {platform}...",
+    "verified_binary": "Binário validado: {binary} (SHA-256: {hash}...)",
+    "mismatch_binary": "Violação de integridade para {binary}! Esperado: {expected}, Calculado: {actual}",
+    "compiling": "Compilando {tool} -> {output}...",
+    "compiled_success": "Sucesso na compilação de {tool} ({size} bytes, SHA-256: {hash}...)",
+    "compiled_failed": "Falha na compilação de {tool}:\n{error}"
   }
 }

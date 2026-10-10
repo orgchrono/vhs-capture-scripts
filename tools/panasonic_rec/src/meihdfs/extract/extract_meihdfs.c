@@ -50,6 +50,10 @@
 #ifdef WIN32
 #define mkdir(x,y) mkdir(x)
 #endif
+#ifdef __APPLE__
+typedef off_t off64_t;
+#define lseek64 lseek
+#endif
 
 typedef struct
 {

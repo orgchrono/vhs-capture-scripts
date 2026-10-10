@@ -491,5 +491,17 @@
     "theme_oled": "OLED Deep Black (Истинный черный)",
     "reset_defaults": "Восстановить по умолчанию",
     "close": "Готово"
+  },
+  "build": {
+    "no_compiler_found": "No suitable C compiler (GCC, Clang) found in system PATH.",
+    "checking_fixity": "No C compiler found. Checking cryptographic SHA-256 fixity of pre-compiled binaries...",
+    "fixity_verified": "All pre-compiled binaries verified successfully against fixity manifest.",
+    "fixity_failed": "Security failure: pre-compiled binaries failed cryptographic SHA-256 verification!",
+    "verifying_platform": "Verifying cryptographic SHA-256 fixity of pre-existing binaries ({platform})...",
+    "verified_binary": "Verified fixity: {binary} (SHA-256: {hash}...)",
+    "mismatch_binary": "Cryptographic hash mismatch for {binary}! Expected: {expected}, Actual: {actual}",
+    "compiling": "Compiling {tool} -> {output}...",
+    "compiled_success": "Successfully compiled {tool} ({size} bytes, SHA-256: {hash}...)",
+    "compiled_failed": "Failed compiling {tool}:\n{error}"
   }
 }

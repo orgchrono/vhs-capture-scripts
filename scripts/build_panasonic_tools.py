@@ -13,6 +13,11 @@ import subprocess
 import sys
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, os.path.join(PROJECT_ROOT, "src"))
+
+from vhs_studio.core.logger import log
+from vhs_studio.core.i18n import t
+
 TOOLS_DIR = os.path.join(PROJECT_ROOT, "tools", "panasonic_rec")
 SRC_DIR = os.path.join(TOOLS_DIR, "src")
 MANIFEST_PATH = os.path.join(TOOLS_DIR, "checksums.json")
@@ -30,14 +35,14 @@ def compute_sha256(filepath: str) -> str:
 def verify_precompiled_binaries() -> bool:
     """Verify integrity of pre-existing binaries against checksums.json manifest."""
     if not os.path.exists(MANIFEST_PATH):
-        print(f"[WARN] No fixity manifest found at {MANIFEST_PATH}", file=sys.stderr)
+        log.warning(f"No fixity manifest found at {MANIFEST_PATH}")
         return True
 
     try:
         with open(MANIFEST_PATH, "r", encoding="utf-8") as f:
             manifest = json.load(f)
     except Exception as e:
-        print(f"[!] Failed loading checksums.json: {e}", file=sys.stderr)
+        log.error(f"Failed loading checksums.json: {e}")
         return False
 
     is_windows = platform.system() == "Windows"
@@ -48,27 +53,33 @@ def verify_precompiled_binaries() -> bool:
         # No precompiled manifest entry for this platform/arch
         return True
 
-    print(f"[*] Verifying cryptographic SHA-256 fixity of pre-existing binaries ({platform_key})...")
+    log.info(t("build.verifying_platform", "Verifying cryptographic SHA-256 fixity ({platform})...", platform=platform_key))
     all_ok = True
     for bin_name, info in known_bins.items():
         bin_path = os.path.join(TOOLS_DIR, bin_name)
         if not os.path.exists(bin_path):
-            print(f"[!] Missing pre-compiled binary: {bin_name}", file=sys.stderr)
+            log.warning(f"Missing pre-compiled binary: {bin_name}")
             all_ok = False
             continue
 
         actual_sha = compute_sha256(bin_path)
         expected_sha = info.get("sha256", "")
         if actual_sha.lower() != expected_sha.lower():
-            print(
-                f"[SECURITY ERROR] Cryptographic hash mismatch for {bin_name}!\n"
-                f"  Expected: {expected_sha}\n"
-                f"  Actual:   {actual_sha}",
-                file=sys.stderr,
-            )
+            log.error(t(
+                "build.mismatch_binary",
+                "Cryptographic hash mismatch for {binary}! Expected: {expected}, Actual: {actual}",
+                binary=bin_name,
+                expected=expected_sha,
+                actual=actual_sha,
+            ))
             all_ok = False
         else:
-            print(f"[+] Verified fixity: {bin_name} (SHA-256: {actual_sha[:16]}...)")
+            log.info(t(
+                "build.verified_binary",
+                "Verified fixity: {binary} (SHA-256: {hash}...)",
+                binary=bin_name,
+                hash=actual_sha[:16],
+            ))
 
     return all_ok
 
@@ -90,13 +101,13 @@ def build_tools() -> bool:
     compiler = find_c_compiler()
     if not compiler:
         if is_windows and os.path.exists(os.path.join(TOOLS_DIR, "extract_meihdfs.exe")):
-            print("[INFO] No C compiler found, checking cryptographic fixity of pre-compiled binaries...")
+            log.info(t("build.checking_fixity", "Validating cryptographic fixity of pre-compiled binaries..."))
             if verify_precompiled_binaries():
-                print("[+] Pre-compiled Windows binaries verified against checksums.json.")
+                log.info(t("build.fixity_verified", "Pre-compiled Windows binaries verified against checksums.json."))
                 return True
-            print("[FATAL] Pre-compiled binaries failed SHA-256 verification!", file=sys.stderr)
+            log.critical(t("build.fixity_failed", "Pre-compiled binaries failed SHA-256 verification!"))
             return False
-        print("[ERROR] No suitable C compiler (gcc, clang) found in PATH.", file=sys.stderr)
+        log.error(t("build.no_compiler_found", "No suitable C compiler (gcc, clang) found in PATH."))
         return False
 
     os.makedirs(TOOLS_DIR, exist_ok=True)
@@ -110,16 +121,22 @@ def build_tools() -> bool:
         if not is_macos:
             cmd.append("-s")
         cmd.extend(["-o", meihdfs_out, meihdfs_src])
-        print(f"[*] Compiling extract_meihdfs -> {meihdfs_out}")
+        log.info(t("build.compiling", "Compiling {tool} -> {output}...", tool="extract_meihdfs", output=meihdfs_out))
         res = subprocess.run(cmd, capture_output=True, text=True)
         if res.returncode != 0:
-            print(f"[!] Failed compiling extract_meihdfs:\n{res.stderr}", file=sys.stderr)
+            log.error(t("build.compiled_failed", "Failed compiling {tool}:\n{error}", tool="extract_meihdfs", error=res.stderr))
             success = False
         else:
             sha = compute_sha256(meihdfs_out)
-            print(f"[+] Successfully compiled extract_meihdfs ({os.path.getsize(meihdfs_out)} bytes, SHA-256: {sha[:16]}...)")
+            log.info(t(
+                "build.compiled_success",
+                "Successfully compiled {tool} ({size} bytes, SHA-256: {hash}...)",
+                tool="extract_meihdfs",
+                size=os.path.getsize(meihdfs_out),
+                hash=sha[:16],
+            ))
     else:
-        print(f"[!] Source not found: {meihdfs_src}", file=sys.stderr)
+        log.error(f"Source not found: {meihdfs_src}")
         success = False
 
     # 2. dvd-vr
@@ -135,16 +152,22 @@ def build_tools() -> bool:
                 os.path.join(dvd_vr_dir, "mingw", "sys", "mman.c"),
             ])
         cmd.extend(["-o", dvd_vr_out, dvd_vr_src])
-        print(f"[*] Compiling dvd-vr -> {dvd_vr_out}")
+        log.info(t("build.compiling", "Compiling {tool} -> {output}...", tool="dvd-vr", output=dvd_vr_out))
         res = subprocess.run(cmd, capture_output=True, text=True)
         if res.returncode != 0:
-            print(f"[!] Failed compiling dvd-vr:\n{res.stderr}", file=sys.stderr)
+            log.error(t("build.compiled_failed", "Failed compiling {tool}:\n{error}", tool="dvd-vr", error=res.stderr))
             success = False
         else:
             sha = compute_sha256(dvd_vr_out)
-            print(f"[+] Successfully compiled dvd-vr ({os.path.getsize(dvd_vr_out)} bytes, SHA-256: {sha[:16]}...)")
+            log.info(t(
+                "build.compiled_success",
+                "Successfully compiled {tool} ({size} bytes, SHA-256: {hash}...)",
+                tool="dvd-vr",
+                size=os.path.getsize(dvd_vr_out),
+                hash=sha[:16],
+            ))
     else:
-        print(f"[!] Source not found: {dvd_vr_src}", file=sys.stderr)
+        log.error(f"Source not found: {dvd_vr_src}")
         success = False
 
     # 3. udf_dump
@@ -163,24 +186,81 @@ def build_tools() -> bool:
             os.path.join(udf_dir, "udf_time.c"),
             udf_dump_src,
         ]
-        print(f"[*] Compiling udf_dump -> {udf_out}")
+        log.info(t("build.compiling", "Compiling {tool} -> {output}...", tool="udf_dump", output=udf_out))
         res = subprocess.run(cmd, capture_output=True, text=True)
         if res.returncode != 0:
-            print(f"[!] Failed compiling udf_dump:\n{res.stderr}", file=sys.stderr)
+            log.error(t("build.compiled_failed", "Failed compiling {tool}:\n{error}", tool="udf_dump", error=res.stderr))
             success = False
         else:
             sha = compute_sha256(udf_out)
-            print(f"[+] Successfully compiled udf_dump ({os.path.getsize(udf_out)} bytes, SHA-256: {sha[:16]}...)")
+            log.info(t(
+                "build.compiled_success",
+                "Successfully compiled {tool} ({size} bytes, SHA-256: {hash}...)",
+                tool="udf_dump",
+                size=os.path.getsize(udf_out),
+                hash=sha[:16],
+            ))
     else:
-        print(f"[!] Source not found: {udf_dump_src}", file=sys.stderr)
+        log.error(f"Source not found: {udf_dump_src}")
         success = False
 
     return success
 
 
+def update_manifest() -> bool:
+    """Explicit maintainer command to update checksums.json with current binary hashes."""
+    is_windows = platform.system() == "Windows"
+    platform_key = "windows-x64" if is_windows else f"{platform.system().lower()}-{platform.machine().lower()}"
+    exe_suffix = ".exe" if is_windows else ""
+
+    manifest: dict = {
+        "version": "1.0",
+        "description": "Cryptographic fixity manifest for pre-compiled Panasonic DVR recovery binaries",
+        "binaries": {},
+    }
+    if os.path.exists(MANIFEST_PATH):
+        try:
+            with open(MANIFEST_PATH, "r", encoding="utf-8") as f:
+                manifest = json.load(f)
+        except Exception:
+            pass
+
+    if "binaries" not in manifest:
+        manifest["binaries"] = {}
+    if platform_key not in manifest["binaries"]:
+        manifest["binaries"][platform_key] = {}
+
+    target_tools = [f"extract_meihdfs{exe_suffix}", f"dvd-vr{exe_suffix}", f"udf_dump{exe_suffix}"]
+    updated_count = 0
+    for tool_name in target_tools:
+        tool_path = os.path.join(TOOLS_DIR, tool_name)
+        if os.path.exists(tool_path):
+            sha = compute_sha256(tool_path)
+            size = os.path.getsize(tool_path)
+            manifest["binaries"][platform_key][tool_name] = {
+                "sha256": sha,
+                "size_bytes": size,
+            }
+            log.info(f"Updated manifest entry for {tool_name}: {sha[:16]}... ({size} bytes)")
+            updated_count += 1
+        else:
+            log.warning(f"Binary not found to hash: {tool_name}")
+
+    if updated_count > 0:
+        with open(MANIFEST_PATH, "w", encoding="utf-8") as f:
+            json.dump(manifest, f, indent=2)
+            f.write("\n")
+        log.info(f"Manifest successfully updated at {MANIFEST_PATH}")
+        return True
+    return False
+
+
 if __name__ == "__main__":
     if "--verify" in sys.argv:
         ok = verify_precompiled_binaries()
+        sys.exit(0 if ok else 1)
+    if "--update-manifest" in sys.argv:
+        ok = update_manifest()
         sys.exit(0 if ok else 1)
     ok = build_tools()
     sys.exit(0 if ok else 1)

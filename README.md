@@ -54,37 +54,41 @@ O ecossistema implementa o padrão **MVVM Strict**, **Functional Core / Imperati
 
 ```mermaid
 flowchart TD
-    subgraph UI ["Camada de Apresentação (View)"]
-        ReactUI["React 19 + Tailwind CSS"]
+    subgraph UI ["Camada de Apresentação (View - React 19 + Tailwind CSS)"]
+        ReactUI["Estação de Trabalho NLE"]
         ViewModels["Custom ViewModels (Derivação Pura com useMemo)"]
         RTK["RTK Query (Redux Toolkit)"]
-        Sonner["Sonner Toasts & Framer Motion"]
-        i18n["i18n Engine (pt-BR / en-US / es-ES)"]
+        ABMonitor["SplitComparisonMonitor (Shader WebGL A/B 360p)"]
+        TelemetryRibbon["BroadcastProgressRibbon (Telemetria Frame-Accurate)"]
+        i18n["i18n Engine (10 Idiomas: pt-BR, en-US, etc.)"]
         a11y["WCAG AAA Access Suite"]
     end
 
-    subgraph API ["Camada de Serviço Modular (ViewModel - FastAPI :8088)"]
+    subgraph API ["Camada de Serviço Modular (FastAPI :8088)"]
         ServerFactory["server.py (App Factory & Clean Orchestrator)"]
-        Routers["routers/ (system, queue, obs, restoration, storage, security, schemas)"]
-        SSE["Server-Sent Events (Log Stream)"]
+        Routers["routers/ (system, queue, obs, restoration, storage, security, panasonic)"]
+        SSE["Server-Sent Events (Live Telemetry Stream)"]
         AuthMiddleware["Origin & Session Token CSRF Filter"]
         SafePath["Safe Media Path Validator (CWE-22)"]
     end
 
     subgraph Core ["Motor de Restauração & HAL (Model)"]
-        HAL["Hardware Abstraction Layer (TypedDicts)"]
+        HAL["Hardware Abstraction Layer (Vulkan / NCNN / UMA)"]
         Queue["SQLite Batch Queue Manager"]
-        ProcessMgr["Subprocess Safe Executor"]
-        OBSClient["OBS WebSocket v5 (Provider Closure)"]
-        DAGPipeline["pipeline.py (DAG Paralelo com Step Runner Closures)"]
+        ProcessMgr["Subprocess Safe Executor (CWE-78 Sanitized)"]
+        FixityEngine["FixityChecker (SHA-256 Supply-Chain Manifest)"]
+        ToolchainMgr["Toolchain (Verificação Criptográfica de Binários)"]
+        DAGPipeline["pipeline.py (Grafo Acíclico Direcionado)"]
     end
 
     subgraph Engines ["Motores de Execução Especializados"]
         VapourSynth["VapourSynth QTGMC Deinterlacer"]
-        FFmpeg["FFmpeg Custom Filterchain (Composição Funcional)"]
+        FFmpeg["FFmpeg Functional Filterchain (YUV422p10le)"]
         Whisper["OpenAI Faster-Whisper Subtitler"]
-        ESRGAN["Real-ESRGAN / Real-CUGAN Neural Engine"]
-        CodeFormer["CodeFormer Face Restoration"]
+        NeuralUpscaler["Super-Resolução Neural (Real-ESRGAN / SPAN / SwinIR)"]
+        FaceRestore["Restauração Facial (CodeFormer / GFPGAN)"]
+        FrameInterpolation["Interpolação Temporal (RIFE v4 / FILM 60fps)"]
+        PanasonicC["Binários C Nativos (extract_meihdfs, dvd-vr, udf_dump)"]
         Storage["StorageManager (S3 / Drive / Dropbox)"]
     end
 
@@ -97,11 +101,98 @@ flowchart TD
     SafePath --> ProcessMgr
     SafePath --> Queue
     Routers --> SSE
-    Routers --> OBSClient
     Queue --> DAGPipeline
     DAGPipeline --> ProcessMgr
     ProcessMgr --> Engines
+    ToolchainMgr --> FixityEngine
+    FixityEngine --> PanasonicC
     HAL --> Routers
+    DAGPipeline -. Proxy 360p .-> ABMonitor
+```
+
+---
+
+### 📀 Pipeline Forense de Ingestão Panasonic DVR & Fixity Criptográfico
+
+O subsistema de recuperação e ingestão forense garante acesso bit-a-bit à partição **MEIHDFS-V2.0** e **DVD-VR**, sem depender de intervenções do sistema operacional:
+
+```mermaid
+flowchart LR
+    subgraph Entrada ["Entrada de Mídia"]
+        Physical["Unidade Física (\\\\.\\PhysicalDriveX / /dev/sdX)"]
+        RawDump["Imagem Bruta (.img, .raw, .bin, .vro)"]
+        Hotplug["Monitor Hotplug USB-SATA (3s Polling)"]
+    end
+
+    subgraph Fixity ["Supply-Chain Security (Zero-Trust)"]
+        Manifest["checksums.json (Manifesto Canônico SHA-256)"]
+        ToolchainCheck["Toolchain.verify_panasonic_binary_integrity()"]
+        BuildCheck["build_panasonic_tools.py (--verify / --update-manifest)"]
+    end
+
+    subgraph BinariosC ["Binários C Nativos Multiplataforma"]
+        ExtractMeihdfs["extract_meihdfs (MEIHDFS-V1 / V2 Inode Parser)"]
+        DvdVr["dvd-vr (MPEG-2 Program Stream Demuxer)"]
+        UdfDump["udf_dump (UDF 1.02/1.50 Panasonic Deserializer)"]
+    end
+
+    subgraph Saida ["Estruturação & Apresentação"]
+        Tree["Árvore Interativa de Gravações"]
+        Thumbnails["Geração Concorrente de Miniaturas"]
+        Titles["Divisão em Títulos & Capítulos"]
+        BatchExport["Extração Direta para Workspace de Restauração"]
+    end
+
+    Hotplug --> Physical
+    Physical --> ToolchainCheck
+    RawDump --> ToolchainCheck
+    Manifest --> ToolchainCheck
+    Manifest --> BuildCheck
+    ToolchainCheck --> ExtractMeihdfs
+    ToolchainCheck --> DvdVr
+    ToolchainCheck --> UdfDump
+    ExtractMeihdfs --> Tree
+    DvdVr --> Tree
+    UdfDump --> Tree
+    Tree --> Thumbnails
+    Tree --> Titles
+    Titles --> BatchExport
+```
+
+---
+
+### 🧠 Grafo de Restauração Neural Multi-Modelo (DAG)
+
+O motor de masterização orquestra as IAs e filtros num fluxo em estágios com sincronismo temporal absoluto:
+
+```mermaid
+flowchart TD
+    RAW["Vídeo Capturado RAW (YUV422 Interlaced)"] --> TBC["TBC Algorítmico (Frame-Hold & Resync A/V)"]
+    TBC --> Deint["Desentrelaçamento QTGMC (VapourSynth / 60 campos -> 60p)"]
+    
+    Deint --> NeuralDenoise["Denoise Analógico & Restauração de Croma"]
+    NeuralDenoise --> Upscale{"Seleção de Modelo de IA (Settings)"}
+    
+    Upscale -->|"Padrão Master"| RealESRGAN["Real-ESRGAN x4plus (Texturas Analógicas)"]
+    Upscale -->|"Ultra Rápido"| SPAN["SPAN / TOGU Scaler (Baixa Latência)"]
+    Upscale -->|"Alta Fidelidade"| SwinIR["SwinIR / AdcSR (Redução de Artefatos)"]
+    
+    RealESRGAN --> FaceCheck{"Restauração Facial?"}
+    SPAN --> FaceCheck
+    SwinIR --> FaceCheck
+    
+    FaceCheck -->|"Sim"| CodeFormer["CodeFormer / GFPGAN (Reconstituição de Faces)"]
+    FaceCheck -->|"Não"| MotionCheck{"Interpolação 60fps?"}
+    CodeFormer --> MotionCheck
+    
+    MotionCheck -->|"Sim"| RIFE["RIFE v4 / FILM (Fluidez Cinematográfica)"]
+    MotionCheck -->|"Não"| AudioPipeline
+    RIFE --> AudioPipeline["Whisper AI (Transcrição & Legendas VTT/SRT)"]
+    
+    AudioPipeline --> ColorGrade["Matriz de Cor Rec.709 & Normalização de Áudio (EBU R128)"]
+    
+    ColorGrade --> MasterOut["Arquivo Master Final (ProRes 422HQ / H.264 Lossless)"]
+    ColorGrade -. "Proxy Downscale (360p / 15fps)" .-> SplitMonitor["Monitor Split-Screen A/B (WebGL)"]
 ```
 
 ---
@@ -176,7 +267,7 @@ Consulte o termo integral em: [**docs/COMPLIANCE_LICENSE.md**](docs/COMPLIANCE_L
 
 ## 🚦 Quality Gates & CI/CD
 
-A integridade do código é mantida através de **8 Quality Gates automatizados** executados concorrentemente antes de cada commit e em cada push no GitHub Actions:
+A integridade do código é mantida através de **9 Quality Gates automatizados** executados concorrentemente antes de cada commit e em cada push no GitHub Actions:
 
 ```
 [UI Linter (Oxlint / ESLint)]  ✅ PASSED
@@ -187,6 +278,7 @@ A integridade do código é mantida através de **8 Quality Gates automatizados*
 [Playwright (E2E React)]       ✅ PASSED
 [TSC (TypeScript Types)]       ✅ PASSED
 [Pytest (Python Tests)]        ✅ PASSED
+[i18n Parity (10 Locales)]     ✅ PASSED
 ```
 
 Para rodar todos os testes localmente:
