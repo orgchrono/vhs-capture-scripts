@@ -23,27 +23,27 @@ export const PresetSelector: React.FC = () => {
   const presets: ReadonlyArray<PresetCard> = [
     {
       id: 'gold',
-      name: 'Padrão Broadcast',
-      desc: 'DMR-EH55 Passthrough, QTGMC duplo 60p, áudio bit-perfect intacto.',
+      name: t('presets.gold_name'),
+      desc: t('presets.gold_desc'),
       icon: Award,
-      badge: 'Recomendado',
+      badge: t('presets.recommended'),
     },
     {
       id: 'speed',
-      name: 'Ultra Rápido Hardware',
-      desc: 'Aceleração GPU nativa (QSV/NVENC), BWDIF 60p, 500+ FPS em tempo real.',
+      name: t('presets.speed_name'),
+      desc: t('presets.speed_desc'),
       icon: Zap,
     },
     {
       id: 'tbc_hold',
-      name: 'TBC Frame-Hold (Zero Pretos)',
-      desc: 'Congela ruídos analógicos sem cortar áudio, ZNEDI3 neural, Mono-L JVC.',
+      name: t('presets.tbc_hold_name'),
+      desc: t('presets.tbc_hold_desc'),
       icon: ShieldCheck,
     },
     {
       id: 'ai_master',
-      name: 'AI Master (Real-ESRGAN)',
-      desc: 'Upscale neural Vulkan, Denoise espacial/temporal e alinhamento de croma.',
+      name: t('presets.ai_master_name'),
+      desc: t('presets.ai_master_desc'),
       icon: Wand2,
     },
   ]

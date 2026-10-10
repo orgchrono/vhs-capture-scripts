@@ -109,6 +109,7 @@ class FilterBuilder:
                 cmd,
                 capture_output=True,
                 text=True,
+                errors="replace",
                 timeout=DEFAULT_ENCODER_TEST_TIMEOUT_SEC,
             )
             return res.returncode == 0

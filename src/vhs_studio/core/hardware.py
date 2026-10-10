@@ -104,7 +104,13 @@ def detect_gpu_info() -> GpuInfo:
     # 1. Check Vulkan
     if shutil.which("vulkaninfo"):
         try:
-            res = subprocess.run(["vulkaninfo", "--summary"], capture_output=True, text=True, timeout=3)
+            res = subprocess.run(
+                ["vulkaninfo", "--summary"],
+                capture_output=True,
+                text=True,
+                errors="replace",
+                timeout=3,
+            )
             if res.returncode == 0:
                 vulkan_ok = True
                 lines = res.stdout.splitlines()
@@ -129,7 +135,8 @@ def detect_gpu_info() -> GpuInfo:
                 ["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv,noheader,nounits"],
                 capture_output=True,
                 text=True,
-                timeout=3
+                errors="replace",
+                timeout=3,
             )
             if res.returncode == 0 and res.stdout.strip():
                 gpu_type = "dedicated"

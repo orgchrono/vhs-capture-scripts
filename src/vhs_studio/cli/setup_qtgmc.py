@@ -12,8 +12,15 @@ from vhs_studio.cli.utils import print_step, print_success, print_error
 
 
 def run_cmd(cmd, shell=False):
-    """Documentation for run_cmd."""
-    result = subprocess.run(cmd, shell=shell, capture_output=True, text=True)  # nosec
+    """Run command with safe cross-platform encoding error handling."""
+    result = subprocess.run(
+        cmd,
+        shell=shell,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )  # nosec
     return result
 
 

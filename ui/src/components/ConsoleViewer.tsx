@@ -51,12 +51,12 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
         <div className="flex items-center gap-2">
           <Terminal className="w-3.5 h-3.5 text-sky-400" />
           <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider font-mono">
-            Console de Execução
+            {t('console.title')}
           </span>
           {isRestoring && (
             <span className="flex items-center gap-1.5 text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-mono">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-              Processando Stream
+              {t('console.processing_stream')}
             </span>
           )}
         </div>
@@ -74,19 +74,19 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
                 a.click();
             }}
             className="text-slate-400 hover:text-sky-300 transition text-xs flex items-center gap-1.5 cursor-pointer px-2.5 py-1 rounded hover:bg-white/5"
-            title="Exportar Console"
+            title={t('console.export_title')}
           >
             <Download className="w-3.5 h-3.5" />
-            <span>Exportar</span>
+            <span>{t('console.export')}</span>
           </button>
           <button
             type="button"
             onClick={clearLogs}
             className="text-slate-400 hover:text-red-400 transition text-xs flex items-center gap-1.5 cursor-pointer px-2.5 py-1 rounded hover:bg-white/5"
-            title="Limpar console"
+            title={t('console.clear_title')}
           >
             <Trash2 className="w-3.5 h-3.5" />
-            <span>Limpar</span>
+            <span>{t('console.clear')}</span>
           </button>
 
           {onStart && (
@@ -99,7 +99,7 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
               {isRestoring ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-                  <span>Processando...</span>
+                  <span>{t('console.processing')}</span>
                 </>
               ) : (
                 <>
@@ -115,7 +115,7 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
       <div className="flex-1 p-4 overflow-y-auto font-mono text-xs select-text">
         {logs.length === 0 ? (
           <div className="text-slate-600 italic">
-            VHS Studio Pro pronto. Selecione o arquivo e clique em "Iniciar Restauração Direta" para acompanhar o streaming de quadros em tempo real.
+            {t('console.ready_message')}
           </div>
         ) : (
           logs.map((l, i) => formatLine(l, i))

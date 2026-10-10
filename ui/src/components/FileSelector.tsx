@@ -1,5 +1,6 @@
 import React from 'react'
 import { Folder, HardDrive, RefreshCw } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useStudioStore } from '../store/useStudioStore'
 import type { RawFile } from '../types'
 
@@ -10,6 +11,7 @@ interface FileSelectorProps {
 }
 
 export const FileSelector: React.FC<FileSelectorProps> = ({ files, onRefresh, isRefetching }) => {
+  const { t } = useTranslation()
   const { selectedFile, setSelectedFile } = useStudioStore()
 
   return (
@@ -17,17 +19,17 @@ export const FileSelector: React.FC<FileSelectorProps> = ({ files, onRefresh, is
       <div className="flex items-center justify-between mb-2">
         <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
           <Folder className="w-3.5 h-3.5 text-sky-400" />
-          Arquivo de Entrada (media/raw/)
+          {t('files.input_file_label')}
         </label>
         <button
           type="button"
           onClick={onRefresh}
           disabled={isRefetching}
           className="text-slate-400 hover:text-sky-400 transition text-xs flex items-center gap-1 cursor-pointer hover:bg-white/5 px-2 py-0.5 rounded"
-          title="Atualizar lista de arquivos"
+          title={t('files.refresh_list')}
         >
           <RefreshCw className={`w-3 h-3 ${isRefetching ? 'animate-spin' : ''}`} />
-          <span>Atualizar</span>
+          <span>{t('files.refresh')}</span>
         </button>
       </div>
 
@@ -37,7 +39,7 @@ export const FileSelector: React.FC<FileSelectorProps> = ({ files, onRefresh, is
           onChange={(e) => setSelectedFile(e.target.value)}
           className="w-full bg-slate-950/80 border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition appearance-none cursor-pointer"
         >
-          <option value="">Selecione uma fita capturada...</option>
+          <option value="">{t('files.select_placeholder')}</option>
           {files.map((f) => (
             <option key={f.path} value={f.path}>
               {f.name} ({f.size_mb} MB)
@@ -51,7 +53,7 @@ export const FileSelector: React.FC<FileSelectorProps> = ({ files, onRefresh, is
 
       {files.length === 0 && (
         <p className="text-[11px] text-amber-400/90 mt-2">
-          Nenhum vídeo analógico encontrado em <code className="bg-slate-950 px-1 py-0.5 rounded text-slate-300 font-mono">media/raw/</code>. Capture com o OBS ou salve seu arquivo lá.
+          {t('files.no_files_found')}
         </p>
       )}
     </div>

@@ -66,10 +66,10 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="flex items-center gap-2.5">
         {/* UI Controls */}
         <div className="flex items-center gap-1 bg-slate-900/90 border border-white/10 rounded-lg p-0.5">
-          <Button variant="ghost" size="icon" className="w-7.5 h-7.5 rounded-md hover:bg-slate-800 text-slate-300" onClick={toggleLanguage} title="Change Language / Mudar Idioma">
+          <Button variant="ghost" size="icon" className="w-7.5 h-7.5 rounded-md hover:bg-slate-800 text-slate-300" onClick={toggleLanguage} title={t('header.change_language')}>
             <Globe className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="icon" className={`w-7.5 h-7.5 rounded-md hover:bg-slate-800 ${highContrast ? 'text-amber-400' : 'text-slate-300'}`} onClick={() => setHighContrast(!highContrast)} title="Acessibilidade: Alto Contraste">
+          <Button variant="ghost" size="icon" className={`w-7.5 h-7.5 rounded-md hover:bg-slate-800 ${highContrast ? 'text-amber-400' : 'text-slate-300'}`} onClick={() => setHighContrast(!highContrast)} title={t('header.accessibility_contrast')}>
             <Eye className="w-4 h-4" />
           </Button>
           <Button variant="ghost" size="icon" className={`w-7.5 h-7.5 rounded-md hover:bg-slate-800 ${largeText ? 'text-indigo-400' : 'text-slate-300'}`} onClick={() => {
@@ -80,7 +80,7 @@ export const Header: React.FC<HeaderProps> = ({
             } else {
               document.documentElement.classList.remove('large-text');
             }
-          }} title="Acessibilidade: Aumentar Texto">
+          }} title={t('header.accessibility_text_size')}>
             <Type className="w-4 h-4" />
           </Button>
           {onOpenPrivacy && (
@@ -89,7 +89,7 @@ export const Header: React.FC<HeaderProps> = ({
               size="icon"
               className="w-7.5 h-7.5 rounded-md hover:bg-slate-800 text-slate-300 hover:text-emerald-400"
               onClick={onOpenPrivacy}
-              title="Termos de Licença & Conformidade (EULA)"
+              title={t('header.eula_terms')}
             >
               <ShieldCheck className="w-4 h-4" />
             </Button>
@@ -104,7 +104,7 @@ export const Header: React.FC<HeaderProps> = ({
               size="icon"
               className={`w-7.5 h-7.5 rounded-md hover:bg-slate-800 ${sidebarCollapsed ? 'text-slate-500' : 'text-sky-400'}`}
               onClick={onToggleSidebar}
-              title={sidebarCollapsed ? "Expandir Painel Lateral" : "Recolher Painel Lateral"}
+              title={sidebarCollapsed ? t('header.expand_sidebar') : t('header.collapse_sidebar')}
             >
               <PanelLeft className="w-4 h-4" />
             </Button>
@@ -115,7 +115,7 @@ export const Header: React.FC<HeaderProps> = ({
               size="icon"
               className={`w-7.5 h-7.5 rounded-md hover:bg-slate-800 ${consoleCollapsed ? 'text-slate-500' : 'text-emerald-400'}`}
               onClick={onToggleConsole}
-              title={consoleCollapsed ? "Expandir Console de Monitoramento" : "Recolher Console"}
+              title={consoleCollapsed ? t('header.expand_console') : t('header.collapse_console')}
             >
               <PanelBottom className="w-4 h-4" />
             </Button>
@@ -137,12 +137,12 @@ export const Header: React.FC<HeaderProps> = ({
           {status?.vapoursynth_available ? (
             <span className="flex items-center gap-1.5 text-emerald-400 font-semibold text-[11px] bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-              QTGMC Instalado
+              {t('header.qtgmc_installed')}
             </span>
           ) : (
             <Button variant="outline" size="sm" onClick={onInstallQtgmc} disabled={isInstallingQtgmc} className="h-6 px-2 text-[10px] bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border-sky-500/40">
               <Wrench className="w-3 h-3 mr-1" />
-              {isInstallingQtgmc ? "Instalando..." : "Instalar QTGMC"}
+              {isInstallingQtgmc ? t('header.installing') : t('header.install_qtgmc')}
             </Button>
           )}
         </div>
@@ -152,12 +152,12 @@ export const Header: React.FC<HeaderProps> = ({
           {status?.obs_connected ? (
             <span className="flex items-center gap-1.5 text-emerald-400 font-semibold text-[11px] bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-              OBS Instalado
+              {t('header.obs_installed')}
             </span>
           ) : (
             <Button variant="outline" size="sm" onClick={onInstallObs} disabled={isInstallingObs} className="h-6 px-2 text-[10px] bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border-indigo-500/40">
               <Wrench className="w-3 h-3 mr-1" />
-              {isInstallingObs ? "Instalando..." : "Instalar OBS"}
+              {isInstallingObs ? t('header.installing') : t('header.install_obs')}
             </Button>
           )}
         </div>

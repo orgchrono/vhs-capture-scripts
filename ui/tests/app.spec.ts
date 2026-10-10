@@ -1,4 +1,4 @@
-﻿import { test, expect } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
 test.describe('VHS Studio Pro E2E', () => {
 
@@ -39,12 +39,12 @@ test.describe('VHS Studio Pro E2E', () => {
     await expect(page.locator('h1', { hasText: 'VHS Studio Pro' })).toBeVisible();
 
     // 3. Click Start Recording
-    const startBtn = page.locator('button', { hasText: /Iniciar Grava/i });
+    const startBtn = page.getByTestId('start-capture-btn');
     await expect(startBtn).toBeVisible();
     await startBtn.click();
 
     // 4. Verify the Stop Button appears (meaning state transitioned)
-    const stopBtn = page.locator('button', { hasText: /capture.stop_obs|Parar/i });
+    const stopBtn = page.getByTestId('stop-capture-btn');
     await expect(stopBtn).toBeVisible({ timeout: 5000 });
 
     // 5. Click Stop

@@ -81,3 +81,43 @@ export const FACE_FIDELITY_CONFIG = {
   DEFAULT: 0.7,
 } as const;
 
+export const TIER_CONFIG = {
+  ULTRA_MIN: 4,
+  BALANCED: 3,
+  BASIC: 2,
+} as const;
+
+export const CRF_CONFIG = {
+  MIN: 14,
+  DEFAULT: 18,
+  FAST: 20,
+  MAX: 28,
+  STEP: 1,
+} as const;
+
+export const AUDIO_OFFSET_CONFIG = {
+  STEP_MS: 10,
+} as const;
+
+export const LOG_LIMITS = {
+  MAX_LINES: 500,
+} as const;
+
+export const MONITOR_FORMATS = {
+  SMPTE_NTSC: 'SMPTE 4:3 • NTSC 59.94p',
+} as const;
+
+export const LAYOUT_CONFIG = {
+  SIDEBAR_DEFAULT_SIZE: '25%',
+  SIDEBAR_MIN_SIZE: '280px',
+  SIDEBAR_MAX_SIZE: '450px',
+  MAIN_DEFAULT_SIZE: '75%',
+  WORKSPACE_TOP_DEFAULT_SIZE: '68%',
+  WORKSPACE_TOP_MIN_SIZE: '300px',
+  CONSOLE_DEFAULT_SIZE: '32%',
+  CONSOLE_MIN_SIZE: '180px',
+  CONSOLE_MAX_SIZE: '60%',
+} as const;
+
+
+

@@ -22,7 +22,7 @@ class QualityControl:
             "-show_streams",
             filepath,
         ]
-        res = subprocess.run(cmd, capture_output=True, text=True)
+        res = subprocess.run(cmd, capture_output=True, text=True, errors="replace")
         if res.returncode == 0:
             data = json.loads(res.stdout)
             report_path = f"{filepath}_qc_report.json"

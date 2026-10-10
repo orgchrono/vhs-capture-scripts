@@ -38,7 +38,7 @@ describe('CaptureBar Component', () => {
   it('should start capture when start button is clicked', () => {
     render(<CaptureBar />, { wrapper });
 
-    const startBtn = screen.getByText('Iniciar Gravação OBS');
+    const startBtn = screen.getByTestId('start-capture-btn');
     fireEvent.click(startBtn);
 
     expect(mockStartCapture).toHaveBeenCalledTimes(1);
@@ -49,7 +49,7 @@ describe('CaptureBar Component', () => {
 
     render(<CaptureBar />, { wrapper });
 
-    const stopBtn = screen.getByText('capture.stop_obs');
+    const stopBtn = screen.getByTestId('stop-capture-btn');
     fireEvent.click(stopBtn);
 
     expect(mockStopCapture).toHaveBeenCalledTimes(1);

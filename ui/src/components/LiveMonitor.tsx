@@ -1,11 +1,13 @@
 import React from 'react';
 import { Video, AlertTriangle, Activity } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useLiveMonitor } from '../viewmodels/useLiveMonitor';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import type { SystemHealth } from '../types';
 import { formatBitrate } from '../lib/formatters';
 
 export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => {
+  const { t } = useTranslation();
   const { videoRef, isActive, error, obsStats, isCapturing } = useLiveMonitor();
   const shouldReduceMotion = useReducedMotion();
 
@@ -23,7 +25,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
       <div className="absolute top-3 left-3 z-10 flex gap-2 items-center">
         <span className="bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-mono text-white/70 border border-white/10 shadow-sm flex items-center gap-1.5">
           <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-slate-500'}`}></span>
-          LIVE PREVIEW (NATIVO)
+          {t('monitor.live_preview')}
         </span>
         <AnimatePresence>
           {(isCapturing || obsStats?.recording) && (
@@ -61,7 +63,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
               {...badgeMotion}
               className="bg-amber-600/90 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-white border border-amber-500/50 shadow-sm flex items-center gap-1.5 animate-pulse tracking-wider"
             >
-              <AlertTriangle className="w-3 h-3 text-white" /> FITA MASTIGADA! ({health?.dropped_frames} DROPS)
+              <AlertTriangle className="w-3 h-3 text-white" /> {t('monitor.dropped_frames', { count: health?.dropped_frames })}
             </motion.span>
           )}
         </AnimatePresence>
@@ -81,7 +83,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
             <>
               <Video className="w-10 h-10 mb-3 text-slate-700 animate-pulse" />
               <span className="text-xs font-semibold text-slate-500 tracking-wider">
-                CONECTANDO SINAL...
+                {t('monitor.connecting_signal')}
               </span>
             </>
           )}
@@ -109,7 +111,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
       {/* Bottom Right Format Badge */}
       <div className="absolute bottom-3 right-3 z-10 flex items-center gap-2">
         <span className="bg-black/70 backdrop-blur-md px-2 py-0.5 rounded text-[9px] font-mono text-slate-400 border border-white/10 shadow-sm">
-          SMPTE 4:3 • NTSC 59.94p
+          {t('monitor.smpte_format')}
         </span>
       </div>
 

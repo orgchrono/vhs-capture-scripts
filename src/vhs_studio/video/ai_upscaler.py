@@ -24,7 +24,11 @@ class AIUpscaler:
         """Query vulkaninfo to automatically select the optimal dedicated or integrated GPU."""
         try:
             res = subprocess.run(
-                ["vulkaninfo", "--summary"], capture_output=True, text=True, timeout=5
+                ["vulkaninfo", "--summary"],
+                capture_output=True,
+                text=True,
+                errors="replace",
+                timeout=5,
             )
             output = res.stdout.lower()
 

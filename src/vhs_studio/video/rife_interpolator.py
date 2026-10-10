@@ -46,7 +46,7 @@ class RifeInterpolator:
             "-m", self.model_name,
         ]
         try:
-            res = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            res = subprocess.run(cmd, capture_output=True, text=True, errors="replace", check=True)
             return res.returncode == 0
         except Exception as e:
             log.error(f"[RIFE] Falha na interpolação RIFE: {e}")

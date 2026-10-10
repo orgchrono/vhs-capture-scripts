@@ -32,7 +32,7 @@ def probe_media(file_path):
         "json",
         file_path,
     ]
-    res = subprocess.run(cmd, capture_output=True, text=True)
+    res = subprocess.run(cmd, capture_output=True, text=True, errors="replace")
     if res.returncode != 0:
         raise RuntimeError(
             f"ffprobe falhou ao inspecionar '{file_path}': {res.stderr.strip()}"
@@ -121,7 +121,7 @@ def detect_interlace_status(file_path, num_frames=300, start_sec=None):
         "null",
         "-",
     ]
-    res = subprocess.run(cmd, capture_output=True, text=True)
+    res = subprocess.run(cmd, capture_output=True, text=True, errors="replace")
     stderr = res.stderr
 
     multi_matches = list(
@@ -195,7 +195,7 @@ def detect_audio_layout(file_path, sample_sec=15.0, sample_duration=5.0):
         "null",
         "-",
     ]
-    res = subprocess.run(cmd, capture_output=True, text=True)
+    res = subprocess.run(cmd, capture_output=True, text=True, errors="replace")
     stderr = res.stderr
 
     ch1_match = re.search(

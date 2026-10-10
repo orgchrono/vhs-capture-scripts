@@ -52,12 +52,18 @@ class Toolchain:
         filters = ""
         try:
             res_enc = subprocess.run(
-                [ffmpeg, "-encoders"], capture_output=True, text=True
+                [ffmpeg, "-encoders"],
+                capture_output=True,
+                text=True,
+                errors="replace",
             )
             encoders = res_enc.stdout
 
             res_flt = subprocess.run(
-                [ffmpeg, "-filters"], capture_output=True, text=True
+                [ffmpeg, "-filters"],
+                capture_output=True,
+                text=True,
+                errors="replace",
             )
             filters = res_flt.stdout
         except Exception as e:

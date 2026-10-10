@@ -40,6 +40,7 @@ def is_obs_process_active() -> bool:
                 ["tasklist", "/fi", "imagename eq obs64.exe", "/fo", "csv", "/nh"],
                 capture_output=True,
                 text=True,
+                errors="replace",
                 timeout=1,
             )
             if "obs64.exe" in r.stdout.lower():
@@ -48,6 +49,7 @@ def is_obs_process_active() -> bool:
                 ["tasklist", "/fi", "imagename eq obs32.exe", "/fo", "csv", "/nh"],
                 capture_output=True,
                 text=True,
+                errors="replace",
                 timeout=1,
             )
             return "obs32.exe" in r32.stdout.lower()
@@ -56,6 +58,7 @@ def is_obs_process_active() -> bool:
                 ["pgrep", "-x", "obs"],
                 capture_output=True,
                 text=True,
+                errors="replace",
                 timeout=1,
             )
             return r.returncode == 0

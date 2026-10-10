@@ -60,6 +60,7 @@ def is_obs_running():
             ["tasklist", "/fi", "imagename eq obs64.exe"],
             capture_output=True,
             text=True,
+            errors="replace",
         )
         return "obs64.exe" in r.stdout.lower()
     except Exception:

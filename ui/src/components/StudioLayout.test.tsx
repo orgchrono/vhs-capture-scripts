@@ -45,7 +45,7 @@ describe('Studio Pro Workspace Layout & UX Cohesion ("Feng Shui")', () => {
 
     expect(screen.getByText(/Captura Automatizada OBS Studio/i)).toBeInTheDocument()
     expect(screen.getByText(/DeckLink \/ Intensity Shuttle SDK/i)).toBeInTheDocument()
-    expect(screen.getByText(/Iniciar Gravação OBS/i)).toBeInTheDocument()
+    expect(screen.getByTestId('start-capture-btn')).toBeInTheDocument()
   })
 
   it('renders FileSelector with raw tape library folder and refresh trigger', () => {
