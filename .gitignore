@@ -18,7 +18,8 @@ profiles/*-local.env
 *.wav
 *.log
 *.jsonl
-logs/*.jsonl
+logs/
+build_report.md
 workspace/
 data/
 tmp*/

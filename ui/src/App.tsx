@@ -1,24 +1,26 @@
-import { PrivacyModal } from './components/PrivacyModal'
 import React, { useState } from 'react'
 import { UploadCloud } from 'lucide-react'
-import { Header } from './components/Header'
-import { PresetSelector } from './components/PresetSelector'
-import { FileSelector } from './components/FileSelector'
-import { CaptureBar } from './components/CaptureBar'
-import { RestorationSettings } from './components/RestorationSettings'
-import { ConsoleViewer } from './components/ConsoleViewer'
-import { LiveMonitor } from './components/LiveMonitor'
 import { useTranslation } from 'react-i18next'
-import { useStudioViewModel } from './viewmodels/useStudioViewModel'
-import { useStudioStore } from './store/useStudioStore'
 import { toast } from 'sonner'
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
+import {
+  Header,
+  CaptureBar,
+  PresetSelector,
+  FileSelector,
+  RestorationSettings,
+  ConsoleViewer,
+  LiveMonitor,
+  PrivacyModal,
+} from './components'
 import { Toaster } from './components/ui/sonner'
 import {
   ResizablePanelGroup,
   ResizablePanel,
   ResizableHandle,
 } from './components/ui/resizable'
-import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
+import { useStudioViewModel } from './viewmodels'
+import { useStudioStore } from './store/useStudioStore'
 
 const StudioMain: React.FC<{ onOpenPrivacy?: () => void }> = ({ onOpenPrivacy }) => {
   const { t } = useTranslation()
