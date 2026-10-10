@@ -37,10 +37,17 @@ def main():
     # Comando: pipeline
     subparsers.add_parser("pipeline", help="Pipeline orquestrada de restauração")
 
+    # Comando: tui
+    subparsers.add_parser("tui", help="Estação interativa de terminal (TUI) sem navegador")
+
     args, unknown = parser.parse_known_args()
 
     if args.command == "desktop" or args.command is None:
         run_desktop()
+    elif args.command == "tui":
+        from vhs_studio.cli.tui import run_tui
+
+        run_tui()
     elif args.command == "watcher":
         import vhs_studio.cli.watcher
 

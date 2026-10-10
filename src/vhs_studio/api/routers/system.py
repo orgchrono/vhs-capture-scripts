@@ -142,8 +142,29 @@ def _get_raw_media_files() -> List[Dict[str, object]]:
         if ext in VALID_MEDIA_EXTENSIONS:
             full_p = os.path.join(raw_dir, f)
             size_mb = os.path.getsize(full_p) / (1024 * 1024)
-            files.append({"name": f, "path": full_p, "size_mb": round(size_mb, 1)})
+            files.append({
+                "name": f,
+                "path": full_p,
+                "size_mb": round(size_mb, 1),
+                "thumbnail_url": f"/api/media/thumbnail?path={full_p}",
+            })
     return files
+
+
+@system_router.get("/media/thumbnail")
+def get_media_thumbnail(path: str):
+    """Serve or generate on-the-fly representative thumbnail for raw video."""
+    from fastapi.responses import FileResponse, Response
+    from vhs_studio.api.routers.security import is_safe_media_path
+    from vhs_studio.media.thumbnail import generate_smart_thumbnail
+
+    if not is_safe_media_path(path) or not os.path.exists(path):
+        return Response(status_code=404)
+
+    thumb_path = generate_smart_thumbnail(path)
+    if thumb_path and os.path.exists(thumb_path):
+        return FileResponse(thumb_path, media_type="image/jpeg")
+    return Response(status_code=404)
 
 
 @system_router.get("/token")

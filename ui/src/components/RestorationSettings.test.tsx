@@ -39,7 +39,7 @@ describe('RestorationSettings UX/UI & Layout Tests ("Feng Shui" & Coerência Vis
   it('renders all 7 studio control tabs with proper semantics and icons', () => {
     render(<RestorationSettings />, { wrapper });
 
-    expect(screen.getByRole('tab', { name: /Pipelines/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Modo|Pipelines/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /Vídeo/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /Áudio/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /Filtros/i })).toBeInTheDocument();
@@ -73,8 +73,12 @@ describe('RestorationSettings UX/UI & Layout Tests ("Feng Shui" & Coerência Vis
     expect(await screen.findByText(/Destino de Armazenamento & Nuvem/i)).toBeInTheDocument();
   });
 
-  it('supports search query filtering of configuration controls', () => {
+  it('supports search query filtering of configuration controls', async () => {
+    const user = userEvent.setup();
     render(<RestorationSettings />, { wrapper });
+
+    const videoTab = screen.getByRole('tab', { name: /Vídeo/i });
+    await user.click(videoTab);
 
     const searchInput = screen.getByPlaceholderText(/Buscar configuração/i);
     fireEvent.change(searchInput, { target: { value: 'deinterlacer' } });

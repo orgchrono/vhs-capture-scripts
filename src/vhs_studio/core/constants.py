@@ -77,6 +77,18 @@ VALID_MEDIA_EXTENSIONS: Final[Set[str]] = {
     ".m2ts",
 }
 
+# Valid disk image and raw ingest extensions
+VALID_INGEST_EXTENSIONS: Final[Set[str]] = {
+    ".img",
+    ".raw",
+    ".bin",
+    ".iso",
+    ".dd",
+    ".vro",
+    ".mpg",
+    ".mpeg",
+}
+
 # Subprocess & System probe constants
 OBS_PROCESS_NAMES: Final[Tuple[str, ...]] = ("obs64.exe", "obs32.exe", "obs")
 DEFAULT_SOCKET_TIMEOUT_SEC: Final[float] = 0.2

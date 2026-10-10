@@ -19,6 +19,7 @@ from vhs_studio.api.routers import (
     queue_router,
     obs_router,
     restoration_router,
+    ingest_router,
     check_and_launch_obs,
     is_safe_media_path,
     make_origin_verifier,
@@ -59,6 +60,7 @@ def create_app() -> FastAPI:
     app_instance.include_router(queue_router)
     app_instance.include_router(obs_router)
     app_instance.include_router(restoration_router)
+    app_instance.include_router(ingest_router)
 
     # Mount frontend static distribution
     if os.path.isdir(DIST_DIR):

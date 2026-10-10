@@ -21,16 +21,16 @@ test.describe('VHS Studio Config & Monitoring', () => {
     await expect(page.locator('text=Motor de Processamento')).toBeVisible();
     
     // Test tabs by clicking the semantic tab triggers
-    await page.locator('button[role="tab"]:has-text("Vídeo")').click();
+    await page.getByTestId('tab-video').click();
     await expect(page.locator('text=Desentrelaçamento').first()).toBeVisible(); 
 
-    await page.locator('button[role="tab"]:has-text("Áudio")').click();
+    await page.getByTestId('tab-audio').click();
     await expect(page.locator('text=Modo').first()).toBeVisible();
 
-    await page.locator('button[role="tab"]:has-text("Nuvem")').click();
+    await page.getByTestId('tab-storage').click();
     await expect(page.locator('text=Caminho do Destino')).toBeVisible();
 
-    await page.locator('button[role="tab"]:has-text("Pipelines")').click();
-    await expect(page.locator('text=Pipelines Prontas').first()).toBeVisible();
+    await page.getByTestId('tab-presets').click();
+    await expect(page.getByTestId('tab-presets')).toBeVisible();
   });
 });

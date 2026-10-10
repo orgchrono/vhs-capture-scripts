@@ -7,6 +7,7 @@ import type {
   QueueJob,
   QueueStats,
   StorageStatus,
+  PanasonicInspection,
 } from '../types';
 
 let cachedSessionToken: string | null = null;
@@ -187,6 +188,22 @@ export const studioRtkApi = createApi({
       }),
       invalidatesTags: ['Queue'],
     }),
+
+    inspectPanasonic: builder.query<PanasonicInspection, string>({
+      query: (sourcePath) => `api/ingest/panasonic/inspect?source_path=${encodeURIComponent(sourcePath)}`,
+    }),
+
+    extractPanasonic: builder.mutation<
+      { status: string; message: string; extracted_files: string[]; destination: string },
+      { source_path: string; output_dir?: string }
+    >({
+      query: (body) => ({
+        url: 'api/ingest/panasonic/extract',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Status'],
+    }),
   }),
 });
 
@@ -209,4 +226,7 @@ export const {
   useCancelJobMutation,
   useStartQueueWorkerMutation,
   useStopQueueWorkerMutation,
+  useInspectPanasonicQuery,
+  useLazyInspectPanasonicQuery,
+  useExtractPanasonicMutation,
 } = studioRtkApi;

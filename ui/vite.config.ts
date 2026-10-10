@@ -48,5 +48,6 @@ export default defineConfig({
     setupFiles: './vitest.setup.ts',
     css: true,
     exclude: ['node_modules', 'dist', '.idea', '.git', '.cache', 'tests/*'], // Exclude Playwright E2E tests folder
+    fileParallelism: false,
   },
 })

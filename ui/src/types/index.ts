@@ -2,6 +2,20 @@ export interface RawFile {
   name: string;
   path: string;
   size_mb: number;
+  date?: string;
+  thumbnail_url?: string;
+}
+
+export interface PanasonicInspection {
+  is_panasonic: boolean;
+  format: string;
+  details: string;
+  can_extract: boolean;
+  toolchain_available: boolean;
+  extractor_binary: string | null;
+  source_size_bytes: number;
+  detected_offsets: number[];
+  estimated_titles: number;
 }
 
 export interface HardwareProfile {

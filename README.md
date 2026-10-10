@@ -125,15 +125,18 @@ O VHS Studio Pro inclui 4 perfis calibrados de restauração prontos para uso:
 
 ## 🎨 Interface Desktop & Web Pro
 
-A interface foi projetada seguindo as diretrizes mais avançadas de acessibilidade e experiência do usuário:
+A interface foi projetada seguindo as diretrizes mais avançadas de acessibilidade e experiência de estações NLE broadcast:
 
+- **Footer StatusBar & Telemetria NLE:** Barra de status fixa no rodapé que reúne Tally de hardware, nome da fita, contagem precisa de quadros, FPS em tempo real, ETA, velocidade de renderização e alternador do console.
+- **Render Stripe Superior:** Barra de progresso ultra-fina (2.5px) com gradiente dinâmico no topo da janela, eliminando poluição visual.
+- **Aba "Modos Prontos" por Padrão:** Inicialização direta nas estratégias consolidadas de restauração (Padrão Broadcast, Ultra Rápido, TBC Frame-Hold e IA Master), aposentando termos herméticos como "Pipelines".
 - **Sonner Toast System:** Notificações de feedback ricas, acessíveis, com suporte a ações e barra de progresso.
 - **Framer Motion:** Transições fluidas e respeitosas com a preferência de redução de movimento do sistema (`prefers-reduced-motion`).
 - **Acessibilidade WCAG 2.1 AAA:**
   - Navegação 100% realizável via teclado com anéis de foco visíveis (`focus-visible:ring-2`).
-  - Marcação semântica com atributos ARIA (`aria-live`, `role="status"`, `aria-atomic`).
+  - Marcação semântica com atributos ARIA (`aria-live`, `role="status"`, `role="progressbar"`, `aria-atomic`).
   - Contraste cromático estrito para operadores em salas escuras de edição.
-- **Internacionalização (i18n):** Tradução instantânea sem recarregar a página para **Português (Brasil)**, **Inglês** e **Espanhol**.
+- **Internacionalização em 10 Idiomas (i18n):** Tradução instantânea para **Português**, **Inglês**, **Espanhol**, **Francês**, **Alemão**, **Italiano**, **Russo**, **Chinês Simplificado**, **Japonês** e **Árabe**, com invariância estrutural de layout LTR para preservar o alinhamento de monitores e placas DeckLink.
 
 ---
 
@@ -221,8 +224,11 @@ pip install -e .
 # Instalar dependências da UI
 cd ui && npm ci && cd ..
 
-# Iniciar o modo Desktop Pro
+# Iniciar o modo Desktop Pro (janela WebView2 nativa)
 vhs-studio desktop
+
+# Iniciar a Estação de Trabalho Interativa em Terminal (TUI nativa sem navegador nem CSS)
+python -m vhs_studio tui
 ```
 
 ---

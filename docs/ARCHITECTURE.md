@@ -181,10 +181,75 @@ A codebase é continuamente validada por dois sistemas integrados:
    - Oxlint (Frontend linter de alta velocidade)
    - Mypy (Typechecker estrito para Python)
    - Flake8 (Conformidade com PEP 8)
-   - JSCPD (Detecção de duplicação de código)
+   - JSCPD (Detecção de duplicação de código - 0% clones)
    - Vitest (Testes unitários da UI React)
    - Playwright (Testes de integração E2E)
    - TSC (`tsc --noEmit` para TypeScript)
-   - Pytest (83 testes unitários e de integração Python)
+   - Pytest (Testes unitários e de integração Python)
 2. **Swarm Auditors (`scripts/swarm_auditors.py`):**
    - 7 auditores especializados executados em paralelo cobrindo Arquitetura (SoC/SRP), CI/CD, Test Harness, UX/UI & a11y, Segurança, Dependências e Melhores Práticas FP Pure (zero globals, zero Anys, zero TODOs).
+
+---
+
+## 7. Telemetria Broadcast & StatusBar de Rodapé (Padrão NLE)
+
+Inspirado nas grandes estações de trabalho de pós-produção e edição profissional (DaVinci Resolve, Adobe Premiere e Cockos Reaper), o monitoramento de renderização e estado do sistema foi desacoplado em uma **Footer StatusBar permanente**:
+
+1. **Desacoplamento Visual e Fim da Disputa Vertical:**
+   - Anteriormente, o painel de telemetria compartilhava a gaveta inferior com o console de diagnósticos, reduzindo a visibilidade dos logs e dificultando o redimensionamento.
+   - Com a [`FooterStatusBar`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/ui/src/components/FooterStatusBar.tsx), o console possui 100% de flexibilidade vertical no [`ConsoleViewer`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/ui/src/components/ConsoleViewer.tsx), com suporte contínuo a arrasto via `react-resizable-panels`.
+2. **Parser Funcional Puro (`createTelemetryParser`):**
+   - Implementado como uma closure factory determinística sem variáveis mutáveis soltas.
+   - Elimina os antigos saltos arbitrários de percentual (`STAGE_FALLBACK_PERCENTAGES`) em favor de uma derivação honesta e progressiva:
+     - Leitura de quadros reais (`currentFrames / totalFrames * 100`).
+     - Sinais explícitos do orquestrador (`[PROGRESS: X%]`).
+     - Ou ancoragem proporcional da etapa ativa (`(stage - 1) / totalStages * 100`).
+3. **Resolução Dinâmica de Etapas (`getPresetStages`):**
+   - A lista de etapas dos breadcrumbs adapta-se dinamicamente ao preset selecionado (Ouro Master, Velocidade, TBC Frame-Hold, IA Master ou Customizado).
+4. **Stripe Superior Ultra-Fino:**
+   - Durante a renderização, uma linha sutil de 2.5px com gradiente animado (`sky-400` → `emerald-400` → `indigo-400`) fornece feedback no topo da aplicação sem consumir área útil.
+
+---
+
+## 8. Robustez de Subprocessos Windows (OEM CP850 / UTF-8)
+
+Ambientes Windows em língua portuguesa (ou outras variantes regionais) emitem saídas de comandos nativos (`tasklist`, `netstat`, utilitários do sistema) codificados na página de código OEM da máquina (como CP850 ou CP1252), onde caracteres acentuados como `Ç` geram o byte `0x80`.
+
+Quando subprocessos Python lêem pipes de texto com UTF-8 estrito, o `_readerthread` interno do `subprocess.py` dispara `UnicodeDecodeError: 'utf-8' codec can't decode byte 0x80 in position 7: invalid start byte`.
+
+Para imunizar completamente a plataforma:
+- Todos os despachos de `subprocess.run` e `subprocess.Popen` em modo texto especificam obrigatoriamente `errors="replace"`.
+- As chamadas em [`system.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/routers/system.py), [`watcher.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/cli/watcher.py), [`setup_qtgmc.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/cli/setup_qtgmc.py), [`process_manager.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/process_manager.py) e [`hardware.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/core/hardware.py) garantem captura segura e contínua, substituindo bytes ilegíveis por `` sem interromper as threads de leitura.
+
+---
+
+## 9. Verificação Criptográfica de Build (SHA-256)
+
+O lançador Desktop nativo ([`desktop.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/cli/desktop.py)) calcula o hash SHA-256 combinando a árvore de arquivos de `ui/src/` e o `ui/package.json`.
+
+- Se o hash coincidir com `.build_hash` em `ui/dist/`, a compilação do Vite é ignorada, inicializando a janela nativa em menos de 1 segundo.
+- Se houver alteração de código ou mismatch, o lançador solicita confirmação interativa do operador antes de compilar novos pacotes ou executar scripts Node.js locais, impedindo execuções automáticas não autorizadas.
+
+---
+
+## 10. Ingestão Panasonic DVR (MEIHDFS & DVD-VR) & Toolchain
+
+Gravadores analógicos/digitais de mesa da Panasonic (linha DMR-E, DMR-EH, DMR-EX, DMR-BWT) gravam seus discos rígidos proprietários em formatos de arquivos específicos:
+1. **MEIHDFS-V2.0 e MEIHDFS-V1.0:** Matsushita Electric Industrial Host Disk File System. Superblocos identificados na tabela de partição e nos primeiros setores da mídia.
+2. **UDF / DVD-VR (`DVD_RTAV`):** Volumes contendo `VR_MANGR.IFO` e arquivos de fluxo de programa MPEG-2 `.VRO`.
+3. **MPEG-2 Program Stream Contínuo:** Pacotes iniciando com o header de sincronismo `0x000001BA` e pacotes PES de vídeo `0x000001E0`.
+
+### Arquitetura de Resolução em Toolchain:
+Em vez de misturar código C legados ao repositório Python, o sistema adota a arquitetura de **Toolchain Desacoplado**:
+- **Resolução de Binários:** O utilitário compilado `extract_meihdfs` (de `leecher1337/panasonic-rec`) é buscado prioritariamente no diretório portátil `tools/panasonic_rec/` e subsequentemente no `PATH` do sistema via [`paths.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/core/paths.py) e [`Toolchain`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/core/toolchain.py).
+- **Fallback Pure-Python:** Quando o binário nativo não estiver compilado para o sistema operacional alvo, o módulo [`panasonic_dvr.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/ingest/panasonic_dvr.py) ativa automaticamente o carver puro em Python. Ele percorre a imagem de bloco em buffers de 4MB, reconstruindo faixas contínuas de vídeo diretamente para `media/raw/`.
+- **API e UI Integradas:** Endpoints `/api/ingest/panasonic/inspect` e `/api/ingest/panasonic/extract` expostos no painel lateral de fitas (`FileSelector.tsx`), permitindo que a mídia recuperada fique imediatamente pronta para a pipeline de restauração analógica.
+
+---
+
+## 11. Política Anti-Hardcode e Internacionalização (Zero-Hardcode Policy)
+
+Conforme estabelecido em [`AGENTS.md`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/AGENTS.md) e [`GEMINI.md`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/GEMINI.md), qualquer texto voltado ao usuário deve estar estritamente isolado da camada de código:
+1. **100% i18n:** Todo componente React deve utilizar `t('namespace.key')` do `react-i18next`. Strings estáticas em JSX, alertas, tooltips ou botões são proibidas.
+2. **10 Idiomas Nativos:** Suporte unificado para Português (`pt-BR`), Inglês (`en-US`), Espanhol (`es`), Francês (`fr`), Alemão (`de`), Italiano (`it`), Japonês (`ja`), Árabe (`ar`, com layout RTL), Russo (`ru`) e Chinês Simplificado (`zh-CN`).
+3. **SSOT para Constantes:** Valores numéricos, extensões e caminhos de diretório devem residir exclusivamente em `constants.py` e `paths.py`.

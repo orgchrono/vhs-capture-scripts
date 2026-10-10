@@ -237,7 +237,11 @@ export const studioSlice = createSlice({
       state.isCapturing = action.payload;
     },
     addLog: (state, action: PayloadAction<string>) => {
-      const line = action.payload;
+      const line = action.payload
+        .replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '')
+        .replace(/\[\d{1,3}m/g, '')
+        .trim();
+      if (!line) return;
       if (state.logs.length > 0 && state.logs[state.logs.length - 1] === line) {
         return;
       }

@@ -3,9 +3,12 @@
 import shutil
 import subprocess
 from functools import lru_cache
-from typing import Dict
+from typing import Dict, Optional
 from vhs_studio.core.logger import log
-from vhs_studio.core.paths import get_ffmpeg_executable_path
+from vhs_studio.core.paths import (
+    get_ffmpeg_executable_path,
+    get_panasonic_executable_path,
+)
 
 
 class Toolchain:
@@ -88,4 +91,24 @@ class Toolchain:
             f" {filter_name} " in caps["filters"]
             or f"T.. {filter_name} " in caps["filters"]
             or filter_name in caps["filters"]
+        )
+
+    @staticmethod
+    def get_panasonic_extractor_path(binary_name: str = "extract_meihdfs") -> Optional[str]:
+        """Return path to Panasonic recovery binary if portable or available in PATH."""
+        return get_panasonic_executable_path(binary_name)
+
+    @staticmethod
+    def is_panasonic_extractor_available(binary_name: str = "extract_meihdfs") -> bool:
+        """Check whether Panasonic recovery extractor binary is available."""
+        return get_panasonic_executable_path(binary_name) is not None
+
+    @staticmethod
+    def require_panasonic_extractor(binary_name: str = "extract_meihdfs") -> str:
+        """Resolve path to Panasonic extractor or raise FileNotFoundError."""
+        path = get_panasonic_executable_path(binary_name)
+        if path:
+            return path
+        raise FileNotFoundError(
+            f"Panasonic extractor binary '{binary_name}' was not found in PATH or tools/panasonic_rec."
         )

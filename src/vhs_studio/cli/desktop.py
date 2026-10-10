@@ -71,14 +71,14 @@ def ensure_ui_build():
         index_exists = os.path.exists(os.path.join(ui_dist_dir, "index.html"))
         is_interactive = sys.stdin is not None and sys.stdin.isatty() and not os.environ.get("CI")
 
-        if is_interactive and not index_exists:
+        if is_interactive:
             log.warning(
                 "[SEGURANÇA] Mudanças detectadas nos arquivos da Interface (UI) ou Hash Mismatch."
             )
             print("")
             print("=== AVISO DE SEGURANÇA / INTEGRIDADE ===")
             print(
-                "Deseja autorizar a compilação do novo código e instalar pacotes Node.js localmente?"
+                "Deseja autorizar a compilação do novo código e atualizar a interface local?"
             )
             try:
                 ans = input("Autorizar build da UI? (Y/n): ").strip().lower()

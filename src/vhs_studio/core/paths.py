@@ -71,6 +71,20 @@ def get_ffmpeg_executable_path(binary_name="ffmpeg"):
         if os.path.exists(portable_path):
             return portable_path
 
+    return None
+
+
+PANASONIC_TOOLS_DIR = os.path.join(TOOLS_DIR, "panasonic_rec")
+
+
+def get_panasonic_executable_path(binary_name="extract_meihdfs"):
+    """Return path to Panasonic recovery binary if portable or available in system PATH."""
+    sys_name = platform.system()
+    bin_name = f"{binary_name}.exe" if sys_name == "Windows" else binary_name
+    portable_path = os.path.join(PANASONIC_TOOLS_DIR, bin_name)
+    if os.path.exists(portable_path):
+        return portable_path
+
     which_path = shutil.which(binary_name)
     if which_path:
         return which_path

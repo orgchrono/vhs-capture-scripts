@@ -146,15 +146,15 @@ export const RestorationSettings: React.FC = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="video" className="w-full flex-1 min-h-0 flex flex-col" aria-label="Settings Tabs">
+      <Tabs defaultValue="presets" className="w-full flex-1 min-h-0 flex flex-col" aria-label="Settings Tabs">
         <TabsList className="grid w-full grid-cols-4 sm:grid-cols-7 gap-1 mb-3 bg-slate-950/80 p-1 border border-white/5 rounded-lg shrink-0">
-          <TabsTrigger value="presets" className="flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium"><Sparkles className="w-3.5 h-3.5 text-amber-400"/>{t('settings.tab_pipelines')}</TabsTrigger>
-          <TabsTrigger value="video" className="flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium"><Video className="w-3.5 h-3.5 text-sky-400"/>{t('settings.tab_video')}</TabsTrigger>
-          <TabsTrigger value="audio" className="flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium"><Music className="w-3.5 h-3.5 text-cyan-400"/>{t('settings.tab_audio')}</TabsTrigger>
-          <TabsTrigger value="filters" className="flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium"><ImageIcon className="w-3.5 h-3.5 text-amber-400"/>{t('settings.tab_filters')}</TabsTrigger>
-          <TabsTrigger value="advanced" className="flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium"><Settings2 className="w-3.5 h-3.5 text-slate-300"/>{t('settings.tab_advanced')}</TabsTrigger>
-          <TabsTrigger value="ai" className="flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium"><Cpu className="w-3.5 h-3.5 text-indigo-400"/>{t('settings.tab_ai')}</TabsTrigger>
-          <TabsTrigger value="storage" className="flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium"><Cloud className="w-3.5 h-3.5 text-emerald-400"/>{t('settings.tab_storage')}</TabsTrigger>
+          <TabsTrigger value="presets" data-testid="tab-presets" className="flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium"><Sparkles className="w-3.5 h-3.5 text-amber-400"/>{t('settings.tab_presets', 'Modo')}</TabsTrigger>
+          <TabsTrigger value="video" data-testid="tab-video" className="flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium"><Video className="w-3.5 h-3.5 text-sky-400"/>{t('settings.tab_video')}</TabsTrigger>
+          <TabsTrigger value="audio" data-testid="tab-audio" className="flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium"><Music className="w-3.5 h-3.5 text-cyan-400"/>{t('settings.tab_audio')}</TabsTrigger>
+          <TabsTrigger value="filters" data-testid="tab-filters" className="flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium"><ImageIcon className="w-3.5 h-3.5 text-amber-400"/>{t('settings.tab_filters')}</TabsTrigger>
+          <TabsTrigger value="advanced" data-testid="tab-advanced" className="flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium"><Settings2 className="w-3.5 h-3.5 text-slate-300"/>{t('settings.tab_advanced')}</TabsTrigger>
+          <TabsTrigger value="ai" data-testid="tab-ai" className="flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium"><Cpu className="w-3.5 h-3.5 text-indigo-400"/>{t('settings.tab_ai')}</TabsTrigger>
+          <TabsTrigger value="storage" data-testid="tab-storage" className="flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium"><Cloud className="w-3.5 h-3.5 text-emerald-400"/>{t('settings.tab_storage')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="presets" className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 space-y-3">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { UploadCloud } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -11,8 +11,9 @@ import {
   ConsoleViewer,
   LiveMonitor,
   PrivacyModal,
-  BroadcastProgress,
+  FooterStatusBar,
 } from './components'
+import { createTelemetryParser } from './components/BroadcastProgress'
 import { Toaster } from './components/ui/sonner'
 import {
   ResizablePanelGroup,
@@ -22,6 +23,8 @@ import {
 import { useStudioViewModel } from './viewmodels'
 import { useStudioStore } from './store/useStudioStore'
 import { LAYOUT_CONFIG } from './lib/constants'
+
+const telemetryParser = createTelemetryParser()
 
 const StudioMain: React.FC<{ onOpenPrivacy?: () => void }> = ({ onOpenPrivacy }) => {
   const { t } = useTranslation()
@@ -45,7 +48,13 @@ const StudioMain: React.FC<{ onOpenPrivacy?: () => void }> = ({ onOpenPrivacy })
     selectedFile,
     setSelectedFile,
     addLog,
+    logs,
+    preset,
   } = useStudioStore()
+
+  const telemetry = useMemo(() => {
+    return telemetryParser(logs, isRestoring, preset)
+  }, [logs, isRestoring, preset])
 
   const [isDragOver, setIsDragOver] = useState(false)
   const shouldReduceMotion = useReducedMotion()
@@ -101,6 +110,23 @@ const StudioMain: React.FC<{ onOpenPrivacy?: () => void }> = ({ onOpenPrivacy })
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
+      {/* Subtle Ultra-Thin Broadcast Progress Stripe (YouTube / NLE Header Style) */}
+      {isRestoring && (
+        <div
+          role="progressbar"
+          aria-valuenow={telemetry.progressPercent}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={t('telemetry.progress_label')}
+          className="w-full h-[2.5px] bg-slate-900 overflow-hidden shrink-0 z-50"
+        >
+          <div
+            className="h-full bg-gradient-to-r from-sky-400 via-emerald-400 to-indigo-400 transition-all duration-300 ease-out"
+            style={{ width: `${telemetry.progressPercent}%` }}
+          />
+        </div>
+      )}
+
       <Header
         status={status}
         onInstallQtgmc={handleInstallQtgmc}
@@ -229,7 +255,6 @@ const StudioMain: React.FC<{ onOpenPrivacy?: () => void }> = ({ onOpenPrivacy })
                     maxSize={LAYOUT_CONFIG.CONSOLE_MAX_SIZE}
                     className="bg-[#080c14] flex flex-col shrink-0 p-2 lg:p-2.5 overflow-hidden"
                   >
-                    <BroadcastProgress />
                     <div className="flex-1 min-h-0 flex flex-col">
                       <ConsoleViewer
                         onStart={onStart}
@@ -244,6 +269,9 @@ const StudioMain: React.FC<{ onOpenPrivacy?: () => void }> = ({ onOpenPrivacy })
           </ResizablePanel>
         </ResizablePanelGroup>
       </main>
+
+      {/* Broadcast Telemetry Footer Status Bar */}
+      <FooterStatusBar />
     </div>
   )
 }

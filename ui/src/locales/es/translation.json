@@ -60,7 +60,22 @@
     "refresh_list": "Actualizar lista",
     "refresh": "Actualizar",
     "select_placeholder": "Seleccionar una cinta capturada...",
-    "no_files_found": "No se encontraron videos analógicos en media/raw/."
+    "no_files_found": "No se encontraron videos analógicos en media/raw/.",
+    "collapse": "Colapsar",
+    "expand": "Expandir",
+    "empty_hint": "Grabe una nueva cinta en OBS Studio o arrastre un archivo de video aquí.",
+    "analog_recording": "Grabación Analógica",
+    "panasonic_ingest_title": "Ingesta Panasonic DVR",
+    "panasonic_collapse": "Colapsar ingesta",
+    "panasonic_expand": "Expandir ingesta Panasonic",
+    "source_path_label": "Imagen de disco o fuente de bloque (MEIHDFS/DVD-VR):",
+    "source_path_placeholder": "Ruta a la imagen (.img, .bin, .raw, .iso)...",
+    "inspect": "Inspeccionar",
+    "format_label": "Formato:",
+    "binary_native": "Binario Nativo",
+    "carver_python": "Carver Pure-Python",
+    "extracting": "Extrayendo títulos a media/raw/...",
+    "extract_btn": "Extraer a media/raw/"
   },
   "app": {
     "drop_title": "Suelte su cinta de video aquí",

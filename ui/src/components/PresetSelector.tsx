@@ -58,6 +58,7 @@ export const PresetSelector: React.FC = () => {
           <button
             type="button"
             key={p.id}
+            data-testid={`preset-${p.id}`}
             onClick={() => {
               applyPreset(p.id)
               toast.info(t('toast.preset_applied', { name: p.name }))

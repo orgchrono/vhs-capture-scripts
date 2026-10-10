@@ -64,7 +64,7 @@ describe('Studio Pro Workspace Layout & UX Cohesion ("Feng Shui")', () => {
     )
 
     expect(screen.getByText(/Arquivo de Entrada \(media\/raw\/\)/i)).toBeInTheDocument()
-    expect(screen.getByText(/family_1994\.mkv/i)).toBeInTheDocument()
-    expect(screen.getByText(/vacation_1998\.mkv/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/family_1994\.mkv/i)[0]).toBeInTheDocument()
+    expect(screen.getAllByText(/vacation_1998\.mkv/i)[0]).toBeInTheDocument()
   })
 })

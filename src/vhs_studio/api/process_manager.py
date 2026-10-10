@@ -2,9 +2,12 @@
 
 import threading
 import subprocess
+import re
 from typing import Tuple, List, Optional
 
 from vhs_studio.core.constants import MAX_PROCESS_LOGS_HISTORY
+
+ANSI_ESCAPE_RE = re.compile(r"(?:\x1b|\u001b)\[[0-9;]*[a-zA-Z]|\x1b\[[0-9;]*m|\[[0-9;]{1,3}m")
 
 
 class ProcessManager:
@@ -59,7 +62,7 @@ class ProcessManager:
         """Stream lines from subprocess stdout and capture final returncode."""
         if proc.stdout:
             for line in proc.stdout:
-                clean_line = line.strip()
+                clean_line = ANSI_ESCAPE_RE.sub("", line).strip()
                 if clean_line:
                     with self._lock:
                         self.process_logs.append(clean_line)

@@ -108,7 +108,7 @@ test.describe('VHS Studio Visual Inspection & Screenshots', () => {
     await page.screenshot({ path: path.join(shotsDir, '01_main_workspace.png'), fullPage: true });
 
     // 2. Preset Selection com foco no AI Master
-    const aiPreset = page.locator('button', { hasText: /AI Master/i });
+    const aiPreset = page.getByTestId('preset-ai_master');
     if (await aiPreset.isVisible()) {
       await aiPreset.click();
       await page.waitForTimeout(300);
@@ -116,26 +116,26 @@ test.describe('VHS Studio Visual Inspection & Screenshots', () => {
     }
 
     // 3. Aba de Inteligência Artificial
-    const aiTab = page.locator('button[role="tab"]', { hasText: /IA/i });
+    const aiTab = page.getByTestId('tab-ai');
     await aiTab.click();
     await page.waitForTimeout(400);
     await page.screenshot({ path: path.join(shotsDir, '03_ai_tab_diagnostics.png') });
 
     // 4. Aba de Vídeo
-    const videoTab = page.locator('button[role="tab"]', { hasText: /Vídeo/i });
+    const videoTab = page.getByTestId('tab-video');
     await videoTab.click();
     await page.waitForTimeout(400);
     await page.screenshot({ path: path.join(shotsDir, '04_video_settings_tab.png') });
 
     // 5. Aba de Nuvem / Armazenamento
-    const cloudTab = page.locator('button[role="tab"]', { hasText: /Nuvem/i });
+    const cloudTab = page.getByTestId('tab-storage');
     await cloudTab.click();
     await page.waitForTimeout(400);
     await page.screenshot({ path: path.join(shotsDir, '05_cloud_storage_tab.png') });
 
     // 6. Teste de Ação & Sonner Toast Notificação
     // Clicar em "Iniciar Restauração" sem selecionar arquivo para acionar o Toast Sonner
-    const startProcessBtn = page.locator('button', { hasText: /Iniciar Restauração/i });
+    const startProcessBtn = page.getByTestId('start-restore-btn');
     if (await startProcessBtn.isVisible()) {
       await startProcessBtn.click();
       await page.waitForTimeout(600);

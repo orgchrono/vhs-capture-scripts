@@ -10,6 +10,7 @@ from vhs_studio.core.constants import (
     DEFAULT_API_HOST,
     DEFAULT_API_PORT,
     VALID_MEDIA_EXTENSIONS,
+    VALID_INGEST_EXTENSIONS,
 )
 from vhs_studio.core.paths import MEDIA_DIR, RAW_MEDIA_DIR
 
@@ -53,6 +54,26 @@ def is_safe_media_path(raw_path: str | None) -> bool:
         if os.path.isabs(raw_path) and os.path.isfile(raw_path):
             ext = os.path.splitext(raw_path)[1].lower()
             if ext in VALID_MEDIA_EXTENSIONS:
+                return True
+    except Exception:
+        pass
+
+    return False
+
+
+def is_safe_ingest_path(raw_path: str | None) -> bool:
+    """Validate that raw_path is safe against traversal and is a valid disk image/media source."""
+    if is_safe_media_path(raw_path):
+        return True
+    if not raw_path or not isinstance(raw_path, str):
+        return False
+    if "\0" in raw_path or ".." in raw_path:
+        return False
+
+    try:
+        if os.path.isabs(raw_path) and os.path.isfile(raw_path):
+            ext = os.path.splitext(raw_path)[1].lower()
+            if ext in VALID_INGEST_EXTENSIONS:
                 return True
     except Exception:
         pass

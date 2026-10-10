@@ -59,8 +59,8 @@ i18n
 // Reactive internationalization & accessibility (a11y) layout direction
 const syncDocumentDirection = (lng: string) => {
   if (typeof document !== 'undefined') {
-    const isRtl = lng === 'ar';
-    document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
+    // Professional NLE / broadcast workspace docks and video monitors stay invariant (LTR).
+    document.documentElement.dir = 'ltr';
     document.documentElement.lang = lng;
   }
 };

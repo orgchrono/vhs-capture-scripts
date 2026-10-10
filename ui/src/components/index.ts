@@ -8,3 +8,4 @@ export { PrivacyModal } from './PrivacyModal';
 export { RestorationSettings } from './RestorationSettings';
 export { StorageSettings } from './StorageSettings';
 export { BroadcastProgress } from './BroadcastProgress';
+export { FooterStatusBar } from './FooterStatusBar';

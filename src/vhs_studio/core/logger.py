@@ -9,6 +9,23 @@ from typing import List, Tuple
 from logging.handlers import RotatingFileHandler
 
 
+def _enable_vt100_windows() -> None:
+    """Enable VT100 ANSI processing on Windows console host if available."""
+    if os.name == "nt":
+        try:
+            import ctypes
+            kernel32 = ctypes.windll.kernel32
+            handle = kernel32.GetStdHandle(-11)  # STD_OUTPUT_HANDLE
+            mode = ctypes.c_ulong()
+            if kernel32.GetConsoleMode(handle, ctypes.byref(mode)):
+                kernel32.SetConsoleMode(handle, mode.value | 0x0004)  # ENABLE_VIRTUAL_TERMINAL_PROCESSING
+        except Exception:
+            pass
+
+
+_enable_vt100_windows()
+
+
 class ColoredFormatter(logging.Formatter):
     """Documentation for ColoredFormatter."""
 
@@ -21,10 +38,13 @@ class ColoredFormatter(logging.Formatter):
     }
     RESET = "\033[0m"
 
-    def __init__(self, use_color=True):
+    def __init__(self, use_color=None):
         """Documentation for __init__."""
         super().__init__("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-        self.use_color = use_color
+        if use_color is None:
+            self.use_color = hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
+        else:
+            self.use_color = use_color
 
     def format(self, record):
         """Documentation for format."""

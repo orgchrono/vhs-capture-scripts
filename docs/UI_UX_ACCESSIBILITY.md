@@ -61,10 +61,18 @@ O sistema de toasts substitui alertas modais intrusivos por notificações discr
 
 O sistema conta com arquitetura de localização completa via **i18next**:
 
-### 4.1 Idiomas Nativamente Suportados
-1. **Português (Brasil) - `pt-BR`** (Padrão)
+### 4.1 Idiomas Nativamente Suportados (10 Idiomas de Preservação)
+A plataforma suporta 10 idiomas globais com dicionários completos:
+1. **Português (Brasil) - `pt-BR`** (Padrão de desenvolvimento)
 2. **Inglês (Estados Unidos) - `en-US`**
-3. **Espanhol - `es-ES`**
+3. **Espanhol - `es`**
+4. **Francês - `fr`**
+5. **Alemão - `de`**
+6. **Italiano - `it`**
+7. **Russo - `ru`**
+8. **Chinês Simplificado - `zh-CN`**
+9. **Japonês - `ja`**
+10. **Árabe - `ar`**
 
 ### 4.2 Estrutura Modular de Chaves
 As mensagens são organizadas por domínio de aplicação:
@@ -76,22 +84,32 @@ As mensagens são organizadas por domínio de aplicação:
     "ready": "Pronto para Ingestão"
   },
   "presets": {
-    "archive": "Arquivo Broadcast (Máxima Qualidade)",
-    "high": "Alta Qualidade (Produção)",
-    "fast": "Restauração Rápida"
+    "gold_name": "Padrão Broadcast",
+    "speed_name": "Ultra Rápido Hardware",
+    "tbc_hold_name": "TBC Frame-Hold (Zero Pretos)",
+    "ai_master_name": "AI Master (Real-ESRGAN)"
   },
-  "queue": {
-    "title": "Fila de Processamento em Lote",
-    "enqueue": "Adicionar à Fila",
-    "cancel": "Cancelar Trabalho"
+  "settings": {
+    "tab_presets": "Modos Prontos",
+    "tab_video": "Vídeo",
+    "tab_audio": "Áudio"
   },
-  "compliance": {
-    "terms": "Termos de Compliance e Licença",
-    "as_is": "Software fornecido no estado em que se encontra (As Is)."
+  "telemetry": {
+    "title": "Telemetria de Masterização Analógica",
+    "stage_idle": "Em Espera / Pronto",
+    "frames": "Quadros",
+    "fps": "FPS",
+    "eta": "Tempo Estimado"
   }
 }
 ```
 A troca de idioma ocorre instantaneamente via seletor no cabeçalho da interface, sem recarregar a página e persistindo a escolha no `localStorage`.
+
+### 4.3 Invariância Estrutural de Layout em Ambientes NLE (BiDi & RTL)
+Em softwares profissionais de áudio e vídeo (como DaVinci Resolve, Premiere e Avid), os fluxos de hardware analógico, osciloscópios (vectorscopes), canais de áudio L/R, barras de transporte e a linha do tempo são **estruturalmente orientados da esquerda para a direita (LTR)**.
+
+- **Por que a estação não inverte o layout em Árabe:** Inverter as docas, mover o monitor CRT para o lado direito e espelhar as barras de ferramentas quebraria o mapeamento mental e as convenções físicas das placas de captura (DeckLink) e controles de transporte.
+- **Implementação Técnica:** No [`i18n.ts`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/ui/src/i18n.ts), `document.documentElement.dir` é mantido estritamente como `'ltr'`, enquanto `document.documentElement.lang = lng` atualiza os metadados do documento. Isso assegura renderização perfeita de glifos árabes e suporte para leitores de tela sem causar o espelhamento disruptivo da interface.
 
 ---
 
@@ -100,8 +118,32 @@ A troca de idioma ocorre instantaneamente via seletor no cabeçalho da interface
 A qualidade e estabilidade da interface são asseguradas por duas camadas de teste:
 
 1. **Testes Unitários e de Componente (Vitest + React Testing Library):**
-   - Testa renderização de abas, dispatch de ações, hooks do RTK Query e sanitização de dados.
+   - 17 arquivos de teste e 45 testes cobrindo renderização, dispatch de ações, busca no console, explorador de fitas, internacionalização e componentes acessíveis.
    - Execução: `npm run test:unit` dentro de `ui/`.
 2. **Testes End-to-End (Playwright):**
-   - Inicializa um navegador Chromium automatizado, testa navegação por abas, enfileiramento de trabalhos, disparo de toasts e validação de acessibilidade.
+   - Inicializa um navegador Chromium automatizado, testa o fluxo de captura, navegação por abas com `getByTestId`, inspeção visual de layout e validação de acessibilidade.
    - Execução: `npx playwright test --project=chromium` dentro de `ui/`.
+
+---
+
+## 6. Footer StatusBar & Barra de Progresso React 19
+
+1. **Componente Nativo React 19 Progress:**
+   - O componente legado do Radix UI causava colisões de contexto no React 19 (`TypeError: Cannot read properties of null (reading 'useMemo')`).
+   - Foi substituído por um componente acessível nativo ([`ui/src/components/ui/progress.tsx`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/ui/src/components/ui/progress.tsx)) com semântica WAI-ARIA completa (`role="progressbar"`, `aria-valuenow`, `aria-valuemin="0"`, `aria-valuemax="100"`).
+2. **Footer StatusBar:**
+   - Componente persistente de rodapé ([`FooterStatusBar.tsx`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/ui/src/components/FooterStatusBar.tsx)) que reúne Tally de hardware, nome da fita ativa, contagem de quadros, FPS em tempo real, velocidade relativa, ETA e botão de acesso rápido à gaveta de logs (`>_ Logs`).
+3. **Aba Padrão "Modo":**
+   - O termo hermético *"Pipelines"* foi substituído por **"Modo"** (anteriormente "Modos Prontos", ajustado para 4 caracteres para eliminar totalmente o bleed/quebra visual entre as 7 abas do painel) e configurado como a aba de inicialização padrão (`defaultValue="presets"`), oferecendo foco imediato nas estratégias macro de restauração.
+
+---
+
+## 7. Tape Library Explorer & Console Live Search
+
+1. **Tape Library Explorer (Acervo Visual de Fitas):**
+   - No [`FileSelector.tsx`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/ui/src/components/FileSelector.tsx), a seleção de arquivos conta com um explorador visual retrátil (estilo DaVinci Media Pool / VS Code File Explorer) localizado na coluna lateral.
+   - Apresenta miniaturas estilizadas de fitas VHS (com carretéis e badge de container MKV/RAW), tamanho de arquivo em MB/GB, metadados e botão de recolher/expandir com botão `+`/`-`.
+   - O placeholder da combobox foi corrigido para `<option value="" disabled hidden>`, garantindo que o texto guia nunca seja selecionável acidentalmente como uma fita válida.
+2. **Console Live Search (Busca em Tempo Real no Console):**
+   - No [`ConsoleViewer.tsx`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/ui/src/components/ConsoleViewer.tsx), foi incorporada uma barra de busca interativa com ícone `<Search />`, atalho de teclado, realce de termos encontrados via tag semântica `<mark>`, contador de resultados (`X/Y`) e botão de limpeza instantânea `<X />`.
+   - Permite filtrar fluxos massivos de telemetria e depuração (ex: `QTGMC`, `Whisper`, `Dropped Frame`) sem sobrecarregar a visualização do operador.

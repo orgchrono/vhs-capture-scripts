@@ -16,6 +16,13 @@ export interface TelemetryData {
   readonly isStreaming: boolean;
 }
 
+export interface StageDefinition {
+  readonly id: string;
+  readonly step: number;
+  readonly key: string;
+  readonly label: string;
+}
+
 const IDLE_TELEMETRY: TelemetryData = {
   stage: 0,
   stageNameKey: 'telemetry.stage_idle',
@@ -28,61 +35,110 @@ const IDLE_TELEMETRY: TelemetryData = {
   isStreaming: false,
 };
 
-const STAGE_FALLBACK_PERCENTAGES: Record<number, number> = {
-  1: 15,
-  2: 45,
-  3: 75,
-  4: 90,
-};
-
-const STAGE_KEY_MAP: Record<number, string> = {
-  1: 'telemetry.stage_ingest',
-  2: 'telemetry.stage_deinterlace',
-  3: 'telemetry.stage_filters',
-  4: 'telemetry.stage_encode',
+export const getPresetStages = (preset?: string): StageDefinition[] => {
+  switch (preset) {
+    case 'gold':
+      return [
+        { id: 'ingest', step: 1, key: 'telemetry.stage_ingest', label: 'Ingestão & Scan' },
+        { id: 'qtgmc', step: 2, key: 'telemetry.stage_qtgmc', label: 'QTGMC 60fps' },
+        { id: 'filters', step: 3, key: 'telemetry.stage_chroma_dropout', label: 'Croma & Dropout' },
+        { id: 'audio', step: 4, key: 'telemetry.stage_audio_ebu', label: 'Áudio EBU R128' },
+        { id: 'encode', step: 5, key: 'telemetry.stage_encode_master', label: 'Master ProRes/x264' },
+      ];
+    case 'speed':
+      return [
+        { id: 'ingest', step: 1, key: 'telemetry.stage_ingest', label: 'Ingestão Rápida' },
+        { id: 'bwdif', step: 2, key: 'telemetry.stage_bwdif', label: 'BWDIF GPU' },
+        { id: 'encode', step: 3, key: 'telemetry.stage_encode_fast', label: 'NVENC Hardware' },
+        { id: 'export', step: 4, key: 'telemetry.stage_export', label: 'Exportação' },
+      ];
+    case 'tbc_hold':
+      return [
+        { id: 'ingest', step: 1, key: 'telemetry.stage_ingest', label: 'Ingestão' },
+        { id: 'tbc', step: 2, key: 'telemetry.stage_tbc_hold', label: 'TBC Signal Hold' },
+        { id: 'deinterlace', step: 3, key: 'telemetry.stage_deinterlace', label: 'Desentrelaçamento' },
+        { id: 'encode', step: 4, key: 'telemetry.stage_encode', label: 'Master Frame-Accurate' },
+      ];
+    case 'ai_master':
+      return [
+        { id: 'ingest', step: 1, key: 'telemetry.stage_ingest', label: 'Ingestão' },
+        { id: 'qtgmc', step: 2, key: 'telemetry.stage_qtgmc', label: 'QTGMC 60fps' },
+        { id: 'face', step: 3, key: 'telemetry.stage_face_restore', label: 'Face CodeFormer' },
+        { id: 'rife', step: 4, key: 'telemetry.stage_rife_interpolation', label: 'RIFE 60fps' },
+        { id: 'upscale', step: 5, key: 'telemetry.stage_ai_upscale', label: 'Real-ESRGAN' },
+        { id: 'encode', step: 6, key: 'telemetry.stage_encode_ai', label: 'Master IA' },
+      ];
+    default:
+      return [
+        { id: 'ingest', step: 1, key: 'telemetry.stage_ingest', label: 'Ingestão' },
+        { id: 'deinterlace', step: 2, key: 'telemetry.stage_deinterlace', label: 'Desentrelaçamento' },
+        { id: 'filters', step: 3, key: 'telemetry.stage_filters', label: 'Filtros' },
+        { id: 'encode', step: 4, key: 'telemetry.stage_encode', label: 'Codificação' },
+      ];
+  }
 };
 
 /**
  * Functional closure factory parsing raw streaming DAG logs into structured broadcast telemetry.
- * Fully pure and deterministic.
+ * Dynamic stage resolution without arbitrary hardcoded percentage jumps.
  */
 export const createTelemetryParser = () => {
-  return (logs: readonly string[], isRestoring: boolean): TelemetryData => {
+  return (logs: readonly string[], isRestoring: boolean, preset?: string): TelemetryData => {
     if (!isRestoring) return IDLE_TELEMETRY;
 
-    const detectedStage = logs.reduce((stageAcc, line) => {
-      if (line.includes('ProRes') || line.includes('x264') || line.includes('Codificando')) return 4;
-      if (line.includes('Chroma') || line.includes('denoise') || line.includes('Filtro')) return Math.max(stageAcc, 3);
-      if (line.includes('QTGMC') || line.includes('VapourSynth')) return Math.max(stageAcc, 2);
-      return stageAcc;
-    }, 1);
-
+    const stages = getPresetStages(preset);
+    const totalSteps = stages.length;
     const reversedLogs = [...logs].reverse();
 
-    const latestFrameLine = reversedLogs.find((line) => /Frames:\s*(\d+)\s*\/\s*(\d+)/i.test(line));
-    const frameMatch = latestFrameLine ? latestFrameLine.match(/Frames:\s*(\d+)\s*\/\s*(\d+)/i) : null;
+    const stagePatternLine = reversedLogs.find((line) => /STAGE:(\d+)\/(\d+)/i.test(line));
+    const stagePatternMatch = stagePatternLine ? stagePatternLine.match(/STAGE:(\d+)\/(\d+)/i) : null;
+
+    const detectedStage = stagePatternMatch
+      ? Math.min(totalSteps, Math.max(1, parseInt(stagePatternMatch[1], 10)))
+      : logs.reduce((stageAcc, line) => {
+          if (/ProRes|x264|Codificando|Muxing|FFV1|Finalizando/i.test(line)) return totalSteps;
+          if (/CodeFormer|FaceRestor|RIFE|Upscaler|Real-ESRGAN/i.test(line)) return Math.min(totalSteps, Math.max(stageAcc, 3));
+          if (/Chroma|denoise|Filtro|TComb|dropout|audio_treatment|EBU/i.test(line)) return Math.min(totalSteps, Math.max(stageAcc, 3));
+          if (/QTGMC|BWDIF|VapourSynth|desentrela/i.test(line)) return Math.min(totalSteps, Math.max(stageAcc, 2));
+          return stageAcc;
+        }, 1);
+
+    const matchedStageDef = stages.find((s) => s.step === detectedStage) || stages[0];
+
+    const progressLine = reversedLogs.find((line) => /PROGRESS:\s*(\d+)%/i.test(line));
+    const progressMatch = progressLine ? progressLine.match(/PROGRESS:\s*(\d+)%/i) : null;
+    const explicitPercent = progressMatch ? parseInt(progressMatch[1], 10) : null;
+
+    const latestFrameLine = reversedLogs.find((line) => /Frames:\s*(\d+)(?:\s*\/\s*(\d+))?/i.test(line));
+    const frameMatch = latestFrameLine ? latestFrameLine.match(/Frames:\s*(\d+)(?:\s*\/\s*(\d+))?/i) : null;
     const currentFrames = frameMatch ? parseInt(frameMatch[1], 10) : 0;
-    const totalFrames = frameMatch ? parseInt(frameMatch[2], 10) : 0;
-    const calculatedPercent = totalFrames > 0 ? Math.min(100, Math.round((currentFrames / totalFrames) * 100)) : 0;
+    const totalFrames = frameMatch && frameMatch[2] ? parseInt(frameMatch[2], 10) : 0;
+
+    const calculatedPercent =
+      explicitPercent !== null
+        ? Math.min(100, Math.max(0, explicitPercent))
+        : totalFrames > 0 && currentFrames > 0
+        ? Math.min(100, Math.round((currentFrames / totalFrames) * 100))
+        : totalSteps > 1
+        ? Math.min(99, Math.round(((detectedStage - 1) / totalSteps) * 100))
+        : 0;
 
     const latestFpsLine = reversedLogs.find((line) => /FPS:\s*([\d.]+)/i.test(line));
     const fpsMatch = latestFpsLine ? latestFpsLine.match(/FPS:\s*([\d.]+)/i) : null;
-    const fps = fpsMatch ? parseFloat(fpsMatch[1]) : (isRestoring ? 59.94 : 0);
+    const fps = fpsMatch ? parseFloat(fpsMatch[1]) : 59.94;
 
     const latestEtaLine = reversedLogs.find((line) => /ETA:\s*([0-9:]+)/i.test(line));
     const etaMatch = latestEtaLine ? latestEtaLine.match(/ETA:\s*([0-9:]+)/i) : null;
     const eta = etaMatch ? etaMatch[1] : '--:--:--';
 
-    const latestSpeedLine = reversedLogs.find((line) => /Velocidade:\s*([\d.]+x)/i.test(line));
-    const speedMatch = latestSpeedLine ? latestSpeedLine.match(/Velocidade:\s*([\d.]+x)/i) : null;
+    const latestSpeedLine = reversedLogs.find((line) => /(?:Velocidade|Speed):\s*([\d.]+x)/i.test(line));
+    const speedMatch = latestSpeedLine ? latestSpeedLine.match(/(?:Velocidade|Speed):\s*([\d.]+x)/i) : null;
     const speed = speedMatch ? speedMatch[1] : '1.0x';
-
-    const finalPercent = calculatedPercent > 0 ? calculatedPercent : (STAGE_FALLBACK_PERCENTAGES[detectedStage] ?? 10);
 
     return {
       stage: detectedStage,
-      stageNameKey: STAGE_KEY_MAP[detectedStage] ?? 'telemetry.stage_ingest',
-      progressPercent: finalPercent,
+      stageNameKey: matchedStageDef.key,
+      progressPercent: calculatedPercent,
       currentFrames,
       totalFrames,
       fps,
@@ -97,23 +153,20 @@ const telemetryParser = createTelemetryParser();
 
 export const BroadcastProgress: React.FC = () => {
   const { t } = useTranslation();
-  const { isRestoring, logs } = useStudioStore();
+  const { isRestoring, logs, preset } = useStudioStore();
 
   const telemetry = useMemo(() => {
-    return telemetryParser(logs, isRestoring);
-  }, [isRestoring, logs]);
+    return telemetryParser(logs, isRestoring, preset);
+  }, [isRestoring, logs, preset]);
 
-  const stages = [
-    { num: 1, key: 'telemetry.stage_ingest' },
-    { num: 2, key: 'telemetry.stage_deinterlace' },
-    { num: 3, key: 'telemetry.stage_filters' },
-    { num: 4, key: 'telemetry.stage_encode' },
-  ];
+  const stages = useMemo(() => {
+    return getPresetStages(preset);
+  }, [preset]);
 
   return (
     <div
       role="region"
-      aria-label={t('telemetry.title')}
+      aria-label={t('telemetry.title', 'Telemetria de Masterização')}
       className="bg-studio-panel border border-studio-border rounded-xl p-3 mb-2 flex flex-col gap-2.5 text-slate-200 select-none"
     >
       {/* Top Header: Title, Active Stage and Tally LED */}
@@ -128,7 +181,7 @@ export const BroadcastProgress: React.FC = () => {
             aria-hidden="true"
           />
           <span className="text-[11px] font-bold uppercase tracking-wider font-mono text-slate-300">
-            {t('telemetry.title')}
+            {t('telemetry.title', 'Telemetria de Masterização')}
           </span>
           <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-studio-surface border border-studio-border text-slate-400">
             {isRestoring ? t(telemetry.stageNameKey) : t('telemetry.stage_idle')}
@@ -156,14 +209,14 @@ export const BroadcastProgress: React.FC = () => {
         className="h-2"
       />
 
-      {/* Stage Step Breadcrumbs */}
-      <div className="grid grid-cols-4 gap-1.5 pt-0.5">
+      {/* Dynamic Stage Step Breadcrumbs (Matches Selected Preset Strategy) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-1.5 pt-0.5">
         {stages.map((st) => {
-          const isDone = telemetry.stage > st.num || (!isRestoring && telemetry.stage === 4);
-          const isCurrent = isRestoring && telemetry.stage === st.num;
+          const isDone = telemetry.stage > st.step || (!isRestoring && telemetry.stage === stages.length);
+          const isCurrent = isRestoring && telemetry.stage === st.step;
           return (
             <div
-              key={st.num}
+              key={st.id}
               className={`flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-mono border transition-colors ${
                 isCurrent
                   ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300'
@@ -181,9 +234,9 @@ export const BroadcastProgress: React.FC = () => {
                     : 'bg-slate-800 text-slate-500'
                 }`}
               >
-                {st.num}
+                {st.step}
               </span>
-              <span className="truncate">{t(st.key)}</span>
+              <span className="truncate">{t(st.key, st.label)}</span>
             </div>
           );
         })}
