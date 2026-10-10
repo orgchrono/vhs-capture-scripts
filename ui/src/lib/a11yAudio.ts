@@ -3,15 +3,24 @@
  * Fornece feedback sonoro acessível para estágios da pipeline e erros críticos.
  */
 
+interface WindowWithWebkitAudio extends Window {
+  webkitAudioContext?: typeof AudioContext;
+}
+
 class A11yAudio {
   private ctx: AudioContext | null = null;
   private isMuted: boolean = false;
 
   private initCtx() {
     if (!this.ctx) {
-      this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioContextClass =
+        window.AudioContext ||
+        (window as WindowWithWebkitAudio).webkitAudioContext;
+      if (AudioContextClass) {
+        this.ctx = new AudioContextClass();
+      }
     }
-    if (this.ctx.state === 'suspended') {
+    if (this.ctx && this.ctx.state === 'suspended') {
       this.ctx.resume();
     }
   }
@@ -39,7 +48,7 @@ class A11yAudio {
 
       osc.start();
       osc.stop(this.ctx.currentTime + duration);
-    } catch (e) {
+    } catch {
       console.warn("A11yAudio disabled or blocked by browser policy");
     }
   }

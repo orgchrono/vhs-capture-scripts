@@ -20,7 +20,7 @@ describe('StorageSettings Component', () => {
   });
 
   it('renders and fetches storage config via global fetch', async () => {
-    (globalThis.fetch as any).mockImplementation(() =>
+    vi.mocked(globalThis.fetch).mockImplementation(() =>
       Promise.resolve(
         new Response(JSON.stringify({ provider: 'local', config: { path: 'C:/VHS' } }), {
           status: 200,

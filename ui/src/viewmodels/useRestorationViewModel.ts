@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useStudioStore } from '../store/useStudioStore';
+import { getErrorMessage } from '../lib/errors';
 import { useGenerateSubtitlesMutation, useGetHardwareProfileQuery } from '../api/studioRtkApi';
 import type { HardwareProfile } from '../types';
 
@@ -63,8 +64,8 @@ export function useRestorationViewModel(): UseRestorationViewModelResult {
         store.addLog(`[WHISPER AVISO] ${msg}`);
         toast.warning(msg);
       }
-    } catch (e: any) {
-      const errMsg = e.message || 'Erro na requisição';
+    } catch (e: unknown) {
+      const errMsg = getErrorMessage(e, 'Erro na requisição');
       store.addLog(`[WHISPER ERRO] ${errMsg}`);
       toast.error(errMsg);
     }

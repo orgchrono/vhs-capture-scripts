@@ -2,8 +2,10 @@ import React from 'react';
 import { Video, AlertTriangle, Activity } from 'lucide-react';
 import { useLiveMonitor } from '../viewmodels/useLiveMonitor';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
+import type { SystemHealth } from '../types';
+import { formatBitrate } from '../lib/formatters';
 
-export const LiveMonitor: React.FC<{ health?: any }> = ({ health }) => {
+export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => {
   const { videoRef, isActive, error, obsStats, isCapturing } = useLiveMonitor();
   const shouldReduceMotion = useReducedMotion();
 
@@ -41,9 +43,7 @@ export const LiveMonitor: React.FC<{ health?: any }> = ({ health }) => {
               className="bg-blue-950/80 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-mono font-semibold text-blue-300 border border-blue-500/40 shadow-sm flex items-center gap-1.5"
             >
               <Activity className="w-3 h-3 text-blue-400 animate-pulse" />
-              {obsStats.bitrate_kbps >= 1000
-                ? `${(obsStats.bitrate_kbps / 1000).toFixed(1)} Mbps`
-                : `${obsStats.bitrate_kbps} kbps`}
+              {formatBitrate(obsStats.bitrate_kbps)}
             </motion.span>
           )}
           {obsStats?.connected && obsStats?.fps !== undefined && obsStats.fps > 0 && (
@@ -55,13 +55,13 @@ export const LiveMonitor: React.FC<{ health?: any }> = ({ health }) => {
               {obsStats.fps} FPS
             </motion.span>
           )}
-          {health?.dropped_frames > 0 && (
+          {Boolean(health?.dropped_frames && health.dropped_frames > 0) && (
             <motion.span
               key="badge-drops"
               {...badgeMotion}
               className="bg-amber-600/90 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-white border border-amber-500/50 shadow-sm flex items-center gap-1.5 animate-pulse tracking-wider"
             >
-              <AlertTriangle className="w-3 h-3 text-white" /> FITA MASTIGADA! ({health.dropped_frames} DROPS)
+              <AlertTriangle className="w-3 h-3 text-white" /> FITA MASTIGADA! ({health?.dropped_frames} DROPS)
             </motion.span>
           )}
         </AnimatePresence>

@@ -2,6 +2,7 @@ import { a11yAudio } from '../lib/a11yAudio';
 import { useEffect, useState, useRef } from 'react';
 import { useStudioStore } from '../store/useStudioStore';
 import { TIMING } from '../lib/constants';
+import { getErrorMessage } from '../lib/errors';
 import {
   useGetStatusQuery,
   useStartRestorationMutation,
@@ -123,9 +124,9 @@ export function useStudioViewModel() {
         alert(data.message || 'Erro ao iniciar');
         return false;
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       a11yAudio.playError();
-      alert(`Erro na requisição: ${err.message || 'Falha de comunicação'}`);
+      alert(`Erro na requisição: ${getErrorMessage(err, 'Falha de comunicação')}`);
       return false;
     }
   };
@@ -137,8 +138,8 @@ export function useStudioViewModel() {
       await installObsTrigger().unwrap();
       addLog('[OBS] Instalador iniciado em segundo plano. Acompanhe a instalação no Console.');
       refetchStatus();
-    } catch (e) {
-      console.error(e);
+    } catch (e: unknown) {
+      console.error(getErrorMessage(e));
     } finally {
       setTimeout(() => setIsInstallingObs(false), TIMING.INSTALL_RESET_DELAY_MS);
     }
@@ -150,8 +151,8 @@ export function useStudioViewModel() {
     try {
       await installQtgmcTrigger().unwrap();
       addLog('[QTGMC] Instalador iniciado em segundo plano. Acompanhe a instalação no Console.');
-    } catch (e) {
-      addLog(`[QTGMC ERRO] Falha ao iniciar instalador: ${e}`);
+    } catch (e: unknown) {
+      addLog(`[QTGMC ERRO] Falha ao iniciar instalador: ${getErrorMessage(e)}`);
     } finally {
       setTimeout(() => setIsInstallingQtgmc(false), TIMING.INSTALL_RESET_DELAY_MS);
     }
@@ -181,9 +182,9 @@ export function useStudioViewModel() {
       if (res.path) {
         addLog(`[OBS CAPTURA] Arquivo finalizado com sucesso: ${res.path}`);
       }
-    } catch (e) {
+    } catch (e: unknown) {
       store.setIsCapturing(false);
-      addLog(`[OBS ERRO] Falha ao finalizar gravação: ${e}`);
+      addLog(`[OBS ERRO] Falha ao finalizar gravação: ${getErrorMessage(e)}`);
     }
   };
 

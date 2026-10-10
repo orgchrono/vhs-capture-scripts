@@ -1,5 +1,5 @@
 import React from 'react'
-import { Award, Zap, ShieldCheck, Wand2 } from 'lucide-react'
+import { Award, Zap, ShieldCheck, Wand2, type LucideIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { motion, useReducedMotion } from 'motion/react'
@@ -7,12 +7,20 @@ import { useStudioStore } from '../store/useStudioStore'
 import type { RestorationPreset } from '../types'
 import { cn } from '../lib/utils'
 
+interface PresetCard {
+  id: RestorationPreset;
+  name: string;
+  desc: string;
+  icon: LucideIcon;
+  badge?: string;
+}
+
 export const PresetSelector: React.FC = () => {
   const { t } = useTranslation()
   const { preset, applyPreset } = useStudioStore()
   const shouldReduceMotion = useReducedMotion()
 
-  const presets: { id: RestorationPreset; name: string; desc: string; icon: any; badge?: string }[] = [
+  const presets: ReadonlyArray<PresetCard> = [
     {
       id: 'gold',
       name: 'Padrão Broadcast',

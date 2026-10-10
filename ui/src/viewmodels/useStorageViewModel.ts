@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import {
   useGetStorageConfigQuery,
   useUpdateStorageConfigMutation,
 } from "../api/studioRtkApi";
+import { getErrorMessage } from "../lib/errors";
 
 // ============================================================================
-// VIEWMODEL: Strict MVVM & SOC (RTK Query Powered)
-// Centraliza a lógica de negócios e as mutações de estado (SSOT) fora da View.
+// VIEWMODEL: Strict MVVM, SoC & Functional Purity (RTK Query Powered)
+// Pure state derivation without cascading effect loops.
 // ============================================================================
 
 export interface StorageConfigModel {
@@ -29,42 +30,49 @@ export interface StorageConfigModel {
   GDRIVE_CLIENT_SECRET?: string;
 }
 
+const DEFAULT_CONFIG: StorageConfigModel = {
+  path: "",
+  SUPABASE_URL: "",
+  SUPABASE_KEY: "",
+  SUPABASE_BUCKET: "",
+  DROPBOX_ACCESS_TOKEN: "",
+  DROPBOX_APP_KEY: "",
+  DROPBOX_APP_SECRET: "",
+  ONEDRIVE_CLIENT_ID: "",
+  ONEDRIVE_CLIENT_SECRET: "",
+  ONEDRIVE_TENANT_ID: "common",
+  S3_ENDPOINT_URL: "",
+  S3_ACCESS_KEY: "",
+  S3_SECRET_KEY: "",
+  S3_REGION: "us-east-1",
+  S3_BUCKET: "",
+  GDRIVE_CLIENT_ID: "",
+  GDRIVE_CLIENT_SECRET: "",
+};
+
 export function useStorageViewModel() {
   const { data: storageData, isLoading } = useGetStorageConfigQuery();
   const [updateStorageTrigger, { isLoading: isSaving }] = useUpdateStorageConfigMutation();
 
-  const [provider, setProvider] = useState<string>("local_nas_usb");
-  const [config, setConfig] = useState<StorageConfigModel>({
-    path: "",
-    SUPABASE_URL: "",
-    SUPABASE_KEY: "",
-    SUPABASE_BUCKET: "",
-    DROPBOX_ACCESS_TOKEN: "",
-    DROPBOX_APP_KEY: "",
-    DROPBOX_APP_SECRET: "",
-    ONEDRIVE_CLIENT_ID: "",
-    ONEDRIVE_CLIENT_SECRET: "",
-    ONEDRIVE_TENANT_ID: "common",
-    S3_ENDPOINT_URL: "",
-    S3_ACCESS_KEY: "",
-    S3_SECRET_KEY: "",
-    S3_REGION: "us-east-1",
-    S3_BUCKET: "",
-    GDRIVE_CLIENT_ID: "",
-    GDRIVE_CLIENT_SECRET: "",
-  });
+  const [userSelectedProvider, setUserSelectedProvider] = useState<string | null>(null);
+  const [userConfigOverrides, setUserConfigOverrides] = useState<Partial<StorageConfigModel>>({});
 
-  useEffect(() => {
-    if (storageData?.provider) {
-      setProvider(storageData.provider);
-    }
-    if (storageData?.config) {
-      setConfig((prev) => ({ ...prev, ...storageData.config }));
-    }
-  }, [storageData]);
+  const provider = userSelectedProvider ?? storageData?.provider ?? "local_nas_usb";
+
+  const config = useMemo<StorageConfigModel>(() => {
+    return {
+      ...DEFAULT_CONFIG,
+      ...(storageData?.config as Partial<StorageConfigModel> | undefined),
+      ...userConfigOverrides,
+    };
+  }, [storageData?.config, userConfigOverrides]);
+
+  const setProvider = (newProvider: string) => {
+    setUserSelectedProvider(newProvider);
+  };
 
   const updateConfig = (key: keyof StorageConfigModel, value: string) => {
-    setConfig((prev) => ({ ...prev, [key]: value }));
+    setUserConfigOverrides((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleSave = async (onSuccess?: () => void, onError?: (msg: string) => void) => {
@@ -79,8 +87,8 @@ export function useStorageViewModel() {
       } else {
         if (onError) onError(res.message || "Erro ao salvar");
       }
-    } catch (e: any) {
-      if (onError) onError(e?.data?.error || "Erro de rede ao salvar configurações.");
+    } catch (e: unknown) {
+      if (onError) onError(getErrorMessage(e, "Erro de rede ao salvar configurações."));
     }
   };
 

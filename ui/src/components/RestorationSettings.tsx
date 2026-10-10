@@ -46,13 +46,23 @@ const TabTransition: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   )
 }
 
-const GenericSelect = ({ value, onChange, options }: { value: string, onChange: (v: any) => void, options: {value: string, label: string}[] }) => (
-  <Select value={value} onValueChange={onChange}>
+interface GenericSelectProps<T extends string> {
+  value: T;
+  onChange: (value: T) => void;
+  options: ReadonlyArray<{ value: T; label: string }> | Array<{ value: T; label: string }>;
+}
+
+const GenericSelect = <T extends string>({ value, onChange, options }: GenericSelectProps<T>) => (
+  <Select value={value} onValueChange={(val) => onChange(val as T)}>
     <SelectTrigger className="w-full bg-slate-950 border-slate-800 text-white">
       <SelectValue placeholder="Selecione..." />
     </SelectTrigger>
     <SelectContent>
-      {options.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+      {options.map((opt) => (
+        <SelectItem key={opt.value} value={opt.value}>
+          {opt.label}
+        </SelectItem>
+      ))}
     </SelectContent>
   </Select>
 )

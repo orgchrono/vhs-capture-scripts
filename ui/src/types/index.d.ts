@@ -36,6 +36,15 @@ export interface HardwareProfile {
   >;
 }
 
+export interface SystemHealth {
+  dropped_frames?: number;
+  cpu_usage?: number;
+  is_recording?: boolean;
+  activeFps?: number;
+  outputBitrate?: number;
+  outputTimecode?: string;
+}
+
 export interface SystemStatus {
   encoder: string;
   vapoursynth_available: boolean;
@@ -43,11 +52,7 @@ export interface SystemStatus {
   obs_recording?: boolean;
   raw_files: RawFile[];
   hardware?: HardwareProfile;
-  health?: {
-    dropped_frames: number;
-    cpu_usage: number;
-    is_recording: boolean;
-  };
+  health?: SystemHealth;
 }
 
 export type RestorationPreset = 'gold' | 'speed' | 'tbc_hold' | 'ai_master' | 'custom';

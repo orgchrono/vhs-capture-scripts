@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useStudioStore } from '../store/useStudioStore';
+import { getErrorMessage } from '../lib/errors';
 import {
   useStartObsCaptureMutation,
   useStopObsCaptureMutation,
@@ -38,8 +39,8 @@ export function useCaptureViewModel(): UseCaptureViewModelResult {
         addLog(`[OBS AVISO] ${msg}`);
         toast.warning(msg);
       }
-    } catch (e: any) {
-      const errMsg = e.message || 'Falha de comunicação com OBS';
+    } catch (e: unknown) {
+      const errMsg = getErrorMessage(e, 'Falha de comunicação com OBS');
       addLog(`[OBS ERRO] ${errMsg}`);
       toast.error(errMsg);
     }
@@ -58,9 +59,9 @@ export function useCaptureViewModel(): UseCaptureViewModelResult {
         setSelectedFile(res.path);
         addLog(`[OBS] Arquivo capturado pronto para restauração: ${res.path}`);
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       setIsCapturing(false);
-      const errMsg = e.message || 'Falha ao parar gravação';
+      const errMsg = getErrorMessage(e, 'Falha ao parar gravação');
       addLog(`[OBS ERRO] ${errMsg}`);
       toast.error(errMsg);
     }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   ShieldCheck,
   ServerOff,
@@ -21,17 +21,13 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({
   isOpen: propIsOpen = false,
   onClose,
 }) => {
-  const [internalOpen, setInternalOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return !localStorage.getItem('vhs_studio_eula_accepted');
+  });
   const { t } = useTranslation();
 
   const isModalOpen = propIsOpen || internalOpen;
-
-  useEffect(() => {
-    const hasAccepted = localStorage.getItem('vhs_studio_eula_accepted');
-    if (!hasAccepted) {
-      setInternalOpen(true);
-    }
-  }, []);
 
   const handleAccept = () => {
     localStorage.setItem('vhs_studio_eula_accepted', 'true');

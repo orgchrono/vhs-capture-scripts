@@ -80,7 +80,8 @@ const StudioMain: React.FC<{ onOpenPrivacy?: () => void }> = ({ onOpenPrivacy })
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const file = e.dataTransfer.files[0]
-      const filePath = (file as any).path || file.name
+      const electronFile = file as File & { path?: string }
+      const filePath = electronFile.path || file.name
       setSelectedFile(filePath)
       addLog(`[INGESTÃO DRAG-AND-DROP] Fita carregada com sucesso: ${filePath}`)
       toast.success(t('toast.file_loaded_title'), {
