@@ -1,4 +1,4 @@
-﻿import os
+import os
 import sys
 import subprocess
 import shutil
@@ -31,6 +31,7 @@ def run_step(step: LintStep):
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
+            errors="replace",
             shell=use_shell
         )
         return step, result.returncode == 0, result.stdout
@@ -51,7 +52,7 @@ def main():
         ),
         LintStep("Vitest (React Unit Tests)", ["npm", "run", "test:unit"], cwd="ui"),
         LintStep("TSC (TypeScript Types)", ["npm", "run", "build"], cwd="ui"),
-        LintStep("Playwright (E2E React)", ["npx", "playwright", "test", "--project=chromium"], cwd="ui"),
+        LintStep("Playwright (E2E React)", ["npx", "playwright", "test", "--project=chromium", "--reporter=list"], cwd="ui"),
         LintStep("Pytest (Python Tests)", ["python", "-m", "pytest", "tests"]),
     ]
 
