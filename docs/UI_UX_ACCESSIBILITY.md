@@ -1,149 +1,142 @@
-# ♿ Guia de Interface, Acessibilidade (a11y) e Internacionalização (i18n)
+# ♿ Interface Design System, Accessibility (a11y) & Localization (i18n)
 
-Este documento documenta os padrões de Design System, acessibilidade digital em conformidade com as diretrizes **WCAG 2.1 nível AAA** e a arquitetura de localização multilíngue implementada na interface gráfica do **VHS Studio Pro**.
+<div align="justify">
 
----
+This document details the Design System conventions, **WCAG 2.1 Level AAA** digital accessibility implementations, and the multilingual localization architecture established for the **VHS Studio Pro** workstation interface.
 
-## 1. Stack Tecnológico da Interface (UI)
-
-A aplicação gráfica reside no diretório `ui/` e é construída com:
-- **React 19:** Renderização eficiente baseada em componentes funcionais limpos e hooks reativos.
-- **Vite 6:** Bundler ultrarrápido com Hot Module Replacement (HMR) e divisão automática de pacotes (*code splitting*).
-- **Tailwind CSS v4:** Utilitários de estilização atômica que garantem consistência visual e performance com CSS purgado.
-- **Redux Toolkit Query (RTK Query):** Cliente de dados que mantém sincronizado o estado da API local, evitando duplicação de dados e re-renderizações desnecessárias.
-- **Sonner Toast:** Sistema moderno de notificações acessíveis para mensagens operacionais, alertas de conclusão e erros.
-- **Framer Motion:** Animações sutis e respeitosas com operadores com sensibilidade a movimento.
-- **Lucide Icons:** Biblioteca SVG de alta legibilidade e semântica de ícones.
+</div>
 
 ---
 
-## 2. Acessibilidade (WCAG 2.1 Nível AAA)
+## 1. User Interface Technology Stack
 
-A interface foi projetada para ser plenamente utilizável em estúdios profissionais, estações de restauração com iluminação controlada e por operadores com diferentes habilidades físicas ou visuais.
+<div align="justify">
 
-### 2.1 Navegação Completa via Teclado
-- Todos os controles interativos (botões, abas, seletores de preset, links e botões de cancelamento da fila) são focáveis via `Tab` / `Shift+Tab`.
-- **Anéis de Foco Visíveis:** Todo elemento interativo possui realce evidente com `focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none`.
-- **Atalhos Operacionais:** Suporte a teclas semânticas como `Space` e `Enter` para ativação de ações e `Escape` para fechar modais e suspender tarefas.
+The graphical presentation application is located in `ui/` and is engineered with:
+- **React 19:** High-performance UI rendering utilizing functional components, custom hooks, and concurrent features.
+- **Vite 6:** Ultra-fast bundling engine with instantaneous Hot Module Replacement (HMR) and optimized tree-shaking code splitting.
+- **Tailwind CSS v4:** Atomic styling utilities guaranteeing visual consistency, zero CSS runtime overhead, and automated bundle purging.
+- **Redux Toolkit Query (RTK Query):** Advanced API caching and state synchronization preventing duplicate network requests and unnecessary component re-renders.
+- **Sonner Toast:** Accessible, non-intrusive toast notifications with action buttons and dynamic progress transitions.
+- **Framer Motion:** Smooth, hardware-accelerated transitions that honor motion-sensitivity accessibility settings.
+- **Lucide Icons:** Highly legible, clean SVG icons.
 
-### 2.2 Marcação Semântica e Leitores de Tela (Screen Readers)
-- **Atributos ARIA:**
-  - `aria-label` e `aria-labelledby` em botões de ação e ícones informativos.
-  - `role="status"` e `aria-live="polite"` em contadores de telemetria (FPS, tempo de gravação, CPU) e no terminal de logs.
-  - `aria-live="assertive"` em erros críticos e alertas de desconexão do OBS Studio.
-  - Abas e painéis usam `role="tablist"`, `role="tab"` e `role="tabpanel"` com vinculação via `aria-controls`.
-- **Textos Ocultos Visualmente:** Ícones utilitários contêm spans `<span class="sr-only">` para que softwares como NVDA, JAWS ou VoiceOver descrevam a ação exata.
-
-### 2.3 Contraste Cromático e Tipografia
-- Relação de contraste mínima de **7:1** entre texto e plano de fundo em elementos principais de leitura (nível AAA).
-- Paleta escura calibrada em tons de zinco e esmeralda (`#09090b`, `#18181b`, `#10b981`), reduzindo a fadiga ocular em sessões prolongadas de monitoramento analógico.
-
-### 2.4 Respeito a `prefers-reduced-motion`
-- Todas as transições do Framer Motion e animações CSS respeitam a configuração de acessibilidade do sistema operacional do usuário.
-- Quando o usuário solicita redução de movimento, as animações de slide e escala são automaticamente desativadas, mantendo apenas crossfades instantâneos.
+</div>
 
 ---
 
-## 3. Notificações Sonner Toast
+## 2. Accessibility Compliance (WCAG 2.1 Level AAA)
 
-O sistema de toasts substitui alertas modais intrusivos por notificações discretas e acessíveis:
+<div align="justify">
 
-- **Posicionamento:** Canto inferior direito (`bottom-right`), com empilhamento dinâmico.
-- **Tipos de Toast:**
-  - `toast.success("Restauração concluída!")`: Notificação verde de sucesso com ícone semântico.
-  - `toast.error("Erro na comunicação com OBS")`: Alerta vermelho com botão de ação rápida para tentar reconexão.
-  - `toast.info("QTGMC instalando dependências...")`: Informação de background.
-  - `toast.promise(...)`: Feedback contínuo de tarefas assíncronas com transição automática para sucesso ou erro.
+The workstation is tailored for professional mastering environments, low-light control rooms, and operators with diverse physical or visual abilities.
+
+</div>
+
+### 2.1 Comprehensive Keyboard Navigation
+<div align="justify">
+
+- Every interactive control (buttons, tabs, strategy cards, links, queue cancel actions) is sequentially focusable via `Tab` and `Shift+Tab`.
+- **High-Visibility Focus Indicators:** All interactive elements feature prominent dual-layer focus rings:
+  `focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none`.
+- **Keyboard Shortcuts:** Built-in support for semantic keys (`Space` / `Enter` for activation, `Escape` for dismissing modals and drawers).
+
+</div>
+
+### 2.2 Semantic HTML & Screen Reader Support
+<div align="justify">
+
+- **ARIA Attributes:**
+  - `aria-label` and `aria-labelledby` on icon buttons and telemetry indicators.
+  - `role="status"` and `aria-live="polite"` on real-time counters (FPS, recorded frames, elapsed time) and diagnostic log consoles.
+  - `aria-live="assertive"` on critical error alerts and OBS disconnect warnings.
+  - Tab navigation bars implement `role="tablist"`, `role="tab"`, and `role="tabpanel"` linked via `aria-controls`.
+- **Visually Hidden Labels:** Graphic-only buttons contain `<span class="sr-only">` text elements, allowing assistive technologies (NVDA, JAWS, VoiceOver) to convey exact actions.
+
+</div>
+
+### 2.3 Chromatic Contrast & Dark Room Calibration
+<div align="justify">
+
+- Strict minimum contrast ratio of **7:1** between text and background across primary content surfaces (meeting WCAG Level AAA standards).
+- Deep zinc and emerald color palette (`#09090b`, `#18181b`, `#10b981`), mitigating eye strain during extended multi-hour tape monitoring sessions.
+
+</div>
+
+### 2.4 Respect for `prefers-reduced-motion`
+<div align="justify">
+
+- All Framer Motion animations and CSS transitions automatically detect operating system accessibility settings.
+- When reduced motion is enabled, slide and scale animations are suppressed in favor of instantaneous crossfades.
+
+</div>
 
 ---
 
-## 4. Internacionalização (i18n)
+## 3. Sonner Toast Notification System
 
-O sistema conta com arquitetura de localização completa via **i18next**:
+<div align="justify">
 
-### 4.1 Idiomas Nativamente Suportados (10 Idiomas de Preservação)
-A plataforma suporta 10 idiomas globais com dicionários completos:
-1. **Português (Brasil) - `pt-BR`** (Padrão de desenvolvimento)
-2. **Inglês (Estados Unidos) - `en-US`**
-3. **Espanhol - `es`**
-4. **Francês - `fr`**
-5. **Alemão - `de`**
-6. **Italiano - `it`**
-7. **Russo - `ru`**
-8. **Chinês Simplificado - `zh-CN`**
-9. **Japonês - `ja`**
-10. **Árabe - `ar`**
+Sonner replaces intrusive modal dialogs with accessible, structured notifications:
+- **Placement:** Bottom-right corner (`bottom-right`) with dynamic queue stacking.
+- **Notification Patterns:**
+  - `toast.success(t('toast.restoration_complete'))`: Green success confirmation with semantic icon.
+  - `toast.error(t('toast.obs_error'))`: High-visibility red alert with an inline retry action.
+  - `toast.info(...)`: Informative background updates.
+  - `toast.promise(...)`: Real-time feedback for asynchronous tasks with automatic resolution transitions.
 
-### 4.2 Estrutura Modular de Chaves
-As mensagens são organizadas por domínio de aplicação:
+</div>
+
+---
+
+## 4. Multilingual Localization Architecture (i18n)
+
+<div align="justify">
+
+The interface implements end-to-end localization powered by **i18next** and `react-i18next`:
+
+### 4.1 10 Supported Locales
+Full linguistic parity is maintained across 10 global languages:
+1. **English (US) - `en-US`** (Default international locale)
+2. **Portuguese (Brazil) - `pt-BR`**
+3. **Spanish - `es`**
+4. **French - `fr`**
+5. **German - `de`**
+6. **Italian - `it`**
+7. **Russian - `ru`**
+8. **Simplified Chinese - `zh-CN`**
+9. **Japanese - `ja`**
+10. **Arabic - `ar`** (Features dynamic Right-to-Left / RTL layout mirroring)
+
+### 4.2 Modular Translation Key Hierarchy
+Localization keys are partitioned by functional domain:
 ```json
 {
   "app": {
     "title": "VHS Studio Pro",
-    "status": "Status do Sistema",
-    "ready": "Pronto para Ingestão"
+    "status": "System Status",
+    "ready": "Ready for Ingest"
   },
   "presets": {
-    "gold_name": "Padrão Broadcast",
-    "speed_name": "Ultra Rápido Hardware",
-    "tbc_hold_name": "TBC Frame-Hold (Zero Pretos)",
+    "gold_name": "Broadcast Standard",
+    "speed_name": "Hardware Ultrafast",
+    "tbc_hold_name": "TBC Frame-Hold (Zero Dropouts)",
     "ai_master_name": "AI Master (Real-ESRGAN)"
   },
   "settings": {
-    "tab_presets": "Modos Prontos",
-    "tab_video": "Vídeo",
-    "tab_audio": "Áudio"
+    "tab_presets": "Ready Modes",
+    "tab_video": "Video",
+    "tab_audio": "Audio"
   },
   "telemetry": {
-    "title": "Telemetria de Masterização Analógica",
-    "stage_idle": "Em Espera / Pronto",
-    "frames": "Quadros",
-    "fps": "FPS",
-    "eta": "Tempo Estimado"
+    "title": "Analog Mastering Telemetry",
+    "stage_idle": "Idle / Ready",
+    "frames": "Frames"
   }
 }
 ```
-A troca de idioma ocorre instantaneamente via seletor no cabeçalho da interface, sem recarregar a página e persistindo a escolha no `localStorage`.
 
-### 4.3 Invariância Estrutural de Layout em Ambientes NLE (BiDi & RTL)
-Em softwares profissionais de áudio e vídeo (como DaVinci Resolve, Premiere e Avid), os fluxos de hardware analógico, osciloscópios (vectorscopes), canais de áudio L/R, barras de transporte e a linha do tempo são **estruturalmente orientados da esquerda para a direita (LTR)**.
+### 4.3 Zero-Hardcode Quality Enforcement
+As defined in repository governance rules, any hardcoded text in TSX/JSX, placeholders, tooltips, or toasts will fail the automated `scripts/lint.py` quality gate, blocking commits.
 
-- **Por que a estação não inverte o layout em Árabe:** Inverter as docas, mover o monitor CRT para o lado direito e espelhar as barras de ferramentas quebraria o mapeamento mental e as convenções físicas das placas de captura (DeckLink) e controles de transporte.
-- **Implementação Técnica:** No [`i18n.ts`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/ui/src/i18n.ts), `document.documentElement.dir` é mantido estritamente como `'ltr'`, enquanto `document.documentElement.lang = lng` atualiza os metadados do documento. Isso assegura renderização perfeita de glifos árabes e suporte para leitores de tela sem causar o espelhamento disruptivo da interface.
-
----
-
-## 5. Suíte de Testes da Interface
-
-A qualidade e estabilidade da interface são asseguradas por duas camadas de teste:
-
-1. **Testes Unitários e de Componente (Vitest + React Testing Library):**
-   - 17 arquivos de teste e 45 testes cobrindo renderização, dispatch de ações, busca no console, explorador de fitas, internacionalização e componentes acessíveis.
-   - Execução: `npm run test:unit` dentro de `ui/`.
-2. **Testes End-to-End (Playwright):**
-   - Inicializa um navegador Chromium automatizado, testa o fluxo de captura, navegação por abas com `getByTestId`, inspeção visual de layout e validação de acessibilidade.
-   - Execução: `npx playwright test --project=chromium` dentro de `ui/`.
-
----
-
-## 6. Footer StatusBar & Barra de Progresso React 19
-
-1. **Componente Nativo React 19 Progress:**
-   - O componente legado do Radix UI causava colisões de contexto no React 19 (`TypeError: Cannot read properties of null (reading 'useMemo')`).
-   - Foi substituído por um componente acessível nativo ([`ui/src/components/ui/progress.tsx`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/ui/src/components/ui/progress.tsx)) com semântica WAI-ARIA completa (`role="progressbar"`, `aria-valuenow`, `aria-valuemin="0"`, `aria-valuemax="100"`).
-2. **Footer StatusBar:**
-   - Componente persistente de rodapé ([`FooterStatusBar.tsx`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/ui/src/components/FooterStatusBar.tsx)) que reúne Tally de hardware, nome da fita ativa, contagem de quadros, FPS em tempo real, velocidade relativa, ETA e botão de acesso rápido à gaveta de logs (`>_ Logs`).
-3. **Aba Padrão "Modo":**
-   - O termo hermético *"Pipelines"* foi substituído por **"Modo"** (anteriormente "Modos Prontos", ajustado para 4 caracteres para eliminar totalmente o bleed/quebra visual entre as 7 abas do painel) e configurado como a aba de inicialização padrão (`defaultValue="presets"`), oferecendo foco imediato nas estratégias macro de restauração.
-
----
-
-## 7. Tape Library Explorer & Console Live Search
-
-1. **Tape Library Explorer (Acervo Visual de Fitas):**
-   - No [`FileSelector.tsx`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/ui/src/components/FileSelector.tsx), a seleção de arquivos conta com um explorador visual retrátil (estilo DaVinci Media Pool / VS Code File Explorer) localizado na coluna lateral.
-   - Apresenta miniaturas estilizadas de fitas VHS (com carretéis e badge de container MKV/RAW), tamanho de arquivo em MB/GB, metadados e botão de recolher/expandir com botão `+`/`-`.
-   - O placeholder da combobox foi corrigido para `<option value="" disabled hidden>`, garantindo que o texto guia nunca seja selecionável acidentalmente como uma fita válida.
-2. **Console Live Search (Busca em Tempo Real no Console):**
-   - No [`ConsoleViewer.tsx`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/ui/src/components/ConsoleViewer.tsx), foi incorporada uma barra de busca interativa com ícone `<Search />`, atalho de teclado, realce de termos encontrados via tag semântica `<mark>`, contador de resultados (`X/Y`) e botão de limpeza instantânea `<X />`.
-   - Permite filtrar fluxos massivos de telemetria e depuração (ex: `QTGMC`, `Whisper`, `Dropped Frame`) sem sobrecarregar a visualização do operador.
+</div>

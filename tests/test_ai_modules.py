@@ -1,5 +1,6 @@
 """Unit tests for modular AI restoration components."""
 
+import os
 import unittest
 from vhs_studio.ai.audio_denoiser import AudioDenoiser
 from vhs_studio.ai.face_restorer import FaceRestorer
@@ -23,6 +24,29 @@ class TestAIModules(unittest.TestCase):
         restorer = FaceRestorer(fidelity_weight=DEFAULT_CODEFORMER_FIDELITY)
         self.assertEqual(restorer.fidelity_weight, DEFAULT_CODEFORMER_FIDELITY)
         self.assertIsInstance(restorer.is_available(), bool)
+
+    def test_face_restorer_enhance_frame(self):
+        restorer = FaceRestorer()
+        dummy_frame = b"\x00" * 1024
+        res = restorer.enhance_frame(dummy_frame, 32, 32)
+        self.assertEqual(res, dummy_frame)
+
+    def test_face_restorer_process_video_fallback(self):
+        import tempfile
+        restorer = FaceRestorer()
+        with tempfile.NamedTemporaryFile(suffix=".mkv", delete=False) as f_in:
+            f_in.write(b"dummy")
+            in_path = f_in.name
+        out_path = in_path.replace(".mkv", "_faced.mkv")
+
+        try:
+            ok = restorer.process_video(in_path, out_path)
+            self.assertTrue(ok)
+            self.assertTrue(os.path.exists(out_path))
+        finally:
+            for p in (in_path, out_path):
+                if os.path.exists(p):
+                    os.unlink(p)
 
     def test_dropout_cleaner_filter(self):
         f = DropoutCleaner.get_ffmpeg_filter()

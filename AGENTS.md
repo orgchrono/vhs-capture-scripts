@@ -1,54 +1,55 @@
-# VHS Studio Pro - Regras Rígidas para Agentes de IA (AGENTS.md)
+# VHS Studio Pro - Strict Agent Guidelines (AGENTS.md)
 
 > [!CRITICAL]
-> **PROIBIÇÃO TOTAL DE HARDCODE (ZERO-HARDCODE POLICY)**
-> Todo e qualquer agente que interagir ou modificar este repositório está **TERMINANTEMENTE PROIBIDO** de inserir texto hardcoded em componentes de interface (React / JSX / TSX), mensagens de toast, tooltips, placeholders e alertas.
+> **ZERO-HARDCODE POLICY**
+> Any agent interacting with or modifying this repository is **STRICTLY FORBIDDEN** from introducing hardcoded user-facing text into user interface components (React / JSX / TSX), toast notifications, tooltips, placeholders, and error alerts.
 
 ---
 
-## 1. Regra Fundamental: Interface 100% Internacionalizada (i18n)
+## 1. Fundamental Rule: 100% Internationalized UI (i18n)
 
-1. **Nunca escreva strings literais em JSX/TSX:**
-   - ❌ **PROIBIDO:** `<span>Inspecionar</span>`
-   - ❌ **PROIBIDO:** `<button>Recolher</button>`
-   - ❌ **PROIBIDO:** `placeholder="Ex: C:\dumps\panasonic.img"`
-   - ❌ **PROIBIDO:** `toast.error("Falha ao inspecionar")`
-   - ❌ **PROIBIDO:** `addLog("[INGESTÃO] Fita carregada")`
-   - ✅ **OBRIGATÓRIO:** Use sempre `t('files.inspect', '...')` ou chave i18n correspondente.
-   - ✅ **OBRIGATÓRIO:** Atualize **TODAS** as traduções em `ui/src/locales/` (`pt-BR`, `en-US`, etc.) ao adicionar novas funcionalidades.
+1. **Never write literal strings in JSX/TSX:**
+   - ❌ **FORBIDDEN:** `<span>Inspect</span>`
+   - ❌ **FORBIDDEN:** `<button>Collapse</button>`
+   - ❌ **FORBIDDEN:** `placeholder="Ex: C:\dumps\panasonic.img"`
+   - ❌ **FORBIDDEN:** `toast.error("Inspection failed")`
+   - ❌ **FORBIDDEN:** `addLog("[INGEST] Tape loaded")`
+   - ✅ **MANDATORY:** Always use `t('files.inspect', '...')` or the corresponding i18n key.
+   - ✅ **MANDATORY:** Update **ALL** translation dictionaries in `ui/src/locales/` (`pt-BR`, `en-US`, `es`, `fr`, `de`, `it`, `ja`, `ar`, `ru`, `zh-CN`) when adding new features.
 
-2. **Placeholders e Exemplos:**
-   - Placeholders devem vir de `t('files.source_path_placeholder')`.
-   - Nunca insira caminhos fictícios ou strings em português/inglês direto na tag `<input placeholder="..." />`.
+2. **Placeholders and Input Examples:**
+   - Placeholders must resolve via `t('files.source_path_placeholder')`.
+   - Never insert dummy paths or literal language strings directly into `<input placeholder="..." />`.
 
-3. **Toasts e Notificações:**
-   - Sempre utilize chaves `t('toast.key')` para títulos e descrições.
-   - Parâmetros dinâmicos devem ser passados como objeto de interpolação: `t('toast.message', { file: fileName })`.
-
----
-
-## 2. Zero Magic Numbers e Zero Caminhos Hardcoded
-
-1. **Backend Python:**
-   - Constantes globais pertencem a `src/vhs_studio/core/constants.py`.
-   - Caminhos de diretório e executáveis pertencem a `src/vhs_studio/core/paths.py`.
-   - Nunca invente caminhos absolutos no código (`C:\...` ou `/var/...`).
-
-2. **Frontend React:**
-   - Constantes de tempo, dimensões e limites devem ser extraídas para `src/constants/` ou arquivos de tipos.
+3. **Toasts and Notifications:**
+   - Always use `t('toast.key')` for titles and descriptions.
+   - Dynamic parameters must be passed as an interpolation object: `t('toast.message', { file: fileName })`.
 
 ---
 
-## 3. Qualidade e Integridade do Código (Quality Gates)
+## 2. Zero Magic Numbers and Zero Hardcoded Paths
 
-Todo commit ou alteração deve respeitar os 8 portões de qualidade do projeto:
-- `Flake8` (Python Style): 0 violações
-- `Mypy` (Python Types): 0 erros
-- `Oxlint / ESLint` (UI Linter): 0 erros
-- `TSC` (TypeScript Compiler): 0 erros
-- `Vitest` (Unit Tests): 100% aprovado
-- `Playwright` (E2E Tests): 100% aprovado
-- `Pytest` (Backend Tests): 100% aprovado
-- `JSCPD` (Anti-Duplicação): < 5% duplicidade
+1. **Python Backend:**
+   - Application-wide constants belong in `src/vhs_studio/core/constants.py`.
+   - Directory paths and executable resolution belong in `src/vhs_studio/core/paths.py`.
+   - Never hardcode absolute system paths in code (`C:\...` or `/var/...`).
 
-Qualquer violação das regras de hardcode ou quebra de testes resultará na rejeição imediata da tarefa.
+2. **React Frontend:**
+   - Timing constants, layout dimensions, and numerical thresholds must be defined in `src/constants/` or dedicated type modules.
+
+---
+
+## 3. Code Integrity & Automated Quality Gates
+
+Every commit or modification must pass the repository's 9 automated quality gates:
+- `JSCPD` (Anti-Duplication): < 5% clone threshold
+- `Oxlint / ESLint` (UI Linter): 0 errors
+- `Mypy` (Python Types): 0 errors
+- `Flake8` (Python Style): 0 violations
+- `Vitest` (React Unit Tests): 100% passing
+- `TSC` (TypeScript Compiler): 0 errors
+- `Playwright` (E2E Integration Tests): 100% passing
+- `Pytest` (Backend Tests): 100% passing
+- `i18n Parity` (10 Locales): 100% matching key parity
+
+Any violation of hardcode rules or broken tests will result in immediate rejection.

@@ -1,47 +1,75 @@
-# 🔌 Referência Completa da API REST & SSE - VHS Studio Pro
+# 🔌 REST & SSE API Reference - VHS Studio Pro
 
-O backend do VHS Studio Pro expõe uma API RESTful de alta velocidade aliada a Server-Sent Events (SSE) para comunicação em tempo real com o cliente desktop e integrações externas.
+<div align="justify">
 
-Por padrão, a API escuta no endereço:
+The VHS Studio Pro backend exposes a high-throughput RESTful API combined with Server-Sent Events (SSE) for low-latency communication with the desktop frontend and automated integration pipelines.
+
+By default, the API service listens at:
 `http://127.0.0.1:8088`
 
+</div>
+
 ---
 
-## 1. Segurança e Autenticação
+## 1. Security & Authentication Architecture
 
-### 1.1 Restrição de Origem e Host
-Todas as requisições direcionadas para `/api/*` passam pelo middleware de segurança [`verify_origin`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/routers/security.py#L35-L54):
-- O cabeçalho `Host` deve obrigatoriamente iniciar com `127.0.0.1`, `localhost` ou `testserver`.
-- Requisições do tipo `POST` validam a origem no cabeçalho `Origin`.
-- Violações retornam `HTTP 403 Forbidden` (`{"error": "Access denied."}` ou `{"error": "Invalid origin."}`).
+### 1.1 Origin & Host Header Validation
+<div align="justify">
 
-### 1.2 Session Token (Mitigação CSRF)
-Em cada inicialização do backend, um token de sessão criptográfico de 32 caracteres hexadecimais é gerado (`SESSION_TOKEN` via `secrets.token_hex(16)`).
+All inbound requests targeted at `/api/*` pass through the [`verify_origin`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/routers/security.py#L35-L54) security middleware:
+- The `Host` header must start with `127.0.0.1`, `localhost`, or `testserver`.
+- Mutating HTTP methods (`POST`, `PUT`, `DELETE`) validate the origin against allowed loopback addresses.
+- Policy violations return `HTTP 403 Forbidden` (`{"error": "Access denied."}` or `{"error": "Invalid origin."}`).
+
+</div>
+
+### 1.2 Session Token (Localhost CSRF Mitigation)
+<div align="justify">
+
+On every backend initialization, a unique 32-character hexadecimal cryptographic session secret is generated (`SESSION_TOKEN` via `secrets.token_hex(16)`).
 - **Endpoint:** `GET /api/token`
-- **Cabeçalho Requerido em POST/Mutações:** `X-Session-Token: <token>`
-- Requisições POST com token inválido retornam `HTTP 403 Forbidden` (`{"error": "Invalid session token."}`).
+- **Required Header on POST/Mutations:** `X-Session-Token: <token>`
+- Mutating requests with missing or invalid tokens return `HTTP 403 Forbidden` (`{"error": "Invalid session token."}`).
 
-### 1.3 Validação de Caminhos Seguros (CWE-22)
-Todos os endpoints que recebem caminhos de arquivos para restauração ou enfileiramento (`/api/run`, `/api/action`, `/api/queue/enqueue`) invocam [`is_safe_media_path`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/routers/security.py#L16-L32):
-- Rejeita bytes nulos (`\0`), sequências de traversal (`..`), caminhos absolutos fora de `MEDIA_DIR`.
-- Tentativas de traversal retornam `HTTP 400 Bad Request` (`{"status": "error", "message": "Invalid or insecure file path."}`).
+</div>
+
+### 1.3 Safe Media Path Validation (CWE-22)
+<div align="justify">
+
+Every endpoint accepting filesystem paths for media processing or queueing (`/api/run`, `/api/action`, `/api/queue/enqueue`) invokes [`is_safe_media_path`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/routers/security.py#L16-L32):
+- Rejects null bytes (`\0`), path traversal sequences (`..`), and absolute paths resolving outside authorized directories (`MEDIA_DIR`).
+- Traversal attempts are rejected with `HTTP 400 Bad Request` (`{"status": "error", "message": "Invalid or insecure file path."}`).
+
+</div>
 
 ---
 
-## 2. Endpoints do Sistema (`routers/system.py`)
+## 2. System Endpoints (`routers/system.py`)
 
 ### `GET /api/token`
-Retorna o token ativo da sessão para o frontend.
-- **Resposta (HTTP 200):**
+<div align="justify">
+
+Returns the active CSRF session token required for mutating requests.
+
+</div>
+
+- **Response (HTTP 200):**
   ```json
   {
     "token": "8a3e7b1c4d9f0e2a5c6b8d7e1f3a5c7b"
   }
   ```
 
+---
+
 ### `GET /api/status`
-Retorna o status abrangente de saúde do sistema, encoders detectados, presença do VapourSynth, conectividade OBS, arquivos brutos na pasta de mídia e telemetria básica.
-- **Resposta (HTTP 200):**
+<div align="justify">
+
+Returns health metrics, detected hardware encoders, VapourSynth availability, OBS connection state, detected raw media files, and active process execution logs.
+
+</div>
+
+- **Response (HTTP 200):**
   ```json
   {
     "encoder": "h264_nvenc",
@@ -60,64 +88,92 @@ Retorna o status abrangente de saúde do sistema, encoders detectados, presença
       "tier": 2,
       "tier_name": "Multi-Core CPU + iGPU Vulkan",
       "tier_color": "amber",
-      "recommendation": "Ideal para restauração com BWDIF/Lanczos...",
+      "recommendation": "Ideal for restoration with BWDIF/Lanczos (~60-120 fps)...",
       "cpu": { "cores": 12, "arch": "AMD64", "model": "AMD Ryzen 5" },
       "ram": { "total_gb": 16.0, "available_gb": 10.2 },
       "gpu": { "type": "dedicated", "name": "NVIDIA GeForce RTX 3060", "vulkan_available": true, "vram_gb": 12.0 },
       "ai_capabilities": {
-        "audio_deepfilter": { "name": "Restauração de Áudio Neural", "supported": true, "badge": "⚡ Tempo Real (CPU)", "cost": "low", "desc": "..." }
+        "audio_deepfilter": { "name": "Neural Audio Restoration", "supported": true, "badge": "⚡ Real-Time (CPU)", "cost": "low", "desc": "..." }
       }
     }
   }
   ```
 
+---
+
 ### `GET /api/hardware`
-Retorna o diagnóstico profundo do hospedeiro pelo HAL com classificação em tiers (1 a 4) e capacidades neurais suportadas.
-- **Resposta (HTTP 200):**
+<div align="justify">
+
+Executes deep host hardware diagnostics via the HAL, classifying host capability into Tiers 1 through 4 and enumerating supported neural modules.
+
+</div>
+
+- **Response (HTTP 200):**
   ```json
   {
-    "tier": 2,
-    "tier_name": "Multi-Core CPU + iGPU Vulkan",
-    "tier_color": "amber",
-    "recommendation": "...",
-    "cpu": { "cores": 12, "arch": "AMD64", "model": "..." },
-    "ram": { "total_gb": 16.0, "available_gb": 10.2 },
-    "gpu": { "type": "dedicated", "name": "...", "vulkan_available": true, "vram_gb": 12.0 },
-    "ai_capabilities": { ... }
+    "tier": 4,
+    "tier_name": "Workstation IA (High-End Dedicated GPU)",
+    "tier_color": "emerald",
+    "recommendation": "Dedicated GPU with high VRAM detected. All AI models supported at peak speed.",
+    "cpu": { "cores": 16, "arch": "AMD64", "model": "AMD Ryzen 9" },
+    "ram": { "total_gb": 32.0, "available_gb": 24.5 },
+    "gpu": { "type": "dedicated", "name": "NVIDIA GeForce RTX 4080", "vulkan_available": true, "vram_gb": 16.0 },
+    "ai_capabilities": {
+      "rife_60fps": { "name": "RIFE Motion Interpolation (60fps)", "supported": true, "badge": "⚡ Fast (Vulkan)", "cost": "medium", "desc": "..." }
+    }
   }
   ```
 
+---
+
 ### `GET /api/logs`
-Retorna os logs acumulados em memória pelo ProcessManager para consulta pelo RTK Query.
-- **Resposta (HTTP 200):**
+<div align="justify">
+
+Returns cumulative in-memory execution logs tracked by the `ProcessManager`.
+
+</div>
+
+- **Response (HTTP 200):**
   ```json
   {
     "active": false,
     "logs": [
-      "[RESTAURAÇÃO] Iniciando pipeline...",
-      "[FFMPEG] frame=  120 fps= 59.9 q=18.0 ..."
+      "[RESTORATION] Pipeline initialization complete.",
+      "[FFMPEG] frame=  120 fps= 59.9 q=18.0 size=   14336kB time=00:00:02.00 bitrate=58600.0kbits/s"
     ]
   }
   ```
 
+---
+
 ### `GET /api/logs/stream`
-Endpoint Server-Sent Events (SSE) com mime type `text/event-stream`. Transmite cada linha de log emitida pelos processos com latência inferior a 200ms.
-- **Formato das mensagens:**
+<div align="justify">
+
+Server-Sent Events (SSE) streaming endpoint with `text/event-stream` MIME type. Emits log lines generated by active worker subprocesses in real time (< 200ms latency).
+
+</div>
+
+- **Stream Output Format:**
   ```text
   data: {"connected": true, "active": true}
 
-  data: {"line": "frame= 3120 fps= 59.9 q=18.0 ...", "active": true}
+  data: {"line": "[FFMPEG] frame= 3120 fps= 59.9 q=18.0 ...", "active": true}
 
   data: {"active": false}
   ```
 
 ---
 
-## 3. Fila Persistente de Processamento (`routers/queue.py`)
+## 3. Persistent Batch Queue (`routers/queue.py`)
 
 ### `GET /api/queue`
-Retorna a lista completa de jobs e as estatísticas da fila SQLite.
-- **Resposta (HTTP 200):**
+<div align="justify">
+
+Retrieves all pending, processing, and completed jobs from the persistent SQLite queue.
+
+</div>
+
+- **Response (HTTP 200):**
   ```json
   {
     "jobs": [
@@ -135,8 +191,15 @@ Retorna a lista completa de jobs e as estatísticas da fila SQLite.
   }
   ```
 
+---
+
 ### `POST /api/queue/enqueue`
-Enfileira uma nova mídia para processamento sequencial.
+<div align="justify">
+
+Adds a new media file to the sequential processing queue.
+
+</div>
+
 - **Payload Schema (`QueueEnqueuePayload`):**
   ```json
   {
@@ -149,331 +212,221 @@ Enfileira uma nova mídia para processamento sequencial.
     "priority": 5
   }
   ```
-- **Resposta (HTTP 200):**
-  ```json
-  {
-    "status": "ok",
-    "job_id": 1,
-    "message": "Job #1 enqueued."
-  }
-  ```
-
-### `POST /api/queue/cancel/{job_id}`
-Cancela um job pendente na fila.
-- **Resposta (HTTP 200):**
-  ```json
-  {
-    "status": "ok",
-    "message": "Job #1 cancelled."
-  }
-  ```
-
-### `POST /api/queue/start`
-Inicia o worker em segundo plano que consome os jobs pendentes da fila SQLite por ordem de prioridade (FIFO).
-- **Resposta (HTTP 200):** `{"status": "ok", "message": "Queue worker started."}`
-
-### `POST /api/queue/stop`
-Pausa o worker em segundo plano após o término do job ativo.
-- **Resposta (HTTP 200):** `{"status": "ok", "message": "Queue worker stopped."}`
 
 ---
 
-## 4. Integração OBS Studio WebSocket (`routers/obs.py`)
+### `POST /api/queue/cancel/{id}`
+<div align="justify">
+
+Cancels a queued or currently executing job by identifier.
+
+</div>
+
+- **Response (HTTP 200):**
+  ```json
+  {
+    "status": "ok",
+    "message": "Job 1 cancelled successfully."
+  }
+  ```
+
+---
+
+### `POST /api/queue/start` & `POST /api/queue/stop`
+<div align="justify">
+
+Starts or pauses the background queue worker thread.
+
+</div>
+
+---
+
+## 4. OBS Studio Ingest & Telemetry (`routers/obs.py`)
 
 ### `GET /api/obs/stats`
-Retorna telemetria ao vivo da gravação analógica no OBS Studio.
-- **Resposta (HTTP 200):**
+<div align="justify">
+
+Queries real-time telemetry from OBS Studio via WebSocket v5.
+
+</div>
+
+- **Response (HTTP 200):**
   ```json
   {
     "connected": true,
     "recording": true,
-    "timecode": "00:15:32",
-    "duration_sec": 932.0,
-    "bytes": 524288000,
-    "bitrate_kbps": 18500.2,
-    "fps": 59.94,
-    "cpu_usage": 8.5,
-    "memory_mb": 210.4
+    "recording_time": "00:45:12",
+    "cpu_usage": 3.8,
+    "memory_usage": 420.5,
+    "fps": 29.97,
+    "output_bytes": 1425890012,
+    "dropped_frames": 0
   }
   ```
-
-### `POST /api/obs/start`
-Dispara a gravação no OBS Studio via WebSocket v5.
-- **Resposta (HTTP 200):** `{"status": "ok", "message": "Recording started."}`
-
-### `POST /api/obs/stop`
-Finaliza a gravação no OBS Studio e retorna o caminho do arquivo gerado no disco.
-- **Resposta (HTTP 200):**
-  ```json
-  {
-    "status": "ok",
-    "message": "Recording stopped.",
-    "path": "C:\\...\\media\\raw\\tape_capture_001.mkv"
-  }
-  ```
-
-### `POST /api/obs/virtualcam`
-Liga ou desliga a saída de Câmera Virtual do OBS Studio.
-- **Payload Schema (`ObsVirtualCamPayload`):**
-  ```json
-  {
-    "enable": true
-  }
-  ```
-- **Resposta (HTTP 200):** `{"status": "ok", "message": "Virtual camera set to True."}`
 
 ---
 
-## 5. Orquestração e Restauração (`routers/restoration.py`)
+### `POST /api/obs/start` & `POST /api/obs/stop`
+<div align="justify">
+
+Remotely triggers recording start and stop within OBS Studio.
+
+</div>
+
+---
+
+## 5. Restoration & Process Actions (`routers/restoration.py`)
 
 ### `POST /api/run`
-Dispara a execução imediata da pipeline de restauração DAG para o arquivo selecionado.
+<div align="justify">
+
+Initiates direct pipeline execution for a selected media file.
+
+</div>
+
 - **Payload:**
   ```json
   {
     "input": "media/raw/tape_01.mkv",
-    "deinterlacer": "bwdif",
-    "mode": "double",
+    "preset": "gold",
+    "deinterlacer": "qtgmc",
     "crf": 18,
-    "output_codec": "h264",
+    "ai_upscaler": false,
     "ai_face_restore": false,
     "ai_rife_60fps": false
   }
   ```
-- **Resposta (HTTP 200):** `{"status": "ok", "message": "Restoration pipeline started."}`
-- **Erro (HTTP 400):** `{"status": "error", "message": "A process is already running."}`
+
+---
 
 ### `POST /api/action`
-Despacha ações operacionais assíncronas do estúdio através de dispatch table funcional:
-- **`start_restore`**: Inicia a restauração (com verificação automática e auto-instalação do QTGMC se necessário).
-- **`install_obs`**: Dispara o instalador portátil automatizado do OBS Studio.
-- **`install_vapoursynth`**: Dispara o instalador do VapourSynth + QTGMC.
-- **`generate_subtitles`**: Executa o WhisperEngine para transcrição offline de fala (`params: {"input": "...", "model_size": "tiny"}`).
-- **`stop_process`**: Finaliza o processo externo ativo via terminação limpa de subprocesso.
-- **`pause_process`**: Suspende a execução da pipeline em tempo real (liberando CPU/GPU) sem abortar o processo.
-- **`resume_process`**: Retoma a execução imediata de uma pipeline pausada.
-- **`abort_process`**: Encerra o sinal e a pipeline de forma segura, limpando locks e arquivos corrompidos.
+<div align="justify">
 
-### `POST /api/install_qtgmc`
-Dispara diretamente o processo de configuração e download do ambiente VapourSynth + QTGMC.
-- **Resposta (HTTP 200):** `{"status": "started", "message": "VapourSynth installation started."}`
+Dispatches process management commands (`pause_process`, `resume_process`, `abort_process`).
 
----
+</div>
 
-## 6. Configuração de Armazenamento (`routers/storage.py`)
-
-### `GET /api/storage/config`
-Retorna a configuração ativa e o status de conectividade do backend de armazenamento.
-- **Resposta (HTTP 200):**
+- **Payload Schema (`ActionPayload`):**
   ```json
   {
-    "provider": "local_nas_usb",
-    "config": { "path": "D:\\Acervo_VHS" },
-    "status": { "ready": true },
-    "available_providers": ["local_nas_usb", "supabase", "s3_generic", "gdrive", "dropbox", "onedrive"]
+    "action": "pause_process"
   }
   ```
 
-### `POST /api/storage/config`
-Salva e valida as credenciais do provedor de armazenamento selecionado.
-- **Payload Schema (`StorageConfigPayload`):**
+---
+
+### `GET /api/monitor/comparison-frame`
+<div align="justify">
+
+Extracts and returns a comparison frame pair (Raw vs Restored) at a specified timestamp, encoded as base64 JPEG images.
+
+</div>
+
+- **Query Parameters:**
+  - `path`: Relative path to raw file in `media/raw/`.
+  - `timestamp`: Float timestamp in seconds (e.g. `12.5`).
+- **Response (HTTP 200):**
   ```json
   {
-    "provider": "s3_generic",
-    "config": {
-      "S3_ENDPOINT_URL": "https://s3.us-east-1.amazonaws.com",
-      "S3_BUCKET": "meu-acervo-vhs",
-      "S3_ACCESS_KEY": "AKIA...",
-      "S3_SECRET_KEY": "...",
-      "S3_REGION": "us-east-1"
-    }
+    "raw_frame": "data:image/jpeg;base64,...",
+    "processed_frame": "data:image/jpeg;base64,...",
+    "timestamp": 12.5
   }
   ```
-- **Resposta (HTTP 200):** `{"status": "ok", "message": "Configuration saved and validated successfully."}`
-- **Erro (HTTP 400):** `{"error": "Failed to validate storage configuration."}`
 
 ---
 
-## 7. Ingestão Panasonic DVR & MEIHDFS (`routers/ingest.py`)
+### `GET /api/restoration/incomplete`
+<div align="justify">
+
+Scans `media/restored/` for incomplete jobs (`.tmp.mp4`, `.tmp.mkv`) left after system reboots.
+
+</div>
+
+---
+
+### `POST /api/restoration/incomplete/action`
+<div align="justify">
+
+Performs recovery actions (`resume`, `finalize`, or `discard`) on incomplete recordings.
+
+</div>
+
+---
+
+## 6. Panasonic DVR Ingestion (`routers/ingest.py`)
 
 ### `GET /api/ingest/panasonic/disks`
-Varre e lista as unidades físicas de armazenamento e adaptadores USB-SATA (JMicron, ASMedia) conectados ao hospedeiro com diagnóstico de assinaturas MEIHDFS.
-- **Resposta (HTTP 200):**
+<div align="justify">
+
+Enumerates attached physical block drives and USB-SATA bridge controllers.
+
+</div>
+
+- **Response (HTTP 200):**
   ```json
-  {
-    "disks": [
-      {
-        "device_id": "\\\\.\\PhysicalDrive2",
-        "name": "JMicron Generic USB Device",
-        "model": "JMicron JMS567 (Panasonic DMR-EH55 HDD)",
-        "size_gb": 160.0,
-        "is_panasonic": true,
-        "format": "MEIHDFS-V2.0",
-        "needs_elevation": false,
-        "is_usb": true,
-        "is_jmicron": true,
-        "is_asmedia": false,
-        "bus_type": "USB"
-      }
-    ],
-    "total": 1
-  }
+  [
+    {
+      "device_path": "\\\\.\\PhysicalDrive1",
+      "model": "JMicron Generic USB Device",
+      "size_gb": 160.0,
+      "is_usb": true,
+      "is_jmicron": true,
+      "is_asmedia": false
+    }
+  ]
   ```
 
-### `GET /api/ingest/panasonic/inspect`
-Inspeciona uma imagem de disco (`.img`, `.bin`, `.raw`) ou unidade física de bloco (`\\.\PhysicalDriveX` / `/dev/sdX`) para verificar a presença de superblocos MEIHDFS ou Program Streams MPEG-2.
-- **Query Parameter:** `source_path` (string)
-- **Resposta (HTTP 200):**
-  ```json
-  {
-    "is_panasonic": true,
-    "format": "MEIHDFS-V2.0",
-    "details": "MEIHDFS-V2.0 detected. Superblock valid with 4 program stream titles.",
-    "can_extract": true,
-    "source_path": "C:\\dumps\\panasonic_160gb.bin"
-  }
-  ```
+---
 
 ### `GET /api/ingest/panasonic/tree`
-Retorna a árvore estruturada completa de gravações, títulos, segmentação de capítulos em intervalos de 15 minutos, timecodes formatados e URLs de miniaturas.
-- **Query Parameter:** `source_path` (string)
-- **Resposta (HTTP 200):**
-  ```json
-  {
-    "source_path": "\\\\.\\PhysicalDrive2",
-    "is_panasonic": true,
-    "format": "MEIHDFS-V2.0",
-    "total_titles": 2,
-    "total_size_mb": 4200.0,
-    "titles": [
-      {
-        "id": 1,
-        "title": "Gravação 01 - 2026-10-02",
-        "filename": "title_01.mpg",
-        "path": "C:\\...\\media\\raw\\panasonic_title_01.mpg",
-        "size_mb": 2100.0,
-        "duration_sec": 3600.0,
-        "duration_formatted": "01:00:00",
-        "recorded_date": "2026-10-02",
-        "format": "MPEG-2 PS",
-        "chapters": [
-          { "id": 1, "title": "Capítulo 1", "start_sec": 0, "start_timecode": "00:00:00" },
-          { "id": 2, "title": "Capítulo 2", "start_sec": 900, "start_timecode": "00:15:00" }
-        ],
-        "thumbnail_url": "/api/media/thumbnail?path=media%2Fraw%2Fpanasonic_title_01.mpg",
-        "is_extracted": false
-      }
-    ]
-  }
-  ```
+<div align="justify">
 
-### `POST /api/ingest/panasonic/extract`
-Extrai todos os títulos da imagem ou unidade Panasonic diretamente para a pasta `media/raw/`.
-- **Payload:** `{"source_path": "\\\\.\\PhysicalDrive2", "output_dir": "media/raw"}`
-- **Resposta (HTTP 200):**
-  ```json
-  {
-    "status": "success",
-    "message": "Successfully extracted 2 title(s).",
-    "extracted_files": ["title_01.mpg", "title_02.mpg"],
-    "destination": "media/raw"
-  }
-  ```
+Traverses MEIHDFS or DVD-VR partitions, returning the hierarchy of titles, chapters, duration, and metadata.
+
+</div>
+
+- **Query Parameters:**
+  - `disk_path`: Target physical drive or disk image file path.
+
+---
 
 ### `POST /api/ingest/panasonic/extract-titles`
-Extrai seletivamente apenas os títulos especificados por IDs, evitando leituras de disco desnecessárias.
+<div align="justify">
+
+Extracts selected program titles via native C utilities into `media/raw/`.
+
+</div>
+
 - **Payload Schema (`PanasonicExtractTitlesPayload`):**
   ```json
   {
-    "source_path": "\\\\.\\PhysicalDrive2",
-    "title_ids": [1],
+    "disk_path": "\\\\.\\PhysicalDrive1",
+    "title_indices": [0, 1],
     "output_dir": "media/raw"
   }
   ```
-- **Resposta (HTTP 200):**
-  ```json
-  {
-    "status": "success",
-    "message": "Successfully extracted 1 title(s).",
-    "extracted_files": ["title_01.mpg"],
-    "destination": "media/raw"
-  }
-  ```
 
 ---
 
-## 8. Monitor Comparativo A/B & Mídia (`routers/restoration.py` e `routers/media.py`)
-
-### `GET /api/monitor/comparison-frame`
-Extrai em alta velocidade (< 50ms) e baixa carga de CPU (< 2%) um par sincronizado de quadros (RAW Analógico vs Restaurado/Filtrado) codificados em base64 JPEG para renderização no componente `<SplitComparisonMonitor />`.
-- **Query Parameters:**
-  - `source` (string): Caminho do vídeo bruto.
-  - `timestamp` (float, padrão `5.0`): Posição em segundos para extração do quadro.
-  - `deinterlacer` (string, padrão `bwdif`): Algoritmo de desentrelaçamento rápido.
-  - `denoise` (bool, padrão `true`): Aplicação de denoise analógico.
-  - `chroma_fix` (bool, padrão `true`): Correção de alinhamento de croma.
-- **Resposta (HTTP 200):**
-  ```json
-  {
-    "status": "success",
-    "timestamp": 5.0,
-    "raw_image": "data:image/jpeg;base64,/9j/4AAQSkZJRg...",
-    "processed_image": "data:image/jpeg;base64,/9j/4AAQSkZJRg...",
-    "width": 640,
-    "height": 360
-  }
-  ```
+## 7. Media & Storage Endpoints (`media.py`, `storage.py`)
 
 ### `GET /api/media/thumbnail`
-Gera e entrega sob demanda a miniatura de um arquivo de vídeo com cache automático em disco (`media/.thumbnails/`).
-- **Query Parameter:** `path` (string, validado por `is_safe_media_path`).
-- **Resposta (HTTP 200):** Fluxo binário JPEG (`image/jpeg`).
+<div align="justify">
+
+Generates and caches JPEG thumbnail representations for video files at specified positions.
+
+</div>
+
+- **Query Parameters:**
+  - `path`: Safe path to media file.
+  - `time`: Timestamp in seconds (default: `5.0`).
 
 ---
 
-## 9. Projetos Incompletos & Recuperação de Jobs (`routers/restoration.py`)
+### `GET /api/storage/config` & `POST /api/storage/config`
+<div align="justify">
 
-### `GET /api/restoration/incomplete`
-Varre `media/restored/` e lista gravações ou processos que foram interrompidos acidentalmente (queda de energia, fechamento do app).
-- **Resposta (HTTP 200):**
-  ```json
-  {
-    "incomplete_jobs": [
-      {
-        "output_path": "C:\\...\\media\\restored\\tape_01\\tape_01_restored_1080p.mp4.tmp",
-        "source_path": "C:\\...\\media\\raw\\tape_01.mkv",
-        "current_frames": 45200,
-        "total_frames": 108000,
-        "progress_percent": 41.8,
-        "fps": 28.5,
-        "output_size_bytes": 4823449600,
-        "last_modified": "2026-10-10 11:45:00",
-        "can_resume": true,
-        "source_exists": true
-      }
-    ],
-    "total": 1
-  }
-  ```
+Retrieves and updates archival destination parameters (Local Storage, AWS S3, Google Drive, Dropbox).
 
-### `POST /api/restoration/incomplete/action`
-Executa a reconciliação do arquivo incompleto:
-- **`resume`**: Retoma a restauração a partir do último quadro processado.
-- **`finalize`**: Executa reparo do contêiner MP4/MKV via FFmpeg (`-c copy -movflags +faststart`), tornando o vídeo parcial reproduzível imediatamente sem perda do material gravado.
-- **`discard`**: Remove arquivos temporários parciais liberando espaço em disco.
-- **Payload Schema (`IncompleteJobActionPayload`):**
-  ```json
-  {
-    "output_path": "C:\\...\\media\\restored\\tape_01\\tape_01_restored_1080p.mp4.tmp",
-    "action": "finalize"
-  }
-  ```
-- **Resposta (HTTP 200):**
-  ```json
-  {
-    "status": "success",
-    "message": "Partial video container finalized successfully.",
-    "finalized_file": "tape_01_restored_1080p_partial.mp4"
-  }
-  ```
-
+</div>

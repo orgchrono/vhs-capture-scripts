@@ -1,44 +1,95 @@
-# Guia de Captura Multiplataforma via OBS Studio
+# 📹 Cross-Platform Ingest & Capture Guide via OBS Studio
 
-O **OBS Studio** é a plataforma oficial recomendada para as etapas de ingestão/captura no pipeline do VHS Studio. Ele provê compatibilidade nativa (Windows, macOS e Linux) com hardwares profissionais e amadores, oferecendo controle absoluto sobre os metadados de compressão e fluxo de dados.
+<div align="justify">
 
-## 1. Escopo de Hardware Suportado
-A arquitetura do VHS Studio processa gravações advindas de qualquer fonte, mas as seguintes possuem suporte avançado no fluxo OBS:
-*   **Blackmagic Design (Intensity Shuttle, DeckLink)**: Suporte nativo via *DeckLink SDK* presente no OBS. Permite capturas de 10-bit não comprimidas e YUV 4:2:2 puro. O sinal analógico via S-Video ou Componente da Intensity Shuttle deve ser configurado nas "Fontes DeckLink" do OBS.
-*   **Placas USB DirectShow (Ex: Elgato, MS2130, EasyCap, GV-USB2)**: Amplamente suportadas via a fonte "Dispositivo de Captura de Vídeo".
-*   **Time Base Correctors (TBC)**: O fluxo foi desenhado para aceitar sinais estabilizados por TBCs de linha/hardware dedicados (como a aclamada série Panasonic DMR-ES10/ES15, DMR-EH55, DataVideo TBC-1000). Caso você não possua um TBC de hardware (o que causará frames soltos/dropouts e variação de cadência), o modo **TBC Frame-Hold** do *VHS Studio* irá contornar o problema da quebra de sincronia de áudio matematicamente no pós-processamento.
+**OBS Studio** serves as the recommended hardware capture platform for live ingestion in the VHS Studio Pro workflow. It provides native cross-platform hardware support (Windows, macOS, Linux) across professional SDI/HDMI interfaces and consumer USB capture devices, providing precise control over container packaging, bitrates, and interlace metadata.
 
-## 2. Configurações Profissionais de Captura no OBS
+</div>
 
-Para extrair o máximo do sinal (e prepará-lo para a aplicação do filtro *QTGMC* e *3D Comb Filter* na etapa de Restauração), ajuste o seu OBS Studio da seguinte forma:
+---
 
-### Configuração de Vídeo (Aba: Vídeo)
-*   **Resolução de Base e Saída**: `720x480` (NTSC) ou `720x576` (PAL). **Não** faça upscale nesta etapa. A IA do VHS Studio cuidará do upscale Lanczos.
-*   **Valores de FPS Comuns**: `29.97` (NTSC) ou `25 PAL`. Não use "60" no OBS; grave o sinal na sua cadência entrelaçada original.
+## 1. Supported Capture Hardware
 
-### Configuração de Saída (Aba: Saída -> Modo Avançado)
-Para captura Lossless (Sem Perdas) ou Near-Lossless (Virtualmente sem perdas), recomendamos:
+<div align="justify">
 
-**Opção A: Qualidade Arquivística (Apple ProRes / FFV1)**
-Ideal para fitas master. Exige muito espaço em disco (100+ GB/hora).
-*   **Formato de Gravação**: `mkv` ou `mov`
-*   **Codificador de Vídeo**: `ProRes 422 HQ` (macOS/Linux) ou `FFV1` / `HuffYUV` via FFmpeg personalizado.
+While VHS Studio Pro can process any standard interlaced video file, the following hardware classes are optimized for the OBS workflow:
 
-**Opção B: Qualidade Transparente (x264/H.264 Lossless)**
-*   **Codificador de Vídeo**: `x264`
-*   **Controle de Taxa de Bits**: `CRF`
-*   **CRF**: `0` (Zero = Modo Lossless) ou `12` a `15` para arquivos incrivelmente bons e menores.
-*   **Predefinição de Uso da CPU**: `ultrafast` (importante para evitar frames dropados em capturas VHS).
-*   **Ajuste Fino**: Adicione `tff` ou `bff` para assegurar os metadados corretos de campos entrelaçados.
+- **Blackmagic Design (Intensity Shuttle, DeckLink Family):**
+  - Native integration via the *DeckLink SDK* in OBS Studio.
+  - Enables uncompressed 10-bit YUV 4:2:2 raw capture over S-Video or Component inputs.
+  - Configured under "DeckLink Video Capture" sources.
+- **DirectShow & UVC USB Capture Cards (e.g., Elgato Video Capture, StarTech, I-O Data GV-USB2, MS2130, EasyCap):**
+  - Fully supported via the standard "Video Capture Device" source.
+- **Time Base Correctors (TBC):**
+  - The pipeline natively accepts signals stabilized by line and full-frame hardware TBCs (e.g., Panasonic DMR-ES10/ES15 pass-through, DMR-EH55, DataVideo TBC-1000).
+  - If capturing without a hardware TBC (leading to frame drops, line jitter, and variable cadence), the **TBC Frame-Hold** mode in *VHS Studio Pro* mathematically compensates for signal loss to prevent audio/video desynchronization in post-processing.
 
-### Propriedades da Fonte (Source)
-Ao adicionar a fonte da Blackmagic ou USB:
-*   **Desentrelaçamento do OBS**: **Desligado (Nenhum)**. Isso é crítico. Se o OBS desentrelaçar o vídeo, nós não conseguiremos aplicar o algoritmo de restauração Avançada (QTGMC) na etapa posterior do VHS Studio.
-*   **Espaço de Cor**: `Rec. 601` ou `SMPTE 170M`.
-*   **Faixa de Cor**: `Limitada` (Não utilize faixa Completa/Full para VHS).
+</div>
 
-## 3. Integração Automática (WebSocket)
-O VHS Studio pode controlar a sua sessão de captura no OBS remotamente.
-1. No OBS, vá em **Ferramentas -> Configurações do Servidor WebSocket**.
-2. Marque **Habilitar servidor WebSocket**, defina a porta como `4455` (padrão) e habilite a senha. O *VHS Studio* irá configurar automaticamente uma senha segura em seu arquivo `config/local.toml` quando necessário, garantindo integração segura (handshake SHA-256).
-3. Salve o arquivo na pasta `media/raw/` do seu projeto. O pipeline do VHS Studio iniciará automaticamente ou poderá ser acionado pelo painel web.
+---
+
+## 2. Professional Capture Configuration in OBS
+
+<div align="justify">
+
+To preserve the raw analog signal for high-fidelity deinterlacing (**QTGMC**) and spatial filtering in VHS Studio Pro, calibrate OBS Studio using these parameters:
+
+</div>
+
+### Video Configuration (Settings -> Video)
+- **Base (Canvas) Resolution & Output Resolution:**
+  - NTSC: `720x480`
+  - PAL: `720x576`
+  - **Do NOT upscale during capture.** Up-sampling must be performed during the post-processing phase using Lanczos or neural networks.
+- **Common FPS Values:**
+  - NTSC: `29.97`
+  - PAL: `25`
+  - **Do NOT set to 60.** Record the native interlaced cadence as-is.
+
+### Output Configuration (Settings -> Output -> Advanced Mode)
+
+<div align="justify">
+
+Select one of the following archival recording profiles:
+
+#### Option A: Reference Archival Master (Apple ProRes 422 HQ / FFV1)
+*Best for master preservation; requires high storage capacity (~60–100 GB per hour).*
+- **Recording Format:** `mkv` or `mov`
+- **Video Encoder:** `ProRes 422 HQ` (macOS/Linux) or custom `FFV1` / `HuffYUV` via FFmpeg Output.
+
+#### Option B: Visually Lossless Master (x264 Lossless)
+*Optimized balance of compression efficiency and archival fidelity.*
+- **Video Encoder:** `x264`
+- **Rate Control:** `CRF`
+- **CRF Value:** `0` (mathematical lossless) or `12`–`15` (visually transparent, smaller footprint).
+- **CPU Usage Preset:** `ultrafast` (critical for preventing dropped frames during real-time encoding).
+- **Field Order Tuning:** Set `tff` (Top Field First) or `bff` (Bottom Field First) to declare interlaced metadata correctly.
+
+</div>
+
+### Video Capture Source Properties
+<div align="justify">
+
+When configuring your capture device in OBS:
+- **Deinterlacing in OBS:** **Disabled (None).**
+  > [!IMPORTANT]
+  > Never enable deinterlacing inside OBS Studio. Doing so permanently destroys interlaced temporal field information, preventing VapourSynth QTGMC from performing motion-compensated 60fps reconstruction.
+- **Color Space:** `Rec. 601` or `SMPTE 170M`.
+- **Color Range:** `Partial` / `Limited` (16–235). Analog video standards are calibrated for broadcast limited range.
+
+</div>
+
+---
+
+## 3. Automated WebSocket v5 Integration
+
+<div align="justify">
+
+VHS Studio Pro can remotely monitor and orchestrate your OBS capture sessions:
+
+1. In OBS, navigate to **Tools -> WebSocket Server Settings**.
+2. Enable **WebSocket Server**, set the port to `4455` (default), and configure an authentication password.
+3. In VHS Studio Pro, configure the password in `config/local.toml` or the UI Settings panel. The system completes the cryptographic SHA-256 handshake automatically.
+4. Save recordings directly to the `media/raw/` directory. VHS Studio Pro will detect new files immediately, displaying them in the Ingest Desk.
+
+</div>

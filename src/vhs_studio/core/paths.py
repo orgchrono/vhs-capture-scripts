@@ -21,6 +21,8 @@ UI_DIST_DIR = os.path.join(PROJECT_ROOT, "ui", "dist")
 FFMPEG_DIR = os.path.join(TOOLS_DIR, "ffmpeg")
 OBS_DIR = os.path.join(TOOLS_DIR, "obs")
 REALESRGAN_DIR = os.path.join(TOOLS_DIR, "realesrgan")
+CODEFORMER_DIR = os.path.join(TOOLS_DIR, "codeformer")
+GFPGAN_DIR = os.path.join(TOOLS_DIR, "gfpgan")
 
 # Config Files
 USER_HOME = os.path.expanduser("~")

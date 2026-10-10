@@ -329,20 +329,20 @@ def main():
     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
     auditors = [
-        ArchitectureAuditor("Arquitetura, SRP, SOC, SSOT, MVVM Strict", base_dir),
-        DependencyAuditor("Dependências (pip, npm) e Duplicidades", base_dir),
-        SecurityAuditor("Segurança (0 duplicidade, Hardcode)", base_dir),
+        ArchitectureAuditor("Architecture, SRP, SoC, SSOT, Strict MVVM", base_dir),
+        DependencyAuditor("Dependencies (Pip, NPM) & Duplication", base_dir),
+        SecurityAuditor("Security (Zero Duplication, Zero Secrets)", base_dir),
         CodeQualityAuditor(
-            "Melhores Práticas, FP Pure, Code Smells, Loose Types, Divida Técnica",
+            "Best Practices, FP Pure, Code Smells, Loose Types, Technical Debt",
             base_dir,
         ),
-        TestAndFlakeAuditor("Test Harness e Flaking Tests", base_dir),
+        TestAndFlakeAuditor("Test Harness & Flaking Prevention", base_dir),
         UxUiAuditor("UX/UI, i18n, a11y, View Tests", base_dir),
-        PipelineAuditor("CI/CD, Pipeline de Uso, Automatismo e Paralelismo", base_dir),
+        PipelineAuditor("CI/CD, Usage Pipelines, Automation & Concurrency", base_dir),
     ]
 
     print(
-        "\n\033[96m[Swarm Auditors] Iniciando mapeamento da codebase em paralelo...\033[0m"
+        "\n\033[96m[Swarm Auditors] Initiating codebase architecture mapping in parallel...\033[0m"
     )
 
     results = []
@@ -358,11 +358,11 @@ def main():
 
     report_path = os.path.join(base_dir, "swarm_audit_report.md")
     with open(report_path, "w", encoding="utf-8") as f:
-        f.write("# 🐝 Relatório do Swarm Auditors\n\n")
+        f.write("# 🐝 Swarm Auditors Architecture & Quality Report\n\n")
         f.write(
-            "Mapeamento completo da codebase englobando arquitetura, segurança, testes,\n"
+            "Comprehensive codebase mapping covering architecture, security, testing,\n"
         )
-        f.write("pipelines CI/CD e boas práticas.\n\n")
+        f.write("CI/CD pipelines, and engineering best practices.\n\n")
         for res in results:
             if res.status == "PASS":
                 icon = "✅"
@@ -379,7 +379,7 @@ def main():
             print(f"[{res.name}] Status: {res.status}")
 
     print(
-        f"\n\033[92m[Swarm Auditors] Concluído! Relatório completo gerado em: {report_path}\033[0m"
+        f"\n\033[92m[Swarm Auditors] Completed! Full report generated at: {report_path}\033[0m"
     )
 
 

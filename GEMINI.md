@@ -1,12 +1,12 @@
-# VHS Studio Pro - Regras Rígidas para Agentes de IA (GEMINI.md)
+# VHS Studio Pro - Strict Agent Guidelines (GEMINI.md)
 
 > [!CRITICAL]
-> **PROIBIÇÃO TOTAL DE HARDCODE (ZERO-HARDCODE POLICY)**
-> Todo e qualquer agente que interagir ou modificar este repositório está **TERMINANTEMENTE PROIBIDO** de inserir texto hardcoded em componentes de interface (React / JSX / TSX), mensagens de toast, tooltips, placeholders e alertas.
+> **ZERO-HARDCODE POLICY**
+> Any agent interacting with or modifying this repository is **STRICTLY FORBIDDEN** from introducing hardcoded user-facing text into user interface components (React / JSX / TSX), toast notifications, tooltips, placeholders, and error alerts.
 
-Consulte o documento oficial de diretrizes em [AGENTS.md](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/AGENTS.md).
+Consult the authoritative guidelines in [AGENTS.md](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/AGENTS.md).
 
-## Diretrizes de Execução Rápida:
-1. **Interface 100% Internacionalizada:** Todo texto em JSX/TSX deve obrigatoriamente chamar `t('chave.namespace')`.
-2. **Zero Caminhos Hardcoded:** Nenhum caminho absoluto ou magic string em arquivos de código. Usar `paths.py` e `constants.py`.
-3. **8 Quality Gates Verificados:** Executar e validar `python scripts/lint.py` antes de qualquer finalização.
+## Quick Execution Directives:
+1. **100% Internationalized Interface:** All text rendered in JSX/TSX must invoke `t('namespace.key')`.
+2. **Zero Hardcoded Paths & Magic Numbers:** No absolute paths or magic strings in code files. Use `paths.py` and `constants.py`.
+3. **9 Quality Gates Enforced:** Run and validate `python scripts/lint.py` before finalization.

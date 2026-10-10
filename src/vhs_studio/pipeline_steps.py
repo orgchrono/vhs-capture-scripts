@@ -99,7 +99,7 @@ class FaceRestorationStep:
 
         fidelity = float(params.get("ai_face_fidelity", DEFAULT_CODEFORMER_FIDELITY))  # type: ignore[arg-type]
         restorer = FaceRestorer(fidelity_weight=fidelity)
-        if restorer.is_available() and os.path.exists(output_path):
+        if os.path.exists(output_path):
             base_dir, filename = os.path.split(output_path)
             name, ext = os.path.splitext(filename)
             faced_path = os.path.join(base_dir, f"{name}_codeformer{ext}")
