@@ -62,7 +62,17 @@
     "live_preview": "LIVE PREVIEW (NATIVE)",
     "dropped_frames": "DROPPED TAPE DETECTED! ({{count}} DROPS)",
     "connecting_signal": "CONNECTING SIGNAL...",
-    "smpte_format": "SMPTE 4:3 • NTSC 59.94p"
+    "smpte_format": "SMPTE 4:3 • NTSC 59.94p",
+    "split_view": "A/B-Vergleich",
+    "split_title": "A/B Split-Screen Monitor",
+    "split_raw": "Analog RAW",
+    "split_restored": "Restauriert",
+    "split_position": "Teilung: {{percent}}%",
+    "split_time": "Zeit: {{time}}s",
+    "split_refresh": "Frame aktualisieren",
+    "split_close": "Vergleich schließen",
+    "split_loading": "Vergleichsbilder werden geladen...",
+    "split_hint": "Ziehen Sie den Schieberegler oder nutzen Sie die Pfeiltasten zum Vergleichen."
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -85,7 +95,15 @@
     "carver_python": "Pure-Python Carver",
     "extracting": "Titel nach media/raw/ extrahieren...",
     "extract_btn": "Nach media/raw/ extrahieren",
-    "library_explorer_title": "Kassetten-Archiv"
+    "library_explorer_title": "Kassetten-Archiv",
+    "detected_drives_title": "Verbundene physische Laufwerke und Festplatten",
+    "scan_drives": "Laufwerke scannen",
+    "no_drives_found": "Keine physische Festplatte oder USB/SATA-Adapter erkannt.",
+    "connect_drive_btn": "Verbinden",
+    "panasonic_detected_badge": "Panasonic DVR erkannt",
+    "guidance_title": "Sicherheitshinweise und Festplatten-Imaging (Wichtig)",
+    "guidance_warning": "WARNUNG: Wenn Windows oder macOS beim Anschließen der Panasonic-Festplatte auffordert, das 'Laufwerk zu formatieren', NIEMALS formatieren! Das MEIHDFS-Dateisystem ist proprietär. Durch das Formatieren werden alle Aufnahmen unwiderruflich gelöscht.",
+    "guidance_imaging": "Um die Originalfestplatte vor mechanischem Verschleiß zu schützen, können Sie mit forensischen Tools wie dd (Linux/Mac) oder Win32DiskImager (Windows) ein bitgenaues Roh-Image (.bin oder .img) erstellen und im folgenden Feld laden."
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",

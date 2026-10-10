@@ -62,7 +62,17 @@
     "live_preview": "LIVE PREVIEW (NATIVE)",
     "dropped_frames": "DROPPED TAPE DETECTED! ({{count}} DROPS)",
     "connecting_signal": "CONNECTING SIGNAL...",
-    "smpte_format": "SMPTE 4:3 • NTSC 59.94p"
+    "smpte_format": "SMPTE 4:3 • NTSC 59.94p",
+    "split_view": "A/B 对比",
+    "split_title": "A/B 分屏对比监视器",
+    "split_raw": "模拟 RAW",
+    "split_restored": "已修复",
+    "split_position": "分割: {{percent}}%",
+    "split_time": "时间: {{time}}秒",
+    "split_refresh": "刷新画面",
+    "split_close": "关闭对比器",
+    "split_loading": "正在加载对比画面...",
+    "split_hint": "拖动滑块或使用键盘方向键对比处理前后的画质差异。"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -85,7 +95,15 @@
     "carver_python": "纯 Python 扫描器",
     "extracting": "正在提取节目至 media/raw/...",
     "extract_btn": "提取至 media/raw/",
-    "library_explorer_title": "录像带库"
+    "library_explorer_title": "录像带库",
+    "detected_drives_title": "已连接的物理驱动器与磁盘",
+    "scan_drives": "扫描驱动器",
+    "no_drives_found": "未检测到物理磁盘或USB/SATA适配器。",
+    "connect_drive_btn": "连接",
+    "panasonic_detected_badge": "检测到松下DVR",
+    "guidance_title": "安全指南与磁盘镜像克隆（重要）",
+    "guidance_warning": "注意：连接松下硬盘时，若 Windows 或 macOS 提示“需要格式化磁盘”，请绝对不要格式化！MEIHDFS 为专有文件系统，格式化将永久清除所有录像。",
+    "guidance_imaging": "为防止原始机械磁盘老化磨损，您可以使用 dd (Linux/Mac) 或 Win32DiskImager (Windows) 等取证工具制作逐位原始磁盘镜像（.bin 或 .img），并在下方输入框中加载该镜像。"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",

@@ -1,13 +1,17 @@
-import React from 'react';
-import { Video, AlertTriangle, Activity } from 'lucide-react';
+import React, { useState } from 'react';
+import { Video, AlertTriangle, Activity, Layers } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useLiveMonitor } from '../viewmodels/useLiveMonitor';
+import { useStudioStore } from '../store/useStudioStore';
+import { SplitComparisonMonitor } from './SplitComparisonMonitor';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import type { SystemHealth } from '../types';
 import { formatBitrate } from '../lib/formatters';
 
 export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => {
   const { t } = useTranslation();
+  const { selectedFile } = useStudioStore();
+  const [isSplitMode, setIsSplitMode] = useState(false);
   const { videoRef, isActive, error, obsStats, isCapturing } = useLiveMonitor();
   const shouldReduceMotion = useReducedMotion();
 
@@ -18,15 +22,37 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
     transition: { duration: 0.15 },
   };
 
+  if (isSplitMode) {
+    return (
+      <SplitComparisonMonitor
+        source={selectedFile}
+        onClose={() => setIsSplitMode(false)}
+      />
+    );
+  }
+
   return (
     <div className="relative w-full h-full bg-black flex flex-col items-center justify-center overflow-hidden">
       
-      {/* Top Left Badge */}
-      <div className="absolute top-3 left-3 z-10 flex gap-2 items-center">
-        <span className="bg-studio-panel/90 px-2.5 py-1 rounded-sm text-[10px] font-mono text-slate-300 border border-studio-border shadow-sm flex items-center gap-1.5">
-          <span className={`led-lamp ${isActive ? 'led-live' : 'led-idle'}`}></span>
-          {t('monitor.live_preview')}
-        </span>
+      {/* Top Left Badge & A/B Split Toggle */}
+      <div className="absolute top-3 left-3 right-3 z-10 flex items-center justify-between pointer-events-auto">
+        <div className="flex gap-2 items-center">
+          <span className="bg-studio-panel/90 px-2.5 py-1 rounded-sm text-[10px] font-mono text-slate-300 border border-studio-border shadow-sm flex items-center gap-1.5">
+            <span className={`led-lamp ${isActive ? 'led-live' : 'led-idle'}`}></span>
+            {t('monitor.live_preview')}
+          </span>
+          <button
+            type="button"
+            onClick={() => setIsSplitMode(true)}
+            className="bg-studio-panel/90 hover:bg-studio-surface text-slate-300 hover:text-white px-2 py-1 rounded-sm text-[10px] font-mono border border-studio-border shadow-sm flex items-center gap-1.5 transition cursor-pointer"
+            title={t('monitor.split_view')}
+            aria-label={t('monitor.split_view')}
+            data-testid="toggle-split-view-btn"
+          >
+            <Layers className="w-3 h-3 text-amber-400" />
+            <span className="hidden sm:inline">{t('monitor.split_view')}</span>
+          </button>
+        </div>
         <AnimatePresence>
           {(isCapturing || obsStats?.recording) && (
             <motion.span

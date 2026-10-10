@@ -1,6 +1,8 @@
 import os
 import json
 import sys
+import base64
+import subprocess
 from typing import Dict, Mapping
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
@@ -8,6 +10,7 @@ from fastapi.responses import JSONResponse
 from vhs_studio.video.vapoursynth_qtgmc import VapourSynthQTGMC
 from vhs_studio.api.routers.security import is_safe_media_path
 from vhs_studio.core.paths import RAW_MEDIA_DIR, MEDIA_DIR
+from vhs_studio.core.toolchain import Toolchain
 
 restoration_router = APIRouter(prefix="/api", tags=["Restoration"])
 
@@ -282,3 +285,106 @@ def install_qtgmc():
     if success:
         return {"status": "started", "message": "Instalação do VapourSynth + QTGMC iniciada em segundo plano."}
     return {"status": "error", "message": msg}
+
+
+@restoration_router.get("/monitor/comparison-frame")
+def get_comparison_frame(
+    source: str = "",
+    timestamp: float = 5.0,
+    deinterlacer: str = "bwdif",
+    denoise: bool = True,
+    chroma_fix: bool = True,
+):
+    """Extract lightweight 360p A/B comparison frames (RAW vs Processed) with minimal compute overhead."""
+    target_path = resolve_media_input_path(source) if source else ""
+    is_valid_source = bool(target_path and os.path.exists(target_path) and is_safe_media_path(target_path))
+
+    try:
+        ffmpeg_bin = Toolchain.get_ffmpeg_path()
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"status": "error", "message": f"FFmpeg não disponível: {e}"})
+
+    safe_time = max(0.0, float(timestamp))
+
+    if is_valid_source:
+        cmd_raw = [
+            ffmpeg_bin,
+            "-hide_banner",
+            "-loglevel", "error",
+            "-ss", f"{safe_time:.3f}",
+            "-i", target_path,
+            "-frames:v", "1",
+            "-vf", "scale=640:360",
+            "-f", "image2",
+            "-c:v", "mjpeg",
+            "pipe:1",
+        ]
+        vf_filters = []
+        if deinterlacer in ("bwdif", "qtgmc", "yadif"):
+            vf_filters.append("bwdif")
+        if chroma_fix:
+            vf_filters.append("colorchannelmixer=rr=1.0:gg=1.0:bb=1.0")
+        if denoise:
+            vf_filters.append("hqdn3d=3:2:6:4")
+        vf_filters.append("scale=640:360")
+        vf_str = ",".join(vf_filters)
+
+        cmd_proc = [
+            ffmpeg_bin,
+            "-hide_banner",
+            "-loglevel", "error",
+            "-ss", f"{safe_time:.3f}",
+            "-i", target_path,
+            "-frames:v", "1",
+            "-vf", vf_str,
+            "-f", "image2",
+            "-c:v", "mjpeg",
+            "pipe:1",
+        ]
+    else:
+        cmd_raw = [
+            ffmpeg_bin,
+            "-hide_banner",
+            "-loglevel", "error",
+            "-f", "lavfi",
+            "-i", "smptebars=size=640x360:rate=30,noise=c0s=18:allf=t+u,tinterlace=mode=interleave_top",
+            "-frames:v", "1",
+            "-f", "image2",
+            "-c:v", "mjpeg",
+            "pipe:1",
+        ]
+        cmd_proc = [
+            ffmpeg_bin,
+            "-hide_banner",
+            "-loglevel", "error",
+            "-f", "lavfi",
+            "-i", "smptebars=size=640x360:rate=30",
+            "-frames:v", "1",
+            "-f", "image2",
+            "-c:v", "mjpeg",
+            "pipe:1",
+        ]
+
+    try:
+        raw_res = subprocess.run(cmd_raw, capture_output=True, timeout=5)
+        proc_res = subprocess.run(cmd_proc, capture_output=True, timeout=5)
+
+        if raw_res.returncode != 0 or proc_res.returncode != 0 or not raw_res.stdout or not proc_res.stdout:
+            return JSONResponse(
+                status_code=500,
+                content={"status": "error", "message": "Falha na geração dos quadros comparativos."},
+            )
+
+        raw_b64 = f"data:image/jpeg;base64,{base64.b64encode(raw_res.stdout).decode('ascii')}"
+        proc_b64 = f"data:image/jpeg;base64,{base64.b64encode(proc_res.stdout).decode('ascii')}"
+
+        return {
+            "status": "ok",
+            "timestamp": safe_time,
+            "raw_image": raw_b64,
+            "processed_image": proc_b64,
+            "width": 640,
+            "height": 360,
+        }
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})

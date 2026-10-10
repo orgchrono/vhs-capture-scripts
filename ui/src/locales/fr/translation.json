@@ -62,7 +62,17 @@
     "live_preview": "LIVE PREVIEW (NATIVE)",
     "dropped_frames": "DROPPED TAPE DETECTED! ({{count}} DROPS)",
     "connecting_signal": "CONNECTING SIGNAL...",
-    "smpte_format": "SMPTE 4:3 • NTSC 59.94p"
+    "smpte_format": "SMPTE 4:3 • NTSC 59.94p",
+    "split_view": "Comparateur A/B",
+    "split_title": "Moniteur comparatif A/B",
+    "split_raw": "RAW Analogique",
+    "split_restored": "Restauré",
+    "split_position": "Division : {{percent}}%",
+    "split_time": "Temps : {{time}}s",
+    "split_refresh": "Actualiser l'image",
+    "split_close": "Fermer le comparateur",
+    "split_loading": "Chargement des images comparatives...",
+    "split_hint": "Faites glisser le curseur ou utilisez les touches fléchées pour comparer avant et après."
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -85,7 +95,15 @@
     "carver_python": "Extracteur Pure-Python",
     "extracting": "Extraction des titres vers media/raw/...",
     "extract_btn": "Extraire vers media/raw/",
-    "library_explorer_title": "Collection de Cassettes"
+    "library_explorer_title": "Collection de Cassettes",
+    "detected_drives_title": "Lecteurs Physiques et Disques Connectés",
+    "scan_drives": "Analyser les lecteurs",
+    "no_drives_found": "Aucun disque physique ou adaptateur USB/SATA détecté.",
+    "connect_drive_btn": "Connecter",
+    "panasonic_detected_badge": "Panasonic DVR Détecté",
+    "guidance_title": "Consignes de sécurité et clonage de disque (Important)",
+    "guidance_warning": "ATTENTION : Si Windows ou macOS vous invite à « Formater le disque » lors de la connexion du disque Panasonic, NE LE FORMATEZ JAMAIS ! Le système MEIHDFS est propriétaire. Le formatage effacera définitivement tous les enregistrements.",
+    "guidance_imaging": "Pour préserver le disque original de l'usure mécanique, vous pouvez créer une image disque brute bit à bit (.bin ou .img) à l'aide d'outils forensiques tels que dd (Linux/Mac) ou Win32DiskImager (Windows) et la charger dans le champ ci-dessous."
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",

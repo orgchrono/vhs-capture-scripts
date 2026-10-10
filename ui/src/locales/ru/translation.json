@@ -62,7 +62,17 @@
     "live_preview": "LIVE PREVIEW (NATIVE)",
     "dropped_frames": "DROPPED TAPE DETECTED! ({{count}} DROPS)",
     "connecting_signal": "CONNECTING SIGNAL...",
-    "smpte_format": "SMPTE 4:3 • NTSC 59.94p"
+    "smpte_format": "SMPTE 4:3 • NTSC 59.94p",
+    "split_view": "A/B Сравнение",
+    "split_title": "Сплит-монитор сравнения A/B",
+    "split_raw": "Аналоговый RAW",
+    "split_restored": "Отреставрировано",
+    "split_position": "Разделение: {{percent}}%",
+    "split_time": "Время: {{time}}с",
+    "split_refresh": "Обновить кадр",
+    "split_close": "Закрыть сравнение",
+    "split_loading": "Загрузка кадров для сравнения...",
+    "split_hint": "Перетаскивайте ползунок или используйте стрелки на клавиатуре для сравнения до и после."
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -85,7 +95,15 @@
     "carver_python": "Pure-Python карвер",
     "extracting": "Извлечение заголовков в media/raw/...",
     "extract_btn": "Извлечь в media/raw/",
-    "library_explorer_title": "Архив видеокассет"
+    "library_explorer_title": "Архив видеокассет",
+    "detected_drives_title": "Подключенные физические диски и накопители",
+    "scan_drives": "Сканировать диски",
+    "no_drives_found": "Физические диски или адаптеры USB/SATA не обнаружены.",
+    "connect_drive_btn": "Подключить",
+    "panasonic_detected_badge": "Обнаружен Panasonic DVR",
+    "guidance_title": "Руководство по безопасности и клонированию (Важно)",
+    "guidance_warning": "ВНИМАНИЕ: Если Windows или macOS предлагает 'Форматировать диск' при подключении накопителя Panasonic, НИ В КОЕМ СЛУЧАЕ не форматируйте! Файловая система MEIHDFS является проприетарной. Форматирование навсегда сотрет все записи.",
+    "guidance_imaging": "Чтобы защитить исходный накопитель от механического износа, вы можете создать побитовый посекторный образ (.bin или .img) с помощью утилит dd (Linux/Mac) или Win32DiskImager (Windows) и загрузить его в поле ниже."
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",

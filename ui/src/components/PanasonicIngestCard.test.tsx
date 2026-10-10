@@ -14,7 +14,7 @@ const renderComponent = () => {
 };
 
 describe('PanasonicIngestCard Component', () => {
-  it('renders expand button and opens ingest form', () => {
+  it('renders expand button and opens ingest form with drive scanner and guidance', () => {
     renderComponent();
 
     const toggle = screen.getByTestId('toggle-panasonic-ingest-btn');

@@ -62,7 +62,17 @@
     "live_preview": "LIVE PREVIEW (NATIVE)",
     "dropped_frames": "DROPPED TAPE DETECTED! ({{count}} DROPS)",
     "connecting_signal": "CONNECTING SIGNAL...",
-    "smpte_format": "SMPTE 4:3 • NTSC 59.94p"
+    "smpte_format": "SMPTE 4:3 • NTSC 59.94p",
+    "split_view": "A/B 比較",
+    "split_title": "A/B 分割画面モニター",
+    "split_raw": "アナログRAW",
+    "split_restored": "修復済み",
+    "split_position": "分割: {{percent}}%",
+    "split_time": "時間: {{time}}秒",
+    "split_refresh": "フレーム更新",
+    "split_close": "比較を閉じる",
+    "split_loading": "比較フレームを読み込み中...",
+    "split_hint": "スライダーをドラッグするか矢印キーを使用して、前後の比較を行えます。"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -85,7 +95,15 @@
     "carver_python": "Pure-Python カーバー",
     "extracting": "タイトルを media/raw/ に抽出中...",
     "extract_btn": "media/raw/ に抽出",
-    "library_explorer_title": "テープコレクション"
+    "library_explorer_title": "テープコレクション",
+    "detected_drives_title": "接続された物理ドライブとディスク",
+    "scan_drives": "ドライブのスキャン",
+    "no_drives_found": "物理ディスクまたはUSB/SATAアダプターが検出されませんでした。",
+    "connect_drive_btn": "接続",
+    "panasonic_detected_badge": "Panasonic DVR検出",
+    "guidance_title": "安全ガイドラインとディスクイメージ作成（重要）",
+    "guidance_warning": "注意：Panasonic HDDを接続した際にWindowsやmacOSが「ディスクをフォーマットしますか」と求めてきても、絶対にフォーマットしないでください！MEIHDFSは独自ファイルシステムであり、フォーマットすると全録画が永久に消去されます。",
+    "guidance_imaging": "メカニカルな摩耗から元のディスクを保護するために、dd（Linux/Mac）やWin32DiskImager（Windows）などのツールを使用してビット単位の生イメージ（.binまたは.img）を作成し、下のフィールドに読み込むことができます。"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",

@@ -201,20 +201,54 @@ def _get_key_input() -> Optional[str]:
     else:
         try:
             import select
-            if select.select([sys.stdin], [], [], 0)[0]:
+            if not hasattr(sys.stdin, "fileno"):
+                return None
+            fd = sys.stdin.fileno()
+            if not os.isatty(fd):
+                return None
+
+            rlist, _, _ = select.select([sys.stdin], [], [], 0)
+            if not rlist:
+                return None
+
+            termios = __import__("termios")
+            tty = __import__("tty")
+            old_settings = termios.tcgetattr(fd)
+            try:
+                tty.setcbreak(fd)
                 ch_str = sys.stdin.read(1)
-                if ch_str in ("\r", "\n"):
+                if ch_str == "\x1b":
+                    # Check if this is an ANSI escape sequence (e.g. arrow keys)
+                    r_esc, _, _ = select.select([sys.stdin], [], [], 0.05)
+                    if r_esc:
+                        ch2 = sys.stdin.read(1)
+                        if ch2 in ("[", "O"):
+                            r_arrow, _, _ = select.select([sys.stdin], [], [], 0.05)
+                            if r_arrow:
+                                ch3 = sys.stdin.read(1)
+                                if ch3 == "A":
+                                    return "UP"
+                                if ch3 == "B":
+                                    return "DOWN"
+                                if ch3 == "C":
+                                    return "RIGHT"
+                                if ch3 == "D":
+                                    return "LEFT"
+                    return "QUIT"
+                elif ch_str in ("\r", "\n"):
                     return "ENTER"
                 elif ch_str == " ":
                     return "SPACE"
                 elif ch_str == "\t":
                     return "TAB"
-                elif ch_str in ("\x1b", "q", "Q"):
+                elif ch_str in ("q", "Q"):
                     return "QUIT"
                 elif ch_str in ("r", "R"):
                     return "REFRESH"
                 elif ch_str in ("1", "2", "3", "4"):
                     return ch_str
+            finally:
+                termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
         except Exception:
             return None
     return None

@@ -62,7 +62,17 @@
     "live_preview": "VISTA PREVIA EN VIVO (NATIVA)",
     "dropped_frames": "¡CINTA DEGRADADA DETECTADA! ({{count}} CAÍDAS)",
     "connecting_signal": "CONECTANDO SEÑAL...",
-    "smpte_format": "SMPTE 4:3 • NTSC 59.94p"
+    "smpte_format": "SMPTE 4:3 • NTSC 59.94p",
+    "split_view": "Comparador A/B",
+    "split_title": "Monitor Comparativo A/B",
+    "split_raw": "RAW Analógico",
+    "split_restored": "Restaurado",
+    "split_position": "División: {{percent}}%",
+    "split_time": "Tiempo: {{time}}s",
+    "split_refresh": "Actualizar Cuadro",
+    "split_close": "Cerrar Comparador",
+    "split_loading": "Cargando cuadros comparativos...",
+    "split_hint": "Arrastre el cursor o use las teclas de flecha para comparar antes y después."
   },
   "files": {
     "input_file_label": "Archivo de Entrada (media/raw/)",
@@ -85,7 +95,15 @@
     "carver_python": "Carver Pure-Python",
     "extracting": "Extrayendo títulos a media/raw/...",
     "extract_btn": "Extraer a media/raw/",
-    "library_explorer_title": "Colección de Cintas"
+    "library_explorer_title": "Colección de Cintas",
+    "detected_drives_title": "Unidades Físicas y Discos Conectados",
+    "scan_drives": "Escanear Unidades",
+    "no_drives_found": "No se detectó ningún disco físico o adaptador USB/SATA.",
+    "connect_drive_btn": "Conectar",
+    "panasonic_detected_badge": "Panasonic DVR Detectado",
+    "guidance_title": "Guía de Seguridad y Clonación (Importante)",
+    "guidance_warning": "ADVERTENCIA: Si Windows o macOS solicita 'Formatear el disco' al conectar el disco Panasonic, ¡NUNCA lo formatee! El sistema de archivos MEIHDFS es propietario. El formateo borrará permanentemente todas las grabaciones.",
+    "guidance_imaging": "Para preservar el disco original contra desgaste mecánico, puede crear una imagen sin procesar bit a bit (.bin o .img) usando herramientas forenses como dd (Linux/Mac) o Win32DiskImager (Windows) y cargarla en el campo a continuación."
   },
   "app": {
     "drop_title": "Suelte su cinta de video aquí",

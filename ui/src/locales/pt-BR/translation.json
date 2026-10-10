@@ -62,7 +62,17 @@
     "live_preview": "LIVE PREVIEW (NATIVO)",
     "dropped_frames": "FITA MASTIGADA! ({{count}} DROPS)",
     "connecting_signal": "CONECTANDO SINAL...",
-    "smpte_format": "SMPTE 4:3 • NTSC 59.94p"
+    "smpte_format": "SMPTE 4:3 • NTSC 59.94p",
+    "split_view": "Comparador A/B",
+    "split_title": "Monitor Comparativo A/B",
+    "split_raw": "RAW Analógico",
+    "split_restored": "Restaurado",
+    "split_position": "Divisão: {{percent}}%",
+    "split_time": "Tempo: {{time}}s",
+    "split_refresh": "Atualizar Quadro",
+    "split_close": "Fechar Comparador",
+    "split_loading": "Carregando quadros comparativos...",
+    "split_hint": "Arraste o cursor ou use as setas do teclado para comparar antes e depois."
   },
   "files": {
     "input_file_label": "Arquivo de Entrada (media/raw/)",
@@ -85,7 +95,15 @@
     "binary_native": "Binário Nativo",
     "carver_python": "Carver Pure-Python",
     "extracting": "Extraindo títulos para media/raw/...",
-    "extract_btn": "Extrair para media/raw/"
+    "extract_btn": "Extrair para media/raw/",
+    "detected_drives_title": "Unidades Físicas & Discos Conectados",
+    "scan_drives": "Escanear Unidades",
+    "no_drives_found": "Nenhum disco físico ou adaptador USB/SATA detectado.",
+    "connect_drive_btn": "Conectar",
+    "panasonic_detected_badge": "Panasonic DVR Detectado",
+    "guidance_title": "Instruções de Segurança & Clonagem (Importante)",
+    "guidance_warning": "ATENÇÃO: Se o Windows ou macOS pedir para 'Formatar o disco' ao conectar o HD do Panasonic, NUNCA formate! O sistema de arquivos MEIHDFS é proprietário. A formatação apagará todas as gravações permanentemente.",
+    "guidance_imaging": "Para preservar o disco original contra desgaste mecânico, você pode criar uma imagem bruta bit-a-bit (.bin ou .img) usando ferramentas forenses como dd (Linux/Mac) ou Win32DiskImager (Windows) e carregá-la no campo abaixo."
   },
   "app": {
     "drop_title": "Solte sua Fita de Vídeo Aqui",

@@ -154,3 +154,24 @@ export interface IncompleteJob {
   source_exists: boolean;
 }
 
+export interface PanasonicDisk {
+  device_id: string;
+  name: string;
+  model: string;
+  size_gb: number;
+  is_panasonic: boolean;
+  format: string;
+  needs_elevation: boolean;
+}
+
+export interface ComparisonFrameResponse {
+  status: string;
+  timestamp: number;
+  raw_image: string;
+  processed_image: string;
+  width: number;
+  height: number;
+  error?: string;
+}
+
+

@@ -9,6 +9,8 @@ import type {
   StorageStatus,
   PanasonicInspection,
   IncompleteJob,
+  PanasonicDisk,
+  ComparisonFrameResponse,
 } from '../types';
 
 
@@ -250,6 +252,27 @@ export const studioRtkApi = createApi({
       }),
       invalidatesTags: ['Status'],
     }),
+
+    getPanasonicDisks: builder.query<{ disks: PanasonicDisk[]; total: number }, void>({
+      query: () => 'api/ingest/panasonic/disks',
+      providesTags: ['Status'],
+    }),
+
+    getComparisonFrame: builder.query<
+      ComparisonFrameResponse,
+      { source?: string; timestamp?: number; deinterlacer?: string; denoise?: boolean; chroma_fix?: boolean }
+    >({
+      query: (params) => ({
+        url: 'api/monitor/comparison-frame',
+        params: {
+          source: params.source || '',
+          timestamp: params.timestamp ?? 5.0,
+          deinterlacer: params.deinterlacer || 'bwdif',
+          denoise: params.denoise ?? true,
+          chroma_fix: params.chroma_fix ?? true,
+        },
+      }),
+    }),
   }),
 });
 
@@ -280,5 +303,9 @@ export const {
   useAbortProcessMutation,
   useGetIncompleteJobsQuery,
   useHandleIncompleteJobMutation,
+  useGetPanasonicDisksQuery,
+  useLazyGetPanasonicDisksQuery,
+  useGetComparisonFrameQuery,
+  useLazyGetComparisonFrameQuery,
 } = studioRtkApi;
 

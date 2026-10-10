@@ -62,7 +62,17 @@
     "live_preview": "LIVE PREVIEW (NATIVE)",
     "dropped_frames": "DROPPED TAPE DETECTED! ({{count}} DROPS)",
     "connecting_signal": "CONNECTING SIGNAL...",
-    "smpte_format": "SMPTE 4:3 • NTSC 59.94p"
+    "smpte_format": "SMPTE 4:3 • NTSC 59.94p",
+    "split_view": "مقارنة A/B",
+    "split_title": "شاشة مقارنة مقسمة A/B",
+    "split_raw": "RAW التناظري",
+    "split_restored": "المُستعاد",
+    "split_position": "التقسيم: {{percent}}%",
+    "split_time": "الوقت: {{time}} ثانية",
+    "split_refresh": "تحديث الإطار",
+    "split_close": "إغلاق المقارنة",
+    "split_loading": "جارٍ تحميل إطارات المقارنة...",
+    "split_hint": "اسحب شريط التمرير أو استخدم مفاتيح الأسهم للمقارنة بين ما قبل وما بعد."
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -85,7 +95,15 @@
     "carver_python": "مستخرج بايثون المدمج",
     "extracting": "جارٍ استخراج العناوين إلى media/raw/...",
     "extract_btn": "استخراج إلى media/raw/",
-    "library_explorer_title": "مكتبة الأشرطة"
+    "library_explorer_title": "مكتبة الأشرطة",
+    "detected_drives_title": "محركات الأقراص الفعلية المتصلة",
+    "scan_drives": "فحص الأقراص",
+    "no_drives_found": "لم يتم اكتشاف أي قرص فعلي أو محول USB/SATA.",
+    "connect_drive_btn": "اتصال",
+    "panasonic_detected_badge": "تم اكتشاف Panasonic DVR",
+    "guidance_title": "إرشادات الأمان ونسخ القرص الاحتياطي (هام)",
+    "guidance_warning": "تحذير: إذا طلب نظام Windows أو macOS 'تهيأة القرص' عند توصيل قرص Panasonic، فلا تقم بتهيئته مطلقًا! نظام الملفات MEIHDFS خاص وسيمحو التهيئة جميع التسجيلات نهائيًا.",
+    "guidance_imaging": "للحفاظ على القرص الأصلي من التآكل الميكانيكي، يمكنك إنشاء صورة خام متطابقة بت-بت (.bin أو .img) باستخدام أدوات مثل dd (Linux/Mac) أو Win32DiskImager (Windows) وتحميلها في الحقل أدناه."
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",

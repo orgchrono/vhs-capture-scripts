@@ -62,7 +62,17 @@
     "live_preview": "LIVE PREVIEW (NATIVE)",
     "dropped_frames": "DROPPED TAPE DETECTED! ({{count}} DROPS)",
     "connecting_signal": "CONNECTING SIGNAL...",
-    "smpte_format": "SMPTE 4:3 • NTSC 59.94p"
+    "smpte_format": "SMPTE 4:3 • NTSC 59.94p",
+    "split_view": "A/B Comparator",
+    "split_title": "A/B Split-Screen Monitor",
+    "split_raw": "Analog RAW",
+    "split_restored": "Restored",
+    "split_position": "Split: {{percent}}%",
+    "split_time": "Time: {{time}}s",
+    "split_refresh": "Refresh Frame",
+    "split_close": "Close Comparator",
+    "split_loading": "Loading comparison frames...",
+    "split_hint": "Drag slider or use arrow keys to compare before and after."
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -85,7 +95,15 @@
     "binary_native": "Native Toolchain",
     "carver_python": "Pure-Python Carver",
     "extracting": "Extracting titles to media/raw/...",
-    "extract_btn": "Extract to media/raw/"
+    "extract_btn": "Extract to media/raw/",
+    "detected_drives_title": "Connected Physical Drives & Disks",
+    "scan_drives": "Scan Drives",
+    "no_drives_found": "No physical disk or USB/SATA adapter detected.",
+    "connect_drive_btn": "Connect",
+    "panasonic_detected_badge": "Panasonic DVR Detected",
+    "guidance_title": "Safety Guidance & Disk Imaging (Important)",
+    "guidance_warning": "WARNING: If Windows or macOS prompts to 'Format the disk' upon connecting the Panasonic HDD, NEVER format it! The MEIHDFS filesystem is proprietary. Formatting will permanently erase all recordings.",
+    "guidance_imaging": "To preserve the original disk against mechanical wear, you can create a raw bit-for-bit disk image (.bin or .img) using forensic tools like dd (Linux/Mac) or Win32DiskImager (Windows) and load it into the field below."
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
