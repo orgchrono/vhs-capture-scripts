@@ -82,7 +82,9 @@
     "qtgmc_filtered": "QTGMC / AI Master gefiltert",
     "stream_connecting": "Verbindung zum Sub-Stream wird hergestellt...",
     "split_seek_backward": "-5s",
-    "split_seek_forward": "+5s"
+    "split_seek_forward": "+5s",
+    "rendering_preview": "Echtzeit-Rendering-Vorschau",
+    "tape_loaded_preview": "Band Geladen"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -414,13 +416,13 @@
     "scan": "Nach unvollständigen Dateien suchen",
     "resume_button": "Fortsetzen",
     "resume_tooltip": "Verarbeitung am Kontrollpunkt fortsetzen",
-    "finalize_button": "Teilweise Fertigstellen",
+    "finalize_button": "Fertigstellen",
     "finalize_tooltip": "Videocontainer reparieren, um Teilvideo sofort abspielbar zu machen",
     "discard_button": "Verwerfen",
     "discard_tooltip": "Temporäre Dateien löschen und Speicherplatz freigeben",
     "frames_info": "{{current}} / {{total}} Frames",
     "progress_label": "Fortschritt des unvollständigen Projekts",
-    "status_in_progress": "Unterbrochen",
+    "status_in_progress": "In Bearbeitung",
     "status_paused": "Pausiert",
     "status_aborted": "Abgebrochen",
     "toast_resumed": "Projekt zur Wiederherstellung fortgesetzt.",
@@ -435,7 +437,12 @@
     "completed_conflict_subtitle": "Ein fertiges Video existiert bereits im Zielverzeichnis",
     "completed_conflict_desc": "Für dieses Band existiert bereits eine wiederhergestellte Datei von {{size}}. Möchten Sie überschreiben und eine neue Wiederherstellung starten?",
     "btn_overwrite": "Überschreiben",
-    "btn_cancel": "Abbrechen"
+    "btn_cancel": "Abbrechen",
+    "status_interrupted": "Unterbrochen",
+    "badge_incomplete": "{{pct}}% Unvollständig",
+    "resume_pipeline_btn": "Wiederherstellung Fortsetzen",
+    "start_fresh_btn": "Von Vorn Beginnen",
+    "checkpoint_saved_info": "Checkpoint: {{current}} / {{total}} Frames ({{pct}}%)"
   },
   "preferences": {
     "title": "VHS Studio Pro Einstellungen",

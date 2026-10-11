@@ -35,6 +35,16 @@ import type {
   PanasonicRecordingTreeResponse,
 } from '../types';
 
+function toggleSetNumber(prev: Set<number>, id: number): Set<number> {
+  const next = new Set(prev);
+  if (next.has(id)) {
+    next.delete(id);
+  } else {
+    next.add(id);
+  }
+  return next;
+}
+
 export interface PanasonicIngestCardProps {
   onRefresh?: () => void;
 }
@@ -143,6 +153,24 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
     }
   }, [connectedDisks, handleLoadRecordingTree, t]);
 
+  const notifyExtractionSuccess = async (
+    path: string,
+    count: number,
+    title: string,
+    description?: string,
+  ) => {
+    toast.success(title, description ? { description } : undefined);
+    addLog(t('logs.panasonic_extracted', { count }));
+    onRefresh?.();
+    await handleLoadRecordingTree(path);
+  };
+
+  const handleExtractionError = (err: unknown) => {
+    const msg = getErrorMessage(err, t('toast.extract_error'));
+    addLog(t('logs.panasonic_extract_error', { error: msg }));
+    toast.error(msg);
+  };
+
   const handleExtractAll = async () => {
     const trimmedPath = panasonicPath.trim();
     if (!trimmedPath) return;
@@ -150,16 +178,14 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
     try {
       addLog(t('logs.panasonic_extracting', { path: trimmedPath }));
       const res = await extractMutation({ source_path: trimmedPath }).unwrap();
-      toast.success(t('toast.panasonic_extracted'), {
-        description: res.message,
-      });
-      addLog(t('logs.panasonic_extracted', { count: res.extracted_files.length }));
-      onRefresh?.();
-      await handleLoadRecordingTree(trimmedPath);
+      await notifyExtractionSuccess(
+        trimmedPath,
+        res.extracted_files.length,
+        t('toast.panasonic_extracted'),
+        res.message,
+      );
     } catch (err: unknown) {
-      const msg = getErrorMessage(err, t('toast.extract_error'));
-      addLog(t('logs.panasonic_extract_error', { error: msg }));
-      toast.error(msg);
+      handleExtractionError(err);
     }
   };
 
@@ -183,29 +209,19 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
         title_ids: titleIdsList,
       }).unwrap();
 
-      toast.success(t('toast.panasonic_titles_extracted'), {
-        description: t('toast.panasonic_titles_extracted_desc', { count: res.extracted_files.length }),
-      });
-      addLog(t('logs.panasonic_extracted', { count: res.extracted_files.length }));
-      onRefresh?.();
-      await handleLoadRecordingTree(trimmedPath);
+      await notifyExtractionSuccess(
+        trimmedPath,
+        res.extracted_files.length,
+        t('toast.panasonic_titles_extracted'),
+        t('toast.panasonic_titles_extracted_desc', { count: res.extracted_files.length }),
+      );
     } catch (err: unknown) {
-      const msg = getErrorMessage(err, t('toast.extract_error'));
-      addLog(t('logs.panasonic_extract_error', { error: msg }));
-      toast.error(msg);
+      handleExtractionError(err);
     }
   };
 
   const toggleSelectTitle = (id: number) => {
-    setSelectedTitleIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
+    setSelectedTitleIds((prev) => toggleSetNumber(prev, id));
   };
 
   const handleSelectAll = () => {
@@ -219,15 +235,7 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
   };
 
   const toggleExpandChapters = (id: number) => {
-    setExpandedChapterTitles((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
+    setExpandedChapterTitles((prev) => toggleSetNumber(prev, id));
   };
 
   const handleLoadTitleToDesk = (title: PanasonicRecordingTitle) => {

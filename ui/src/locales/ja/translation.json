@@ -82,7 +82,9 @@
     "qtgmc_filtered": "QTGMC / AI Master フィルター適用",
     "stream_connecting": "軽量サブストリームに接続中...",
     "split_seek_backward": "-5s",
-    "split_seek_forward": "+5s"
+    "split_seek_forward": "+5s",
+    "rendering_preview": "リアルタイムレンダリングプレビュー",
+    "tape_loaded_preview": "テープ装填済み"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -414,13 +416,13 @@
     "scan": "中断されたファイルをスキャン",
     "resume_button": "再開",
     "resume_tooltip": "チェックポイントから処理を再開",
-    "finalize_button": "部分確定",
+    "finalize_button": "確定",
     "finalize_tooltip": "コンテナヘッダーを修復し部分動画を即座に再生可能にする",
     "discard_button": "破棄",
     "discard_tooltip": "一時ファイルを削除してディスク容量を解放",
     "frames_info": "{{current}} / {{total}} フレーム",
     "progress_label": "中断プロジェクトの進行状況",
-    "status_in_progress": "中断",
+    "status_in_progress": "処理中",
     "status_paused": "一時停止中",
     "status_aborted": "キャンセル",
     "toast_resumed": "復元処理が再開されました。",
@@ -435,7 +437,12 @@
     "completed_conflict_subtitle": "宛先ディレクトリに既に完成したビデオが存在します",
     "completed_conflict_desc": "このテープの復元済みファイル（{{size}}）が既に存在します。上書きして新しい復元を開始しますか？",
     "btn_overwrite": "上書き",
-    "btn_cancel": "キャンセル"
+    "btn_cancel": "キャンセル",
+    "status_interrupted": "中断",
+    "badge_incomplete": "{{pct}}% 未完了",
+    "resume_pipeline_btn": "修復を再開",
+    "start_fresh_btn": "最初から開始",
+    "checkpoint_saved_info": "チェックポイント: {{current}} / {{total}} フレーム ({{pct}}%)"
   },
   "preferences": {
     "title": "VHS Studio Pro 環境設定",

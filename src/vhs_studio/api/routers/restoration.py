@@ -4,7 +4,7 @@ import json
 import sys
 import base64
 import subprocess
-from typing import Dict, Mapping, Union
+from typing import Dict, Mapping, Union, Optional
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
@@ -305,6 +305,16 @@ def install_qtgmc():
     return {"status": "error", "message": msg}
 
 
+def _get_ffmpeg_or_error() -> tuple[Optional[str], Optional[JSONResponse]]:
+    try:
+        return Toolchain.get_ffmpeg_path(), None
+    except Exception as e:
+        return None, JSONResponse(
+            status_code=500,
+            content={"status": "error", "message": f"FFmpeg não disponível: {e}"},
+        )
+
+
 @restoration_router.get("/monitor/comparison-frame")
 def get_comparison_frame(
     source: str = "",
@@ -317,10 +327,9 @@ def get_comparison_frame(
     target_path = resolve_media_input_path(source) if source else ""
     is_valid_source = bool(target_path and os.path.exists(target_path) and is_safe_media_path(target_path))
 
-    try:
-        ffmpeg_bin = Toolchain.get_ffmpeg_path()
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"status": "error", "message": f"FFmpeg não disponível: {e}"})
+    ffmpeg_bin, err_resp = _get_ffmpeg_or_error()
+    if err_resp or not ffmpeg_bin:
+        return err_resp
 
     safe_time = max(0.0, float(timestamp))
 
@@ -425,14 +434,9 @@ async def get_stream_proxy(
         )
 
     is_valid_source = bool(target_path and os.path.exists(target_path) and is_safe_media_path(target_path))
-
-    try:
-        ffmpeg_bin = Toolchain.get_ffmpeg_path()
-    except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={"status": "error", "message": f"FFmpeg não disponível: {e}"},
-        )
+    ffmpeg_bin, err_resp = _get_ffmpeg_or_error()
+    if err_resp or not ffmpeg_bin:
+        return err_resp
 
     fps_val = max(1, min(60, int(fps)))
 

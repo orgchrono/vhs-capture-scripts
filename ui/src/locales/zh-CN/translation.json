@@ -82,7 +82,9 @@
     "qtgmc_filtered": "QTGMC / AI Master 滤镜处理",
     "stream_connecting": "正在连接轻量子流...",
     "split_seek_backward": "-5s",
-    "split_seek_forward": "+5s"
+    "split_seek_forward": "+5s",
+    "rendering_preview": "实时渲染预览",
+    "tape_loaded_preview": "磁带已载入"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -414,13 +416,13 @@
     "scan": "扫描未完成的文件",
     "resume_button": "继续",
     "resume_tooltip": "从检查点继续处理",
-    "finalize_button": "生成部分成品",
+    "finalize_button": "完成",
     "finalize_tooltip": "修复视频容器使部分视频可立即播放",
     "discard_button": "丢弃",
     "discard_tooltip": "删除临时文件并释放磁盘空间",
     "frames_info": "{{current}} / {{total}} 帧",
     "progress_label": "未完成项目进度",
-    "status_in_progress": "已中断",
+    "status_in_progress": "处理中",
     "status_paused": "已暂停",
     "status_aborted": "已取消",
     "toast_resumed": "项目已恢复处理。",
@@ -435,7 +437,12 @@
     "completed_conflict_subtitle": "目标目录中已存在已完成的视频",
     "completed_conflict_desc": "此磁带已存在大小为 {{size}} 的修复文件。是否要覆盖并开始新的修复？",
     "btn_overwrite": "覆盖",
-    "btn_cancel": "取消"
+    "btn_cancel": "取消",
+    "status_interrupted": "已中断",
+    "badge_incomplete": "{{pct}}% 未完成",
+    "resume_pipeline_btn": "恢复处理",
+    "start_fresh_btn": "重新开始",
+    "checkpoint_saved_info": "检查点: {{current}} / {{total}} 帧 ({{pct}}%)"
   },
   "preferences": {
     "title": "VHS Studio Pro 首选项",

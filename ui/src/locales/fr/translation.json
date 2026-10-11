@@ -82,7 +82,9 @@
     "qtgmc_filtered": "Filtre QTGMC / AI Master",
     "stream_connecting": "Connexion au sous-flux léger...",
     "split_seek_backward": "-5s",
-    "split_seek_forward": "+5s"
+    "split_seek_forward": "+5s",
+    "rendering_preview": "Aperçu du Rendu en Direct",
+    "tape_loaded_preview": "Bande Chargée"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -414,13 +416,13 @@
     "scan": "Analyser les fichiers incomplets",
     "resume_button": "Reprendre",
     "resume_tooltip": "Reprendre le traitement à partir du point de contrôle",
-    "finalize_button": "Finaliser Partiel",
+    "finalize_button": "Finaliser",
     "finalize_tooltip": "Réparer le conteneur vidéo pour rendre la vidéo partielle lisible",
     "discard_button": "Supprimer",
     "discard_tooltip": "Supprimer les fichiers temporaires et libérer de l'espace",
     "frames_info": "{{current}} / {{total}} images",
     "progress_label": "Progression du projet incomplet",
-    "status_in_progress": "Interrompu",
+    "status_in_progress": "En cours",
     "status_paused": "En pause",
     "status_aborted": "Annulé",
     "toast_resumed": "Projet repris pour la restauration.",
@@ -435,7 +437,12 @@
     "completed_conflict_subtitle": "Une vidéo finalisée existe déjà dans le répertoire de destination",
     "completed_conflict_desc": "Un fichier restauré de {{size}} existe déjà pour cette cassette. Voulez-vous écraser et démarrer une nouvelle restauration ?",
     "btn_overwrite": "Écraser",
-    "btn_cancel": "Annuler"
+    "btn_cancel": "Annuler",
+    "status_interrupted": "Interrompu",
+    "badge_incomplete": "{{pct}}% Incomplet",
+    "resume_pipeline_btn": "Reprendre la Restauration",
+    "start_fresh_btn": "Recommencer à Zéro",
+    "checkpoint_saved_info": "Point de contrôle: {{current}} / {{total}} images ({{pct}}%)"
   },
   "preferences": {
     "title": "Préférences de VHS Studio Pro",

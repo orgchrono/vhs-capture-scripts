@@ -69,19 +69,9 @@ def get_panasonic_tree(source_path: str):
     return tree
 
 
-@ingest_router.post("/panasonic/extract")
-def extract_panasonic(payload: PanasonicExtractPayload):
-    """Extract recovered MPEG-2/VRO video titles from Panasonic DVR source into media/raw."""
-    source_path = payload.source_path
-    if not is_safe_ingest_path(source_path):
-        return JSONResponse(
-            status_code=400,
-            content={"error": "Invalid or unsafe source path."},
-        )
-
-    out_dir = payload.output_dir or RAW_MEDIA_DIR
+def _execute_extraction(extract_fn, out_dir: str):
     try:
-        extracted = extract_panasonic_media(source_path, output_dir=out_dir)
+        extracted = extract_fn()
         return {
             "status": "success",
             "message": f"Successfully extracted {len(extracted)} title(s).",
@@ -93,6 +83,23 @@ def extract_panasonic(payload: PanasonicExtractPayload):
             status_code=500,
             content={"error": f"Extraction failed: {e}"},
         )
+
+
+@ingest_router.post("/panasonic/extract")
+def extract_panasonic(payload: PanasonicExtractPayload):
+    """Extract recovered MPEG-2/VRO video titles from Panasonic DVR source into media/raw."""
+    source_path = payload.source_path
+    if not is_safe_ingest_path(source_path):
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Invalid or unsafe source path."},
+        )
+
+    out_dir = payload.output_dir or RAW_MEDIA_DIR
+    return _execute_extraction(
+        lambda: extract_panasonic_media(source_path, output_dir=out_dir),
+        out_dir,
+    )
 
 
 @ingest_router.post("/panasonic/extract-titles")
@@ -106,20 +113,11 @@ def extract_selected_titles(payload: PanasonicExtractTitlesPayload):
         )
 
     out_dir = payload.output_dir or RAW_MEDIA_DIR
-    try:
-        extracted = extract_panasonic_titles(
+    return _execute_extraction(
+        lambda: extract_panasonic_titles(
             source_path,
             selected_title_ids=payload.title_ids,
             output_dir=out_dir,
-        )
-        return {
-            "status": "success",
-            "message": f"Successfully extracted {len(extracted)} title(s).",
-            "extracted_files": [os.path.basename(f) for f in extracted],
-            "destination": out_dir,
-        }
-    except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={"error": f"Extraction failed: {e}"},
-        )
+        ),
+        out_dir,
+    )

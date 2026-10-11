@@ -112,4 +112,32 @@ describe('ConsoleViewer Component with Live Search', () => {
     fireEvent.click(resumeBtn);
     expect(onResume).toHaveBeenCalledTimes(1);
   });
+
+  it('renders resume and fresh start buttons when hasIncompleteJob is true', () => {
+    const onResumeJob = vi.fn();
+    const onFreshStart = vi.fn();
+    render(
+      <Provider store={store}>
+        <ConsoleViewer
+          isRestoring={false}
+          hasIncompleteJob={true}
+          incompleteJobPercent={50}
+          onResumeJob={onResumeJob}
+          onFreshStart={onFreshStart}
+        />
+      </Provider>
+    );
+
+    const resumeJobBtn = screen.getByTestId('resume-incomplete-job-btn');
+    const freshStartBtn = screen.getByTestId('fresh-start-btn');
+
+    expect(resumeJobBtn).toBeInTheDocument();
+    expect(freshStartBtn).toBeInTheDocument();
+
+    fireEvent.click(resumeJobBtn);
+    expect(onResumeJob).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(freshStartBtn);
+    expect(onFreshStart).toHaveBeenCalledTimes(1);
+  });
 });

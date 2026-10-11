@@ -19,6 +19,11 @@ import {
 } from '../api/studioRtkApi';
 import { useStudioStore } from '../store/useStudioStore';
 import type { IncompleteJob } from '../types';
+import {
+  formatFileSize,
+  formatElapsed,
+  getFileBaseName as getBaseName,
+} from '../lib/formatters';
 
 export interface IncompleteJobsCardProps {
   onRefreshParent?: () => void;
@@ -28,7 +33,7 @@ export const IncompleteJobsCard: React.FC<IncompleteJobsCardProps> = ({
   onRefreshParent,
 }) => {
   const { t } = useTranslation();
-  const { isRestoring, addLog } = useStudioStore();
+  const { isRestoring, setIsRestoring, setSelectedFile, addLog } = useStudioStore();
   const [isExpanded, setIsExpanded] = useState(true);
 
   const {
@@ -36,30 +41,14 @@ export const IncompleteJobsCard: React.FC<IncompleteJobsCardProps> = ({
     isLoading,
     isFetching,
     refetch,
-  } = useGetIncompleteJobsQuery();
+  } = useGetIncompleteJobsQuery(undefined, {
+    pollingInterval: isRestoring ? 1500 : 3000,
+  });
 
   const [handleJobAction, { isLoading: isPerformingAction }] =
     useHandleIncompleteJobMutation();
 
   const incompleteJobs = data?.incomplete_jobs ?? [];
-
-  const formatFileSize = (bytes: number) => {
-    const mb = bytes / (1024 * 1024);
-    if (mb >= 1024) {
-      return `${(mb / 1024).toFixed(1)} GB`;
-    }
-    return `${mb.toFixed(1)} MB`;
-  };
-
-  const formatElapsed = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = Math.round(seconds % 60);
-    return `${m}m ${s}s`;
-  };
-
-  const getBaseName = (filePath: string) => {
-    return filePath.split(/[/\\]/).pop() || filePath;
-  };
 
   const handleAction = async (
     job: IncompleteJob,
@@ -73,6 +62,10 @@ export const IncompleteJobsCard: React.FC<IncompleteJobsCardProps> = ({
       }).unwrap();
 
       if (action === 'resume') {
+        if (job.source_file) {
+          setSelectedFile(job.source_file);
+        }
+        setIsRestoring(true);
         toast.info(t('recovery.toast_resumed'));
         addLog(t('recovery.toast_resumed'));
       } else if (action === 'finalize') {
@@ -179,6 +172,8 @@ export const IncompleteJobsCard: React.FC<IncompleteJobsCardProps> = ({
                       ? t('recovery.status_paused')
                       : job.status === 'aborted'
                       ? t('recovery.status_aborted')
+                      : job.status === 'interrupted'
+                      ? t('recovery.status_interrupted')
                       : job.status === 'incomplete'
                       ? t('recovery.status_incomplete')
                       : t('recovery.status_in_progress')}
@@ -234,7 +229,7 @@ export const IncompleteJobsCard: React.FC<IncompleteJobsCardProps> = ({
                       type="button"
                       disabled={isRestoring || isPerformingAction}
                       onClick={() => handleAction(job, 'resume')}
-                      className="flex-1 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white font-mono text-[10px] font-semibold py-1 px-1.5 rounded-sm flex items-center justify-center gap-1 cursor-pointer transition"
+                      className="flex-1 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white font-mono text-[10px] font-semibold py-1 px-1.5 rounded-sm flex items-center justify-center gap-1 cursor-pointer transition whitespace-nowrap"
                       title={t('recovery.resume_tooltip')}
                       data-testid={`resume-job-btn-${job.job_id}`}
                     >
@@ -247,7 +242,7 @@ export const IncompleteJobsCard: React.FC<IncompleteJobsCardProps> = ({
                     type="button"
                     disabled={isRestoring || isPerformingAction}
                     onClick={() => handleAction(job, 'finalize')}
-                    className="flex-1 bg-emerald-800 hover:bg-emerald-700 disabled:opacity-50 text-emerald-100 font-mono text-[10px] font-semibold py-1 px-1.5 rounded-sm flex items-center justify-center gap-1 cursor-pointer transition border border-emerald-600/40"
+                    className="flex-1 bg-emerald-800 hover:bg-emerald-700 disabled:opacity-50 text-emerald-100 font-mono text-[10px] font-semibold py-1 px-1.5 rounded-sm flex items-center justify-center gap-1 cursor-pointer transition border border-emerald-600/40 whitespace-nowrap"
                     title={t('recovery.finalize_tooltip')}
                     data-testid={`finalize-job-btn-${job.job_id}`}
                   >
@@ -259,7 +254,7 @@ export const IncompleteJobsCard: React.FC<IncompleteJobsCardProps> = ({
                     type="button"
                     disabled={isRestoring || isPerformingAction}
                     onClick={() => handleAction(job, 'discard')}
-                    className="bg-studio-surface hover:bg-red-950/80 hover:text-red-300 disabled:opacity-50 text-slate-400 font-mono text-[10px] font-semibold py-1 px-2 rounded-sm flex items-center justify-center gap-1 cursor-pointer transition border border-studio-border"
+                    className="bg-studio-surface hover:bg-red-950/80 hover:text-red-300 disabled:opacity-50 text-slate-400 font-mono text-[10px] font-semibold py-1 px-2 rounded-sm flex items-center justify-center gap-1 cursor-pointer transition border border-studio-border whitespace-nowrap"
                     title={t('recovery.discard_tooltip')}
                     data-testid={`discard-job-btn-${job.job_id}`}
                   >

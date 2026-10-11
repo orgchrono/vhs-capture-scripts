@@ -17,8 +17,12 @@ import { usePreferencesStore } from '../store/usePreferencesStore'
 
 export type LogFilterLevel = 'all' | 'info' | 'warn' | 'error'
 
-interface ConsoleViewerProps {
+export interface ConsoleViewerProps {
   onStart?: () => void
+  onResumeJob?: () => void
+  onFreshStart?: () => void
+  hasIncompleteJob?: boolean
+  incompleteJobPercent?: number
   onPause?: () => void
   onResume?: () => void
   onAbort?: () => void
@@ -29,6 +33,10 @@ interface ConsoleViewerProps {
 
 export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
   onStart,
+  onResumeJob,
+  onFreshStart,
+  hasIncompleteJob = false,
+  incompleteJobPercent,
   onPause,
   onResume,
   onAbort,
@@ -294,12 +302,37 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
                 <span>{t('console.abort')}</span>
               </Button>
             </div>
+          ) : hasIncompleteJob ? (
+            <div className="flex items-center gap-1.5 ml-1">
+              <Button
+                data-testid="resume-incomplete-job-btn"
+                onClick={onResumeJob ?? onStart}
+                title={!hasSelectedFile ? t('toast.select_file_first') : t('recovery.resume_tooltip')}
+                className="bg-amber-600 hover:bg-amber-500 text-white font-mono font-bold text-xs uppercase tracking-wider px-3 h-7 rounded-sm border border-amber-400/50 active:scale-[0.99] transition-all cursor-pointer shadow-xs flex items-center gap-1.5 whitespace-nowrap"
+              >
+                <Play className="w-3 h-3 fill-current" />
+                <span>
+                  {t('recovery.resume_pipeline_btn')}
+                  {typeof incompleteJobPercent === 'number' ? ` (${incompleteJobPercent}%)` : ''}
+                </span>
+              </Button>
+              {onFreshStart && (
+                <Button
+                  data-testid="fresh-start-btn"
+                  onClick={onFreshStart}
+                  title={t('recovery.start_fresh_btn')}
+                  className="bg-studio-surface hover:bg-studio-surface-hover text-slate-300 hover:text-white font-mono font-semibold text-[11px] px-2.5 h-7 rounded-sm border border-studio-border cursor-pointer transition whitespace-nowrap"
+                >
+                  <span>{t('recovery.start_fresh_btn')}</span>
+                </Button>
+              )}
+            </div>
           ) : onStart ? (
             <Button
               data-testid="start-restore-btn"
               onClick={onStart}
               title={!hasSelectedFile ? t('toast.select_file_first') : undefined}
-              className="bg-emerald-700 hover:bg-emerald-600 text-white font-mono font-bold text-xs uppercase tracking-wider px-3.5 h-7 rounded-sm border border-emerald-500/40 active:scale-[0.99] transition-all ml-1 cursor-pointer disabled:opacity-50"
+              className="bg-emerald-700 hover:bg-emerald-600 text-white font-mono font-bold text-xs uppercase tracking-wider px-3.5 h-7 rounded-sm border border-emerald-500/40 active:scale-[0.99] transition-all ml-1 cursor-pointer disabled:opacity-50 whitespace-nowrap"
             >
               <Play className="w-3 h-3 mr-1.5 fill-current" />
               <span>{t('capture.start_restore')}</span>

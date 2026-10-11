@@ -28,3 +28,22 @@ export function formatDuration(seconds: number): string {
     .map((v) => v.toString().padStart(2, '0'))
     .join(':');
 }
+
+export function formatFileSize(bytes: number): string {
+  const mb = bytes / (1024 * 1024);
+  if (mb >= 1024) {
+    return `${(mb / 1024).toFixed(1)} GB`;
+  }
+  return `${mb.toFixed(1)} MB`;
+}
+
+export function formatElapsed(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.round(seconds % 60);
+  return `${m}m ${s}s`;
+}
+
+export function getFileBaseName(filePath: string): string {
+  return filePath.split(/[/\\]/).pop() || filePath;
+}
+

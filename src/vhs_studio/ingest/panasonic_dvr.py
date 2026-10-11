@@ -393,15 +393,7 @@ def detect_connected_disks() -> List[Dict[str, Any]]:
                     else:
                         bus_type = "SATA"
 
-                    is_pana, fmt, needs_elev = _probe_disk_for_panasonic(dev_id)
-                    is_pana_model = any(
-                        k in model.lower()
-                        for k in ("panasonic", "matshita", "dmr-e", "dmr-ex", "dmr-eh")
-                    )
-                    if is_pana_model:
-                        is_pana = True
-                        if fmt in ("UNKNOWN", "REQUIRES_ADMIN"):
-                            fmt = "MEIHDFS-V2.0"
+                    is_pana, fmt, needs_elev = _evaluate_panasonic_disk(dev_id, model)
 
                     disks.append({
                         "device_id": dev_id,
@@ -461,15 +453,7 @@ def detect_connected_disks() -> List[Dict[str, Any]]:
                         is_usb = tran == "usb" or "usb" in model.lower()
                         is_jmicron = "jmicron" in model.lower() or "jms" in model.lower()
                         is_asmedia = "asmedia" in model.lower() or "asmt" in model.lower()
-                        is_pana, fmt, needs_elev = _probe_disk_for_panasonic(p)
-                        is_pana_model = any(
-                            k in model.lower()
-                            for k in ("panasonic", "matshita", "dmr-e", "dmr-ex", "dmr-eh")
-                        )
-                        if is_pana_model:
-                            is_pana = True
-                            if fmt in ("UNKNOWN", "REQUIRES_ADMIN"):
-                                fmt = "MEIHDFS-V2.0"
+                        is_pana, fmt, needs_elev = _evaluate_panasonic_disk(p, model)
                         disks.append({
                             "device_id": p,
                             "name": f"{model} ({size_gb} GB)",
@@ -511,6 +495,37 @@ def _probe_disk_for_panasonic(device_path: str) -> Tuple[bool, str, bool]:
         return False, "UNKNOWN", False
 
 
+def _evaluate_panasonic_disk(dev_id: str, model: str) -> Tuple[bool, str, bool]:
+    """Assess whether a drive is Panasonic via sector probing and model identifier heuristics."""
+    is_pana, fmt, needs_elev = _probe_disk_for_panasonic(dev_id)
+    is_pana_model = any(
+        k in model.lower()
+        for k in ("panasonic", "matshita", "dmr-e", "dmr-ex", "dmr-eh")
+    )
+    if is_pana_model:
+        is_pana = True
+        if fmt in ("UNKNOWN", "REQUIRES_ADMIN"):
+            fmt = "MEIHDFS-V2.0"
+    return is_pana, fmt, needs_elev
+
+
+def _generate_panasonic_chapters(ch_count: int, ch_interval: float = 900.0) -> List[Dict[str, Any]]:
+    """Generate structured chapter markers for Panasonic DVR titles."""
+    chapters: List[Dict[str, Any]] = []
+    for c in range(ch_count):
+        c_sec = c * ch_interval
+        ch_h = int(c_sec // 3600)
+        ch_m = int((c_sec % 3600) // 60)
+        ch_s = int(c_sec % 60)
+        chapters.append({
+            "id": c + 1,
+            "title": f"Capítulo {c + 1}",
+            "start_sec": c_sec,
+            "start_timecode": f"{ch_h:02d}:{ch_m:02d}:{ch_s:02d}",
+        })
+    return chapters
+
+
 def get_panasonic_recording_tree(source_path: str) -> Dict[str, Any]:
     """Parse, structure and return all recording sessions, titles, and chapters from a Panasonic DVR source.
 
@@ -541,18 +556,7 @@ def get_panasonic_recording_tree(source_path: str) -> Dict[str, Any]:
             # Standard Panasonic 15-minute chapters
             ch_interval = 900.0
             ch_count = max(1, int(dur // ch_interval) + (1 if dur % ch_interval > 30 else 0))
-            chapters = []
-            for c in range(ch_count):
-                c_sec = c * ch_interval
-                ch_h = int(c_sec // 3600)
-                ch_m = int((c_sec % 3600) // 60)
-                ch_s = int(c_sec % 60)
-                chapters.append({
-                    "id": c + 1,
-                    "title": f"Capítulo {c + 1}",
-                    "start_sec": c_sec,
-                    "start_timecode": f"{ch_h:02d}:{ch_m:02d}:{ch_s:02d}",
-                })
+            chapters = _generate_panasonic_chapters(ch_count, ch_interval)
 
             extracted_titles.append({
                 "id": idx,
@@ -597,18 +601,7 @@ def get_panasonic_recording_tree(source_path: str) -> Dict[str, Any]:
 
     for i in range(1, estimated_titles + 1):
         dur_sec = 3600.0  # 1 hour standard SP recording
-        chapters = []
-        for c in range(4):
-            c_sec = c * 900.0
-            ch_h = int(c_sec // 3600)
-            ch_m = int((c_sec % 3600) // 60)
-            ch_s = int(c_sec % 60)
-            chapters.append({
-                "id": c + 1,
-                "title": f"Capítulo {c + 1}",
-                "start_sec": c_sec,
-                "start_timecode": f"{ch_h:02d}:{ch_m:02d}:{ch_s:02d}",
-            })
+        chapters = _generate_panasonic_chapters(4, 900.0)
 
         titles.append({
             "id": i,

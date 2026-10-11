@@ -81,8 +81,19 @@ const StudioMain: React.FC<{
   const [conflictJob, setConflictJob] = useState<IncompleteJob | null>(null)
   const [isConflictModalOpen, setIsConflictModalOpen] = useState(false)
 
-  const executeStartRestoration = () => {
-    if (!handleStartRestoration()) {
+  const incompleteJobForSelected = selectedFile
+    ? incompleteData?.incomplete_jobs?.find((j) => {
+        const sNorm = selectedFile.replace(/\\/g, '/').toLowerCase()
+        const jNorm = (j.source_file || '').replace(/\\/g, '/').toLowerCase()
+        const sBase = sNorm.split('/').pop()?.split('.')[0] || ''
+        const jBase = jNorm.split('/').pop()?.split('.')[0] || ''
+        const jId = j.job_id.toLowerCase()
+        return (sNorm && jNorm && sNorm === jNorm) || (sBase && (sBase === jBase || jId.includes(sBase)))
+      })
+    : undefined
+
+  const executeStartRestoration = (resume = false) => {
+    if (!handleStartRestoration(resume ? { resume: true } : undefined)) {
       toast.error(t('toast.no_file_title'), {
         description: t('toast.no_file_desc'),
       })
@@ -101,47 +112,27 @@ const StudioMain: React.FC<{
       return
     }
 
-    const existing = incompleteData?.incomplete_jobs?.find((j) => {
-      const sNorm = selectedFile.replace(/\\/g, '/').toLowerCase()
-      const jNorm = (j.source_file || '').replace(/\\/g, '/').toLowerCase()
-      const sBase = sNorm.split('/').pop()?.split('.')[0] || ''
-      const jBase = jNorm.split('/').pop()?.split('.')[0] || ''
-      const jId = j.job_id.toLowerCase()
-      return (sNorm && jNorm && sNorm === jNorm) || (sBase && (sBase === jBase || jId.includes(sBase)))
-    })
-
-    if (existing) {
-      setConflictJob(existing)
+    if (incompleteJobForSelected) {
+      setConflictJob(incompleteJobForSelected)
       setIsConflictModalOpen(true)
       return
     }
 
-    executeStartRestoration()
+    executeStartRestoration(false)
   }
 
   const handleResumeFromConflict = async () => {
-    if (conflictJob) {
-      try {
-        await handleJobAction({
-          output_path: conflictJob.output_file,
-          action: 'resume',
-          source: conflictJob.source_file,
-        }).unwrap()
-        toast.info(t('recovery.toast_resumed'))
-        refetchIncomplete()
-      } catch {
-        toast.error(t('recovery.toast_action_error'))
-      }
-    }
     setIsConflictModalOpen(false)
     setConflictJob(null)
+    executeStartRestoration(true)
   }
 
   const handleOverwriteFromConflict = async () => {
-    if (conflictJob) {
+    const target = conflictJob || incompleteJobForSelected
+    if (target) {
       try {
         await handleJobAction({
-          output_path: conflictJob.output_file,
+          output_path: target.output_file,
           action: 'discard',
         }).unwrap()
         refetchIncomplete()
@@ -151,7 +142,7 @@ const StudioMain: React.FC<{
     }
     setIsConflictModalOpen(false)
     setConflictJob(null)
-    executeStartRestoration()
+    executeStartRestoration(false)
   }
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -343,6 +334,10 @@ const StudioMain: React.FC<{
                     <div className="flex-1 min-h-0 h-full flex flex-col overflow-hidden pb-1">
                       <ConsoleViewer
                         onStart={onStart}
+                        onResumeJob={() => executeStartRestoration(true)}
+                        onFreshStart={handleOverwriteFromConflict}
+                        hasIncompleteJob={Boolean(incompleteJobForSelected)}
+                        incompleteJobPercent={incompleteJobForSelected?.progress_percent}
                         isRestoring={isRestoring}
                         hasSelectedFile={Boolean(selectedFile)}
                         isPaused={isPaused}

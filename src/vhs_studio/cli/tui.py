@@ -33,6 +33,51 @@ BG_DARK = "\033[40m"
 BG_BLUE = "\033[44m"
 
 
+DEFAULT_TUI_PARAMS: Dict[str, Any] = {
+    "deinterlacer": "bwdif",
+    "mode": "double",
+    "output_codec": "h264",
+    "resolution": "1080p",
+    "chroma_fix": True,
+    "denoise": False,
+    "comb_filter": True,
+    "overscan_blanking": True,
+    "audio_treatment": True,
+    "dropout_clean": False,
+    "ai_whisper": False,
+    "ai_face_restore": False,
+    "ai_rife_60fps": False,
+    "ai_upscaler": False,
+}
+
+PRESET_CONFIGS: Dict[str, Dict[str, Any]] = {
+    "gold": {
+        **DEFAULT_TUI_PARAMS,
+    },
+    "speed": {
+        **DEFAULT_TUI_PARAMS,
+        "mode": "passthrough",
+        "chroma_fix": False,
+        "comb_filter": False,
+        "audio_treatment": False,
+    },
+    "tbc_hold": {
+        **DEFAULT_TUI_PARAMS,
+        "deinterlacer": "znedi3",
+        "mode": "freeze",
+        "denoise": True,
+        "dropout_clean": True,
+    },
+    "ai_master": {
+        **DEFAULT_TUI_PARAMS,
+        "ai_whisper": True,
+        "ai_face_restore": True,
+        "ai_rife_60fps": True,
+        "ai_upscaler": True,
+    },
+}
+
+
 class TuiState:
     """Encapsulates the interactive state of the Terminal User Interface."""
 
@@ -41,22 +86,7 @@ class TuiState:
         self.selected_tape_idx: int = 0
         self.active_panel: str = "tapes"  # 'tapes', 'presets', 'options', 'actions'
         self.preset: str = "gold"  # 'gold', 'speed', 'tbc_hold', 'ai_master'
-        self.params: Dict[str, Any] = {
-            "deinterlacer": "bwdif",
-            "mode": "double",
-            "output_codec": "h264",
-            "resolution": "1080p",
-            "chroma_fix": True,
-            "denoise": False,
-            "comb_filter": True,
-            "overscan_blanking": True,
-            "audio_treatment": True,
-            "dropout_clean": False,
-            "ai_whisper": False,
-            "ai_face_restore": False,
-            "ai_rife_60fps": False,
-            "ai_upscaler": False,
-        }
+        self.params: Dict[str, Any] = dict(DEFAULT_TUI_PARAMS)
         self.is_running: bool = False
         self.progress_pct: int = 0
         self.current_stage: str = "Aguardando início"
@@ -87,74 +117,8 @@ class TuiState:
     def apply_preset(self, preset_id: str) -> None:
         """Apply restoration parameter preset matching UI SSOT definitions."""
         self.preset = preset_id
-        if preset_id == "gold":
-            self.params.update({
-                "deinterlacer": "bwdif",
-                "mode": "double",
-                "output_codec": "h264",
-                "resolution": "1080p",
-                "chroma_fix": True,
-                "denoise": False,
-                "comb_filter": True,
-                "overscan_blanking": True,
-                "audio_treatment": True,
-                "dropout_clean": False,
-                "ai_whisper": False,
-                "ai_face_restore": False,
-                "ai_rife_60fps": False,
-                "ai_upscaler": False,
-            })
-        elif preset_id == "speed":
-            self.params.update({
-                "deinterlacer": "bwdif",
-                "mode": "passthrough",
-                "output_codec": "h264",
-                "resolution": "1080p",
-                "chroma_fix": False,
-                "denoise": False,
-                "comb_filter": False,
-                "overscan_blanking": True,
-                "audio_treatment": False,
-                "dropout_clean": False,
-                "ai_whisper": False,
-                "ai_face_restore": False,
-                "ai_rife_60fps": False,
-                "ai_upscaler": False,
-            })
-        elif preset_id == "tbc_hold":
-            self.params.update({
-                "deinterlacer": "znedi3",
-                "mode": "freeze",
-                "output_codec": "h264",
-                "resolution": "1080p",
-                "chroma_fix": True,
-                "denoise": True,
-                "comb_filter": True,
-                "overscan_blanking": True,
-                "audio_treatment": True,
-                "dropout_clean": True,
-                "ai_whisper": False,
-                "ai_face_restore": False,
-                "ai_rife_60fps": False,
-                "ai_upscaler": False,
-            })
-        elif preset_id == "ai_master":
-            self.params.update({
-                "deinterlacer": "bwdif",
-                "mode": "double",
-                "output_codec": "h264",
-                "resolution": "1080p",
-                "chroma_fix": True,
-                "denoise": False,
-                "comb_filter": True,
-                "overscan_blanking": True,
-                "audio_treatment": True,
-                "dropout_clean": False,
-                "ai_whisper": True,
-                "ai_face_restore": True,
-                "ai_rife_60fps": True,
-                "ai_upscaler": True,
-            })
+        if preset_id in PRESET_CONFIGS:
+            self.params.update(PRESET_CONFIGS[preset_id])
 
     def add_log(self, message: str) -> None:
         """Append log message and keep latest entries."""

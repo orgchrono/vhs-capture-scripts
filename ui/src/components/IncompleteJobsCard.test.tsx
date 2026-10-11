@@ -1,9 +1,10 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { IncompleteJobsCard } from './IncompleteJobsCard';
 import { Provider } from 'react-redux';
 import { store } from '../store';
+import { setIsRestoring } from '../store/studioSlice';
 import type { IncompleteJob } from '../types';
 
 vi.mock('react-i18next', () => ({
@@ -60,6 +61,7 @@ const renderComponent = (onRefreshParent = vi.fn()) => {
 describe('IncompleteJobsCard Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    store.dispatch(setIsRestoring(false));
     currentJobs = [mockJob];
     mockHandleJobAction.mockReturnValue({
       unwrap: () => Promise.resolve({ status: 'ok', finalized_file: 'tape_1995_restored.mp4' }),
@@ -80,7 +82,9 @@ describe('IncompleteJobsCard Component', () => {
     renderComponent();
 
     const resumeBtn = screen.getByTestId('resume-job-btn-job-123');
-    fireEvent.click(resumeBtn);
+    await act(async () => {
+      fireEvent.click(resumeBtn);
+    });
 
     expect(mockHandleJobAction).toHaveBeenCalledWith({
       output_path: 'C:/media/restored/tape_1995_restored.mp4',
@@ -94,7 +98,9 @@ describe('IncompleteJobsCard Component', () => {
     renderComponent(onRefreshParent);
 
     const finalizeBtn = screen.getByTestId('finalize-job-btn-job-123');
-    fireEvent.click(finalizeBtn);
+    await act(async () => {
+      fireEvent.click(finalizeBtn);
+    });
 
     expect(mockHandleJobAction).toHaveBeenCalledWith({
       output_path: 'C:/media/restored/tape_1995_restored.mp4',
@@ -107,7 +113,9 @@ describe('IncompleteJobsCard Component', () => {
     renderComponent();
 
     const discardBtn = screen.getByTestId('discard-job-btn-job-123');
-    fireEvent.click(discardBtn);
+    await act(async () => {
+      fireEvent.click(discardBtn);
+    });
 
     expect(mockHandleJobAction).toHaveBeenCalledWith({
       output_path: 'C:/media/restored/tape_1995_restored.mp4',

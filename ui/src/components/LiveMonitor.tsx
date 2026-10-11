@@ -11,11 +11,17 @@ import { formatBitrate } from '../lib/formatters';
 
 export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => {
   const { t } = useTranslation();
-  const { selectedFile } = useStudioStore();
+  const { selectedFile, isRestoring } = useStudioStore();
   const { livePreviewEnabled } = usePreferencesStore();
   const [isSplitMode, setIsSplitMode] = useState(false);
+  const [erroredFile, setErroredFile] = useState<string | null>(null);
+  const thumbError = Boolean(selectedFile && erroredFile === selectedFile);
   const { videoRef, isActive, error, obsStats, isCapturing } = useLiveMonitor();
   const shouldReduceMotion = useReducedMotion();
+
+  const thumbnailUrl = selectedFile
+    ? `/api/media/thumbnail?path=${encodeURIComponent(selectedFile)}`
+    : '';
 
   const badgeMotion = {
     initial: shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.9, y: -4 },
@@ -55,8 +61,24 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
       <div className="absolute top-3 left-3 right-3 z-10 flex items-center justify-between pointer-events-auto">
         <div className="flex gap-2 items-center">
           <span className="bg-studio-panel/90 px-2.5 py-1 rounded-sm text-[10px] font-mono text-slate-300 border border-studio-border shadow-sm flex items-center gap-1.5">
-            <span className={`led-lamp ${isActive ? 'led-live' : 'led-idle'}`}></span>
-            {t('monitor.live_preview')}
+            <span
+              className={`led-lamp ${
+                isRestoring
+                  ? 'led-live animate-pulse'
+                  : isActive
+                  ? 'led-live'
+                  : selectedFile
+                  ? 'led-idle'
+                  : 'led-idle'
+              }`}
+            />
+            {isRestoring
+              ? t('monitor.rendering_preview')
+              : isActive
+              ? t('monitor.live_preview')
+              : selectedFile
+              ? t('monitor.tape_loaded_preview')
+              : t('monitor.live_preview')}
           </span>
           <button
             type="button"
@@ -112,8 +134,28 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
         </AnimatePresence>
       </div>
       
+      {/* Live Rendering Miniature or Loaded Tape Preview */}
+      {!isActive && selectedFile && !thumbError && (
+        <div className="absolute inset-0 z-0 flex items-center justify-center bg-black overflow-hidden">
+          <img
+            src={thumbnailUrl}
+            alt={t('monitor.rendering_preview')}
+            onError={() => setErroredFile(selectedFile)}
+            className={`w-full h-full object-contain transition-all duration-300 ${
+              isRestoring ? 'brightness-105 contrast-105' : 'opacity-90'
+            }`}
+          />
+          {isRestoring && (
+            <div
+              aria-hidden="true"
+              className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-500/0 via-emerald-400 to-emerald-500/0 shadow-[0_0_12px_rgba(52,211,153,0.9)] animate-pulse"
+            />
+          )}
+        </div>
+      )}
+
       {/* Fallback / Error State */}
-      {!isActive && (
+      {!isActive && (!selectedFile || thumbError) && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/80 z-0">
           {error ? (
             <>

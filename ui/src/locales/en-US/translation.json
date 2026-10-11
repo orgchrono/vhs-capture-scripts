@@ -82,7 +82,9 @@
     "qtgmc_filtered": "QTGMC / AI Master Filtered",
     "stream_connecting": "Connecting lightweight sub-stream...",
     "split_seek_backward": "-5s",
-    "split_seek_forward": "+5s"
+    "split_seek_forward": "+5s",
+    "rendering_preview": "Real-Time Rendering Preview",
+    "tape_loaded_preview": "Tape Loaded"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -413,13 +415,13 @@
     "scan": "Scan for Incomplete Files",
     "resume_button": "Resume",
     "resume_tooltip": "Resume processing from checkpoint",
-    "finalize_button": "Finalize Partial",
+    "finalize_button": "Finalize",
     "finalize_tooltip": "Repair video container to make partial video playable immediately",
     "discard_button": "Discard",
     "discard_tooltip": "Delete partial files and free disk space",
     "frames_info": "{{current}} / {{total}} frames",
     "progress_label": "Incomplete project progress",
-    "status_in_progress": "Interrupted",
+    "status_in_progress": "In Progress",
     "status_paused": "Paused",
     "status_aborted": "Aborted",
     "toast_resumed": "Project resumed for restoration.",
@@ -434,7 +436,12 @@
     "completed_conflict_subtitle": "A finalized video already exists in destination directory",
     "completed_conflict_desc": "A restored file of {{size}} already exists for this tape. Do you want to overwrite and start a new restoration?",
     "btn_overwrite": "Overwrite",
-    "btn_cancel": "Cancel"
+    "btn_cancel": "Cancel",
+    "status_interrupted": "Interrupted",
+    "badge_incomplete": "{{pct}}% Incomplete",
+    "resume_pipeline_btn": "Resume Restoration",
+    "start_fresh_btn": "Start Fresh",
+    "checkpoint_saved_info": "Checkpoint: {{current}} / {{total}} frames ({{pct}}%)"
   },
   "preferences": {
     "title": "VHS Studio Pro Preferences",

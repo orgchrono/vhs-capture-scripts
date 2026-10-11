@@ -2,6 +2,7 @@ import React from 'react';
 import { AlertTriangle, Play, RefreshCw, X, HardDrive } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from './ui/button';
+import { formatFileSize } from '../lib/formatters';
 
 export interface RestorationConflictModalProps {
   isOpen: boolean;
@@ -29,14 +30,6 @@ export const RestorationConflictModal: React.FC<RestorationConflictModalProps> =
   const { t } = useTranslation();
 
   if (!isOpen) return null;
-
-  const formatFileSize = (bytes: number) => {
-    const mb = bytes / (1024 * 1024);
-    if (mb >= 1024) {
-      return `${(mb / 1024).toFixed(1)} GB`;
-    }
-    return `${mb.toFixed(1)} MB`;
-  };
 
   const isPartial = conflictType === 'partial';
   const sizeFormatted = formatFileSize(sizeBytes);

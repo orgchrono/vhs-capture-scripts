@@ -1,5 +1,4 @@
 import React from 'react';
-import { IncompleteJobsCard } from './IncompleteJobsCard';
 import { TapeLibraryCard } from './TapeLibraryCard';
 import { PanasonicIngestCard } from './PanasonicIngestCard';
 import type { RawFile } from '../types';
@@ -17,7 +16,6 @@ export const FileSelector: React.FC<FileSelectorProps> = ({
 }) => {
   return (
     <div className="flex flex-col gap-3">
-      <IncompleteJobsCard onRefreshParent={onRefresh} />
       <TapeLibraryCard
         files={files}
         onRefresh={onRefresh}

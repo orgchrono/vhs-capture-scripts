@@ -17,6 +17,7 @@ import {
 } from '../api/studioRtkApi';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import type { RestorationPayload } from '../types';
 
 
 export function useStudioViewModel() {
@@ -130,13 +131,17 @@ export function useStudioViewModel() {
     }
   }, [logsData]);
 
-  const handleStartRestoration = async () => {
+  const handleStartRestoration = async (overrideParams?: Partial<RestorationPayload>) => {
     if (!store.selectedFile) {
       return false;
     }
 
     lastPolledIndexRef.current = 0;
-    addLog(t('logs.preparing_restore', { file: store.selectedFile }));
+    if (overrideParams?.resume) {
+      addLog(t('logs.restore_resumed'));
+    } else {
+      addLog(t('logs.preparing_restore', { file: store.selectedFile }));
+    }
     try {
       const data = await startRestorationTrigger({
         input: store.selectedFile,
@@ -159,12 +164,13 @@ export function useStudioViewModel() {
         ai_upscaler: store.aiUpscaler,
         ai_upscaler_model: store.aiUpscalerModel,
         output_codec: store.outputCodec,
+        ...overrideParams,
       }).unwrap();
 
       if (data.status === 'started' || data.status === 'ok') {
         a11yAudio.playStageStart();
         setIsRestoring(true);
-        addLog(t('logs.restore_started'));
+        addLog(overrideParams?.resume ? t('logs.restore_resumed') : t('logs.restore_started'));
         return true;
       } else {
         a11yAudio.playError();

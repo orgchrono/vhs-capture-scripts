@@ -98,6 +98,8 @@ export interface RestorationPayload {
   ai_upscaler_model?: string;
   output_codec?: OutputCodec;
   auto_upload?: boolean;
+  resume?: boolean;
+  output?: string;
 }
 
 export interface ObsStats {

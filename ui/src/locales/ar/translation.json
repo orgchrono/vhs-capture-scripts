@@ -82,7 +82,9 @@
     "qtgmc_filtered": "تصفية QTGMC / AI Master",
     "stream_connecting": "جارٍ الاتصال بالبث الفرعي الخفيف...",
     "split_seek_backward": "-5s",
-    "split_seek_forward": "+5s"
+    "split_seek_forward": "+5s",
+    "rendering_preview": "معاينة التصيير في الوقت الفعلي",
+    "tape_loaded_preview": "تم تحميل الشريط"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -414,13 +416,13 @@
     "scan": "فحص الملفات غير المكتملة",
     "resume_button": "استئناف",
     "resume_tooltip": "استئناف المعالجة من نقطة التوقف",
-    "finalize_button": "إنهاء جزئي",
+    "finalize_button": "إنهاء",
     "finalize_tooltip": "إصلاح الحاوية لجعل الفيديو الجزئي قابلاً للتشغيل فوراً",
     "discard_button": "تجاهل",
     "discard_tooltip": "حذف الملفات المؤقتة وتحرير المساحة",
     "frames_info": "{{current}} / {{total}} إطار",
     "progress_label": "تقدم المشروع غير المكتمل",
-    "status_in_progress": "معلق",
+    "status_in_progress": "قيد المعالجة",
     "status_paused": "متوقف مؤقتاً",
     "status_aborted": "ملغى",
     "toast_resumed": "تم استئناف المشروع للاستعادة.",
@@ -435,7 +437,12 @@
     "completed_conflict_subtitle": "يوجد بالفعل مقطع فيديو مكتمل في دليل الوجهة",
     "completed_conflict_desc": "يوجد بالفعل ملف مستعاد بحجم {{size}} لهذا الشريط. هل ترغب في الكتابة فوقه وبدء استعادة جديدة؟",
     "btn_overwrite": "كتابة فوقية",
-    "btn_cancel": "إلغاء"
+    "btn_cancel": "إلغاء",
+    "status_interrupted": "متوقف",
+    "badge_incomplete": "{{pct}}% غير مكتمل",
+    "resume_pipeline_btn": "استئناف الاستعادة",
+    "start_fresh_btn": "البدء من جديد",
+    "checkpoint_saved_info": "نقطة التحقق: {{current}} / {{total}} إطارًا ({{pct}}%)"
   },
   "preferences": {
     "title": "تفضيلات VHS Studio Pro",

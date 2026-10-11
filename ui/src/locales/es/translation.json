@@ -82,7 +82,9 @@
     "qtgmc_filtered": "Filtro QTGMC / AI Master",
     "stream_connecting": "Conectando sub-stream ligero...",
     "split_seek_backward": "-5s",
-    "split_seek_forward": "+5s"
+    "split_seek_forward": "+5s",
+    "rendering_preview": "Vista Previa de Renderizado",
+    "tape_loaded_preview": "Cinta Cargada"
   },
   "files": {
     "input_file_label": "Archivo de Entrada (media/raw/)",
@@ -414,13 +416,13 @@
     "scan": "Escanear Archivos",
     "resume_button": "Reanudar",
     "resume_tooltip": "Reanudar procesamiento desde el punto de control",
-    "finalize_button": "Finalizar Parcial",
+    "finalize_button": "Finalizar",
     "finalize_tooltip": "Reparar contenedor para hacer reproducible el video parcial",
     "discard_button": "Descartar",
     "discard_tooltip": "Eliminar archivos parciales y liberar espacio",
     "frames_info": "{{current}} / {{total}} fotogramas",
     "progress_label": "Progresso del proyecto incompleto",
-    "status_in_progress": "Interrumpido",
+    "status_in_progress": "En Curso",
     "status_paused": "Pausado",
     "status_aborted": "Abortado",
     "toast_resumed": "Proyecto reanudado para restauración.",
@@ -435,7 +437,12 @@
     "completed_conflict_subtitle": "Ya existe un video finalizado en el directorio de destino",
     "completed_conflict_desc": "Ya existe un archivo restaurado de {{size}} para esta cinta. ¿Desea sobrescribir e iniciar una nueva restauración?",
     "btn_overwrite": "Sobrescribir",
-    "btn_cancel": "Cancelar"
+    "btn_cancel": "Cancelar",
+    "status_interrupted": "Interrumpido",
+    "badge_incomplete": "{{pct}}% Incompleto",
+    "resume_pipeline_btn": "Reanudar Restauración",
+    "start_fresh_btn": "Comenzar de Nuevo",
+    "checkpoint_saved_info": "Punto de control: {{current}} / {{total}} fotogramas ({{pct}}%)"
   },
   "preferences": {
     "title": "Preferencias de VHS Studio Pro",

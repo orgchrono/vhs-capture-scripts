@@ -82,7 +82,9 @@
     "qtgmc_filtered": "Filtro QTGMC / AI Master",
     "stream_connecting": "Connessione al sub-stream leggero in corso...",
     "split_seek_backward": "-5s",
-    "split_seek_forward": "+5s"
+    "split_seek_forward": "+5s",
+    "rendering_preview": "Anteprima di Rendering in Tempo Reale",
+    "tape_loaded_preview": "Nastro Caricato"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -414,13 +416,13 @@
     "scan": "Cerca file incompleti",
     "resume_button": "Riprendi",
     "resume_tooltip": "Riprendi l'elaborazione dal punto di controllo",
-    "finalize_button": "Finalizza Parziale",
+    "finalize_button": "Finalizza",
     "finalize_tooltip": "Ripara il contenitore video per rendere il file parziale riproducibile",
     "discard_button": "Elimina",
     "discard_tooltip": "Elimina i file parziali e libera spazio",
     "frames_info": "{{current}} / {{total}} fotogrammi",
     "progress_label": "Avanzamento del progetto incompleto",
-    "status_in_progress": "Interrotto",
+    "status_in_progress": "In corso",
     "status_paused": "In pausa",
     "status_aborted": "Annullato",
     "toast_resumed": "Progetto ripreso per il restauro.",
@@ -435,7 +437,12 @@
     "completed_conflict_subtitle": "Un video finalizzato esiste già nella cartella di destinazione",
     "completed_conflict_desc": "Esiste già un file restaurato di {{size}} per questo nastro. Vuoi sovrascrivere e avviare un nuovo restauro?",
     "btn_overwrite": "Sovrascrivi",
-    "btn_cancel": "Annulla"
+    "btn_cancel": "Annulla",
+    "status_interrupted": "Interrotto",
+    "badge_incomplete": "{{pct}}% Incompleto",
+    "resume_pipeline_btn": "Riprendi Ripristino",
+    "start_fresh_btn": "Ricomincia da Zero",
+    "checkpoint_saved_info": "Punto di ripristino: {{current}} / {{total}} fotogrammi ({{pct}}%)"
   },
   "preferences": {
     "title": "Preferenze di VHS Studio Pro",
