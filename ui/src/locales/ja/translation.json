@@ -426,7 +426,16 @@
     "toast_resumed": "復元処理が再開されました。",
     "toast_finalized": "部分動画が正常に修復・確定されました。",
     "toast_discarded": "不完全なプロジェクトが破棄されました。",
-    "toast_action_error": "リカバリアクションの実行に失敗しました。"
+    "toast_action_error": "リカバリアクションの実行に失敗しました。",
+    "status_incomplete": "不完全 / 部分的",
+    "conflict_title": "以前の作業が検出されました",
+    "conflict_subtitle": "このテープの既存の部分ファイル（.part）が見つかりました",
+    "conflict_desc": "以前に録画された{{size}}の部分ファイルが見つかりました。中断したところから再開するか、破棄して最初から上書きすることができます。",
+    "completed_conflict_title": "既存の完了した復元",
+    "completed_conflict_subtitle": "宛先ディレクトリに既に完成したビデオが存在します",
+    "completed_conflict_desc": "このテープの復元済みファイル（{{size}}）が既に存在します。上書きして新しい復元を開始しますか？",
+    "btn_overwrite": "上書き",
+    "btn_cancel": "キャンセル"
   },
   "preferences": {
     "title": "VHS Studio Pro 環境設定",

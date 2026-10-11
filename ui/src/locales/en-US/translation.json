@@ -425,7 +425,16 @@
     "toast_resumed": "Project resumed for restoration.",
     "toast_finalized": "Partial video repaired and finalized successfully.",
     "toast_discarded": "Incomplete project discarded.",
-    "toast_action_error": "Failed to perform recovery action."
+    "toast_action_error": "Failed to perform recovery action.",
+    "status_incomplete": "Incomplete / Partial",
+    "conflict_title": "Previous Work Detected",
+    "conflict_subtitle": "An existing partial (.part) file was found for this tape",
+    "conflict_desc": "A partial file of {{size}} was previously recorded. You can resume from where you stopped or discard and overwrite from scratch.",
+    "completed_conflict_title": "Existing Completed Restoration",
+    "completed_conflict_subtitle": "A finalized video already exists in destination directory",
+    "completed_conflict_desc": "A restored file of {{size}} already exists for this tape. Do you want to overwrite and start a new restoration?",
+    "btn_overwrite": "Overwrite",
+    "btn_cancel": "Cancel"
   },
   "preferences": {
     "title": "VHS Studio Pro Preferences",

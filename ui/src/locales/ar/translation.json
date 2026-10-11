@@ -426,7 +426,16 @@
     "toast_resumed": "تم استئناف المشروع للاستعادة.",
     "toast_finalized": "تم إصلاح الفيديو الجزئي وإنهائه بنجاح.",
     "toast_discarded": "تم حذف المشروع غير المكتمل.",
-    "toast_action_error": "فشل تنفيذ إجراء الاسترداد."
+    "toast_action_error": "فشل تنفيذ إجراء الاسترداد.",
+    "status_incomplete": "غير مكتمل / جزئي",
+    "conflict_title": "تم اكتشاف عمل سابق",
+    "conflict_subtitle": "تم العثور على ملف جزئي (.part) موجود لهذا الشريط",
+    "conflict_desc": "تم التعرف على ملف جزئي بحجم {{size}} مسجل سابقًا. يمكنك الاستئناف من حيث توقفت أو التراجع والكتابة فوقه من البداية.",
+    "completed_conflict_title": "استعادة مكتملة موجودة",
+    "completed_conflict_subtitle": "يوجد بالفعل مقطع فيديو مكتمل في دليل الوجهة",
+    "completed_conflict_desc": "يوجد بالفعل ملف مستعاد بحجم {{size}} لهذا الشريط. هل ترغب في الكتابة فوقه وبدء استعادة جديدة؟",
+    "btn_overwrite": "كتابة فوقية",
+    "btn_cancel": "إلغاء"
   },
   "preferences": {
     "title": "تفضيلات VHS Studio Pro",

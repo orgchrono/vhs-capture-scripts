@@ -154,6 +154,16 @@ export interface IncompleteJob {
   source_exists: boolean;
 }
 
+export interface ExistingRestorationCheck {
+  has_existing: boolean;
+  type?: 'partial' | 'completed';
+  file_path?: string;
+  size_bytes?: number;
+  can_resume?: boolean;
+  progress_percent?: number;
+  last_modified?: string;
+}
+
 export interface PanasonicDisk {
   device_id: string;
   name: string;

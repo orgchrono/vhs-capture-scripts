@@ -220,16 +220,19 @@ async def handle_incomplete_action(request: Request):
             return JSONResponse(status_code=400, content={"error": "Já existe um processo em execução."})
 
         chk_path = f"{output_path}.checkpoint.json"
-        if not os.path.exists(chk_path):
-            return JSONResponse(status_code=404, content={"error": "Checkpoint não encontrado."})
+        source = str(data.get("source", "")).strip()
 
-        try:
-            with open(chk_path, "r", encoding="utf-8") as f:
-                chk_data = json.load(f)
-        except Exception as e:
-            return JSONResponse(status_code=500, content={"error": f"Erro lendo checkpoint: {e}"})
+        if os.path.exists(chk_path):
+            try:
+                with open(chk_path, "r", encoding="utf-8") as f:
+                    chk_data = json.load(f)
+                if not source:
+                    source = str(chk_data.get("source", "")).strip()
+            except Exception as e:
+                return JSONResponse(status_code=500, content={"error": f"Erro lendo checkpoint: {e}"})
+        elif not source:
+            return JSONResponse(status_code=404, content={"error": "Checkpoint ou arquivo de origem não encontrado."})
 
-        source = chk_data.get("source", "")
         if not source or not os.path.exists(source):
             return JSONResponse(
                 status_code=404,
@@ -244,6 +247,20 @@ async def handle_incomplete_action(request: Request):
         return _handle_start_restore(params, pm)
 
     return JSONResponse(status_code=400, content={"error": "Ação inválida."})
+
+
+@restoration_router.get("/restoration/check-existing")
+def get_existing_restoration(source: str = ""):
+    """Check if an existing partial or completed restoration is already recorded for this media source."""
+    from vhs_studio.video.job_recovery import check_existing_restoration
+
+    if not source:
+        return {"has_existing": False}
+
+    res = check_existing_restoration(source)
+    if res:
+        return {"has_existing": True, **res}
+    return {"has_existing": False}
 
 
 @restoration_router.post("/run")

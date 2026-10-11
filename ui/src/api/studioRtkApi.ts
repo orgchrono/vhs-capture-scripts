@@ -12,6 +12,7 @@ import type {
   PanasonicDisk,
   ComparisonFrameResponse,
   PanasonicRecordingTreeResponse,
+  ExistingRestorationCheck,
 } from '../types';
 
 
@@ -244,7 +245,7 @@ export const studioRtkApi = createApi({
 
     handleIncompleteJob: builder.mutation<
       { status: string; message?: string; finalized_file?: string },
-      { output_path: string; action: 'resume' | 'finalize' | 'discard' }
+      { output_path: string; action: 'resume' | 'finalize' | 'discard'; source?: string }
     >({
       query: (body) => ({
         url: 'api/restoration/incomplete/action',
@@ -252,6 +253,10 @@ export const studioRtkApi = createApi({
         body,
       }),
       invalidatesTags: ['Status'],
+    }),
+
+    checkExistingRestoration: builder.query<ExistingRestorationCheck, { source: string }>({
+      query: ({ source }) => `api/restoration/check-existing?source=${encodeURIComponent(source)}`,
     }),
 
     getPanasonicDisks: builder.query<{ disks: PanasonicDisk[]; total: number }, void>({
@@ -347,6 +352,8 @@ export const {
   useLazyGetComparisonFrameQuery,
   useGetPreferencesQuery,
   useSavePreferencesMutation,
+  useCheckExistingRestorationQuery,
+  useLazyCheckExistingRestorationQuery,
 } = studioRtkApi;
 
 

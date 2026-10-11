@@ -426,7 +426,16 @@
     "toast_resumed": "项目已恢复处理。",
     "toast_finalized": "部分视频已成功修复并封装。",
     "toast_discarded": "已丢弃未完成的项目。",
-    "toast_action_error": "执行恢复操作失败。"
+    "toast_action_error": "执行恢复操作失败。",
+    "status_incomplete": "未完成 / 部分",
+    "conflict_title": "检测到先前的任务",
+    "conflict_subtitle": "为此磁带找到现有的部分文件 (.part)",
+    "conflict_desc": "先前录制了大小为 {{size}} 的部分文件。您可以从上次停止的地方继续，也可以放弃并重新开始覆盖。",
+    "completed_conflict_title": "现有的已完成修复",
+    "completed_conflict_subtitle": "目标目录中已存在已完成的视频",
+    "completed_conflict_desc": "此磁带已存在大小为 {{size}} 的修复文件。是否要覆盖并开始新的修复？",
+    "btn_overwrite": "覆盖",
+    "btn_cancel": "取消"
   },
   "preferences": {
     "title": "VHS Studio Pro 首选项",

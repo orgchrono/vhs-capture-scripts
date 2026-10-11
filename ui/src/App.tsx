@@ -14,6 +14,7 @@ import {
   AppPreferencesModal,
   FooterStatusBar,
   BroadcastProgressRibbon,
+  RestorationConflictModal,
 } from './components'
 import { createTelemetryParser } from './components/BroadcastProgress'
 import { Toaster } from './components/ui/sonner'
@@ -25,7 +26,12 @@ import {
 import { useStudioViewModel } from './viewmodels'
 import { useStudioStore } from './store/useStudioStore'
 import { usePreferencesStore } from './store/usePreferencesStore'
-import { useGetPreferencesQuery } from './api/studioRtkApi'
+import {
+  useGetPreferencesQuery,
+  useGetIncompleteJobsQuery,
+  useHandleIncompleteJobMutation,
+} from './api/studioRtkApi'
+import type { IncompleteJob } from './types'
 import { LAYOUT_CONFIG } from './lib/constants'
 
 const telemetryParser = createTelemetryParser()
@@ -70,7 +76,12 @@ const StudioMain: React.FC<{
   const [isDragOver, setIsDragOver] = useState(false)
   const shouldReduceMotion = useReducedMotion()
 
-  const onStart = () => {
+  const { data: incompleteData, refetch: refetchIncomplete } = useGetIncompleteJobsQuery()
+  const [handleJobAction] = useHandleIncompleteJobMutation()
+  const [conflictJob, setConflictJob] = useState<IncompleteJob | null>(null)
+  const [isConflictModalOpen, setIsConflictModalOpen] = useState(false)
+
+  const executeStartRestoration = () => {
     if (!handleStartRestoration()) {
       toast.error(t('toast.no_file_title'), {
         description: t('toast.no_file_desc'),
@@ -80,6 +91,67 @@ const StudioMain: React.FC<{
         description: t('toast.restoration_started_desc'),
       })
     }
+  }
+
+  const onStart = () => {
+    if (!selectedFile) {
+      toast.error(t('toast.no_file_title'), {
+        description: t('toast.no_file_desc'),
+      })
+      return
+    }
+
+    const existing = incompleteData?.incomplete_jobs?.find((j) => {
+      const sNorm = selectedFile.replace(/\\/g, '/').toLowerCase()
+      const jNorm = (j.source_file || '').replace(/\\/g, '/').toLowerCase()
+      const sBase = sNorm.split('/').pop()?.split('.')[0] || ''
+      const jBase = jNorm.split('/').pop()?.split('.')[0] || ''
+      const jId = j.job_id.toLowerCase()
+      return (sNorm && jNorm && sNorm === jNorm) || (sBase && (sBase === jBase || jId.includes(sBase)))
+    })
+
+    if (existing) {
+      setConflictJob(existing)
+      setIsConflictModalOpen(true)
+      return
+    }
+
+    executeStartRestoration()
+  }
+
+  const handleResumeFromConflict = async () => {
+    if (conflictJob) {
+      try {
+        await handleJobAction({
+          output_path: conflictJob.output_file,
+          action: 'resume',
+          source: conflictJob.source_file,
+        }).unwrap()
+        toast.info(t('recovery.toast_resumed'))
+        refetchIncomplete()
+      } catch {
+        toast.error(t('recovery.toast_action_error'))
+      }
+    }
+    setIsConflictModalOpen(false)
+    setConflictJob(null)
+  }
+
+  const handleOverwriteFromConflict = async () => {
+    if (conflictJob) {
+      try {
+        await handleJobAction({
+          output_path: conflictJob.output_file,
+          action: 'discard',
+        }).unwrap()
+        refetchIncomplete()
+      } catch {
+        // ignore discard error
+      }
+    }
+    setIsConflictModalOpen(false)
+    setConflictJob(null)
+    executeStartRestoration()
   }
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -291,6 +363,28 @@ const StudioMain: React.FC<{
 
       {/* Broadcast Telemetry Footer Status Bar */}
       <FooterStatusBar />
+
+      {/* Restoration Conflict Modal */}
+      {conflictJob && (
+        <RestorationConflictModal
+          isOpen={isConflictModalOpen}
+          conflictType="partial"
+          fileName={
+            conflictJob.source_file
+              ? conflictJob.source_file.split(/[/\\]/).pop() || conflictJob.source_file
+              : conflictJob.job_id
+          }
+          sizeBytes={conflictJob.output_size_bytes}
+          canResume={conflictJob.can_resume}
+          progressPercent={conflictJob.progress_percent}
+          onClose={() => {
+            setIsConflictModalOpen(false)
+            setConflictJob(null)
+          }}
+          onResume={handleResumeFromConflict}
+          onOverwrite={handleOverwriteFromConflict}
+        />
+      )}
     </div>
   )
 }

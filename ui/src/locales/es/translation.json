@@ -426,7 +426,16 @@
     "toast_resumed": "Proyecto reanudado para restauración.",
     "toast_finalized": "Video parcial reparado y finalizado con éxito.",
     "toast_discarded": "Proyecto incompleto descartado.",
-    "toast_action_error": "Error al procesar la acción de recuperación."
+    "toast_action_error": "Error al procesar la acción de recuperación.",
+    "status_incomplete": "Incompleto / Parcial",
+    "conflict_title": "Trabajo Anterior Detectado",
+    "conflict_subtitle": "Se encontró un archivo parcial (.part) existente para esta cinta",
+    "conflict_desc": "Se identificó un archivo parcial de {{size}} grabado anteriormente. Puede reanudar desde donde se detuvo o descartar y sobrescribir desde cero.",
+    "completed_conflict_title": "Restauración Completada Existente",
+    "completed_conflict_subtitle": "Ya existe un video finalizado en el directorio de destino",
+    "completed_conflict_desc": "Ya existe un archivo restaurado de {{size}} para esta cinta. ¿Desea sobrescribir e iniciar una nueva restauración?",
+    "btn_overwrite": "Sobrescribir",
+    "btn_cancel": "Cancelar"
   },
   "preferences": {
     "title": "Preferencias de VHS Studio Pro",

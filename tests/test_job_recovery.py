@@ -150,3 +150,27 @@ def test_api_incomplete_endpoints():
 
     res_abort = client.post("/api/action", json={"action": "abort_process"})
     assert res_abort.status_code == 200
+
+
+def test_scan_orphan_part_files():
+    """Verify scan_incomplete_jobs detects orphan .part files even without checkpoints."""
+    from vhs_studio.video.job_recovery import check_existing_restoration
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        with patch("vhs_studio.video.job_recovery.RESTORED_MEDIA_DIR", tmp_dir):
+            part_file = os.path.join(tmp_dir, "family_vacation_restored_1080p_abc123.mp4.part")
+            with open(part_file, "wb") as f:
+                f.write(b"\x00" * 8192)
+
+            jobs = scan_incomplete_jobs()
+            assert len(jobs) == 1
+            j = jobs[0]
+            assert j["job_id"] == "family_vacation_restored_1080p_abc123"
+            assert j["output_size_bytes"] == 8192
+            assert j["status"] == "incomplete"
+
+            chk = check_existing_restoration("family_vacation.mkv")
+            assert chk is not None
+            assert chk["exists"] is True
+            assert chk["type"] == "partial"
+            assert chk["size_bytes"] == 8192

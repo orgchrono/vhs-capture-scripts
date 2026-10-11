@@ -69,6 +69,7 @@ export const IncompleteJobsCard: React.FC<IncompleteJobsCardProps> = ({
       const res = await handleJobAction({
         output_path: job.output_file,
         action,
+        source: job.source_file,
       }).unwrap();
 
       if (action === 'resume') {
@@ -178,6 +179,8 @@ export const IncompleteJobsCard: React.FC<IncompleteJobsCardProps> = ({
                       ? t('recovery.status_paused')
                       : job.status === 'aborted'
                       ? t('recovery.status_aborted')
+                      : job.status === 'incomplete'
+                      ? t('recovery.status_incomplete')
                       : t('recovery.status_in_progress')}
                   </span>
                 </div>

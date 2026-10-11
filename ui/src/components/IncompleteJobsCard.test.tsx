@@ -85,6 +85,7 @@ describe('IncompleteJobsCard Component', () => {
     expect(mockHandleJobAction).toHaveBeenCalledWith({
       output_path: 'C:/media/restored/tape_1995_restored.mp4',
       action: 'resume',
+      source: 'C:/media/raw/tape_1995.mkv',
     });
   });
 
@@ -98,6 +99,7 @@ describe('IncompleteJobsCard Component', () => {
     expect(mockHandleJobAction).toHaveBeenCalledWith({
       output_path: 'C:/media/restored/tape_1995_restored.mp4',
       action: 'finalize',
+      source: 'C:/media/raw/tape_1995.mkv',
     });
   });
 
@@ -110,6 +112,7 @@ describe('IncompleteJobsCard Component', () => {
     expect(mockHandleJobAction).toHaveBeenCalledWith({
       output_path: 'C:/media/restored/tape_1995_restored.mp4',
       action: 'discard',
+      source: 'C:/media/raw/tape_1995.mkv',
     });
   });
 

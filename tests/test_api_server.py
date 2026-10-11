@@ -288,3 +288,14 @@ def test_api_monitor_comparison_frame(client):
         assert data["status"] == "ok"
         assert "data:image/jpeg;base64," in data["raw_image"]
         assert "data:image/jpeg;base64," in data["processed_image"]
+
+
+def test_api_check_existing_restoration(client):
+    """Verify /api/restoration/check-existing handles empty and queried requests."""
+    res_empty = client.get("/api/restoration/check-existing")
+    assert res_empty.status_code == 200
+    assert res_empty.json() == {"has_existing": False}
+
+    res_dummy = client.get("/api/restoration/check-existing?source=non_existent_tape.mkv")
+    assert res_dummy.status_code == 200
+    assert res_dummy.json() == {"has_existing": False}

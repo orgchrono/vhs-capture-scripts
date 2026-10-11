@@ -11,3 +11,5 @@ export { BroadcastProgress, BroadcastProgressRibbon } from './BroadcastProgress'
 export { FooterStatusBar } from './FooterStatusBar';
 export { AppPreferencesModal } from './AppPreferencesModal';
 export { PanasonicIngestCard } from './PanasonicIngestCard';
+export { RestorationConflictModal } from './RestorationConflictModal';
+

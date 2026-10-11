@@ -426,7 +426,16 @@
     "toast_resumed": "Projekt zur Wiederherstellung fortgesetzt.",
     "toast_finalized": "Teilvideo erfolgreich repariert und finalisiert.",
     "toast_discarded": "Unvollständiges Projekt verworfen.",
-    "toast_action_error": "Fehler bei der Wiederherstellungsaktion."
+    "toast_action_error": "Fehler bei der Wiederherstellungsaktion.",
+    "status_incomplete": "Unvollständig / Partiell",
+    "conflict_title": "Vorherige Arbeit Erkannt",
+    "conflict_subtitle": "Eine vorhandene partielle (.part) Datei wurde für dieses Band gefunden",
+    "conflict_desc": "Eine partielle Datei von {{size}} wurde zuvor aufgenommen. Sie können dort fortfahren, wo Sie aufgehört haben, oder verwerfen und von Grund auf überschreiben.",
+    "completed_conflict_title": "Vorhandene Abgeschlossene Wiederherstellung",
+    "completed_conflict_subtitle": "Ein fertiges Video existiert bereits im Zielverzeichnis",
+    "completed_conflict_desc": "Für dieses Band existiert bereits eine wiederhergestellte Datei von {{size}}. Möchten Sie überschreiben und eine neue Wiederherstellung starten?",
+    "btn_overwrite": "Überschreiben",
+    "btn_cancel": "Abbrechen"
   },
   "preferences": {
     "title": "VHS Studio Pro Einstellungen",
