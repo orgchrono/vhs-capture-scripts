@@ -23,6 +23,4 @@ class AtomicIO:
     def commit_file(part_path, final_path):
         """Move o arquivo .part para o destino final atomicamente."""
         if os.path.exists(part_path):
-            if os.path.exists(final_path):
-                os.remove(final_path)
-            os.rename(part_path, final_path)
+            os.replace(part_path, final_path)

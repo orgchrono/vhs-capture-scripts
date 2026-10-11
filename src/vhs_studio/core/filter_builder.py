@@ -212,6 +212,7 @@ class FilterBuilder:
         """Build CLI command arguments for muxing restored video frames with aligned audio."""
         header_args = [
             Toolchain.get_ffmpeg_path(),
+            "-y",
             "-hide_banner",
             "-threads",
             "0",

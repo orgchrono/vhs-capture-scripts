@@ -254,6 +254,16 @@ def restore_stream(args):
     final_output_path = f"{base}_{phash}{ext}"
     part_path = AtomicIO.get_part_path(final_output_path)
 
+    # Limpa arquivo parcial residual se existente para garantir inicialização limpa
+    if os.path.exists(part_path):
+        try:
+            os.remove(part_path)
+            log.info(f"[RESTAURAÇÃO] Arquivo parcial prévio removido para reinício limpo: {part_path}")
+        except Exception as e:
+            log.warning(
+                f"[RESTAURAÇÃO] Não foi possível remover arquivo residual '{part_path}': {e}"
+            )
+
     # IMPORTANTE (T-1.11): Passamos detected_fps (input_rate) em vez de args.target_fps
     cmd_out = builder.build_ffmpeg_output_args(
         args.input_path,

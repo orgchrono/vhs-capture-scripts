@@ -190,6 +190,50 @@ class TestVHSCommon(unittest.TestCase):
             builder.encoder, ["h264_qsv", "h264_nvenc", "h264_amf", "libx264"]
         )
 
+    @patch("vhs_studio.core.toolchain.Toolchain.get_ffmpeg_path")
+    def test_filter_builder_output_args_contains_overwrite_flag(self, mock_ffmpeg):
+        mock_ffmpeg.return_value = "ffmpeg"
+        from vhs_studio.core.filter_builder import FilterBuilder
+
+        builder = FilterBuilder()
+        args = builder.build_ffmpeg_output_args(
+            input_path="in.mkv",
+            output_path="out.mp4",
+            w=720,
+            h=480,
+            fps=29.97,
+            start_sec=0.0,
+            audio_offset=0.0,
+            duration=10.0,
+            vf="null",
+            audio_mode="stereo",
+        )
+        self.assertIn("-y", args)
+        self.assertIn("out.mp4", args)
+
+    def test_atomic_io_commit_file(self):
+        """Testa geração de hash, path .part e commit atômico sobrescrevendo destino."""
+        from vhs_studio.core.atomic_io import AtomicIO
+
+        h = AtomicIO.generate_hash({"test": 123})
+        self.assertEqual(len(h), 8)
+        self.assertEqual(AtomicIO.get_part_path("test.mp4"), "test.mp4.part")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            part = os.path.join(tmpdir, "video.mp4.part")
+            final = os.path.join(tmpdir, "video.mp4")
+
+            with open(part, "w", encoding="utf-8") as f:
+                f.write("new content")
+            with open(final, "w", encoding="utf-8") as f:
+                f.write("old content")
+
+            AtomicIO.commit_file(part, final)
+            self.assertFalse(os.path.exists(part))
+            self.assertTrue(os.path.exists(final))
+            with open(final, "r", encoding="utf-8") as f:
+                self.assertEqual(f.read(), "new content")
+
     def test_stream_runner_passthrough_mode(self):
         """Testa se o StreamRunner em modo passthrough não descarta nenhum frame."""
         from unittest.mock import MagicMock
