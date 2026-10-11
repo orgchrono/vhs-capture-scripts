@@ -1,16 +1,10 @@
 # 🔒 Security Policy & Threat Model - VHS Studio Pro
 
-<div align="justify">
-
 This document defines the security architecture, coding protections, input sanitization rules, and defensive practices enforced across **VHS Studio Pro**.
-
-</div>
 
 ---
 
 ## 1. Security Posture & Architectural Tenets
-
-<div align="justify">
 
 VHS Studio Pro is a hybrid desktop and local backend application that processes large media files and orchestrates low-level binaries (FFmpeg, OBS, VapourSynth, native C recovery tools).
 
@@ -20,15 +14,11 @@ Our security framework is anchored in four core tenets:
 3. **Canonical Filesystem Containment:** File paths undergo strict normalization and boundary validation before any read or write I/O operation.
 4. **Zero-Trust Localhost Networking:** Even on `127.0.0.1`, the HTTP API inspects request origins and demands cryptographic session tokens to prevent drive-by attacks from malicious browser tabs.
 
-</div>
-
 ---
 
 ## 2. Vulnerability Mitigations
 
 ### 2.1 Command Injection Prevention (CWE-78)
-<div align="justify">
-
 - **Elimination of `shell=True`:**
   - All invocations of `subprocess.Popen` and `subprocess.run` across the backend use explicit argument vectors (`list[str]`).
   - On Windows, commands such as `npm run build` resolve canonically to `npm.cmd` without spawning `cmd.exe`.
@@ -36,11 +26,7 @@ Our security framework is anchored in four core tenets:
   - Engines executing dynamic Python scripts (such as Faster-Whisper transcription in `whisper_engine`) **never** interpolate input strings into inline Python code.
   - Parameters are passed exclusively via operating system argument vectors (`sys.argv[1]`, `sys.argv[2]`), making it impossible for quotes, semicolons, or line breaks to alter program execution.
 
-</div>
-
 ### 2.2 Path Traversal Prevention (CWE-22)
-<div align="justify">
-
 - All ingestion routes (`/api/run`, `/api/queue/enqueue`, `/api/action`) pass parameters through the canonical validator:
   ```python
   def is_safe_media_path(raw_path: str | None) -> bool:
@@ -65,11 +51,7 @@ Our security framework is anchored in four core tenets:
   - Strict containment enforcing that paths reside within `MEDIA_DIR`.
   - Rejection of sensitive system directories (`C:\Windows\System32\...`, `/etc/passwd`).
 
-</div>
-
 ### 2.3 Cross-Site Request Forgery Protection (Localhost CSRF)
-<div align="justify">
-
 - Prevents malicious websites open in the user's browser from sending unauthorized requests to `http://127.0.0.1:8088`.
 - **Enforced defenses:**
   1. **Strict CORS Policy:** Only origins matching `127.0.0.1:8088` and `localhost:8088` are allowed.
@@ -77,13 +59,9 @@ Our security framework is anchored in four core tenets:
   3. **Origin Header Inspection:** Foreign `POST` origins are dropped immediately.
   4. **Cryptographic Session Token:** Mutating endpoints require `X-Session-Token` matching the dynamic `SESSION_TOKEN` secret generated at server boot.
 
-</div>
-
 ---
 
 ## 3. Dependency Auditing & Supply-Chain Security
-
-<div align="justify">
 
 - **Python Ecosystem:**
   - Continuous AST static security analysis with **Bandit**:
@@ -99,13 +77,9 @@ Our security framework is anchored in four core tenets:
     ```
     *Result:* **0 vulnerabilities** detected.
 
-</div>
-
 ---
 
 ## 4. Data Sovereignty & Offline Privacy
-
-<div align="justify">
 
 - **100% Offline Processing:**
   - Ingestion, deinterlacing, AI audio transcription (Whisper), and neural upscaling (Real-ESRGAN) execute entirely on local hardware.
@@ -114,16 +88,11 @@ Our security framework is anchored in four core tenets:
   - Cloud storage keys and OAuth2 tokens are stored locally inside the user's protected profile directory (`~/.vhs_studio/storage.json`).
   - Credentials and tokens are ignored by Git via `.gitignore`.
 
-</div>
-
 ---
 
 ## 5. Vulnerability Reporting
-
-<div align="justify">
 
 If you discover a potential security vulnerability in VHS Studio Pro:
 1. Open a confidential security advisory on GitHub or contact the maintainers directly.
 2. Please do not disclose vulnerabilities publicly until a patch has been published and released.
 
-</div>

@@ -1,16 +1,10 @@
 # 📹 Cross-Platform Ingest & Capture Guide via OBS Studio
 
-<div align="justify">
-
 **OBS Studio** serves as the recommended hardware capture platform for live ingestion in the VHS Studio Pro workflow. It provides native cross-platform hardware support (Windows, macOS, Linux) across professional SDI/HDMI interfaces and consumer USB capture devices, providing precise control over container packaging, bitrates, and interlace metadata.
-
-</div>
 
 ---
 
 ## 1. Supported Capture Hardware
-
-<div align="justify">
 
 While VHS Studio Pro can process any standard interlaced video file, the following hardware classes are optimized for the OBS workflow:
 
@@ -24,17 +18,11 @@ While VHS Studio Pro can process any standard interlaced video file, the followi
   - The pipeline natively accepts signals stabilized by line and full-frame hardware TBCs (e.g., Panasonic DMR-ES10/ES15 pass-through, DMR-EH55, DataVideo TBC-1000).
   - If capturing without a hardware TBC (leading to frame drops, line jitter, and variable cadence), the **TBC Frame-Hold** mode in *VHS Studio Pro* mathematically compensates for signal loss to prevent audio/video desynchronization in post-processing.
 
-</div>
-
 ---
 
 ## 2. Professional Capture Configuration in OBS
 
-<div align="justify">
-
 To preserve the raw analog signal for high-fidelity deinterlacing (**QTGMC**) and spatial filtering in VHS Studio Pro, calibrate OBS Studio using these parameters:
-
-</div>
 
 ### Video Configuration (Settings -> Video)
 - **Base (Canvas) Resolution & Output Resolution:**
@@ -47,8 +35,6 @@ To preserve the raw analog signal for high-fidelity deinterlacing (**QTGMC**) an
   - **Do NOT set to 60.** Record the native interlaced cadence as-is.
 
 ### Output Configuration (Settings -> Output -> Advanced Mode)
-
-<div align="justify">
 
 Select one of the following archival recording profiles:
 
@@ -65,11 +51,7 @@ Select one of the following archival recording profiles:
 - **CPU Usage Preset:** `ultrafast` (critical for preventing dropped frames during real-time encoding).
 - **Field Order Tuning:** Set `tff` (Top Field First) or `bff` (Bottom Field First) to declare interlaced metadata correctly.
 
-</div>
-
 ### Video Capture Source Properties
-<div align="justify">
-
 When configuring your capture device in OBS:
 - **Deinterlacing in OBS:** **Disabled (None).**
   > [!IMPORTANT]
@@ -77,13 +59,9 @@ When configuring your capture device in OBS:
 - **Color Space:** `Rec. 601` or `SMPTE 170M`.
 - **Color Range:** `Partial` / `Limited` (16–235). Analog video standards are calibrated for broadcast limited range.
 
-</div>
-
 ---
 
 ## 3. Automated WebSocket v5 Integration
-
-<div align="justify">
 
 VHS Studio Pro can remotely monitor and orchestrate your OBS capture sessions:
 
@@ -92,4 +70,3 @@ VHS Studio Pro can remotely monitor and orchestrate your OBS capture sessions:
 3. In VHS Studio Pro, configure the password in `config/local.toml` or the UI Settings panel. The system completes the cryptographic SHA-256 handshake automatically.
 4. Save recordings directly to the `media/raw/` directory. VHS Studio Pro will detect new files immediately, displaying them in the Ingest Desk.
 
-</div>

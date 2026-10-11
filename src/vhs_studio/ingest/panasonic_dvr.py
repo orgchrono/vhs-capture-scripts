@@ -2,8 +2,8 @@
 
 Provides automated signature inspection, superblock detection, and title extraction
 supporting Panasonic DIGA DVD/HDD formats (MEIHDFS-V1.0, MEIHDFS-V2.0, DVD-VR, and MPEG-2 PS).
-Integrates with external toolchain binaries (extract_meihdfs) and includes a pure-Python
-stream carver fallback.
+Integrates with external toolchain binaries (extract_meihdfs, dvd-vr) with zero-carving
+forensic inode preservation.
 """
 
 import os
@@ -175,7 +175,7 @@ def inspect_panasonic_source(source_path: str) -> PanasonicInspectionResult:
             detected_offsets.append(offset)
             details = (
                 f"Valid MPEG-2 Program Stream pack headers detected ({pack_count} packs found in first {len(data)}B). "
-                f"Recoverable via stream carver."
+                f"Direct MPEG-2 Program Stream container identified; extractable via native toolchain."
             )
             estimated_titles = 1
             can_extract = True

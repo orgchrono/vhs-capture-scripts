@@ -1,16 +1,10 @@
 # 🎞️ Restoration Pipeline Technical Guide - VHS Studio Pro
 
-<div align="justify">
-
 This guide provides technical specifications for the Directed Acyclic Graph (DAG) orchestration engine, processing pipelines, motion-compensated deinterlacing algorithms, analog noise reduction filterchains, and multimodal neural network models implemented in **VHS Studio Pro**.
-
-</div>
 
 ---
 
 ## 1. The Physics and Characteristics of Analog Video Signals
-
-<div align="justify">
 
 Restoring legacy magnetic tape media (VHS, S-VHS, Betamax, Video8, Hi8) requires domain-specific signal processing fundamentally distinct from typical digital format transcoding:
 
@@ -19,17 +13,11 @@ Restoring legacy magnetic tape media (VHS, S-VHS, Betamax, Video8, Hi8) requires
 3. **Mechanical Time Base Jitter (TBC Errors):** Mechanical imperfections in capstan motors, tape tension arms, and head drum rotation induce horizontal displacement (*line jitter* and *flagging* at the top of the raster).
 4. **Cumulative Audio/Video Desynchronization:** Signal dropouts without a hardware Time Base Corrector cause capture devices to drop corrupted video frames while recording continuous audio, producing acute cumulative drift over a 2-hour capture.
 
-</div>
-
 ---
 
 ## 2. Parallel DAG Orchestration (`pipeline.py`)
 
-<div align="justify">
-
 VHS Studio Pro replaces monolithic sequential scripts with a modular, concurrent **Directed Acyclic Graph (DAG)** execution pipeline:
-
-</div>
 
 ```mermaid
 flowchart TD
@@ -53,8 +41,6 @@ flowchart TD
 ```
 
 ### 2.1 Fault Isolation via Functional Closures (`make_step_runner`)
-<div align="justify">
-
 Each optional neural post-processing phase is encapsulated inside a functional error-boundary closure:
 
 ```python
@@ -72,17 +58,11 @@ def make_step_runner(step_name: str, fn: Callable[[], Optional[str]]) -> Callabl
 
 If an optional model (such as CodeFormer) encounters an unhandled runtime error (e.g., missing network weights or GPU out-of-memory), the pipeline logs the diagnostic error cleanly and preserves the master video produced during the base restoration phase without corrupting the pipeline.
 
-</div>
-
 ---
 
 ## 3. Motion-Compensated Deinterlacing Benchmark
 
-<div align="justify">
-
 The deinterlacing engine synthesizes interlaced fields into full-rate progressive frames (59.94p / 50p):
-
-</div>
 
 | Algorithm | Engine | Output Rate | Computational Complexity | Reconstruction & Motion Stability | Primary Use Case |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -95,8 +75,6 @@ The deinterlacing engine synthesizes interlaced fields into full-rate progressiv
 
 ## 4. Analog Noise Reduction & Declarative Filterchain (`filter_builder.py`)
 
-<div align="justify">
-
 The FFmpeg filtergraph is generated through **pure, declarative functional composition** without global mutable state:
 
 1. **Luma and Chroma Planar Separation:**
@@ -108,13 +86,9 @@ The FFmpeg filtergraph is generated through **pure, declarative functional compo
 4. **Overscan Blanking (12px Mask):**
    - Cleanly blanks out the bottom 12 scanlines containing helical head-switching noise, preventing flashing bars on modern digital displays.
 
-</div>
-
 ---
 
 ## 5. Multimodal Artificial Intelligence Suite
-
-<div align="justify">
 
 ### 5.1 Blind Face Restoration (CodeFormer)
 - Restores facial landmarks, iris definition, and lip contours degraded by VHS low horizontal resolution (~240 lines).
@@ -132,17 +106,11 @@ The FFmpeg filtergraph is generated through **pure, declarative functional compo
 - 100% offline neural transcription with automatic language identification.
 - Produces synchronized `.vtt` (Web Video Text Tracks) for browser rendering and `.srt` (SubRip) for professional NLE suites.
 
-</div>
-
 ---
 
 ## 6. Canonical Studio Presets
 
-<div align="justify">
-
 Restoration configurations are mapped to four core profiles in [`vhs_advanced_config.toml`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/vhs_advanced_config.toml):
-
-</div>
 
 | Preset | ID | Filter & Codec Configuration | Operational Objective |
 | :--- | :--- | :--- | :--- |
@@ -155,8 +123,6 @@ Restoration configurations are mapped to four core profiles in [`vhs_advanced_co
 
 ## 7. Real-Time Process Control (Pause, Resume & Safe Abort)
 
-<div align="justify">
-
 Long restoration runs (tapes spanning 2 to 6 hours) require deterministic operational control:
 
 - **Non-Destructive Pause (`POST /api/action {"action": "pause_process"}`):**
@@ -167,13 +133,9 @@ Long restoration runs (tapes spanning 2 to 6 hours) require deterministic operat
 - **Safe Abort (`POST /api/action {"action": "abort_process"}`):**
   - Cascades termination signals through all child worker processes and releases file locks, preventing frozen ports and damaged output headers.
 
-</div>
-
 ---
 
 ## 8. Incomplete Job Recovery Subsystem
-
-<div align="justify">
 
 In the event of unexpected power loss or system restarts during digitization:
 
@@ -183,13 +145,9 @@ In the event of unexpected power loss or system restarts during digitization:
   2. **`finalize`**: Uses FFmpeg stream-copy mode (`-c copy -movflags +faststart`) to rewrite the container indices and relocate the `moov` atom to the file header, making the partial video immediately playable and editable.
   3. **`discard`**: Removes orphaned temporary files and reclaims storage space.
 
-</div>
-
 ---
 
 ## 9. Integrated GPU (UMA) Optimization & Thermal Throttling Prevention
-
-<div align="justify">
 
 On workstations featuring integrated graphics architectures (Intel UHD Graphics 770 / Iris Xe / AMD Radeon):
 
@@ -198,17 +156,12 @@ On workstations featuring integrated graphics architectures (Intel UHD Graphics 
 3. **Fixed-Function Silicon Encoders:** Intel QuickSync (`h264_qsv` / `hevc_qsv`) and AMD AMF encode video using dedicated ASIC hardware, leaving CPU cores available for compute-heavy QTGMC deinterlacing.
 4. **Whisper Thread Balancing:** Concurrency is constrained to 4–8 worker threads to prevent sustained 100% CPU saturation and avoid thermal throttling.
 
-</div>
-
 ---
 
 ## 10. Direct Panasonic DVR Ingestion (MEIHDFS)
-
-<div align="justify">
 
 To extract recordings directly from Panasonic DMR hard drives:
 - USB-to-SATA bridge controllers (**JMicron JMS567**, **ASMedia**, **Realtek**) and raw block devices are automatically detected.
 - Native C utilities ([`extract_meihdfs`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/tools/panasonic_rec/extract_meihdfs.exe) and [`dvd-vr`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/tools/panasonic_rec/dvd-vr.exe)) parse proprietary inodes and demux MPEG-2 Program Streams at maximum disk read speeds.
 - For complete operational guidance, consult the [Panasonic DVR Ingest Technical Manual](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/docs/PANASONIC_DVR_GUIDE.md).
 
-</div>

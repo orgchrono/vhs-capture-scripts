@@ -1,4 +1,4 @@
-"""Tests for Panasonic DVR ingestion, MEIHDFS filesystem inspection, and stream carving."""
+"""Tests for Panasonic DVR ingestion, MEIHDFS filesystem inspection, and zero-carving extraction."""
 
 import os
 import tempfile

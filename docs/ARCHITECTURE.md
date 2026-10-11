@@ -1,16 +1,10 @@
 # 📐 System Architecture - VHS Studio Pro
 
-<div align="justify">
-
 This document provides a comprehensive technical overview of the architectural patterns, layered domain separation, data flows, modular decomposition, and functional programming paradigms implemented in **VHS Studio Pro**.
-
-</div>
 
 ---
 
 ## 1. Core Architectural Principles
-
-<div align="justify">
 
 The architectural design of VHS Studio Pro satisfies stringent requirements for historical media preservation, operational robustness, and open-source maintainability:
 
@@ -28,82 +22,43 @@ The architectural design of VHS Studio Pro satisfies stringent requirements for 
    - Shared mutable globals (`global`) have been eliminated from the codebase.
    - Untyped dynamic constructs (`Any` / `any`) have been replaced with strict `TypedDict` schemas, Pydantic models, and TypeScript interfaces across both backend and frontend layers.
 
-</div>
-
 ---
 
 ## 2. Layered Application Structure (Strict MVVM)
 
 ```mermaid
 flowchart TD
-    subgraph View ["Presentation Layer (View - React 19 Frontend)"]
-        UI_Components["Dumb Components (ui/src/components/)"]
-        PresetUI["PresetSelector (Ready Strategy Cards)"]
-        MonitorUI["LiveMonitor (Native Preview + Telemetry)"]
-        SettingsUI["RestorationSettings (Pro Tuning Tabs)"]
-        StorageUI["StorageSettings (Local & Cloud Destinations)"]
-    end
-
-    subgraph ViewModel_UI ["Reactive UI ViewModel Layer (ui/src/viewmodels/)"]
-        VM_Capture["useCaptureViewModel (OBS WebSocket State)"]
-        VM_Restore["useRestorationViewModel (AI & Preset Pipeline State)"]
-        VM_Storage["useStorageViewModel (Pure State Derivation)"]
-        VM_Studio["useStudioViewModel (System, Hardware & SSE)"]
-        RTK_Query["RTK Query (Cache & Network Mutex Engine)"]
-    end
-
-    subgraph ViewModel_API ["Server ViewModel Layer (FastAPI :8088)"]
-        API_Server["server.py (Clean Orchestrator & App Factory)"]
-        Router_System["routers/system.py (Status, Hardware, Logs SSE)"]
-        Router_Queue["routers/queue.py (Persistent Batch Queue)"]
-        Router_Obs["routers/obs.py (OBS Telemetry & Control)"]
-        Router_Restore["routers/restoration.py (Pipeline Dispatch & Actions)"]
-        Router_Ingest["routers/ingest.py (Panasonic DVR Ingest & Tree)"]
-        Router_Storage["routers/storage.py (Cloud & Storage Adapters)"]
-        Router_Security["routers/security.py (CWE-22 Path & Origin Guard)"]
-        Router_Schemas["routers/schemas.py (Strict Pydantic Payloads)"]
-    end
-
-    subgraph Model ["Domain / Model Layer (src/vhs_studio/)"]
-        HAL["core/hardware.py (System Profiling & Tiers)"]
-        FilterBuilder["core/filter_builder.py (Declarative Filtergraph)"]
-        QueueMgr["core/queue_manager.py (SQLite FIFO Queue)"]
-        DAG_Pipeline["pipeline.py (Concurrent DAG Orchestrator)"]
-        Steps["pipeline_steps.py (Modular Restoration Steps)"]
-        VapourSynth["video/vapoursynth_qtgmc.py (Broadcast Deinterlacing)"]
-        Whisper["ai/whisper_engine.py (Transcription & Subtitles)"]
-        Upscaler["ai/upscaler.py (Neural Super-Resolution)"]
-    end
-
-    View --> ViewModel_UI
-    ViewModel_UI --> RTK_Query
-    RTK_Query --> API_Server
-    API_Server --> Router_System
-    API_Server --> Router_Queue
-    API_Server --> Router_Obs
-    API_Server --> Router_Restore
-    API_Server --> Router_Ingest
-    API_Server --> Router_Storage
-    Router_System --> HAL
-    Router_Queue --> QueueMgr
-    Router_Restore --> DAG_Pipeline
-    Router_Ingest --> Steps
-    DAG_Pipeline --> Steps
-    Steps --> FilterBuilder
-    Steps --> VapourSynth
-    Steps --> Whisper
-    Steps --> Upscaler
+    UI["NLE Broadcast Studio Workspace (React 19 + Tailwind CSS)"] --> VM["ViewModels (Pure useMemo Derivation)"]
+    VM --> RTK["RTK Query (Redux Toolkit Cache & Mutex)"]
+    
+    RTK --> Server["FastAPI Modular Server (:8088 / server.py)"]
+    Server --> Security["Security Guard (CWE-22 Safe Path & CSRF Token)"]
+    
+    Security --> SSE["Server-Sent Events (Live Telemetry Stream)"]
+    Security --> Queue["SQLite Batch Queue Manager (FIFO Engine)"]
+    
+    Queue --> DAG["DAG Pipeline Orchestrator (pipeline.py)"]
+    DAG --> ProcMgr["Subprocess Safe Executor (CWE-78 Sanitized)"]
+    
+    ProcMgr --> Engines{"Specialized Engine Dispatch"}
+    
+    Engines -->|"Deinterlace"| VapourSynth["VapourSynth QTGMC (60 fields -> 60p)"]
+    Engines -->|"Filterchain"| FFmpeg["FFmpeg Declarative Filters (YUV422p10le)"]
+    Engines -->|"Speech AI"| Whisper["Faster-Whisper (VTT / SRT Subtitles)"]
+    Engines -->|"Super-Resolution"| Neural["Real-ESRGAN x4plus & Real-CUGAN"]
+    Engines -->|"Face & Motion"| PostAI["CodeFormer & RIFE v4.6 60fps"]
+    Engines -->|"Direct Ingest"| NativeC["Panasonic C Binaries (extract_meihdfs, dvd-vr)"]
+    Engines -->|"Offload"| Storage["StorageManager (S3 / Drive / Dropbox)"]
+    
+    HAL["Hardware Abstraction Layer (Vulkan / NCNN / UMA)"] -.-> Server
+    DAG -. "Proxy Downscale (360p / 15fps)" .-> ABMonitor["SplitComparisonMonitor (WebGL A/B)"]
 ```
 
 ---
 
 ## 3. Modular API Decomposition (`routers/`)
 
-<div align="justify">
-
 The monolithic 528-line `server.py` implementation was decomposed into specialized, decoupled modules within `src/vhs_studio/api/routers/`:
-
-</div>
 
 | Module | Core Responsibility | Primary Endpoints |
 | :--- | :--- | :--- |
@@ -122,49 +77,30 @@ The monolithic 528-line `server.py` implementation was decomposed into specializ
 
 ## 4. Concurrent DAG Pipeline Architecture
 
-<div align="justify">
-
 The [`PipelineOrchestrator`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/pipeline.py#L40) manages video processing tasks via a Directed Acyclic Graph (DAG) designed for maximum resource utilization:
 
-</div>
-
 ```mermaid
-flowchart LR
-    RawInput[("Raw Input (raw/tape.mkv)")]
+flowchart TD
+    RawInput["Raw Capture Input (raw/tape.mkv)"] --> BaseRestore["Phase 1: Base Restoration (QTGMC / bwdif / TBC)"]
+    RawInput --> WhisperTask["Phase 1 (Concurrent): WhisperStep (Audio -> VTT / SRT)"]
     
-    subgraph ParallelPhase1 ["Phase 1: Primary Concurrency"]
-        RestoreTask["BaseRestorationStep\n(QTGMC / bwdif / TBC)"]
-        WhisperTask["WhisperStep\n(Audio -> VTT/SRT Subtitles)"]
-    end
+    BaseRestore --> PostCheck{"Neural Post-Processing Selection"}
     
-    subgraph ParallelPhase2 ["Phase 2: Neural Post-Processing"]
-        FaceRestore["FaceRestorationStep\n(CodeFormer)"]
-        RifeTask["RifeInterpolationStep\n(RIFE v4.6 60fps)"]
-        UpscaleTask["AIUpscalerStep\n(Real-ESRGAN x4plus)"]
-    end
+    PostCheck -->|"Face Restore"| FaceRestore["FaceRestorationStep (CodeFormer)"]
+    PostCheck -->|"Motion 60fps"| RifeTask["RifeInterpolationStep (RIFE v4.6 60fps)"]
+    PostCheck -->|"Super-Resolution"| UpscaleTask["AIUpscalerStep (Real-ESRGAN x4plus)"]
+    PostCheck -->|"Standard"| SceneSplit["Phase 3: SceneSegmentationStep (PySceneDetect)"]
     
-    subgraph FinalPhase ["Phase 3: Segmentation & Cloud Offload"]
-        SceneSplit["SceneSegmentationStep\n(PySceneDetect)"]
-        CloudSync["CloudOffloadStep\n(S3 / Drive / Dropbox)"]
-        FinalOutput[("Final Master (restored/tape/)")]
-    end
-    
-    RawInput --> RestoreTask
-    RawInput --> WhisperTask
-    RestoreTask --> FaceRestore
-    RestoreTask --> RifeTask
-    RestoreTask --> UpscaleTask
     FaceRestore --> SceneSplit
     RifeTask --> SceneSplit
     UpscaleTask --> SceneSplit
-    SceneSplit --> CloudSync
+    
+    SceneSplit --> CloudSync["Phase 4: CloudOffloadStep (S3 / Drive / Dropbox)"]
     WhisperTask --> CloudSync
-    CloudSync --> FinalOutput
+    CloudSync --> FinalOutput["Final Master Archive (restored/tape/)"]
 ```
 
 ### Error Isolation via Step Closures
-<div align="justify">
-
 Every post-processing stage is guarded by the [`make_step_runner`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/pipeline.py#L27) closure factory:
 
 ```python
@@ -183,13 +119,9 @@ def make_step_runner(step_name: str, fn: Callable[[], Optional[str]]) -> Callabl
 
 This guarantees that optional neural models (e.g., CodeFormer failing due to missing model weights or GPU memory exhaustion) will never disrupt the delivery of the primary restored master file.
 
-</div>
-
 ---
 
 ## 5. Reactive Frontend & Functional Purity
-
-<div align="justify">
 
 The frontend implementation in `ui/src/` strictly follows modern React 19 architecture:
 
@@ -202,13 +134,9 @@ The frontend implementation in `ui/src/` strictly follows modern React 19 archit
 3. **Zero `any` Typing:**
    - All TypeScript modules are compiled under strict settings (`strict: true`), ensuring that untyped dynamic values or blind type assertions cannot reach production.
 
-</div>
-
 ---
 
 ## 6. Code Integrity & Automated Verification
-
-<div align="justify">
 
 Codebase health is enforced across two complementary audit layers:
 
@@ -225,13 +153,9 @@ Codebase health is enforced across two complementary audit layers:
 2. **Swarm Auditors (`scripts/swarm_auditors.py`):**
    - 7 parallel auditors inspecting Architecture (SoC/SRP), CI/CD, Test Harness, UX/UI & A11y, Security (Bandit AST), Dependency health, and Functional Programming compliance (zero globals, zero `Any`, zero technical debt markers).
 
-</div>
-
 ---
 
 ## 7. Broadcast Telemetry & Footer StatusBar (NLE Standard)
-
-<div align="justify">
 
 Drawing from industry-standard non-linear editing suites (DaVinci Resolve, Adobe Premiere Pro, Cockos Reaper), monitoring is organized around a **permanent Footer StatusBar**:
 
@@ -249,13 +173,9 @@ Drawing from industry-standard non-linear editing suites (DaVinci Resolve, Adobe
 4. **Top 2.5px Render Ribbon:**
    - An unobtrusive 2.5px animated gradient ribbon (`sky-400` → `emerald-400` → `indigo-400`) delivers real-time progress along the top window border without consuming editing screen real estate.
 
-</div>
-
 ---
 
 ## 8. Windows Subprocess Robustness (OEM CP850 / UTF-8)
-
-<div align="justify">
 
 On Windows installations utilizing non-English regional configurations (such as Portuguese OEM CP850 or Brazilian CP1252), native command-line utilities (`tasklist`, `netstat`, system probes) emit text encoded in the machine's OEM code page. Accented characters (such as `Ç`) produce byte `0x80`.
 
@@ -266,26 +186,18 @@ To eliminate this vulnerability across all Windows environments:
 - Every invocation of `subprocess.run` and `subprocess.Popen` in text mode explicitly specifies `errors="replace"`.
 - Calls in [`system.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/routers/system.py), [`watcher.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/cli/watcher.py), [`setup_qtgmc.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/cli/setup_qtgmc.py), [`process_manager.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/process_manager.py), and [`hardware.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/core/hardware.py) ensure continuous stream reading, substituting unreadable characters with standard replacement symbols without terminating reading threads.
 
-</div>
-
 ---
 
 ## 9. Cryptographic Build Verification (SHA-256)
-
-<div align="justify">
 
 The native Desktop launcher ([`desktop.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/cli/desktop.py)) computes a composite SHA-256 digest across `ui/src/` and `ui/package.json`:
 
 - If the computed hash matches `.build_hash` in `ui/dist/`, Vite recompilation is bypassed, launching the native WebView2 window in under 1 second.
 - If modifications are detected, the launcher requests operator confirmation before building bundles or running Node.js scripts, preventing unverified automated execution.
 
-</div>
-
 ---
 
 ## 10. Panasonic DVR Ingestion & Decoupled Toolchain
-
-<div align="justify">
 
 Panasonic standalone DVD/HDD recorders write recordings in specialized low-level formats:
 1. **MEIHDFS-V2.0 and MEIHDFS-V1.0:** Matsushita Electric Industrial Host Disk File System with superblocks located in the partition table and initial media sectors.
@@ -297,41 +209,29 @@ Rather than intermingling legacy C code within the core Python codebase:
 - **Binary Resolution:** Compiled utilities (`extract_meihdfs`, `dvd-vr`, `vro2split`, `udf_dump`) are resolved hierarchically from the portable directory `tools/panasonic_rec/` and the system `PATH` via [`paths.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/core/paths.py) and [`Toolchain`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/core/toolchain.py).
 - **Automated Cross-Compilation:** [`scripts/build_panasonic_tools.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/scripts/build_panasonic_tools.py) builds native binaries across Windows (MinGW/MSVC), Linux (GCC), and macOS (Clang) both during local development and within CI/CD runners.
 - **Continuous Hotplug (3s Polling):** Automated polling detects physical USB-SATA bridge attachments (**JMicron JMS567**, **ASMedia**, **Realtek**) and raw block devices, expanding the card and loading session trees without manual intervention.
-- **Pure-Python Fallback Carver:** When compiled C binaries are absent, the pure Python carver (`panasonic_dvr.py`) recovers streams directly from raw disk sectors.
-
-</div>
+- **Zero-Carving Forensic Inode Preservation:** Unallocated sector carving was retired to eliminate fragmented GOP corruption and audio desync. The engine strictly parses MEIHDFS inodes and DVD-VR IFO tables via native C tools, falling back to direct intact `.VRO` container copying if title splitting is unavailable.
 
 ---
 
 ## 11. Zero-Hardcode Policy & Internationalization
-
-<div align="justify">
 
 As stipulated in [`AGENTS.md`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/AGENTS.md) and [`GEMINI.md`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/GEMINI.md), user-facing text is strictly separated from the code logic:
 1. **100% i18n:** Every React component must invoke `t('namespace.key')` from `react-i18next`. Static text literals in JSX, toast alerts, tooltips, or action buttons are prohibited.
 2. **10 Native Locales:** Full parity across Portuguese (`pt-BR`), English (`en-US`), Spanish (`es`), French (`fr`), German (`de`), Italian (`it`), Japanese (`ja`), Arabic (`ar`, with mirrored RTL support), Russian (`ru`), and Simplified Chinese (`zh-CN`).
 3. **SSOT for Numerical Constants:** Numerical limits, buffer sizes, and directory paths must reside exclusively in `constants.py` and `paths.py`.
 
-</div>
-
 ---
 
 ## 12. Real-Time A/B Split-Screen Monitor (`<SplitComparisonMonitor />`)
-
-<div align="justify">
 
 To inspect the effects of deinterlacing, chroma alignment, and denoising in real time without competing with production rendering:
 - **Low-Latency Proxy Downscaler (360p / 15fps):** `GET /api/monitor/comparison-frame` processes a dual-frame slice (Raw Interlaced vs Processed Progressive) utilizing under 2% CPU overhead and responding in less than 50ms.
 - **Interactive Split Slider:** [`SplitComparisonMonitor.tsx`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/ui/src/components/SplitComparisonMonitor.tsx) provides smooth dragging, keyboard navigation (`ArrowLeft` / `ArrowRight`), and temporal position seeking.
 - **Zero Overhead Toggle:** Operators can disable the monitor at any moment to allocate 100% of workstation cycles to the primary restoration pipeline.
 
-</div>
-
 ---
 
 ## 13. Integrated GPU (UMA) Optimization & Hardware Profiling
-
-<div align="justify">
 
 On computers utilizing integrated graphics (Intel UHD 770 / Iris Xe / AMD Radeon):
 1. **Unified Memory Architecture (UMA):** RAM and VRAM share physical memory channels. Video decoding stays in multi-threaded software within host memory, eliminating PCIe bus transfer bottlenecks.
@@ -339,26 +239,18 @@ On computers utilizing integrated graphics (Intel UHD 770 / Iris Xe / AMD Radeon
 3. **Hardware Acceleration Silicon:** Fixed-function encoders (`h264_qsv`, `hevc_qsv`, AMD AMF) encode output frames without burdening CPU cores required by VapourSynth QTGMC.
 4. **Whisper Concurrency Calibration:** CPU worker threads are limited to 4–8 to prevent thermal throttling during long jobs.
 
-</div>
-
 ---
 
 ## 14. Non-Blocking Cross-Platform Terminal Workstation (TUI)
-
-<div align="justify">
 
 The terminal interface ([`tui.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/cli/tui.py)) achieves feature parity across platforms:
 - **POSIX (Linux / macOS):** Uses `termios`, `tty.setcbreak()`, and `select.select()` for asynchronous, non-blocking capture of ANSI escape sequences (`\x1b[A`, `\x1b[B`, etc.).
 - **Windows:** Uses the Windows CRT runtime (`msvcrt.kbhit()` and `msvcrt.getch()`).
 - Operators navigate menus using directional arrows (`↑`, `↓`, `←`, `→`), confirm with `ENTER`, toggle options with `SPACE`, and pause/abort with `Q` or `ESC` identically across Bash, Zsh, CMD, and PowerShell.
 
-</div>
-
 ---
 
 ## 15. Incomplete Job Recovery Subsystem
-
-<div align="justify">
 
 To prevent data loss caused by unexpected power disruptions or reboots:
 1. **Instant Pause & Resume:**
@@ -372,4 +264,3 @@ To prevent data loss caused by unexpected power disruptions or reboots:
      - **`finalize`**: Repairs the video container via FFmpeg stream-copy (`-c copy`) and moves the `moov` atom to the file head (`-movflags +faststart`), rendering partial videos immediately playable.
      - **`discard`**: Safely cleans up temporary remnants.
 
-</div>

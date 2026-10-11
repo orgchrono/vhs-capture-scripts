@@ -1,10 +1,6 @@
 # 🛠️ Contributor & Developer Guide - VHS Studio Pro
 
-<div align="justify">
-
 This guide provides technical instructions for configuring your local development environment, adhering to code conventions, and passing the mandatory Quality Gates of **VHS Studio Pro**.
-
-</div>
 
 ---
 
@@ -49,11 +45,7 @@ git config core.hooksPath .githooks
 
 ## 2. The 9 Automated Quality Gates (`scripts/lint.py`)
 
-<div align="justify">
-
 Before any commit is accepted by Git, the pre-commit hook runs the complete automated quality verification suite in parallel:
-
-</div>
 
 | Quality Gate | Tool | Scope | Objective |
 | :--- | :--- | :--- | :--- |
@@ -71,17 +63,11 @@ Before any commit is accepted by Git, the pre-commit hook runs the complete auto
 ```bash
 python scripts/lint.py
 ```
-<div align="justify">
-
 The script generates a comprehensive report in [`logs/build_report.md`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/logs/build_report.md).
-
-</div>
 
 ---
 
 ## 3. Swarm Architectural Auditors (`scripts/swarm_auditors.py`)
-
-<div align="justify">
 
 The repository features a parallel multi-threaded architectural auditor analyzing 7 critical project dimensions:
 
@@ -98,27 +84,18 @@ The auditors evaluate:
 6. **Dependency Health:** Validates pip package consistency and npm vulnerability status.
 7. **Best Practices & Technical Debt:** Pylint rating, zero untyped `Any`, and zero unaddressed `TODO`/`FIXME` markers.
 
-</div>
-
 ---
 
 ## 4. Coding Standards & Guidelines
 
 ### 4.1 Backend (Python)
-<div align="justify">
-
 - **Safe Subprocesses:** **Never** pass `shell=True` to `subprocess` invocations. Pass arguments as strict lists (`list[str]`).
 - **Input Validation:** Any function receiving filesystem paths must invoke `is_safe_media_path()` before performing I/O.
 - **Concurrency & Threads:** Background workers must utilize `threading.Event()` for shutdown signaling, ensuring `stop()` joins threads with a timeout.
 - **Strict Typing:** All function parameters and return values must be explicitly typed (`def process_video(path: str) -> bool:`).
 
-</div>
-
 ### 4.2 Frontend (React & TypeScript)
-<div align="justify">
-
 - **Zero `any`:** All types must be formally declared in TypeScript interfaces or type aliases.
 - **Accessibility:** Interactive icon buttons must declare descriptive `aria-label` attributes; all interactive controls must feature visible focus rings (`focus-visible:ring-2`).
 - **Internationalization (Zero-Hardcode):** Never write hardcoded user-facing strings; all text must invoke `t('key')` from `react-i18next`.
 
-</div>

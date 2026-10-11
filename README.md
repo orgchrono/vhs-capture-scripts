@@ -1,52 +1,35 @@
-<div align="center">
+# 📼 VHS Studio Pro - Archival Analog Capture & Neural Restoration Platform
 
-# 📼 VHS Studio Pro
-### Archival-Grade Analog Capture, Forensic Ingest & Neural Restoration Platform
+[![Quality Gates](<https://img.shields.io/badge/Quality%20Gates-9%20of%209%20PASS-brightgreen.svg>)](#-automated-quality-gates--cicd) [![Swarm Auditors](<https://img.shields.io/badge/Swarm%20Auditors-7%20of%207%20PASS-brightgreen.svg>)](#-automated-quality-gates--cicd) [![Security Bandit](<https://img.shields.io/badge/Security-Bandit%20Pass%20(0%20vuln)-brightgreen.svg>)](#-security--threat-model)
 
-<p align="center">
-  <a href="https://github.com/orgchrono/vhs-capture-scripts/actions/workflows/ci.yml"><img src="https://img.shields.io/badge/CI%2FCD-Passing-brightgreen.svg" alt="CI/CD Pipeline" /></a>
-  <a href="logs/build_report.md"><img src="https://img.shields.io/badge/Quality%20Gates-9%20of%209%20PASS-brightgreen.svg" alt="Quality Gates" /></a>
-  <a href="swarm_audit_report.md"><img src="https://img.shields.io/badge/Swarm%20Auditors-7%20of%207%20PASS-brightgreen.svg" alt="Swarm Auditors" /></a>
-  <a href="docs/SECURITY.md"><img src="https://img.shields.io/badge/Security-Bandit%20Pass%20(0%20vuln)-brightgreen.svg" alt="Security Bandit" /></a>
-  <a href="docs/UI_UX_ACCESSIBILITY.md"><img src="https://img.shields.io/badge/A11y-WCAG%202.1%20AAA-blue.svg" alt="Accessibility WCAG AAA" /></a>
-  <a href="docs/UI_UX_ACCESSIBILITY.md"><img src="https://img.shields.io/badge/i18n-10%20Locales%20(100%25%20Parity)-blue.svg" alt="i18n" /></a>
-  <a href="docs/COMPLIANCE_LICENSE.md"><img src="https://img.shields.io/badge/License-Compliance%20Agreement-blue.svg" alt="License: Free & Open" /></a>
-</p>
-
-</div>
+[![Accessibility WCAG AAA](<https://img.shields.io/badge/A11y-WCAG%202.1%20AAA-blue.svg>)](#-desktop--web-pro-interface) [![i18n](<https://img.shields.io/badge/i18n-10%20Locales%20(100%25%20Parity)-blue.svg>)](#-desktop--web-pro-interface) [![License](<https://img.shields.io/badge/License-Compliance%20Agreement-blue.svg>)](#-compliance--license-agreement)
 
 ---
-
-<div align="justify">
 
 **VHS Studio Pro** is an archival-grade, forensic-level open workstation engineered for the end-to-end digitization, timebase stabilization, mechanical jitter mitigation, and multimodal neural enhancement of legacy analog magnetic tape media (**VHS, S-VHS, VHS-C, Video8, Hi8, and Betamax**).
 
 Built upon a **Concurrent Directed Acyclic Graph (DAG) Pipeline Engine**, the system orchestrates low-latency ingestion via OBS Studio (WebSocket v5), bit-level forensic extraction from standalone **Panasonic DVR hard drives (MEIHDFS-V1.0 / MEIHDFS-V2.0 / DVD-VR)**, reference broadcast-standard motion-compensated deinterlacing (**VapourSynth + QTGMC**), mathematical software Time Base Correction (**TBC Frame-Hold**), offline multilingual AI speech transcription and subtitling (**Faster-Whisper**), neural texture super-resolution (**Real-ESRGAN x4plus** / **Real-CUGAN**), neural facial reconstitution (**CodeFormer**), optical-flow motion interpolation (**RIFE v4.6 60fps**), zero-overhead real-time **A/B Split-Screen comparison monitoring**, and secure local/cloud offloading (**AWS S3, Google Drive, Dropbox**) with cryptographic BagIt fixity verification.
 
-</div>
-
 ---
 
 ## 📑 Table of Contents
 
-- [Overview & Core Highlights](#-overview--core-highlights)
+- [Overview &amp; Core Highlights](#-overview--core-highlights)
 - [System Architecture](#-system-architecture)
-  - [Panasonic DVR Ingest & Cryptographic Fixity](#-panasonic-dvr-forensic-ingest-pipeline--cryptographic-fixity)
+  - [Panasonic DVR Ingest &amp; Cryptographic Fixity](#-panasonic-dvr-forensic-ingest-pipeline--cryptographic-fixity)
   - [Multi-Model Neural DAG Pipeline](#-multi-model-neural-restoration-dag-graph)
-- [Hardware Abstraction Layer (HAL) & Tiers](#-hardware-abstraction-layer-hal--honest-performance-tiers)
+- [Hardware Abstraction Layer (HAL) &amp; Tiers](#-hardware-abstraction-layer-hal--honest-performance-tiers)
 - [Canonical Studio Restoration Presets](#-canonical-studio-restoration-presets)
-- [Desktop & Web Pro Interface](#-desktop--web-pro-interface)
-- [Security & Threat Model](#-security--threat-model)
-- [Compliance & License Agreement](#-compliance--license-agreement)
-- [Automated Quality Gates & CI/CD](#-automated-quality-gates--cicd)
-- [Installation & Quick Start](#-installation--quick-start)
+- [Desktop &amp; Web Pro Interface](#-desktop--web-pro-interface)
+- [Security &amp; Threat Model](#-security--threat-model)
+- [Compliance &amp; License Agreement](#-compliance--license-agreement)
+- [Automated Quality Gates &amp; CI/CD](#-automated-quality-gates--cicd)
+- [Installation &amp; Quick Start](#-installation--quick-start)
 - [In-Depth Documentation Index](#-in-depth-documentation-index)
 
 ---
 
 ## 🚀 Overview & Core Highlights
-
-<div align="justify">
 
 - **Forensic Panasonic DVR Ingest & Active Hotplug:** Real-time polling (every 3,000 ms) automatically detects raw block drives and USB-SATA bridge controllers (**JMicron JMS567**, **ASMedia ASM1153E**, **Realtek RTL9210B**). It mounts proprietary **MEIHDFS-V1.0**, **MEIHDFS-V2.0**, and **DVD-VR** session structures, constructs an interactive title/chapter hierarchy with real-time thumbnail caching, and streams bitstream-accurate extractions via vendored, cryptographically audited C binaries.
 - **Interactive Real-Time A/B Split-Screen Monitor:** Real-time dual-frame inspection powered by a lightweight 360p/15fps proxy pipeline (< 50ms latency, < 2% CPU overhead). Operators can drag a split curtain across the live canvas or navigate via keyboard arrows to contrast raw analog interlaced frames against fully restored, deinterlaced, and filtered output.
@@ -65,165 +48,102 @@ Built upon a **Concurrent Directed Acyclic Graph (DAG) Pipeline Engine**, the sy
 - **Archival Cloud Connectivity:** Asynchronous offloading to AWS S3, Google Drive (OAuth2 PKCE), and Dropbox with BagIt checksum manifests and preservation metadata.
 - **Zero-Hardcode Internationalization (10 Locales):** Complete out-of-the-box localization supporting `pt-BR`, `en-US`, `es`, `fr`, `de`, `it`, `ja`, `ar` (with RTL structural layouts), `ru`, and `zh-CN`.
 
-</div>
-
 ---
 
 ## 🏛 System Architecture
 
-<div align="justify">
-
 The software adheres to **Strict MVVM (Model-View-ViewModel)**, **Functional Core / Imperative Shell (FP Core)**, **Separation of Concerns (SoC)**, and **Single Source of Truth (SSOT)** design principles:
-
-</div>
 
 ```mermaid
 flowchart TD
-    subgraph UI ["Presentation Layer (View - React 19 + Tailwind CSS)"]
-        ReactUI["NLE Broadcast Studio Workspace"]
-        ViewModels["Custom ViewModels (Pure useMemo Derivation)"]
-        RTK["RTK Query (Redux Toolkit Cache Engine)"]
-        ABMonitor["SplitComparisonMonitor (WebGL Shader A/B 360p)"]
-        TelemetryRibbon["FooterStatusBar & Top Render Ribbon"]
-        i18n["i18n Engine (10 Locales: en-US, pt-BR, etc.)"]
-        a11y["WCAG 2.1 AAA Access Suite"]
-    end
-
-    subgraph API ["Modular Service Layer (FastAPI :8088)"]
-        ServerFactory["server.py (App Factory & Clean Orchestrator)"]
-        Routers["routers/ (system, queue, obs, restoration, storage, security, ingest)"]
-        SSE["Server-Sent Events (Live Telemetry Stream)"]
-        AuthMiddleware["Origin & Host Header Filter + CSRF Token"]
-        SafePath["Safe Media Path Validator (CWE-22)"]
-    end
-
-    subgraph Core ["Restoration Engine & HAL (Model)"]
-        HAL["Hardware Abstraction Layer (Vulkan / NCNN / UMA)"]
-        Queue["SQLite Batch Queue Manager"]
-        ProcessMgr["Subprocess Safe Executor (CWE-78 Sanitized)"]
-        FixityEngine["FixityChecker (SHA-256 Supply-Chain Manifest)"]
-        ToolchainMgr["Toolchain (Cryptographic Binary Resolver)"]
-        DAGPipeline["pipeline.py (Concurrent Directed Acyclic Graph)"]
-    end
-
-    subgraph Engines ["Specialized Execution Engines"]
-        VapourSynth["VapourSynth QTGMC Deinterlacer"]
-        FFmpeg["FFmpeg Declarative Filterchain (YUV422p10le)"]
-        Whisper["OpenAI Faster-Whisper Subtitler"]
-        NeuralUpscaler["Neural Super-Resolution (Real-ESRGAN / Real-CUGAN)"]
-        FaceRestore["Face Reconstruction (CodeFormer)"]
-        FrameInterpolation["Temporal Motion Interpolation (RIFE v4.6 60fps)"]
-        PanasonicC["Vendored C Binaries (extract_meihdfs, dvd-vr, udf_dump)"]
-        Storage["StorageManager (S3 / Drive / Dropbox)"]
-    end
-
-    ReactUI --> ViewModels
-    ViewModels --> RTK
-    RTK --> ServerFactory
-    ServerFactory --> Routers
-    Routers --> AuthMiddleware
-    AuthMiddleware --> SafePath
-    SafePath --> ProcessMgr
-    SafePath --> Queue
-    Routers --> SSE
-    Queue --> DAGPipeline
-    DAGPipeline --> ProcessMgr
-    ProcessMgr --> Engines
-    ToolchainMgr --> FixityEngine
-    FixityEngine --> PanasonicC
-    HAL --> Routers
-    DAGPipeline -. Proxy 360p .-> ABMonitor
+    UI["NLE Broadcast Studio Workspace (React 19 + Tailwind CSS)"] --> VM["ViewModels (Pure useMemo Derivation)"]
+    VM --> RTK["RTK Query (Redux Toolkit Cache & Mutex)"]
+  
+    RTK --> Server["FastAPI Modular Server (:8088 / server.py)"]
+    Server --> Security["Security Guard (CWE-22 Safe Path & CSRF Token)"]
+  
+    Security --> SSE["Server-Sent Events (Live Telemetry Stream)"]
+    Security --> Queue["SQLite Batch Queue Manager (FIFO Engine)"]
+  
+    Queue --> DAG["DAG Pipeline Orchestrator (pipeline.py)"]
+    DAG --> ProcMgr["Subprocess Safe Executor (CWE-78 Sanitized)"]
+  
+    ProcMgr --> Engines{"Specialized Engine Dispatch"}
+  
+    Engines -->|"Deinterlace"| VapourSynth["VapourSynth QTGMC (60 fields -> 60p)"]
+    Engines -->|"Filterchain"| FFmpeg["FFmpeg Declarative Filters (YUV422p10le)"]
+    Engines -->|"Speech AI"| Whisper["Faster-Whisper (VTT / SRT Subtitles)"]
+    Engines -->|"Super-Resolution"| Neural["Real-ESRGAN x4plus & Real-CUGAN"]
+    Engines -->|"Face & Motion"| PostAI["CodeFormer & RIFE v4.6 60fps"]
+    Engines -->|"Direct Ingest"| NativeC["Panasonic C Binaries (extract_meihdfs, dvd-vr)"]
+    Engines -->|"Offload"| Storage["StorageManager (S3 / Drive / Dropbox)"]
+  
+    HAL["Hardware Abstraction Layer (Vulkan / NCNN / UMA)"] -.-> Server
+    DAG -. "Proxy Downscale (360p / 15fps)" .-> ABMonitor["SplitComparisonMonitor (WebGL A/B)"]
 ```
 
 ---
 
 ### 📀 Panasonic DVR Forensic Ingest Pipeline & Cryptographic Fixity
 
-<div align="justify">
-
 The forensic ingest subsystem accesses proprietary Panasonic DVR file systems directly at the raw block level (**MEIHDFS-V1.0**, **MEIHDFS-V2.0**, and **DVD-VR**), bypassing OS file-system drivers and preventing accidental formatting prompts:
 
-</div>
-
 ```mermaid
-flowchart LR
-    subgraph Input ["Media Source"]
-        Physical["Physical Drive (\\\\.\\PhysicalDriveX / /dev/sdX)"]
-        RawDump["Raw Image Dump (.img, .raw, .bin, .vro, .dd)"]
-        Hotplug["USB-SATA Hotplug Monitor (3s Polling)"]
-    end
-
-    subgraph Fixity ["Supply-Chain Security (Zero-Trust)"]
-        Manifest["checksums.json (Canonical SHA-256 Manifest)"]
-        ToolchainCheck["Toolchain.verify_panasonic_binary_integrity()"]
-        BuildCheck["build_panasonic_tools.py (--verify / --update-manifest)"]
-    end
-
-    subgraph NativeC ["Cross-Platform C Binaries"]
-        ExtractMeihdfs["extract_meihdfs (MEIHDFS Inode/Block Parser)"]
-        DvdVr["dvd-vr (MPEG-2 Program Stream Demuxer)"]
-        UdfDump["udf_dump (UDF 1.02/1.50 Deserializer)"]
-    end
-
-    subgraph Output ["Structuring & Presentation"]
-        Tree["Interactive Session & Title Tree"]
-        Thumbnails["Concurrent Thumbnail Generator"]
-        Chapters["Chapter Division & Accurate Timecodes"]
-        BatchExport["Selective Ingest to Processing Workspace"]
-    end
-
-    Hotplug --> Physical
-    Physical --> ToolchainCheck
-    RawDump --> ToolchainCheck
-    Manifest --> ToolchainCheck
-    Manifest --> BuildCheck
-    ToolchainCheck --> ExtractMeihdfs
-    ToolchainCheck --> DvdVr
-    ToolchainCheck --> UdfDump
-    ExtractMeihdfs --> Tree
+flowchart TD
+    Drive["Physical Drive (\\\\.\\PhysicalDriveX / /dev/sdX) or Disk Image (.img, .raw, .vro)"] --> Hotplug["USB-SATA Hotplug Monitor (3s Polling)"]
+    Hotplug --> Verify["Toolchain Fixity Verification (checksums.json SHA-256)"]
+  
+    Verify --> ToolSelect{"Toolchain Engine Selection"}
+  
+    ToolSelect -->|"MEIHDFS-V2.0"| ExtractMeihdfs["extract_meihdfs (Inode & Continuous Block Parser)"]
+    ToolSelect -->|"DVD-VR / IFO"| DvdVr["dvd-vr (MPEG-2 Program Stream Demuxer)"]
+    ToolSelect -->|"Legacy UDF"| UdfDump["udf_dump (UDF 1.02 / 1.50 Deserializer)"]
+    ToolSelect -->|"Stream Demux Fallback"| VroCopy["Direct VRO Container Copy (Full Lossless Stream)"]
+  
+    ExtractMeihdfs --> Tree["Interactive Session & Title Tree (GET /api/ingest/panasonic/tree)"]
     DvdVr --> Tree
     UdfDump --> Tree
-    Tree --> Thumbnails
-    Tree --> Chapters
-    Chapters --> BatchExport
+    VroCopy --> Tree
+  
+    Tree --> Thumbs["Concurrent Real-Time Thumbnails (/api/media/thumbnail)"]
+    Tree --> Chapters["Chapter Segmentation & Frame-Accurate Timecodes"]
+  
+    Chapters --> Export["Selective Extraction & Direct Deck Ingest (media/raw/)"]
+    Thumbs --> Export
 ```
 
 ---
 
 ### 🧠 Multi-Model Neural Restoration DAG Graph
 
-<div align="justify">
-
 The mastering engine coordinates neural models and DSP video filterchains in a concurrent, error-isolated DAG pipeline:
-
-</div>
 
 ```mermaid
 flowchart TD
     RAW["Raw Captured Video (YUV422 Interlaced MKV)"] --> TBC["Algorithmic TBC (Frame-Hold & Resync A/V)"]
     TBC --> Deint["QTGMC Deinterlacing (VapourSynth / 60 fields -> 60p)"]
-    
+  
     Deint --> NeuralDenoise["Chroma De-bleeding & HQDN3D Temporal Denoise"]
     NeuralDenoise --> Upscale{"Neural Model Selection"}
-    
+  
     Upscale -->|"Master Reference"| RealESRGAN["Real-ESRGAN x4plus (Texture Reconstruction)"]
     Upscale -->|"Ultra Fast"| SPAN["SPAN / TOGU Scaler (Low Latency)"]
     Upscale -->|"High Fidelity"| SwinIR["Real-CUGAN / SwinIR (Organic Film Grain)"]
-    
+  
     RealESRGAN --> FaceCheck{"Reconstruct Faces?"}
     SPAN --> FaceCheck
     SwinIR --> FaceCheck
-    
+  
     FaceCheck -->|"Yes"| CodeFormer["CodeFormer (Adjustable Fidelity 0.1-0.9)"]
     FaceCheck -->|"No"| MotionCheck{"60fps Motion Interpolation?"}
     CodeFormer --> MotionCheck
-    
+  
     MotionCheck -->|"Yes"| RIFE["RIFE v4.6 (Optical Flow Motion Smoothing)"]
     MotionCheck -->|"No"| AudioPipeline
     RIFE --> AudioPipeline["Faster-Whisper (Transcription & VTT/SRT Subtitles)"]
-    
+  
     AudioPipeline --> ColorGrade["Rec.709 Color Matrix & EBU R128 Audio Normalization"]
-    
+  
     ColorGrade --> MasterOut["Final Master Archive (ProRes 422HQ / H.264 Lossless)"]
     ColorGrade -. "Proxy Downscale (360p / 15fps)" .-> SplitMonitor["A/B Split-Screen Monitor (WebGL)"]
 ```
@@ -232,28 +152,20 @@ flowchart TD
 
 ## 💻 Hardware Abstraction Layer (HAL) & Honest Performance Tiers
 
-<div align="justify">
-
 The Hardware Abstraction Layer ([`src/vhs_studio/core/hardware.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/core/hardware.py)) probes host capabilities and classifies the environment into four honest tiers without exaggerated performance claims:
 
-</div>
-
-| Tier | Classification | Hardware Profile Requirements | Recommended Execution Profile |
-| :--- | :--- | :--- | :--- |
-| **Tier 4** | **AI Workstation** | Dedicated GPU $\ge$ 6GB VRAM (NVIDIA RTX / AMD Radeon RX) | Full Neural Suite: QTGMC Slower, Real-ESRGAN x4plus, CodeFormer, RIFE 60fps, Whisper Large, NVENC/AMF Lossless |
-| **Tier 3** | **Modern PC** | Discrete GPU $<$ 6GB VRAM or Apple Silicon M-Series (Metal) | Balanced AI: QTGMC Fast, Real-CUGAN / Vulkan NCNN, CodeFormer (targeted), Whisper Base/Small, Hardware Encoders |
-| **Tier 2** | **Multi-Core CPU + iGPU** | $\ge$ 8 Logical CPU Cores or Integrated GPU (Intel UHD 770 / Iris Xe / AMD Vega) with $\ge$ 16GB RAM | Real-time DSP: BWDIF / Lanczos (~60–120 fps), DeepFilterNet audio cleanup, Faster-Whisper Tiny/Base, CPU CRF 16–18 |
-| **Tier 1** | **Basic PC** | Dual/Quad-Core CPU with $\le$ 8GB RAM, Software Graphics | Lightweight Archive: BWDIF / yadif single-pass deinterlacing, x264 CRF 18 Ultrafast, Whisper Tiny, Sequential Batch Processing |
+| Tier             | Classification                  | Hardware Profile Requirements                                                                            | Recommended Execution Profile                                                                                                  |
+| :--------------- | :------------------------------ | :------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------- |
+| **Tier 4** | **AI Workstation**        | Dedicated GPU$\ge$ 6GB VRAM (NVIDIA RTX / AMD Radeon RX)                                               | Full Neural Suite: QTGMC Slower, Real-ESRGAN x4plus, CodeFormer, RIFE 60fps, Whisper Large, NVENC/AMF Lossless                 |
+| **Tier 3** | **Modern PC**             | Discrete GPU$<$ 6GB VRAM or Apple Silicon M-Series (Metal)                                             | Balanced AI: QTGMC Fast, Real-CUGAN / Vulkan NCNN, CodeFormer (targeted), Whisper Base/Small, Hardware Encoders                |
+| **Tier 2** | **Multi-Core CPU + iGPU** | $\ge$ 8 Logical CPU Cores or Integrated GPU (Intel UHD 770 / Iris Xe / AMD Vega) with $\ge$ 16GB RAM | Real-time DSP: BWDIF / Lanczos (~60–120 fps), DeepFilterNet audio cleanup, Faster-Whisper Tiny/Base, CPU CRF 16–18           |
+| **Tier 1** | **Basic PC**              | Dual/Quad-Core CPU with$\le$ 8GB RAM, Software Graphics                                                | Lightweight Archive: BWDIF / yadif single-pass deinterlacing, x264 CRF 18 Ultrafast, Whisper Tiny, Sequential Batch Processing |
 
 ---
 
 ## 🎛 Canonical Studio Restoration Presets
 
-<div align="justify">
-
 VHS Studio Pro provides four production-ready, empirically calibrated restoration profiles ([`vhs_advanced_config.toml`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/vhs_advanced_config.toml)):
-
-</div>
 
 1. **Broadcast Standard (`gold`):** Reference archival fidelity. Employs VapourSynth QTGMC (*Slower* preset) for progressive 60p/50p output, spatial chroma correction (`chroma_shift_x = -2`), software TBC frame-hold, and mastering in ProRes 422 HQ or H.264 CRF 18.
 2. **Hardware Ultrafast (`speed`):** High-speed batch digitization throughput (render speeds exceeding 300–500 fps). Utilizes FFmpeg native `bwdif` deinterlacing with hardware acceleration (NVENC, Intel QuickSync `h264_qsv`, or AMD AMF) and Lanczos 1080p scaling at CRF 22.
@@ -264,8 +176,6 @@ VHS Studio Pro provides four production-ready, empirically calibrated restoratio
 ---
 
 ## 🎨 Desktop & Web Pro Interface
-
-<div align="justify">
 
 The user interface is engineered according to professional non-linear editing (NLE) and broadcast control room specifications:
 
@@ -280,13 +190,9 @@ The user interface is engineered according to professional non-linear editing (N
   - High-contrast color palette calibrated for darkened mastering suites and control rooms.
 - **10-Language Internationalization (i18n):** Complete localized interface with zero hardcoded UI strings, supporting English, Portuguese, Spanish, French, German, Italian, Russian, Japanese, Simplified Chinese, and Arabic (with mirrored RTL layouts).
 
-</div>
-
 ---
 
 ## 🛡 Security & Threat Model
-
-<div align="justify">
 
 VHS Studio Pro implements rigorous defensive controls against vulnerabilities common to hybrid desktop applications:
 
@@ -297,13 +203,9 @@ VHS Studio Pro implements rigorous defensive controls against vulnerabilities co
 
 Detailed specifications are available in [**docs/SECURITY.md**](docs/SECURITY.md).
 
-</div>
-
 ---
 
 ## 📜 Compliance & License Agreement
-
-<div align="justify">
 
 Modeled on forensic software and low-level data recovery licensing standards:
 
@@ -316,17 +218,11 @@ Modeled on forensic software and low-level data recovery licensing standards:
 
 The complete agreement is located in [**docs/COMPLIANCE_LICENSE.md**](docs/COMPLIANCE_LICENSE.md).
 
-</div>
-
 ---
 
 ## 🚦 Automated Quality Gates & CI/CD
 
-<div align="justify">
-
 Codebase integrity is enforced through **9 parallel automated Quality Gates** verified on every commit and GitHub Actions run:
-
-</div>
 
 ```text
 [1. Anti-Plagiarism / Code Duplication (JSCPD < 5%)]  ✅ PASSED
@@ -341,11 +237,13 @@ Codebase integrity is enforced through **9 parallel automated Quality Gates** ve
 ```
 
 Run all quality checks locally:
+
 ```bash
 python scripts/lint.py
 ```
 
 Execute the full 7-dimension architectural swarm audit:
+
 ```bash
 python scripts/swarm_auditors.py
 ```
@@ -355,6 +253,7 @@ python scripts/swarm_auditors.py
 ## ⚡ Installation & Quick Start
 
 ### System Prerequisites
+
 - **Python 3.10+** (Python 3.11 or 3.12 recommended)
 - **Node.js 18+** and **npm 9+**
 - **FFmpeg** accessible in your system `PATH` or located in `tools/ffmpeg/bin/`
@@ -363,15 +262,19 @@ python scripts/swarm_auditors.py
 ---
 
 ### One-Click Launch (Windows)
+
 Double-click or run from PowerShell / Command Prompt:
+
 ```cmd
 run.cmd
 ```
+
 *The script verifies dependencies, compiles the React frontend if needed, and launches the native Desktop Pro WebView2 workstation window.*
 
 ---
 
 ### Launch on Linux / macOS
+
 ```bash
 chmod +x run.sh
 ./run.sh
@@ -380,6 +283,7 @@ chmod +x run.sh
 ---
 
 ### Command-Line Execution
+
 ```bash
 # 1. Install Python package in editable mode
 pip install -e .
@@ -398,8 +302,6 @@ python -m vhs_studio tui
 
 ## 📚 In-Depth Documentation Index
 
-<div align="justify">
-
 For complete guides and architectural deep-dives across all subsystems, explore [`docs/`](docs/):
 
 - 📐 [**System Architecture (`docs/ARCHITECTURE.md`)**](docs/ARCHITECTURE.md): Strict MVVM, HAL, concurrency, and design patterns.
@@ -413,5 +315,3 @@ For complete guides and architectural deep-dives across all subsystems, explore 
 - 📹 [**OBS Studio Capture Guide (`docs/OBS_GUIDE.md`)**](docs/OBS_GUIDE.md): Hardware calibration, DeckLink, and lossless capture.
 - 🛠️ [**Contributor Guide (`docs/CONTRIBUTING.md`)**](docs/CONTRIBUTING.md): Development setup, quality gates, and branching.
 - 🚀 [**Roadmap & Suggestions (`docs/SUGGESTIONS.md`)**](docs/SUGGESTIONS.md): Implemented milestones and future research.
-
-</div>

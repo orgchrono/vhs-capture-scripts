@@ -1,10 +1,6 @@
 # 🚀 Feature Roadmap & Engineering Milestones - VHS Studio Pro
 
-<div align="justify">
-
 This document outlines completed architectural milestones and future research and development horizons for **VHS Studio Pro**.
-
-</div>
 
 ---
 
@@ -22,7 +18,7 @@ This document outlines completed architectural milestones and future research an
 - [x] **Automated Neural Subtitling:** Faster-Whisper engine integrated for offline multilingual `.vtt` and `.srt` subtitle creation.
 - [x] **Persistent Batch Queue:** SQLite sequential worker engine featuring job prioritization, pause/resume, and crash isolation.
 - [x] **Cloud & Archival Offload:** Native adapters for AWS S3, Google Drive (OAuth2 PKCE), and Dropbox.
-- [x] **Forensic Panasonic DVR Ingestion:** Direct raw block and disk dump access to MEIHDFS-V1.0, MEIHDFS-V2.0, and DVD-VR formats with native C utilities and pure-Python carver fallback.
+- [x] **Forensic Panasonic DVR Ingestion:** Direct raw block and disk dump access to MEIHDFS-V1.0, MEIHDFS-V2.0, and DVD-VR formats with native C utilities and direct VRO container extraction fallback.
 - [x] **Archival Security & Threat Model:**
   - Absolute elimination of `shell=True` and Command Injection protection (CWE-78).
   - Rigorous path sanitization and Path Traversal prevention (CWE-22).
@@ -34,25 +30,14 @@ This document outlines completed architectural milestones and future research an
 ## 🔮 Future Research & Development Horizons (Roadmap)
 
 ### 1. Direct RF Head Decoding Support (vhs-decode / DomesDayDuplicator)
-<div align="justify">
-
 - Implement ingestion modules for raw radio-frequency (RF) `.sdr` and `.flac` sample streams digitized directly from video tape heads before VCR demodulator circuits.
 - Interface with the `vhs-decode` pipeline to provide 100% software-defined analog demodulation, Time Base Correction, and chroma separation.
 
-</div>
-
 ### 2. Semantic Scene Segmentation & Facial Recognition
-<div align="justify">
-
 - Integrate lightweight computer vision models (e.g., YOLO / InsightFace) to cluster family recordings by recognized individuals.
 - Automatically inject indexed chapter metadata with identified subject names into final `.mkv` files.
 
-</div>
-
 ### 3. Real-Time Audio Spectrogram Visualization
-<div align="justify">
-
 - Implement an inline real-time Fast Fourier Transform (FFT) spectrogram audio visualizer during live OBS capture sessions.
 - Assist preservationists in identifying electrical ground hum (60Hz / 50Hz hum), RF interference, and helical head-switching noise.
 
-</div>
