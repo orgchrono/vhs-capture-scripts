@@ -53,16 +53,17 @@ def test_toolchain_detects_corrupted_or_tampered_binary():
     try:
         # Mock get_panasonic_executable_path to return our dummy file
         with patch("vhs_studio.core.toolchain.get_panasonic_executable_path", return_value=dummy_path):
-            with patch("os.path.basename", return_value="extract_meihdfs.exe"):
-                is_valid, msg = Toolchain.verify_panasonic_binary_integrity("extract_meihdfs")
-                assert is_valid is False
-                assert "INTEGRITY MISMATCH" in msg
+            with patch("platform.system", return_value="Windows"):
+                with patch("os.path.basename", return_value="extract_meihdfs.exe"):
+                    is_valid, msg = Toolchain.verify_panasonic_binary_integrity("extract_meihdfs")
+                    assert is_valid is False
+                    assert "INTEGRITY MISMATCH" in msg
 
-            # Also verify require_verified_panasonic_extractor raises PermissionError
-            with patch("os.path.basename", return_value="extract_meihdfs.exe"):
-                with pytest.raises(PermissionError) as exc_info:
-                    Toolchain.require_verified_panasonic_extractor("extract_meihdfs")
-                assert "Security validation failed" in str(exc_info.value)
+                # Also verify require_verified_panasonic_extractor raises PermissionError
+                with patch("os.path.basename", return_value="extract_meihdfs.exe"):
+                    with pytest.raises(PermissionError) as exc_info:
+                        Toolchain.require_verified_panasonic_extractor("extract_meihdfs")
+                    assert "Security validation failed" in str(exc_info.value)
     finally:
         if os.path.exists(dummy_path):
             os.remove(dummy_path)

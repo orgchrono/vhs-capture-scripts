@@ -58,6 +58,10 @@
 #ifndef O_BINARY
 #define O_BINARY 0
 #endif
+#ifdef __APPLE__
+typedef off_t off64_t;
+#define lseek64 lseek
+#endif
 
 /* These definitions are also to make debugging easy. Note that they
    have to come *before* #include <cdio/ecma_167.h> which sets 

@@ -92,15 +92,25 @@ def find_c_compiler() -> str:
     return ""
 
 
-def build_tools() -> bool:
-    """Compile Panasonic recovery utilities."""
+def build_tools(force_recompile: bool = False) -> bool:
+    """Compile Panasonic recovery utilities or verify authentic pre-compiled binaries."""
     is_windows = platform.system() == "Windows"
     is_macos = platform.system() == "Darwin"
     exe_suffix = ".exe" if is_windows else ""
 
+    # On Windows: if authentic pre-compiled binaries exist and match fixity manifest, keep them
+    target_tools = [f"extract_meihdfs{exe_suffix}", f"dvd-vr{exe_suffix}", f"udf_dump{exe_suffix}"]
+    all_exist = all(os.path.exists(os.path.join(TOOLS_DIR, t)) for t in target_tools)
+    if is_windows and all_exist and not force_recompile:
+        log.info(t("build.checking_fixity", "Validating cryptographic fixity of pre-compiled binaries..."))
+        if verify_precompiled_binaries():
+            log.info(t("build.fixity_verified", "Pre-compiled Windows binaries verified against checksums.json."))
+            return True
+        log.warning("Pre-compiled binary verification failed, attempting recompile from source...")
+
     compiler = find_c_compiler()
     if not compiler:
-        if is_windows and os.path.exists(os.path.join(TOOLS_DIR, "extract_meihdfs.exe")):
+        if is_windows and all_exist:
             log.info(t("build.checking_fixity", "Validating cryptographic fixity of pre-compiled binaries..."))
             if verify_precompiled_binaries():
                 log.info(t("build.fixity_verified", "Pre-compiled Windows binaries verified against checksums.json."))
@@ -115,9 +125,10 @@ def build_tools() -> bool:
 
     # 1. extract_meihdfs
     meihdfs_src = os.path.join(SRC_DIR, "meihdfs", "extract", "extract_meihdfs.c")
+    meihdfs_dir = os.path.dirname(meihdfs_src)
     meihdfs_out = os.path.join(TOOLS_DIR, f"extract_meihdfs{exe_suffix}")
     if os.path.exists(meihdfs_src):
-        cmd = [compiler, "-O2"]
+        cmd = [compiler, "-O2", f"-I{meihdfs_dir}"]
         if not is_macos:
             cmd.append("-s")
         cmd.extend(["-o", meihdfs_out, meihdfs_src])
@@ -127,6 +138,8 @@ def build_tools() -> bool:
             log.error(t("build.compiled_failed", "Failed compiling {tool}:\n{error}", tool="extract_meihdfs", error=res.stderr))
             success = False
         else:
+            if not is_windows:
+                os.chmod(meihdfs_out, 0o755)
             sha = compute_sha256(meihdfs_out)
             log.info(t(
                 "build.compiled_success",
@@ -144,7 +157,7 @@ def build_tools() -> bool:
     dvd_vr_src = os.path.join(dvd_vr_dir, "dvd-vr.c")
     dvd_vr_out = os.path.join(TOOLS_DIR, f"dvd-vr{exe_suffix}")
     if os.path.exists(dvd_vr_src):
-        cmd = [compiler, "-std=gnu99", "-DVERSION=\"0.9.8b\"", "-O3", "-DNDEBUG"]
+        cmd = [compiler, "-std=gnu99", '-DVERSION="0.9.8b"', "-O3", "-DNDEBUG", f"-I{dvd_vr_dir}"]
         if is_windows:
             cmd.extend([
                 "-DMINGW",
@@ -158,6 +171,8 @@ def build_tools() -> bool:
             log.error(t("build.compiled_failed", "Failed compiling {tool}:\n{error}", tool="dvd-vr", error=res.stderr))
             success = False
         else:
+            if not is_windows:
+                os.chmod(dvd_vr_out, 0o755)
             sha = compute_sha256(dvd_vr_out)
             log.info(t(
                 "build.compiled_success",
@@ -172,6 +187,7 @@ def build_tools() -> bool:
 
     # 3. udf_dump
     udf_dir = os.path.join(SRC_DIR, "udf", "pana-udf")
+    cdio_dir = os.path.join(udf_dir, "cdio")
     udf_dump_src = os.path.join(udf_dir, "udf_dump.c")
     udf_out = os.path.join(TOOLS_DIR, f"udf_dump{exe_suffix}")
     if os.path.exists(udf_dump_src):
@@ -179,19 +195,28 @@ def build_tools() -> bool:
             compiler,
             "-Wno-error=implicit-function-declaration",
             "-O2",
+            "-DDISABLE_ASM_OPTIMIZE",
+            f"-I{udf_dir}",
+            f"-I{cdio_dir}",
+        ]
+        if is_macos:
+            cmd.extend(["-Doff64_t=off_t", "-Dlseek64=lseek"])
+        cmd.extend([
             "-o",
             udf_out,
             os.path.join(udf_dir, "udf_file.c"),
             os.path.join(udf_dir, "udf_fs.c"),
             os.path.join(udf_dir, "udf_time.c"),
             udf_dump_src,
-        ]
+        ])
         log.info(t("build.compiling", "Compiling {tool} -> {output}...", tool="udf_dump", output=udf_out))
         res = subprocess.run(cmd, capture_output=True, text=True)
         if res.returncode != 0:
             log.error(t("build.compiled_failed", "Failed compiling {tool}:\n{error}", tool="udf_dump", error=res.stderr))
             success = False
         else:
+            if not is_windows:
+                os.chmod(udf_out, 0o755)
             sha = compute_sha256(udf_out)
             log.info(t(
                 "build.compiled_success",
@@ -262,5 +287,6 @@ if __name__ == "__main__":
     if "--update-manifest" in sys.argv:
         ok = update_manifest()
         sys.exit(0 if ok else 1)
-    ok = build_tools()
+    force = "--rebuild" in sys.argv or "--force" in sys.argv
+    ok = build_tools(force_recompile=force)
     sys.exit(0 if ok else 1)
