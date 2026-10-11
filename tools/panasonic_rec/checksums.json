@@ -4,15 +4,15 @@
   "binaries": {
     "windows-x64": {
       "extract_meihdfs.exe": {
-        "sha256": "baeced084781693b34ff7f609141e0244dc1a8838b50bb24ecc66dc5bd30bf61",
+        "sha256": "260995b5f9bb401d54c890de466cdcc3a12e052e25306e0a1abd26c477c82d24",
         "size_bytes": 90624
       },
       "dvd-vr.exe": {
-        "sha256": "1a7f77c21ee49619a2a45e693174fe07998c83d6bd8812db8953d31b35be0384",
+        "sha256": "5da89b7fa00e7efd3213ae7d5f3c3943caf796ed6fae9c8c14b9de9dce53629d",
         "size_bytes": 124830
       },
       "udf_dump.exe": {
-        "sha256": "2ee0ad33750fc86c43d634a7814987a0682a10913992f1ced7166d8bde083070",
+        "sha256": "8f5ef3d72c7814b638338a9cc0d30d7996e886735ef21c500996f132afbf8e08",
         "size_bytes": 112458
       }
     }
