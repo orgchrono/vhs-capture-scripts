@@ -83,6 +83,10 @@
     "stream_connecting": "Conectando sub-stream ligero...",
     "split_seek_backward": "-5s",
     "split_seek_forward": "+5s",
+    "split_seek_backward_30s": "-30s",
+    "split_seek_forward_30s": "+30s",
+    "timeline_scrubber": "Control de Línea de Tiempo",
+    "camera_not_detected": "Cámara Virtual no detectada o sin permiso.",
     "rendering_preview": "Vista Previa de Renderizado",
     "tape_loaded_preview": "Cinta Cargada"
   },
@@ -193,7 +197,8 @@
     "crf_larger": "Larger File (14)",
     "crf_default": "Standard (18)",
     "crf_smaller": "Smaller File (28)",
-    "tab_presets": "Modo"
+    "tab_presets": "Modo",
+    "reset_default": "Restablecer valor predeterminado"
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",
@@ -407,7 +412,11 @@
     "restore_aborted": "[RESTAURACIÓN] Proceso y señal interrumpidos de forma segura.",
     "panasonic_tree_loading": "[PANASONIC INGEST] Cargando sesiones y árbol de grabaciones de: {{path}}",
     "panasonic_tree_loaded": "[PANASONIC INGEST] Árbol cargado: {{count}} título(s) detectado(s).",
-    "panasonic_extracting_selected": "[PANASONIC INGEST] Extrayendo {{count}} títulos seleccionados..."
+    "panasonic_extracting_selected": "[PANASONIC INGEST] Extrayendo {{count}} títulos seleccionados...",
+    "whisper_starting": "[WHISPER] Iniciando generación de subtítulos con modelo {{model}}...",
+    "whisper_background_started": "[WHISPER] Procesamiento iniciado en segundo plano.",
+    "whisper_warning": "[WHISPER AVISO] {{msg}}",
+    "whisper_error": "[WHISPER ERROR] {{error}}"
   },
   "recovery": {
     "title": "Proyectos en Curso / Interrumpidos",

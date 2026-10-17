@@ -83,6 +83,10 @@
     "stream_connecting": "Connessione al sub-stream leggero in corso...",
     "split_seek_backward": "-5s",
     "split_seek_forward": "+5s",
+    "split_seek_backward_30s": "-30s",
+    "split_seek_forward_30s": "+30s",
+    "timeline_scrubber": "Scorritore della Cronologia",
+    "camera_not_detected": "Fotocamera virtuale non rilevata o autorizzazione negata.",
     "rendering_preview": "Anteprima di Rendering in Tempo Reale",
     "tape_loaded_preview": "Nastro Caricato"
   },
@@ -193,7 +197,8 @@
     "crf_larger": "Larger File (14)",
     "crf_default": "Standard (18)",
     "crf_smaller": "Smaller File (28)",
-    "tab_presets": "Modalità"
+    "tab_presets": "Modalità",
+    "reset_default": "Ripristina impostazione predefinita"
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",
@@ -407,7 +412,11 @@
     "restore_aborted": "[RESTAURO] Processo e segnale interrotti in sicurezza.",
     "panasonic_tree_loading": "[PANASONIC INGEST] Caricamento sessioni e albero registrazioni da: {{path}}",
     "panasonic_tree_loaded": "[PANASONIC INGEST] Albero caricato: {{count}} titolo/i rilevato/i.",
-    "panasonic_extracting_selected": "[PANASONIC INGEST] Estrazione di {{count}} titolo/i selezionato/i..."
+    "panasonic_extracting_selected": "[PANASONIC INGEST] Estrazione di {{count}} titolo/i selezionato/i...",
+    "whisper_starting": "[WHISPER] Avvio della generazione di sottotitoli con il modello {{model}}...",
+    "whisper_background_started": "[WHISPER] Elaborazione avviata in background.",
+    "whisper_warning": "[WHISPER AVVISO] {{msg}}",
+    "whisper_error": "[WHISPER ERRORE] {{error}}"
   },
   "recovery": {
     "title": "Progetti in corso / Interrotti",

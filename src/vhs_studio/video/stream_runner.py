@@ -1,19 +1,66 @@
-"""Module documentation pending."""
-
+import threading
 import time
+from typing import Optional, Tuple
 from vhs_studio.core.logger import log
+
+
+class RestorationFrameBuffer:
+    """Thread-safe singleton holding the latest rendered frame from the active restoration pipeline."""
+
+    _instance: Optional["RestorationFrameBuffer"] = None
+    _lock = threading.Lock()
+
+    def __init__(self) -> None:
+        self.latest_jpeg: Optional[bytes] = None
+        self.frame_number: int = 0
+        self.timestamp: float = 0.0
+        self._data_lock = threading.Lock()
+
+    @classmethod
+    def get_instance(cls) -> "RestorationFrameBuffer":
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = cls()
+            return cls._instance
+
+    def update(self, jpeg_bytes: bytes, frame_number: int, timestamp: float) -> None:
+        with self._data_lock:
+            self.latest_jpeg = jpeg_bytes
+            self.frame_number = frame_number
+            self.timestamp = timestamp
+
+    def get_latest(self) -> Tuple[Optional[bytes], int, float]:
+        with self._data_lock:
+            return self.latest_jpeg, self.frame_number, self.timestamp
+
+    def clear(self) -> None:
+        with self._data_lock:
+            self.latest_jpeg = None
+            self.frame_number = 0
+            self.timestamp = 0.0
 
 
 class StreamRunner:
     """Documentation for StreamRunner."""
 
-    def __init__(self, mode, frame_bytes, y_bytes, luma_threshold=18.0, total_expected_frames=0):
+    def __init__(
+        self,
+        mode,
+        frame_bytes,
+        y_bytes,
+        luma_threshold=18.0,
+        total_expected_frames=0,
+        width=0,
+        height=0,
+    ):
         """Documentation for __init__."""
         self.mode = mode
         self.frame_bytes = frame_bytes
         self.y_bytes = y_bytes
         self.luma_threshold = luma_threshold
         self.total_expected_frames = total_expected_frames
+        self.width = width
+        self.height = height
 
     def run(self, p_in, p_out, fps, on_progress=None):
         """Documentation for run."""
@@ -27,7 +74,9 @@ class StreamRunner:
 
         t0 = time.time()
         last_log_time = t0
+        last_preview_time = t0
         last_window_frames = 0
+        RestorationFrameBuffer.get_instance().clear()
 
         log.info("[RESTAURAÇÃO] Iniciando processamento streaming frame-by-frame...")
 
@@ -65,6 +114,23 @@ class StreamRunner:
                 break
 
             now = time.time()
+            if self.width > 0 and self.height > 0 and (now - last_preview_time >= 0.1):
+                last_preview_time = now
+                try:
+                    import cv2
+                    import numpy as np
+
+                    yuv = np.frombuffer(buf, dtype=np.uint8).reshape((self.height * 3 // 2, self.width))
+                    bgr = cv2.cvtColor(yuv, cv2.COLOR_YUV2BGR_I420)
+                    resized = cv2.resize(bgr, (640, 360), interpolation=cv2.INTER_NEAREST)
+                    success, jpg = cv2.imencode(".jpg", resized, [cv2.IMWRITE_JPEG_QUALITY, 70])
+                    if success:
+                        RestorationFrameBuffer.get_instance().update(
+                            jpg.tobytes(), total_frames, total_frames / fps if fps > 0 else 0.0
+                        )
+                except Exception:
+                    pass
+
             if now - last_log_time >= 1.0:
                 elapsed_window = now - last_log_time
                 frames_window = total_frames - last_window_frames if 'last_window_frames' in locals() else total_frames
@@ -97,7 +163,7 @@ class StreamRunner:
                     frame_str = f"Frames: {total_frames:,}"
 
                 if self.mode == "passthrough":
-                    log.info(
+                    log.debug(
                         f"  -> {prog_prefix}{frame_str} | Mantidos: {kept_frames:,} (Passthrough Puro 100%){telemetry_suffix}"  # noqa: E501
                     )
                 elif self.mode == "freeze":
@@ -106,14 +172,14 @@ class StreamRunner:
                         if total_frames > 0
                         else 0
                     )
-                    log.info(
+                    log.debug(
                         f"  -> {prog_prefix}{frame_str} | Válidos: {kept_frames:,} | Congelados TBC: {frozen_frames:,} | Pretos neutralizados: {frozen_frames+dropped_frames:,} ({pct_elim:.1f}%){telemetry_suffix}"  # noqa: E501
                     )
                 else:
                     pct_dropped = (
                         (dropped_frames / total_frames) * 100 if total_frames > 0 else 0
                     )
-                    log.info(
+                    log.debug(
                         f"  -> {prog_prefix}{frame_str} | Mantidos: {kept_frames:,} | Pretos descartados: {dropped_frames:,} ({pct_dropped:.1f}%){telemetry_suffix}"  # noqa: E501
                     )
 

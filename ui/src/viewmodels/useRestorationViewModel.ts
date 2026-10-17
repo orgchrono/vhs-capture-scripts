@@ -50,23 +50,23 @@ export function useRestorationViewModel(): UseRestorationViewModelResult {
       });
       return;
     }
-    store.addLog(`[WHISPER] Iniciando geração de legendas com modelo ${whisperModel}...`);
+    store.addLog(t('logs.whisper_starting', { model: whisperModel }));
     try {
       const res = await generateSubtitlesTrigger({
         input: store.selectedFile,
         model_size: whisperModel,
       }).unwrap();
       if (res.status === 'started' || res.status === 'ok') {
-        store.addLog('[WHISPER] Processamento iniciado em segundo plano.');
+        store.addLog(t('logs.whisper_background_started'));
         toast.info(t('toast.subtitles_started'));
       } else {
-        const msg = res.message || 'Falha ao iniciar';
-        store.addLog(`[WHISPER AVISO] ${msg}`);
+        const msg = res.message || t('toast.restore_error');
+        store.addLog(t('logs.whisper_warning', { msg }));
         toast.warning(msg);
       }
     } catch (e: unknown) {
-      const errMsg = getErrorMessage(e, 'Erro na requisição');
-      store.addLog(`[WHISPER ERRO] ${errMsg}`);
+      const errMsg = getErrorMessage(e, t('toast.network_error'));
+      store.addLog(t('logs.whisper_error', { error: errMsg }));
       toast.error(errMsg);
     }
   };

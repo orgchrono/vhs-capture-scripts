@@ -4,6 +4,8 @@ import {
   Sliders,
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   Power,
   Layers,
   Sparkles,
@@ -12,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useGetComparisonFrameQuery } from '../api/studioRtkApi';
+import { useStudioStore } from '../store/useStudioStore';
 
 export interface SplitComparisonMonitorProps {
   source?: string;
@@ -25,10 +28,19 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
   initialMode = 'stream',
 }) => {
   const { t } = useTranslation();
-  const [splitPos, setSplitPos] = useState<number>(50);
-  const [timestamp, setTimestamp] = useState<number>(5.0);
+  const {
+    previewTimestamp,
+    splitPosition,
+    previewMode,
+    setPreviewTimestamp,
+    setSplitPosition,
+    setPreviewMode,
+  } = useStudioStore();
+
+  const [splitPos, setSplitPos] = useState<number>(splitPosition ?? 50);
+  const [timestamp, setTimestamp] = useState<number>(previewTimestamp ?? 5.0);
   const [isDragging, setIsDragging] = useState<boolean>(false);
-  const [viewMode, setViewMode] = useState<'stream' | 'freeze'>(initialMode);
+  const [viewMode, setViewMode] = useState<'stream' | 'freeze'>(previewMode ?? initialMode);
   const [streamKey, setStreamKey] = useState<number>(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -50,9 +62,11 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
       const rect = containerRef.current.getBoundingClientRect();
       const x = clientX - rect.left;
       const pct = Math.max(0, Math.min(100, (x / rect.width) * 100));
-      setSplitPos(Math.round(pct));
+      const rounded = Math.round(pct);
+      setSplitPos(rounded);
+      setSplitPosition(rounded);
     },
-    []
+    [setSplitPosition]
   );
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -104,13 +118,19 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
     };
   }, [isDragging, handlePointerMove]);
 
+  const handleSplitChange = (val: number) => {
+    const safe = Math.max(0, Math.min(100, val));
+    setSplitPos(safe);
+    setSplitPosition(safe);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowLeft') {
       e.preventDefault();
-      setSplitPos((prev) => Math.max(0, prev - 5));
+      handleSplitChange(splitPos - 5);
     } else if (e.key === 'ArrowRight') {
       e.preventDefault();
-      setSplitPos((prev) => Math.min(100, prev + 5));
+      handleSplitChange(splitPos + 5);
     }
   };
 
@@ -122,18 +142,36 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
     }
   };
 
+  const handleModeChange = (mode: 'stream' | 'freeze') => {
+    setViewMode(mode);
+    setPreviewMode(mode);
+  };
+
   const handleSeek = (delta: number) => {
+    const nextTime = Math.max(0, timestamp + delta);
+    setTimestamp(nextTime);
+    setPreviewTimestamp(nextTime);
     if (viewMode === 'stream') {
-      setViewMode('freeze');
+      setStreamKey((prev) => prev + 1);
     }
-    setTimestamp((prev) => Math.max(0, prev + delta));
+  };
+
+  const handleTimelineInput = (newTime: number) => {
+    const safeTime = Math.max(0, newTime);
+    setTimestamp(safeTime);
+    setPreviewTimestamp(safeTime);
+  };
+
+  const handleTimelineCommit = () => {
+    if (viewMode === 'stream') {
+      setStreamKey((prev) => prev + 1);
+    }
   };
 
   const rawImg = frameData?.raw_image;
   const procImg = frameData?.processed_image;
 
-  const rawStreamUrl = `/api/monitor/stream-proxy?mode=raw&source=${encodeURIComponent(source)}&fps=15&k=${streamKey}`;
-  const procStreamUrl = `/api/monitor/stream-proxy?mode=processed&source=${encodeURIComponent(source)}&fps=15&k=${streamKey}`;
+  const splitStreamUrl = `/api/monitor/stream-proxy?mode=split&source=${encodeURIComponent(source)}&fps=15&timestamp=${timestamp}&k=${streamKey}`;
 
   return (
     <div
@@ -161,7 +199,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
         <div className="flex items-center gap-1 bg-black/85 backdrop-blur-md p-0.5 rounded-sm border border-studio-border">
           <button
             type="button"
-            onClick={() => setViewMode('stream')}
+            onClick={() => handleModeChange('stream')}
             className={`px-2 py-1 rounded-xs text-[10px] font-mono flex items-center gap-1.5 transition cursor-pointer ${
               viewMode === 'stream'
                 ? 'bg-amber-500/25 text-amber-300 font-bold border border-amber-500/50 shadow-xs'
@@ -176,7 +214,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => setViewMode('freeze')}
+            onClick={() => handleModeChange('freeze')}
             className={`px-2 py-1 rounded-xs text-[10px] font-mono flex items-center gap-1.5 transition cursor-pointer ${
               viewMode === 'freeze'
                 ? 'bg-amber-500/25 text-amber-300 font-bold border border-amber-500/50 shadow-xs'
@@ -239,12 +277,16 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
         {/* Side B: Restored / Processed (Underneath, Full Width) */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           {viewMode === 'stream' ? (
-            <img
-              src={procStreamUrl}
-              alt={t('monitor.split_restored')}
-              className="w-full h-full object-contain"
-              data-testid="split-proc-stream"
-            />
+            <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+              <div className="relative w-full h-full aspect-video max-w-full max-h-full overflow-hidden">
+                <img
+                  src={splitStreamUrl}
+                  alt={t('monitor.split_restored')}
+                  className="absolute top-0 bottom-0 left-[-100%] w-[200%] h-full max-w-none object-fill"
+                  data-testid="split-proc-stream"
+                />
+              </div>
+            </div>
           ) : procImg ? (
             <img
               src={procImg}
@@ -272,12 +314,16 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           style={{ clipPath: `polygon(0 0, ${splitPos}% 0, ${splitPos}% 100%, 0 100%)` }}
         >
           {viewMode === 'stream' ? (
-            <img
-              src={rawStreamUrl}
-              alt={t('monitor.split_raw')}
-              className="w-full h-full object-contain"
-              data-testid="split-raw-stream"
-            />
+            <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+              <div className="relative w-full h-full aspect-video max-w-full max-h-full overflow-hidden">
+                <img
+                  src={splitStreamUrl}
+                  alt={t('monitor.split_raw')}
+                  className="absolute top-0 bottom-0 left-0 w-[200%] h-full max-w-none object-fill"
+                  data-testid="split-raw-stream"
+                />
+              </div>
+            </div>
           ) : rawImg ? (
             <img
               src={rawImg}
@@ -327,8 +373,18 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
       </div>
 
       {/* Bottom Timeline / Seek Bar */}
-      <div className="w-full bg-studio-panel/95 border-t border-studio-border p-2 z-20 flex items-center justify-between gap-3 text-xs font-mono">
-        <div className="flex items-center gap-2">
+      <div className="w-full bg-studio-panel/95 border-t border-studio-border p-2 z-20 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => handleSeek(-30)}
+            className="p-1 rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-slate-300 hover:text-white transition cursor-pointer"
+            title={t('monitor.split_seek_backward_30s')}
+            aria-label={t('monitor.split_seek_backward_30s')}
+            data-testid="split-seek-prev-30-btn"
+          >
+            <ChevronsLeft className="w-3.5 h-3.5" />
+          </button>
           <button
             type="button"
             onClick={() => handleSeek(-5)}
@@ -339,7 +395,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           >
             <ChevronLeft className="w-3.5 h-3.5" />
           </button>
-          <span className="text-[10px] text-slate-300 font-bold tabular-nums min-w-[70px]">
+          <span className="text-[10px] text-slate-300 font-bold tabular-nums min-w-[70px] text-center">
             {t('monitor.split_time', { time: timestamp.toFixed(1) })}
           </span>
           <button
@@ -352,23 +408,51 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           >
             <ChevronRight className="w-3.5 h-3.5" />
           </button>
+          <button
+            type="button"
+            onClick={() => handleSeek(30)}
+            className="p-1 rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-slate-300 hover:text-white transition cursor-pointer"
+            title={t('monitor.split_seek_forward_30s')}
+            aria-label={t('monitor.split_seek_forward_30s')}
+            data-testid="split-seek-next-30-btn"
+          >
+            <ChevronsRight className="w-3.5 h-3.5" />
+          </button>
         </div>
 
-        {/* Position Slider */}
-        <div className="flex-1 max-w-xs flex items-center gap-2">
+        {/* Timeline Scrubber */}
+        <div className="flex-1 min-w-[140px] max-w-sm flex items-center gap-2">
+          <input
+            type="range"
+            min={0}
+            max={3600}
+            step={1}
+            value={timestamp}
+            onChange={(e) => handleTimelineInput(Number(e.target.value))}
+            onMouseUp={handleTimelineCommit}
+            onTouchEnd={handleTimelineCommit}
+            className="w-full h-1.5 bg-studio-surface rounded-lg appearance-none cursor-pointer accent-amber-400"
+            aria-label={t('monitor.timeline_scrubber')}
+            title={t('monitor.timeline_scrubber')}
+            data-testid="timeline-scrubber-input"
+          />
+        </div>
+
+        {/* Split Divider Slider */}
+        <div className="flex items-center gap-2">
           <input
             type="range"
             min={0}
             max={100}
             value={splitPos}
-            onChange={(e) => setSplitPos(Number(e.target.value))}
-            className="w-full h-1.5 bg-studio-surface rounded-lg appearance-none cursor-pointer accent-amber-400"
+            onChange={(e) => handleSplitChange(Number(e.target.value))}
+            className="w-24 sm:w-32 h-1.5 bg-studio-surface rounded-lg appearance-none cursor-pointer accent-amber-400"
             aria-label={t('monitor.split_position', { percent: splitPos })}
             data-testid="split-slider-input"
           />
         </div>
 
-        <div className="text-[9px] text-slate-400 hidden md:block">
+        <div className="text-[9px] text-slate-400 hidden xl:block">
           {t('monitor.split_hint')}
         </div>
       </div>

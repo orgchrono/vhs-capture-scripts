@@ -179,9 +179,37 @@ def run_desktop():
 
     project_root = ensure_ui_build()
 
+    import socket
+    import urllib.request
+
+    def is_port_in_use(host: str, p: int) -> bool:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            return s.connect_ex((host, p)) == 0
+
+    def is_vhs_server_active(host: str, p: int) -> bool:
+        try:
+            with urllib.request.urlopen(f"http://{host}:{p}/api/system/health", timeout=1.0) as resp:
+                return resp.status == 200
+        except Exception:
+            return False
+
+    def find_open_port(host: str, start_port: int, max_tries: int = 10) -> int:
+        for offset in range(max_tries):
+            cand = start_port + offset
+            if not is_port_in_use(host, cand):
+                return cand
+        return start_port
+
     port = DEFAULT_API_PORT
-    t = threading.Thread(target=run_server, args=(port,), daemon=True)
-    t.start()
+    if is_vhs_server_active(DEFAULT_API_HOST, port):
+        log.info(f"[DESKTOP] Instância ativa do VHS Studio detectada na porta {port}. Reutilizando servidor.")
+    else:
+        if is_port_in_use(DEFAULT_API_HOST, port):
+            old_port = port
+            port = find_open_port(DEFAULT_API_HOST, port + 1)
+            log.warning(f"[DESKTOP] Porta {old_port} ocupada por outro processo. Alocando porta livre: {port}")
+        t = threading.Thread(target=run_server, args=(port,), daemon=True)
+        t.start()
 
     window_title = "VHS Studio Pro"
     icon_ico = os.path.join(project_root, "assets", "vhs_icon.ico")

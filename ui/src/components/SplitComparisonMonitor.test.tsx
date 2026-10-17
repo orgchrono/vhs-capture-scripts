@@ -45,8 +45,8 @@ describe('SplitComparisonMonitor Component', () => {
 
     expect(rawStream).toBeInTheDocument();
     expect(procStream).toBeInTheDocument();
-    expect(rawStream.src).toContain('/api/monitor/stream-proxy?mode=raw');
-    expect(procStream.src).toContain('/api/monitor/stream-proxy?mode=processed');
+    expect(rawStream.src).toContain('/api/monitor/stream-proxy?mode=split');
+    expect(procStream.src).toContain('/api/monitor/stream-proxy?mode=split');
   });
 
   it('switches between live stream and freeze frame modes', () => {
@@ -63,14 +63,23 @@ describe('SplitComparisonMonitor Component', () => {
     expect(screen.getByTestId('split-raw-stream')).toBeInTheDocument();
   });
 
-  it('allows seeking backwards and forwards with seek buttons', () => {
+  it('allows seeking backwards and forwards with seek buttons and scrubber', () => {
     renderComponent({ initialMode: 'freeze' });
 
     const nextBtn = screen.getByTestId('split-seek-next-btn');
     const prevBtn = screen.getByTestId('split-seek-prev-btn');
+    const next30Btn = screen.getByTestId('split-seek-next-30-btn');
+    const prev30Btn = screen.getByTestId('split-seek-prev-30-btn');
+    const scrubber = screen.getByTestId('timeline-scrubber-input') as HTMLInputElement;
+
+    expect(scrubber).toBeInTheDocument();
+    fireEvent.change(scrubber, { target: { value: '120' } });
+    expect(scrubber.value).toBe('120');
 
     fireEvent.click(nextBtn);
     fireEvent.click(prevBtn);
+    fireEvent.click(next30Btn);
+    fireEvent.click(prev30Btn);
   });
 
   it('calls onClose when close button is clicked', () => {

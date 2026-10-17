@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next'
 import { useStudioStore } from '../store/useStudioStore'
 import { usePreferencesStore } from '../store/usePreferencesStore'
 
-export type LogFilterLevel = 'all' | 'info' | 'warn' | 'error'
+export type LogFilterLevel = 'all' | 'info' | 'warn' | 'error' | 'debug'
 
 export interface ConsoleViewerProps {
   onStart?: () => void
@@ -46,7 +46,7 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
 }) => {
   const { t } = useTranslation()
   const { logs, clearLogs, isRestoring: storeIsRestoring, isPaused: storeIsPaused } = useStudioStore()
-  const { autoScrollConsole } = usePreferencesStore()
+  const { autoScrollConsole, verboseConsole } = usePreferencesStore()
   const isRestoring = propIsRestoring ?? storeIsRestoring
   const isPaused = propIsPaused ?? storeIsPaused
 
@@ -76,8 +76,18 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
         (l) =>
           !l.includes('[ERRO]') &&
           !l.includes('[AVISO]') &&
-          !l.includes('Error')
+          !l.includes('Error') &&
+          !l.includes('-> PROGRESS:')
       )
+    } else if (filterLevel === 'debug') {
+      result = result.filter(
+        (l) =>
+          l.includes('-> PROGRESS:') ||
+          l.includes('[DEBUG]') ||
+          l.includes('DEBUG')
+      )
+    } else if (filterLevel === 'all' && !verboseConsole) {
+      result = result.filter((l) => !l.includes('-> PROGRESS:'))
     }
 
     if (searchQuery.trim()) {
@@ -85,7 +95,7 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
       result = result.filter((l) => l.toLowerCase().includes(q))
     }
     return result
-  }, [logs, filterLevel, searchQuery])
+  }, [logs, filterLevel, searchQuery, verboseConsole])
 
   useEffect(() => {
     if (autoScrollConsole && typeof endRef.current?.scrollIntoView === 'function') {
@@ -194,6 +204,17 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
               }`}
             >
               ERR
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterLevel('debug')}
+              className={`px-1.5 py-0.5 rounded-sm cursor-pointer ${
+                filterLevel === 'debug'
+                  ? 'bg-cyan-950/60 text-cyan-300 font-bold'
+                  : 'text-slate-400 hover:text-cyan-300'
+              }`}
+            >
+              DEBUG
             </button>
           </div>
 

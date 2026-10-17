@@ -13,10 +13,20 @@ export const Toaster: React.FC = () => {
       position="bottom-right"
       aria-label={t('toast.region_label', { defaultValue: 'Notificações do Sistema' })}
       toastOptions={{
-        className: 'border border-white/10 font-sans shadow-2xl backdrop-blur-md',
+        className: 'font-mono text-xs border border-studio-border bg-studio-panel text-slate-200 shadow-2xl backdrop-blur-md rounded-sm',
         style: {
-          background: 'rgba(11, 15, 23, 0.95)',
-          color: '#f8fafc',
+          background: '#18191d',
+          borderColor: '#2c3038',
+          color: '#f3f4f6',
+          fontFamily: 'monospace',
+        },
+        classNames: {
+          toast: 'bg-studio-panel border-studio-border text-slate-200 font-mono text-xs rounded-sm',
+          title: 'text-slate-100 font-bold font-mono text-xs',
+          description: 'text-slate-400 font-mono text-[11px]',
+          actionButton: 'bg-studio-surface text-slate-200 border border-studio-border font-mono text-xs hover:bg-studio-surface-hover',
+          cancelButton: 'bg-studio-surface text-slate-400 font-mono text-xs hover:bg-studio-surface-hover',
+          closeButton: 'bg-studio-panel border border-studio-border text-slate-400 hover:text-slate-200',
         },
       }}
     />

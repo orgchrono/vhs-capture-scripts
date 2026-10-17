@@ -83,6 +83,10 @@
     "stream_connecting": "جارٍ الاتصال بالبث الفرعي الخفيف...",
     "split_seek_backward": "-5s",
     "split_seek_forward": "+5s",
+    "split_seek_backward_30s": "-30 ث",
+    "split_seek_forward_30s": "+30 ث",
+    "timeline_scrubber": "شريط التمرير الزمني",
+    "camera_not_detected": "لم يتم اكتشاف الكاميرا الافتراضية أو تم رفض الإذن.",
     "rendering_preview": "معاينة التصيير في الوقت الفعلي",
     "tape_loaded_preview": "تم تحميل الشريط"
   },
@@ -193,7 +197,8 @@
     "crf_larger": "Larger File (14)",
     "crf_default": "Standard (18)",
     "crf_smaller": "Smaller File (28)",
-    "tab_presets": "الوضع"
+    "tab_presets": "الوضع",
+    "reset_default": "إعادة الضبط إلى الافتراضي"
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",
@@ -407,7 +412,11 @@
     "restore_aborted": "[استعادة] تم إنهاء العملية والإشارة بأمان.",
     "panasonic_tree_loading": "[PANASONIC INGEST] جاري تحميل الجلسات وشجرة التسجيلات من: {{path}}",
     "panasonic_tree_loaded": "[PANASONIC INGEST] تم تحميل الشجرة: تم اكتشاف {{count}} عنوان/عناوين.",
-    "panasonic_extracting_selected": "[PANASONIC INGEST] جاري استخراج {{count}} عنوان/عناوين محددة..."
+    "panasonic_extracting_selected": "[PANASONIC INGEST] جاري استخراج {{count}} عنوان/عناوين محددة...",
+    "whisper_starting": "[WHISPER] بدء إنشاء الترجمة باستخدام نموذج {{model}}...",
+    "whisper_background_started": "[WHISPER] بدأت المعالجة في الخلفية.",
+    "whisper_warning": "[WHISPER تحذير] {{msg}}",
+    "whisper_error": "[WHISPER خطأ] {{error}}"
   },
   "recovery": {
     "title": "المشاريع الجارية / المعلقة",

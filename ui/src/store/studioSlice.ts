@@ -39,6 +39,9 @@ export interface StudioState {
   sidebarCollapsed: boolean;
   consoleCollapsed: boolean;
   workspacePreset: WorkspacePreset;
+  previewTimestamp: number;
+  splitPosition: number;
+  previewMode: 'stream' | 'freeze';
 }
 
 
@@ -71,6 +74,9 @@ export const initialStudioState: StudioState = {
   sidebarCollapsed: false,
   consoleCollapsed: false,
   workspacePreset: 'default',
+  previewTimestamp: 5.0,
+  splitPosition: 50,
+  previewMode: 'stream',
 };
 
 
@@ -305,6 +311,15 @@ export const studioSlice = createSlice({
         state.consoleCollapsed = false;
       }
     },
+    setPreviewTimestamp: (state, action: PayloadAction<number>) => {
+      state.previewTimestamp = action.payload;
+    },
+    setSplitPosition: (state, action: PayloadAction<number>) => {
+      state.splitPosition = action.payload;
+    },
+    setPreviewMode: (state, action: PayloadAction<'stream' | 'freeze'>) => {
+      state.previewMode = action.payload;
+    },
     setPartialState: (state, action: PayloadAction<Partial<StudioState>>) => {
       Object.assign(state, action.payload);
     },
@@ -345,5 +360,8 @@ export const {
   toggleConsole,
   setConsoleCollapsed,
   setWorkspacePreset,
+  setPreviewTimestamp,
+  setSplitPosition,
+  setPreviewMode,
   setPartialState,
 } = studioSlice.actions;

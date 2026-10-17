@@ -83,6 +83,10 @@
     "stream_connecting": "軽量サブストリームに接続中...",
     "split_seek_backward": "-5s",
     "split_seek_forward": "+5s",
+    "split_seek_backward_30s": "-30s",
+    "split_seek_forward_30s": "+30s",
+    "timeline_scrubber": "タイムラインスクラバー",
+    "camera_not_detected": "仮想カメラが検出されないか、権限が拒否されました。",
     "rendering_preview": "リアルタイムレンダリングプレビュー",
     "tape_loaded_preview": "テープ装填済み"
   },
@@ -193,7 +197,8 @@
     "crf_larger": "Larger File (14)",
     "crf_default": "Standard (18)",
     "crf_smaller": "Smaller File (28)",
-    "tab_presets": "モード"
+    "tab_presets": "モード",
+    "reset_default": "デフォルトに戻す"
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",
@@ -407,7 +412,11 @@
     "restore_aborted": "[復元] プロセスとシグナルが安全に中断されました。",
     "panasonic_tree_loading": "[PANASONIC INGEST] セッションおよび録画ツリーを読み込み中: {{path}}",
     "panasonic_tree_loaded": "[PANASONIC INGEST] ツリーを読み込みました: {{count}} 件のタイトルを検出。",
-    "panasonic_extracting_selected": "[PANASONIC INGEST] 選択された {{count}} 件のタイトルを抽出中..."
+    "panasonic_extracting_selected": "[PANASONIC INGEST] 選択された {{count}} 件のタイトルを抽出中...",
+    "whisper_starting": "[WHISPER] {{model}} モデルによる字幕生成を開始しています...",
+    "whisper_background_started": "[WHISPER] バックグラウンド処理が開始されました。",
+    "whisper_warning": "[WHISPER 警告] {{msg}}",
+    "whisper_error": "[WHISPER エラー] {{error}}"
   },
   "recovery": {
     "title": "進行中 / 中断されたプロジェクト",

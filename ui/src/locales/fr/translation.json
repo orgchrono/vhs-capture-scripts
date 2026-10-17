@@ -83,6 +83,10 @@
     "stream_connecting": "Connexion au sous-flux léger...",
     "split_seek_backward": "-5s",
     "split_seek_forward": "+5s",
+    "split_seek_backward_30s": "-30s",
+    "split_seek_forward_30s": "+30s",
+    "timeline_scrubber": "Curseur de Ligne Temporelle",
+    "camera_not_detected": "Caméra Virtuelle non détectée ou permission refusée.",
     "rendering_preview": "Aperçu du Rendu en Direct",
     "tape_loaded_preview": "Bande Chargée"
   },
@@ -193,7 +197,8 @@
     "crf_larger": "Larger File (14)",
     "crf_default": "Standard (18)",
     "crf_smaller": "Smaller File (28)",
-    "tab_presets": "Mode"
+    "tab_presets": "Mode",
+    "reset_default": "Rétablir la valeur par défaut"
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",
@@ -407,7 +412,11 @@
     "restore_aborted": "[RESTAURATION] Processus et signal interrompus en toute sécurité.",
     "panasonic_tree_loading": "[PANASONIC INGEST] Chargement des sessions et de l'arborescence depuis: {{path}}",
     "panasonic_tree_loaded": "[PANASONIC INGEST] Arborescence chargée: {{count}} titre(s) détecté(s).",
-    "panasonic_extracting_selected": "[PANASONIC INGEST] Extraction de {{count}} titre(s) sélectionné(s)..."
+    "panasonic_extracting_selected": "[PANASONIC INGEST] Extraction de {{count}} titre(s) sélectionné(s)...",
+    "whisper_starting": "[WHISPER] Démarrage de la génération des sous-titres avec le modèle {{model}}...",
+    "whisper_background_started": "[WHISPER] Traitement démarré en arrière-plan.",
+    "whisper_warning": "[WHISPER AVERTISSEMENT] {{msg}}",
+    "whisper_error": "[WHISPER ERREUR] {{error}}"
   },
   "recovery": {
     "title": "Projets en cours / Interrompus",

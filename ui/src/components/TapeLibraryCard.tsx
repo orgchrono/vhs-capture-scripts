@@ -32,7 +32,7 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
   isRefetching,
 }) => {
   const { t } = useTranslation();
-  const { selectedFile, setSelectedFile, addLog, isRestoring } = useStudioStore();
+  const { selectedFile, setSelectedFile, addLog, isRestoring, isPaused } = useStudioStore();
   const [isLibraryExpanded, setIsLibraryExpanded] = useState(true);
 
   // Auto-polling for real-time synchronization without manual refresh buttons
@@ -61,15 +61,11 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
 
   const findIncompleteJob = (filePath: string) => {
     const sNorm = filePath.replace(/\\/g, '/').toLowerCase();
-    const sBase = sNorm.split('/').pop()?.split('.')[0] || '';
+    const sFileName = sNorm.split('/').pop() || '';
     return incompleteJobs.find((j) => {
       const jNorm = (j.source_file || '').replace(/\\/g, '/').toLowerCase();
-      const jBase = jNorm.split('/').pop()?.split('.')[0] || '';
-      const jId = j.job_id.toLowerCase();
-      return (
-        (sNorm && jNorm && sNorm === jNorm) ||
-        (sBase && (sBase === jBase || jId.includes(sBase)))
-      );
+      const jFileName = jNorm.split('/').pop() || '';
+      return (sNorm && jNorm && sNorm === jNorm) || (sFileName && sFileName === jFileName);
     });
   };
 
@@ -135,6 +131,7 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
         <div className="relative">
           <select
             value={selectedFile}
+            disabled={isRestoring || isPaused}
             onChange={(e) => {
               const val = e.target.value;
               if (val) {
@@ -146,7 +143,7 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
                 }
               }
             }}
-            className="w-full bg-studio-surface border border-studio-border rounded-sm px-2.5 py-1 text-xs font-mono text-slate-200 outline-none focus:border-studio-border-focus focus:ring-1 focus:ring-studio-border-focus transition appearance-none cursor-pointer"
+            className="w-full bg-studio-surface border border-studio-border rounded-sm px-2.5 py-1 text-xs font-mono text-slate-200 outline-none focus:border-studio-border-focus focus:ring-1 focus:ring-studio-border-focus transition appearance-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <option value="" disabled hidden>
               {t('files.select_placeholder')}
@@ -268,14 +265,17 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
                 return (
                   <div
                     key={job.job_id}
-                    onClick={() =>
+                    onClick={() => {
+                      if (isRestoring || isPaused) return;
                       handleSelectTape({
                         name,
                         path: targetPath,
                         size_mb: Math.round(job.output_size_bytes / (1024 * 1024)),
-                      })
-                    }
-                    className={`group relative p-2 rounded-sm border transition-all cursor-pointer flex items-center gap-2.5 select-none ${
+                      });
+                    }}
+                    className={`group relative p-2 rounded-sm border transition-all flex items-center gap-2.5 select-none ${
+                      isRestoring || isPaused ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'
+                    } ${
                       isSelected
                         ? 'bg-amber-950/30 border-amber-500 ring-1 ring-amber-500/30 shadow-xs'
                         : 'bg-studio-surface border-amber-900/60 hover:border-amber-600 hover:bg-studio-surface-hover'
@@ -298,7 +298,7 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
                         >
                           {name}
                         </h4>
-                        <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-xs bg-amber-950/90 text-amber-300 border border-amber-800 shrink-0">
+                        <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-xs bg-amber-950/90 text-amber-300 border border-amber-800 hover:border-amber-600 transition-colors shadow-xs shrink-0">
                           {t('recovery.badge_incomplete', { pct: job.progress_percent })}
                         </span>
                       </div>
@@ -325,8 +325,13 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
                 return (
                   <div
                     key={file.path}
-                    onClick={() => handleSelectTape(file)}
-                    className={`group relative p-2 rounded-sm border transition-all cursor-pointer flex items-center gap-2.5 select-none ${
+                    onClick={() => {
+                      if (isRestoring || isPaused) return;
+                      handleSelectTape(file);
+                    }}
+                    className={`group relative p-2 rounded-sm border transition-all flex items-center gap-2.5 select-none ${
+                      isRestoring || isPaused ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'
+                    } ${
                       isSelected
                         ? 'bg-studio-surface border-emerald-500/80 ring-1 ring-emerald-500/30 shadow-xs'
                         : 'bg-studio-surface border-studio-border hover:border-slate-500 hover:bg-studio-surface-hover'
@@ -375,12 +380,9 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
                         </h4>
                         <div className="flex items-center gap-1 shrink-0">
                           {inc && (
-                            <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-xs bg-amber-950/90 text-amber-300 border border-amber-800">
+                            <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-xs bg-amber-950/90 text-amber-300 border border-amber-800 hover:border-amber-600 transition-colors shadow-xs">
                               {t('recovery.badge_incomplete', { pct: inc.progress_percent })}
                             </span>
-                          )}
-                          {isSelected && (
-                            <span className="led-lamp led-live shrink-0" aria-hidden="true" />
                           )}
                         </div>
                       </div>

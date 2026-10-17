@@ -17,8 +17,9 @@ interface PresetCard {
 
 export const PresetSelector: React.FC = () => {
   const { t } = useTranslation()
-  const { preset, applyPreset } = useStudioStore()
+  const { preset, applyPreset, isRestoring, isPaused } = useStudioStore()
   const shouldReduceMotion = useReducedMotion()
+  const isLocked = isRestoring || isPaused
 
   const presets: ReadonlyArray<PresetCard> = [
     {
@@ -59,13 +60,15 @@ export const PresetSelector: React.FC = () => {
             type="button"
             key={p.id}
             data-testid={`preset-${p.id}`}
+            disabled={isLocked}
             onClick={() => {
-              if (preset === p.id) return
+              if (isLocked || preset === p.id) return
               applyPreset(p.id)
               toast.info(t('toast.preset_applied', { name: p.name }))
             }}
             className={cn(
-              'relative text-left p-3 rounded-sm border transition-all duration-150 cursor-pointer overflow-hidden flex flex-col justify-between group min-h-[88px]',
+              'relative text-left p-3 rounded-sm border transition-all duration-150 overflow-hidden flex flex-col justify-between group min-h-[88px]',
+              isLocked ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
               isActive
                 ? 'bg-studio-surface border-slate-300 text-white shadow-sm'
                 : 'bg-studio-panel border-studio-border hover:border-slate-600 hover:bg-studio-surface text-slate-300'

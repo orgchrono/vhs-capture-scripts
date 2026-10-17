@@ -83,6 +83,10 @@
     "stream_connecting": "正在连接轻量子流...",
     "split_seek_backward": "-5s",
     "split_seek_forward": "+5s",
+    "split_seek_backward_30s": "-30秒",
+    "split_seek_forward_30s": "+30秒",
+    "timeline_scrubber": "时间轴拖动滑块",
+    "camera_not_detected": "未检测到虚拟摄像头或权限被拒绝。",
     "rendering_preview": "实时渲染预览",
     "tape_loaded_preview": "磁带已载入"
   },
@@ -193,7 +197,8 @@
     "crf_larger": "Larger File (14)",
     "crf_default": "Standard (18)",
     "crf_smaller": "Smaller File (28)",
-    "tab_presets": "预设模式"
+    "tab_presets": "预设模式",
+    "reset_default": "恢复默认值"
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",
@@ -407,7 +412,11 @@
     "restore_aborted": "[恢复] 进程与信号已安全中止。",
     "panasonic_tree_loading": "[PANASONIC INGEST] 正在从 {{path}} 加载录制会话和结构树",
     "panasonic_tree_loaded": "[PANASONIC INGEST] 结构树已载入: 检测到 {{count}} 个标题。",
-    "panasonic_extracting_selected": "[PANASONIC INGEST] 正在提取 {{count}} 个所选标题..."
+    "panasonic_extracting_selected": "[PANASONIC INGEST] 正在提取 {{count}} 个所选标题...",
+    "whisper_starting": "[WHISPER] 正在使用 {{model}} 模型开始生成字幕...",
+    "whisper_background_started": "[WHISPER] 已在后台启动处理。",
+    "whisper_warning": "[WHISPER 警告] {{msg}}",
+    "whisper_error": "[WHISPER 错误] {{error}}"
   },
   "recovery": {
     "title": "进行中 / 中断的项目",

@@ -83,6 +83,10 @@
     "stream_connecting": "Connecting lightweight sub-stream...",
     "split_seek_backward": "-5s",
     "split_seek_forward": "+5s",
+    "split_seek_backward_30s": "-30s",
+    "split_seek_forward_30s": "+30s",
+    "timeline_scrubber": "Timeline Scrubber",
+    "camera_not_detected": "Virtual Camera not detected or permission denied.",
     "rendering_preview": "Real-Time Rendering Preview",
     "tape_loaded_preview": "Tape Loaded"
   },
@@ -192,7 +196,8 @@
     "crf_label": "Constant Rate Factor (CRF):",
     "crf_larger": "Larger File (14)",
     "crf_default": "Standard (18)",
-    "crf_smaller": "Smaller File (28)"
+    "crf_smaller": "Smaller File (28)",
+    "reset_default": "Reset to default"
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",
@@ -406,7 +411,11 @@
     "restore_aborted": "[RESTORATION] Process and signal safely aborted.",
     "panasonic_tree_loading": "[PANASONIC INGEST] Loading sessions and recording tree from: {{path}}",
     "panasonic_tree_loaded": "[PANASONIC INGEST] Tree loaded: {{count}} title(s) detected.",
-    "panasonic_extracting_selected": "[PANASONIC INGEST] Extracting {{count}} selected title(s)..."
+    "panasonic_extracting_selected": "[PANASONIC INGEST] Extracting {{count}} selected title(s)...",
+    "whisper_starting": "[WHISPER] Starting subtitle generation with {{model}} model...",
+    "whisper_background_started": "[WHISPER] Processing started in background.",
+    "whisper_warning": "[WHISPER WARNING] {{msg}}",
+    "whisper_error": "[WHISPER ERROR] {{error}}"
   },
   "recovery": {
     "title": "Incomplete / Interrupted Projects",

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Video, AlertTriangle, Activity, Layers } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useLiveMonitor } from '../viewmodels/useLiveMonitor';
@@ -15,9 +15,51 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
   const { livePreviewEnabled } = usePreferencesStore();
   const [isSplitMode, setIsSplitMode] = useState(false);
   const [erroredFile, setErroredFile] = useState<string | null>(null);
+  const [liveFrameSrc, setLiveFrameSrc] = useState<string | null>(null);
   const thumbError = Boolean(selectedFile && erroredFile === selectedFile);
   const { videoRef, isActive, error, obsStats, isCapturing } = useLiveMonitor();
   const shouldReduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    if (!isRestoring) {
+      setLiveFrameSrc((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+      return;
+    }
+
+    let active = true;
+    const fetchFrame = async () => {
+      try {
+        const res = await fetch(`/api/monitor/live-restoration-frame?t=${Date.now()}`);
+        if (res.status === 200 && active) {
+          const blob = await res.blob();
+          if (blob.size > 0 && active) {
+            const newUrl = URL.createObjectURL(blob);
+            setLiveFrameSrc((prev) => {
+              if (prev) URL.revokeObjectURL(prev);
+              return newUrl;
+            });
+          }
+        }
+      } catch {
+        // Ignored during unmount/background teardown
+      }
+    };
+
+    fetchFrame();
+    const interval = setInterval(fetchFrame, 300);
+
+    return () => {
+      active = false;
+      clearInterval(interval);
+      setLiveFrameSrc((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+    };
+  }, [isRestoring]);
 
   const thumbnailUrl = selectedFile
     ? `/api/media/thumbnail?path=${encodeURIComponent(selectedFile)}`
@@ -138,7 +180,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
       {!isActive && selectedFile && !thumbError && (
         <div className="absolute inset-0 z-0 flex items-center justify-center bg-black overflow-hidden">
           <img
-            src={thumbnailUrl}
+            src={liveFrameSrc || thumbnailUrl}
             alt={t('monitor.rendering_preview')}
             onError={() => setErroredFile(selectedFile)}
             className={`w-full h-full object-contain transition-all duration-300 ${

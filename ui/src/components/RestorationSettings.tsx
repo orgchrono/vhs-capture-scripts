@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   ShieldCheck,
   Cloud,
+  RotateCcw,
 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 import { Switch } from './ui/switch'
@@ -55,13 +56,14 @@ interface GenericSelectProps<T extends string> {
   onChange: (value: T) => void;
   options: ReadonlyArray<{ value: T; label: string }> | Array<{ value: T; label: string }>;
   placeholder?: string;
+  disabled?: boolean;
 }
 
-const GenericSelect = <T extends string>({ value, onChange, options, placeholder }: GenericSelectProps<T>) => {
+const GenericSelect = <T extends string>({ value, onChange, options, placeholder, disabled }: GenericSelectProps<T>) => {
   const { t } = useTranslation();
   return (
-    <Select value={value} onValueChange={(val) => onChange(val as T)}>
-      <SelectTrigger className="w-full bg-studio-surface border-studio-border text-white rounded-sm font-mono text-xs">
+    <Select value={value} onValueChange={(val) => onChange(val as T)} disabled={disabled}>
+      <SelectTrigger className="w-full h-9 bg-studio-surface border-studio-border text-white rounded-sm font-mono text-xs">
         <SelectValue placeholder={placeholder || t('settings.select_placeholder')} />
       </SelectTrigger>
       <SelectContent className="bg-studio-panel border-studio-border text-slate-200">
@@ -117,6 +119,7 @@ export const RestorationSettings: React.FC = () => {
     aiUpscalerModel, setAiUpscalerModel,
   } = store;
 
+  const isLocked = store.isRestoring || store.isPaused;
   const [search, setSearch] = useState('')
 
   const matches = (keywords: string[]) => 
@@ -160,11 +163,11 @@ export const RestorationSettings: React.FC = () => {
         <TabsContent value="presets" className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 space-y-3">
           <TabTransition>
             <div className="mb-2">
-              <h4 className="text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
+              <h4 className="text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5 font-mono">
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                 {t('presets.title')}
               </h4>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-slate-400 font-mono">
                 {t('presets.subtitle')}
               </p>
             </div>
@@ -177,30 +180,30 @@ export const RestorationSettings: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5">
               {matches(['desentrelaçamento', 'deinterlacer', 'bwdif', 'qtgmc', 'video']) && (
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-slate-400 block">{t('settings.deinterlacing_label')}</label>
-                  <GenericSelect value={deinterlacer} onChange={setDeinterlacer} options={DEINTERLACER_OPTIONS} />
-                  <p className="text-[10px] text-slate-500">{t('settings.qtgmc_hint')}</p>
+                  <label className="text-xs font-medium text-slate-400 block font-mono">{t('settings.deinterlacing_label')}</label>
+                  <GenericSelect value={deinterlacer} onChange={setDeinterlacer} options={DEINTERLACER_OPTIONS} disabled={isLocked} />
+                  <p className="text-[10px] text-slate-500 font-mono">{t('settings.qtgmc_hint')}</p>
                 </div>
               )}
               
               {matches(['modo', 'fps', 'video', 'interlaced']) && (
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-slate-400 block">{t('settings.fps_mode')}</label>
-                  <GenericSelect value={mode} onChange={setMode} options={VIDEO_MODE_OPTIONS} />
+                  <label className="text-xs font-medium text-slate-400 block font-mono">{t('settings.fps_mode')}</label>
+                  <GenericSelect value={mode} onChange={setMode} options={VIDEO_MODE_OPTIONS} disabled={isLocked} />
                 </div>
               )}
               
               {matches(['resolução', 'upscale', '1080p', 'video']) && (
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-slate-400 block">{t('settings.resolution_label')}</label>
-                  <GenericSelect value={resolution} onChange={setResolution} options={RESOLUTION_OPTIONS} />
+                  <label className="text-xs font-medium text-slate-400 block font-mono">{t('settings.resolution_label')}</label>
+                  <GenericSelect value={resolution} onChange={setResolution} options={RESOLUTION_OPTIONS} disabled={isLocked} />
                 </div>
               )}
 
               {matches(['codec', 'h264', 'h265', 'hevc', 'video']) && (
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-slate-400 block">{t('settings.output_codec_label')}</label>
-                  <GenericSelect value={outputCodec} onChange={setOutputCodec} options={OUTPUT_CODEC_OPTIONS} />
+                  <label className="text-xs font-medium text-slate-400 block font-mono">{t('settings.output_codec_label')}</label>
+                  <GenericSelect value={outputCodec} onChange={setOutputCodec} options={OUTPUT_CODEC_OPTIONS} disabled={isLocked} />
                 </div>
               )}
             </div>
@@ -212,16 +215,22 @@ export const RestorationSettings: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5">
               {matches(['áudio', 'audio', 'stereo', 'mono']) && (
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-slate-400 block">{t('settings.audio_mode_label')}</label>
-                  <GenericSelect value={audioMode} onChange={setAudioMode} options={AUDIO_MODE_OPTIONS} />
+                  <label className="text-xs font-medium text-slate-400 block font-mono">{t('settings.audio_mode_label')}</label>
+                  <GenericSelect value={audioMode} onChange={setAudioMode} options={AUDIO_MODE_OPTIONS} disabled={isLocked} />
                 </div>
               )}
 
               {matches(['áudio', 'audio', 'delay', 'sincronização']) && (
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-slate-400 block font-mono">{t('settings.audio_delay_label')}</label>
-                  <Input type="number" step={AUDIO_OFFSET_CONFIG.STEP_MS} value={audioOffset} onChange={(e) => setAudioOffset(Number(e.target.value))}
-                    className="w-full bg-studio-surface border-studio-border rounded-sm font-mono text-xs" />
+                  <Input
+                    type="number"
+                    step={AUDIO_OFFSET_CONFIG.STEP_MS}
+                    value={audioOffset}
+                    disabled={isLocked}
+                    onChange={(e) => setAudioOffset(Number(e.target.value))}
+                    className="w-full h-9 bg-studio-surface border-studio-border rounded-sm font-mono text-xs disabled:opacity-60 disabled:cursor-not-allowed"
+                  />
                   <p className="text-[10px] text-slate-500 font-mono">{t('settings.audio_delay_hint')}</p>
                 </div>
               )}
@@ -232,7 +241,7 @@ export const RestorationSettings: React.FC = () => {
                     <label className="text-xs font-medium text-slate-200 font-mono">{t('settings.audio_treatment_label')}</label>
                     <p className="text-[11px] text-slate-400 font-mono">{t('settings.audio_treatment_desc')}</p>
                   </div>
-                  <Switch aria-label="Audio Treatment" checked={audioTreatment} onCheckedChange={setAudioTreatment} />
+                  <Switch aria-label="Audio Treatment" checked={audioTreatment} onCheckedChange={setAudioTreatment} disabled={isLocked} />
                 </div>
               )}
             </div>
@@ -248,7 +257,7 @@ export const RestorationSettings: React.FC = () => {
                     <label className="text-xs font-medium text-slate-200 font-mono">{t('settings.chroma_fix_label')}</label>
                     <p className="text-[11px] text-slate-400 font-mono">{t('settings.chroma_fix_desc')}</p>
                   </div>
-                  <Switch aria-label="Chroma Fix" checked={chromaFix} onCheckedChange={setChromaFix} />
+                  <Switch aria-label="Chroma Fix" checked={chromaFix} onCheckedChange={setChromaFix} disabled={isLocked} />
                 </div>
               )}
 
@@ -258,7 +267,7 @@ export const RestorationSettings: React.FC = () => {
                     <label className="text-xs font-medium text-slate-200 font-mono">{t('settings.denoise_label')}</label>
                     <p className="text-[11px] text-slate-400 font-mono">{t('settings.denoise_desc')}</p>
                   </div>
-                  <Switch aria-label="Denoise" checked={denoise} onCheckedChange={setDenoise} />
+                  <Switch aria-label="Denoise" checked={denoise} onCheckedChange={setDenoise} disabled={isLocked} />
                 </div>
               )}
 
@@ -268,7 +277,7 @@ export const RestorationSettings: React.FC = () => {
                     <label className="text-xs font-medium text-slate-200 font-mono">{t('settings.comb_filter_label')}</label>
                     <p className="text-[11px] text-slate-400 font-mono">{t('settings.comb_filter_desc')}</p>
                   </div>
-                  <Switch aria-label="Comb Filter" checked={combFilter} onCheckedChange={setCombFilter} />
+                  <Switch aria-label="Comb Filter" checked={combFilter} onCheckedChange={setCombFilter} disabled={isLocked} />
                 </div>
               )}
 
@@ -278,7 +287,7 @@ export const RestorationSettings: React.FC = () => {
                     <label className="text-xs font-medium text-slate-200 font-mono">{t('settings.overscan_label')}</label>
                     <p className="text-[11px] text-slate-400 font-mono">{t('settings.overscan_desc')}</p>
                   </div>
-                  <Switch aria-label="Overscan Blanking" checked={overscanBlanking} onCheckedChange={setOverscanBlanking} />
+                  <Switch aria-label="Overscan Blanking" checked={overscanBlanking} onCheckedChange={setOverscanBlanking} disabled={isLocked} />
                 </div>
               )}
             </div>
@@ -290,17 +299,39 @@ export const RestorationSettings: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5">
               {matches(['crf', 'qualidade', 'avançado', 'bitrate']) && (
                 <div className="space-y-1.5 bg-studio-surface p-3.5 rounded-sm border border-studio-border">
-                  <label className="text-xs font-medium text-slate-400 block font-mono">{t('settings.crf_label')}</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-slate-400 block font-mono">{t('settings.crf_label')}</label>
+                    <button
+                      type="button"
+                      onClick={() => setCrf(CRF_CONFIG.DEFAULT)}
+                      disabled={isLocked || crf === CRF_CONFIG.DEFAULT}
+                      title={t('settings.reset_default')}
+                      aria-label={t('settings.reset_default')}
+                      className="p-1 rounded-sm text-slate-400 hover:text-slate-200 hover:bg-studio-panel transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                    </button>
+                  </div>
                   <div className="flex items-center gap-4">
-                    <input
-                      type="range"
-                      min={CRF_CONFIG.MIN}
-                      max={CRF_CONFIG.MAX}
-                      step={CRF_CONFIG.STEP}
-                      value={crf}
-                      onChange={(e) => setCrf(Number(e.target.value))}
-                      className="w-full accent-slate-300 h-1.5 bg-studio-panel rounded-sm appearance-none cursor-pointer"
-                    />
+                    <div className="relative flex-1 flex items-center">
+                      <input
+                        type="range"
+                        min={CRF_CONFIG.MIN}
+                        max={CRF_CONFIG.MAX}
+                        step={CRF_CONFIG.STEP}
+                        value={crf}
+                        disabled={isLocked}
+                        onChange={(e) => setCrf(Number(e.target.value))}
+                        className="w-full accent-slate-300 h-1.5 bg-studio-panel rounded-sm appearance-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                      />
+                      <span
+                        className="absolute w-0.5 h-2.5 bg-slate-500 pointer-events-none -translate-x-1/2 top-1/2 -translate-y-1/2 rounded-full"
+                        style={{
+                          left: `${((CRF_CONFIG.DEFAULT - CRF_CONFIG.MIN) / (CRF_CONFIG.MAX - CRF_CONFIG.MIN)) * 100}%`,
+                        }}
+                        title={`${t('settings.crf_default')} (${CRF_CONFIG.DEFAULT})`}
+                      />
+                    </div>
                     <span className="bg-studio-panel border border-studio-border text-slate-200 font-mono px-3 py-1 rounded-sm text-xs w-16 text-center tabular-nums font-bold">
                       {crf}
                     </span>
@@ -401,6 +432,7 @@ export const RestorationSettings: React.FC = () => {
                   aria-label="Audio Neural DeepFilterNet"
                   checked={aiAudioDenoise}
                   onCheckedChange={setAiAudioDenoise}
+                  disabled={isLocked}
                 />
               </div>
 
@@ -421,6 +453,7 @@ export const RestorationSettings: React.FC = () => {
                   aria-label="Tape Dropout Cleaner"
                   checked={dropoutClean}
                   onCheckedChange={setDropoutClean}
+                  disabled={isLocked}
                 />
               </div>
 
@@ -441,6 +474,7 @@ export const RestorationSettings: React.FC = () => {
                   aria-label="RIFE 60fps Interpolation"
                   checked={aiRife60fps}
                   onCheckedChange={setAiRife60fps}
+                  disabled={isLocked}
                 />
               </div>
 
@@ -462,14 +496,15 @@ export const RestorationSettings: React.FC = () => {
                     aria-label="Neural Super Resolution"
                     checked={aiUpscaler}
                     onCheckedChange={setAiUpscaler}
+                    disabled={isLocked}
                   />
                 </div>
 
                 {aiUpscaler && (
                   <div className="pt-2 border-t border-studio-border space-y-1.5">
                     <label className="text-[11px] text-slate-400 block font-mono">{t('ai.upscaler_model_label')}</label>
-                    <Select value={aiUpscalerModel} onValueChange={setAiUpscalerModel}>
-                      <SelectTrigger className="w-full bg-studio-panel border-studio-border text-white text-xs rounded-sm font-mono">
+                    <Select value={aiUpscalerModel} onValueChange={setAiUpscalerModel} disabled={isLocked}>
+                      <SelectTrigger className="w-full h-9 bg-studio-panel border-studio-border text-white text-xs rounded-sm font-mono">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-studio-panel border-studio-border text-slate-200">
@@ -503,6 +538,7 @@ export const RestorationSettings: React.FC = () => {
                   aria-label="CodeFormer Face Restoration"
                   checked={aiFaceRestore}
                   onCheckedChange={setAiFaceRestore}
+                  disabled={isLocked}
                 />
               </div>
 
@@ -510,17 +546,41 @@ export const RestorationSettings: React.FC = () => {
                 <div className="space-y-2 pt-2 border-t border-studio-border">
                   <div className="flex items-center justify-between text-xs font-mono">
                     <span className="text-slate-400">{t('ai.face_fidelity_vs_sharpness')}</span>
-                    <span className="font-mono text-emerald-400 tabular-nums font-bold">{t('ai.fidelity_percent', { percent: Math.round(aiFaceFidelity * 100) })}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-emerald-400 tabular-nums font-bold">
+                        {t('ai.fidelity_percent', { percent: Math.round(aiFaceFidelity * 100) })}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setAiFaceFidelity(FACE_FIDELITY_CONFIG.DEFAULT)}
+                        disabled={isLocked || aiFaceFidelity === FACE_FIDELITY_CONFIG.DEFAULT}
+                        title={t('settings.reset_default')}
+                        aria-label={t('settings.reset_default')}
+                        className="p-1 rounded-sm text-slate-400 hover:text-slate-200 hover:bg-studio-panel transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                      </button>
+                    </div>
                   </div>
-                  <input
-                    type="range"
-                    min={FACE_FIDELITY_CONFIG.MIN}
-                    max={FACE_FIDELITY_CONFIG.MAX}
-                    step={FACE_FIDELITY_CONFIG.STEP}
-                    value={aiFaceFidelity}
-                    onChange={(e) => setAiFaceFidelity(Number(e.target.value))}
-                    className="w-full accent-slate-300 h-1.5 bg-studio-panel rounded-sm appearance-none cursor-pointer"
-                  />
+                  <div className="relative flex items-center">
+                    <input
+                      type="range"
+                      min={FACE_FIDELITY_CONFIG.MIN}
+                      max={FACE_FIDELITY_CONFIG.MAX}
+                      step={FACE_FIDELITY_CONFIG.STEP}
+                      value={aiFaceFidelity}
+                      disabled={isLocked}
+                      onChange={(e) => setAiFaceFidelity(Number(e.target.value))}
+                      className="w-full accent-slate-300 h-1.5 bg-studio-panel rounded-sm appearance-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                    <span
+                      className="absolute w-0.5 h-2.5 bg-slate-500 pointer-events-none -translate-x-1/2 top-1/2 -translate-y-1/2 rounded-full"
+                      style={{
+                        left: `${((FACE_FIDELITY_CONFIG.DEFAULT - FACE_FIDELITY_CONFIG.MIN) / (FACE_FIDELITY_CONFIG.MAX - FACE_FIDELITY_CONFIG.MIN)) * 100}%`,
+                      }}
+                      title={`${t('ai.fidelity_recommended', { val: FACE_FIDELITY_CONFIG.DEFAULT })}`}
+                    />
+                  </div>
                   <div className="flex justify-between text-[10px] text-slate-500 font-mono">
                     <span>{t('ai.more_sharpness', { val: FACE_FIDELITY_CONFIG.MIN })}</span>
                     <span>{t('ai.fidelity_recommended', { val: FACE_FIDELITY_CONFIG.DEFAULT })}</span>
@@ -548,11 +608,11 @@ export const RestorationSettings: React.FC = () => {
             <p className="text-[11px] text-slate-400 mb-3 leading-relaxed font-mono">
               {t('ai.whisper_description')}
             </p>
-            <div className="flex items-center gap-3">
-              <div className="flex-1">
-                <label className="text-[11px] font-medium text-slate-400 block mb-1 font-mono">{t('ai.whisper_model_size')}</label>
-                <Select value={whisperModel} onValueChange={setWhisperModel}>
-                  <SelectTrigger className="w-full bg-studio-panel border-studio-border text-white text-xs rounded-sm font-mono">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-slate-400 block font-mono">{t('ai.whisper_model_size')}</label>
+                <Select value={whisperModel} onValueChange={setWhisperModel} disabled={isLocked || isGeneratingSubtitles}>
+                  <SelectTrigger className="w-full h-9 bg-studio-panel border-studio-border text-white text-xs rounded-sm font-mono">
                     <SelectValue placeholder={t('ai.whisper_tiny_placeholder')} />
                   </SelectTrigger>
                   <SelectContent className="bg-studio-panel border-studio-border text-slate-200">
@@ -562,11 +622,12 @@ export const RestorationSettings: React.FC = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex-1 flex items-end">
+              <div className="space-y-1">
+                <label className="invisible text-[11px] font-medium block font-mono select-none" aria-hidden="true">&nbsp;</label>
                 <button
-                  disabled={isGeneratingSubtitles}
+                  disabled={isLocked || isGeneratingSubtitles}
                   onClick={handleGenerateSubtitles}
-                  className="w-full bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white font-mono font-semibold text-xs py-2 rounded-sm border border-studio-border transition cursor-pointer"
+                  className="w-full h-9 flex items-center justify-center bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-mono font-semibold text-xs rounded-sm border border-studio-border transition cursor-pointer"
                 >
                   {isGeneratingSubtitles ? t('ai.generating_subtitles') : t('ai.generate_subtitles_btn')}
                 </button>

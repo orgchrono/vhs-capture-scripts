@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useStudioStore } from '../store/useStudioStore';
 import { useGetObsStatsQuery, useToggleVirtualCamMutation } from '../api/studioRtkApi';
 import type { ObsStats } from '../types';
@@ -17,6 +18,7 @@ export interface UseLiveMonitorResult {
  * and live telemetry polling outside the JSX presentation view.
  */
 export function useLiveMonitor(): UseLiveMonitorResult {
+  const { t } = useTranslation();
   const { isCapturing } = useStudioStore();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -66,7 +68,7 @@ export function useLiveMonitor(): UseLiveMonitorResult {
         }
       } catch (err: unknown) {
         console.error('Failed to start Live Monitor:', err);
-        setError('Câmera Virtual não detectada ou sem permissão.');
+        setError(t('monitor.camera_not_detected'));
         setIsActive(false);
       }
     };

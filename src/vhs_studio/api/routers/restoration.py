@@ -6,7 +6,7 @@ import base64
 import subprocess
 from typing import Dict, Mapping, Union, Optional
 from fastapi import APIRouter, Request
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse, Response
 
 from vhs_studio.video.vapoursynth_qtgmc import VapourSynthQTGMC
 from vhs_studio.api.routers.security import is_safe_media_path
@@ -14,6 +14,25 @@ from vhs_studio.core.paths import RAW_MEDIA_DIR, MEDIA_DIR
 from vhs_studio.core.toolchain import Toolchain
 
 restoration_router = APIRouter(prefix="/api", tags=["Restoration"])
+
+
+@restoration_router.get("/monitor/live-restoration-frame")
+def get_live_restoration_frame():
+    """Retrieve the latest live frame actively processed by the restoration pipeline DAG."""
+    from vhs_studio.video.stream_runner import RestorationFrameBuffer
+
+    jpeg_bytes, frame_num, ts = RestorationFrameBuffer.get_instance().get_latest()
+    if not jpeg_bytes:
+        return Response(status_code=204)
+    return Response(
+        content=jpeg_bytes,
+        media_type="image/jpeg",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "X-Frame-Number": str(frame_num),
+            "X-Timestamp": f"{ts:.2f}",
+        },
+    )
 
 
 def resolve_media_input_path(input_file: str) -> str:
@@ -425,6 +444,7 @@ async def get_stream_proxy(
     denoise: bool = True,
     chroma_fix: bool = True,
     fps: int = 15,
+    timestamp: float = 0.0,
 ):
     target_path = resolve_media_input_path(source) if source else ""
     if source and not is_safe_media_path(target_path):
@@ -439,6 +459,8 @@ async def get_stream_proxy(
         return err_resp
 
     fps_val = max(1, min(60, int(fps)))
+    safe_time = max(0.0, float(timestamp))
+    ss_args = ["-ss", f"{safe_time:.3f}"] if safe_time > 0 else []
 
     if is_valid_source:
         if mode == "raw":
@@ -447,9 +469,44 @@ async def get_stream_proxy(
                 "-hide_banner",
                 "-loglevel", "error",
                 "-re",
+                *ss_args,
                 "-stream_loop", "-1",
                 "-i", target_path,
                 "-vf", f"scale=640:360,fps={fps_val}",
+                "-c:v", "mjpeg",
+                "-q:v", "8",
+                "-f", "mpjpeg",
+                "-boundary_tag", "frame",
+                "pipe:1",
+            ]
+        elif mode == "split":
+            vf_filters = []
+            if deinterlacer in ("bwdif", "qtgmc", "yadif"):
+                vf_filters.append("bwdif")
+            if chroma_fix:
+                vf_filters.append("colorchannelmixer=rr=1.0:gg=1.0:bb=1.0")
+            if denoise:
+                vf_filters.append("hqdn3d=3:2:6:4")
+            vf_filters.append("scale=640:360")
+            vf_filters.append(f"fps={fps_val}")
+            proc_vf = ",".join(vf_filters)
+
+            filter_complex = (
+                f"[0:v]split=2[raw_in][proc_in];"
+                f"[raw_in]scale=640:360,fps={fps_val}[raw_out];"
+                f"[proc_in]{proc_vf}[proc_out];"
+                f"[raw_out][proc_out]hstack=inputs=2[out]"
+            )
+            cmd = [
+                ffmpeg_bin,
+                "-hide_banner",
+                "-loglevel", "error",
+                "-re",
+                *ss_args,
+                "-stream_loop", "-1",
+                "-i", target_path,
+                "-filter_complex", filter_complex,
+                "-map", "[out]",
                 "-c:v", "mjpeg",
                 "-q:v", "8",
                 "-f", "mpjpeg",
@@ -473,6 +530,7 @@ async def get_stream_proxy(
                 "-hide_banner",
                 "-loglevel", "error",
                 "-re",
+                *ss_args,
                 "-stream_loop", "-1",
                 "-i", target_path,
                 "-vf", vf_str,
@@ -491,6 +549,29 @@ async def get_stream_proxy(
                 "-re",
                 "-f", "lavfi",
                 "-i", f"smptebars=size=640x360:rate={fps_val},noise=c0s=18:allf=t+u,tinterlace=mode=interleave_top",
+                "-c:v", "mjpeg",
+                "-q:v", "8",
+                "-f", "mpjpeg",
+                "-boundary_tag", "frame",
+                "pipe:1",
+            ]
+        elif mode == "split":
+            filter_complex = (
+                "[0:v]scale=640:360,noise=c0s=18:allf=t+u[raw_out];"
+                "[1:v]scale=640:360[proc_out];"
+                "[raw_out][proc_out]hstack=inputs=2[out]"
+            )
+            cmd = [
+                ffmpeg_bin,
+                "-hide_banner",
+                "-loglevel", "error",
+                "-re",
+                "-f", "lavfi",
+                "-i", f"smptebars=size=640x360:rate={fps_val}",
+                "-f", "lavfi",
+                "-i", f"smptebars=size=640x360:rate={fps_val}",
+                "-filter_complex", filter_complex,
+                "-map", "[out]",
                 "-c:v", "mjpeg",
                 "-q:v", "8",
                 "-f", "mpjpeg",

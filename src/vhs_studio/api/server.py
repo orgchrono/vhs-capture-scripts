@@ -41,13 +41,14 @@ def create_app() -> FastAPI:
     verify_origin = make_origin_verifier(SESSION_TOKEN)
     app_instance.middleware("http")(verify_origin)
 
-    # Restrict CORS to localhost only
+    # Restrict CORS to localhost only (supporting dynamic ports)
     app_instance.add_middleware(
         CORSMiddleware,
         allow_origins=[
             f"http://{DEFAULT_API_HOST}:{DEFAULT_API_PORT}",
             f"http://localhost:{DEFAULT_API_PORT}",
         ],
+        allow_origin_regex=r"^http://(127\.0\.0\.1|localhost)(:\d+)?$",
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

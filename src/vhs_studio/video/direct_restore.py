@@ -293,6 +293,8 @@ def restore_stream(args):
         y_bytes=y_bytes,
         luma_threshold=VideoConfig.LUMA_THRESHOLD,
         total_expected_frames=total_expected_frames,
+        width=w,
+        height=h,
     )
 
     def on_stream_progress(total, kept, frozen, dropped, elap):
@@ -305,6 +307,7 @@ def restore_stream(args):
                         "destination": args.output_path,
                         "status": "in_progress",
                         "total_frames": total,
+                        "total_expected_frames": total_expected_frames,
                         "kept_frames": kept,
                         "frozen_frames": frozen,
                         "dropped_frames": dropped,
@@ -623,6 +626,22 @@ def main():
             output_dir, f"{base_name}_restored_{suffix}.{ext}"
         )
 
+    target_dir = os.path.dirname(args.output_path)
+    try:
+        os.makedirs(target_dir, exist_ok=True)
+        test_file = os.path.join(target_dir, ".write_test")
+        with open(test_file, "w") as f:
+            f.write("ok")
+        os.remove(test_file)
+    except PermissionError:
+        log.error(
+            f"[WINDOWS DEFENDER / PERMISSÃO] Acesso de escrita negado na pasta: {target_dir}\n"
+            "O recurso 'Acesso a Pastas Controladas' (Controlled Folder Access) do Windows Defender ou uma restrição de permissão está bloqueando gravações.\n"
+            "Solução: Permita o executável do Python no Windows Defender ou altere o diretório de destino."
+        )
+        JobManager.release_lock()
+        sys.exit(1)
+
     log.info(f"\n[RESTAURAÇÃO] Arquivo de Entrada: {args.input_path}")
 
     # Análise técnica prévia e resolução de estratégia
@@ -655,14 +674,15 @@ def main():
         resolved_deint = args.deinterlacer
 
     if resolved_deint == "qtgmc":
-        log.error(
-            "[QTGMC] QTGMC/VapourSynth não está implementado na pipeline atual. Por favor, aguarde a fase P4 (ou instale/configure as dependências manualmente se souber o que está fazendo). Utilize 'znedi3', 'nnedi' ou 'bwdif' por enquanto."
-        )
-        try:
-            JobManager.release_lock()
-        except Exception:
-            pass
-        sys.exit(1)
+        if VapourSynthQTGMC.is_available():
+            log.info("[QTGMC] VapourSynth/vspipe detectado para desentrelaçamento de alta fidelidade.")
+        else:
+            log.warning(
+                "[QTGMC] VapourSynth/vspipe não detectado para streaming direto. "
+                "Aplicando fallback automático para desentrelaçador broadcast 'bwdif'."
+            )
+            resolved_deint = "bwdif"
+            args.deinterlacer = "bwdif"
 
     args.audio_mode = strat.get("audio_policy", "stereo")
     args.target_fps = strat.get("target_fps", getattr(args, "fps", 59.94) or 59.94)
@@ -672,7 +692,10 @@ def main():
     else:
         args.start_sec = find_first_video_frame(args.input_path)
 
-    restore_stream(args)
+    try:
+        restore_stream(args)
+    finally:
+        JobManager.release_lock()
 
 
 if __name__ == "__main__":

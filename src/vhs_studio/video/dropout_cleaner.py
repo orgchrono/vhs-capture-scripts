@@ -17,7 +17,7 @@ class DropoutCleaner:
         Uses temporal median filtering and spatial interpolation for instantaneous tape artifacts.
         """
         # tmedian with radius 1 removes 1-frame transient streaks; removegrain suppresses isolated impulsive dots
-        return "removegrain=m=1,tmedian=radius=1"
+        return "removegrain=1,tmedian=radius=1"
 
     @staticmethod
     def is_dropout_line(

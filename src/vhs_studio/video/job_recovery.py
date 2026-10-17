@@ -119,14 +119,24 @@ def scan_incomplete_jobs() -> List[Dict[str, Any]]:
                     seen_output_files.add(os.path.normpath(dest).lower())
                     seen_output_files.add(os.path.normpath(f"{dest}.part").lower())
 
+                    if total_expected == 0 and source_exists:
+                        try:
+                            from vhs_studio.core.vhs_common import probe_media
+                            s_info = probe_media(source)
+                            s_dur = float(s_info.get("duration", 0.0))
+                            s_fps = float(s_info.get("fps", fps or 29.97))
+                            if s_dur > 0 and s_fps > 0:
+                                total_expected = int(s_dur * s_fps)
+                        except Exception:
+                            pass
+
                     pct = 0.0
-                    if total_expected > 0:
-                        pct = min(99.9, (processed / total_expected) * 100.0)
+                    if total_expected > 0 and processed > 0:
+                        pct = min(100.0, (processed / total_expected) * 100.0)
                     elif dest_size > 0 and source_exists:
-                        # Rough estimate based on file size ratio
                         src_size = os.path.getsize(source)
                         if src_size > 0:
-                            pct = min(99.9, (dest_size / src_size) * 100.0)
+                            pct = min(90.0, (dest_size / src_size) * 50.0)
 
                     mtime = os.path.getmtime(chk_path)
                     dt_str = datetime.datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M:%S")
@@ -200,7 +210,7 @@ def scan_incomplete_jobs() -> List[Dict[str, Any]]:
                     if source_exists:
                         src_size = os.path.getsize(source_file)
                         if src_size > 0:
-                            pct = min(99.9, (dest_size / src_size) * 100.0)
+                            pct = min(90.0, (dest_size / src_size) * 50.0)
 
                     mtime = os.path.getmtime(part_path)
                     dt_str = datetime.datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M:%S")

@@ -167,9 +167,26 @@ def main(unknown_args):
 
     base_name = os.path.splitext(os.path.basename(args.input))[0]
     output_dir = os.path.join(RESTORED_MEDIA_DIR, base_name)
-    os.makedirs(output_dir, exist_ok=True)
+    try:
+        os.makedirs(output_dir, exist_ok=True)
+        test_file = os.path.join(output_dir, ".write_test")
+        with open(test_file, "w") as f:
+            f.write("ok")
+        os.remove(test_file)
+    except PermissionError:
+        log.error(
+            f"[WINDOWS DEFENDER / PERMISSÃO] Acesso de escrita negado no diretório: {output_dir}\n"
+            "O recurso 'Acesso a Pastas Controladas' do Windows Defender bloqueou a gravação.\n"
+            "Solução: Permita o processo nas exceções do Defender ou use outro diretório."
+        )
+        sys.exit(1)
 
     output_path, _ = resolve_output_spec(args.input, output_dir, params)
 
-    orch = PipelineOrchestrator(args.input, output_path, args, params)
-    orch.start()
+    from vhs_studio.core.jobs import JobManager
+
+    try:
+        orch = PipelineOrchestrator(args.input, output_path, args, params)
+        orch.start()
+    finally:
+        JobManager.release_lock()

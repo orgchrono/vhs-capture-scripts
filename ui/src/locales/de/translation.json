@@ -83,6 +83,10 @@
     "stream_connecting": "Verbindung zum Sub-Stream wird hergestellt...",
     "split_seek_backward": "-5s",
     "split_seek_forward": "+5s",
+    "split_seek_backward_30s": "-30s",
+    "split_seek_forward_30s": "+30s",
+    "timeline_scrubber": "Zeitachsen-Scrubber",
+    "camera_not_detected": "Virtuelle Kamera nicht erkannt oder keine Berechtigung.",
     "rendering_preview": "Echtzeit-Rendering-Vorschau",
     "tape_loaded_preview": "Band Geladen"
   },
@@ -193,7 +197,8 @@
     "crf_larger": "Larger File (14)",
     "crf_default": "Standard (18)",
     "crf_smaller": "Smaller File (28)",
-    "tab_presets": "Modus"
+    "tab_presets": "Modus",
+    "reset_default": "Auf Standard zurücksetzen"
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",
@@ -407,7 +412,11 @@
     "restore_aborted": "[WIEDERHERSTELLUNG] Prozess und Signal sicher abgebrochen.",
     "panasonic_tree_loading": "[PANASONIC INGEST] Lade Sitzungen und Aufnahmebaum von: {{path}}",
     "panasonic_tree_loaded": "[PANASONIC INGEST] Baum geladen: {{count}} Titel erkannt.",
-    "panasonic_extracting_selected": "[PANASONIC INGEST] Extrahiere {{count}} ausgewählte(n) Titel..."
+    "panasonic_extracting_selected": "[PANASONIC INGEST] Extrahiere {{count}} ausgewählte(n) Titel...",
+    "whisper_starting": "[WHISPER] Starte Untertitel-Generierung mit Modell {{model}}...",
+    "whisper_background_started": "[WHISPER] Verarbeitung im Hintergrund gestartet.",
+    "whisper_warning": "[WHISPER WARNUNG] {{msg}}",
+    "whisper_error": "[WHISPER FEHLER] {{error}}"
   },
   "recovery": {
     "title": "Laufende / Unterbrochene Projekte",

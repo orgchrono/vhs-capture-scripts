@@ -83,6 +83,10 @@
     "stream_connecting": "Подключение к легкому субпотоку...",
     "split_seek_backward": "-5s",
     "split_seek_forward": "+5s",
+    "split_seek_backward_30s": "-30с",
+    "split_seek_forward_30s": "+30с",
+    "timeline_scrubber": "Полоса перемотки времени",
+    "camera_not_detected": "Виртуальная камера не обнаружена или нет разрешения.",
     "rendering_preview": "Предпросмотр рендеринга",
     "tape_loaded_preview": "Кассета загружена"
   },
@@ -193,7 +197,8 @@
     "crf_larger": "Larger File (14)",
     "crf_default": "Standard (18)",
     "crf_smaller": "Smaller File (28)",
-    "tab_presets": "Режим"
+    "tab_presets": "Режим",
+    "reset_default": "Сбросить по умолчанию"
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",
@@ -407,7 +412,11 @@
     "restore_aborted": "[ВОССТАНОВЛЕНИЕ] Процесс и сигнал безопасно прерваны.",
     "panasonic_tree_loading": "[PANASONIC INGEST] Загрузка сессий и дерева записей из: {{path}}",
     "panasonic_tree_loaded": "[PANASONIC INGEST] Дерево загружено: обнаружено {{count}} записей.",
-    "panasonic_extracting_selected": "[PANASONIC INGEST] Извлечение {{count}} выбранных записей..."
+    "panasonic_extracting_selected": "[PANASONIC INGEST] Извлечение {{count}} выбранных записей...",
+    "whisper_starting": "[WHISPER] Запуск генерации субтитров с моделью {{model}}...",
+    "whisper_background_started": "[WHISPER] Обработка запущена в фоновом режиме.",
+    "whisper_warning": "[WHISPER ПРЕДУПРЕЖДЕНИЕ] {{msg}}",
+    "whisper_error": "[WHISPER ОШИБКА] {{error}}"
   },
   "recovery": {
     "title": "Текущие / Прерванные проекты",

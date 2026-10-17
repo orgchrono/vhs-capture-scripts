@@ -2,6 +2,7 @@
 
 import os
 import sys
+import atexit
 from typing import Optional
 from vhs_studio.core.logger import log
 
@@ -87,6 +88,7 @@ class JobManager:
 
         with open(lock_path, "w", encoding="utf-8") as f:
             f.write(f"{os.getpid()}:pipeline_running")
+        atexit.register(JobManager.release_lock)
 
     @staticmethod
     def release_lock():

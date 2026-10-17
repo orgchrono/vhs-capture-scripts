@@ -52,6 +52,9 @@ export function useStudioStore() {
       toggleConsole: () => dispatch(actions.toggleConsole()),
       setConsoleCollapsed: (val: boolean) => dispatch(actions.setConsoleCollapsed(val)),
       setWorkspacePreset: (preset: WorkspacePreset) => dispatch(actions.setWorkspacePreset(preset)),
+      setPreviewTimestamp: (val: number) => dispatch(actions.setPreviewTimestamp(val)),
+      setSplitPosition: (val: number) => dispatch(actions.setSplitPosition(val)),
+      setPreviewMode: (val: 'stream' | 'freeze') => dispatch(actions.setPreviewMode(val)),
     };
   }, [dispatch]);
 
