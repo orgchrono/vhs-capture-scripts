@@ -206,25 +206,25 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
       aria-label={t('monitor.split_title')}
       data-testid="split-comparison-monitor"
     >
-      {/* Top Header Bar */}
-      <div className="absolute top-2 left-2 right-2 z-20 flex items-center justify-between pointer-events-auto bg-black/90 backdrop-blur-md px-2.5 py-1.5 rounded-sm border border-studio-border text-xs font-mono gap-2">
-        {/* Left: Monitor Title & Split Percentage */}
+      {/* Top Header Bar (SSOT with LiveMonitor) */}
+      <div className="absolute top-2.5 left-2.5 right-2.5 z-20 flex items-center justify-between pointer-events-auto gap-2">
+        {/* Left: Monitor Title & Split Percentage Badge */}
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-bold text-slate-200 flex items-center gap-1.5">
+          <span className="bg-black/85 backdrop-blur-md px-2.5 py-1 rounded-sm text-[10px] font-mono text-slate-300 border border-studio-border shadow-sm flex items-center gap-1.5 shrink-0">
             <Layers className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            {t('monitor.split_title')}
-          </span>
-          <span className="text-[10px] text-slate-400 border-l border-studio-border pl-2 tabular-nums">
-            {splitPos}%
+            <span className="font-bold text-slate-200">{t('monitor.split_title')}</span>
+            <span className="text-slate-400 border-l border-studio-border pl-1.5 tabular-nums">
+              {splitPos}%
+            </span>
           </span>
         </div>
 
         {/* Center: Clean Segmented Mode Selector */}
-        <div className="flex items-center gap-0.5 bg-studio-surface p-0.5 rounded-sm border border-studio-border">
+        <div className="flex items-center gap-0.5 bg-black/85 backdrop-blur-md p-0.5 rounded-sm border border-studio-border shadow-sm">
           <button
             type="button"
             onClick={() => handleModeChange('stream')}
-            className={`w-6 h-6 flex items-center justify-center rounded-xs transition cursor-pointer ${
+            className={`w-5 h-5 flex items-center justify-center rounded-xs transition cursor-pointer ${
               viewMode === 'stream'
                 ? 'bg-amber-500/20 text-amber-300 font-semibold'
                 : 'text-slate-400 hover:text-slate-200'
@@ -233,12 +233,12 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
             aria-label={t('monitor.mode_live_stream')}
             data-testid="mode-stream-btn"
           >
-            <Radio className="w-3.5 h-3.5" />
+            <Radio className="w-3 h-3" />
           </button>
           <button
             type="button"
             onClick={() => handleModeChange('freeze')}
-            className={`w-6 h-6 flex items-center justify-center rounded-xs transition cursor-pointer ${
+            className={`w-5 h-5 flex items-center justify-center rounded-xs transition cursor-pointer ${
               viewMode === 'freeze'
                 ? 'bg-amber-500/20 text-amber-300 font-semibold'
                 : 'text-slate-400 hover:text-slate-200'
@@ -247,17 +247,17 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
             aria-label={t('monitor.mode_freeze_frame')}
             data-testid="mode-freeze-btn"
           >
-            <Film className="w-3.5 h-3.5" />
+            <Film className="w-3 h-3" />
           </button>
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 ml-auto">
           <button
             type="button"
             onClick={handleRefresh}
             disabled={viewMode === 'freeze' && isFetching}
-            className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-white rounded-sm hover:bg-studio-surface border border-studio-border transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center bg-black/85 backdrop-blur-md text-slate-400 hover:text-white rounded-sm hover:bg-studio-surface border border-studio-border shadow-sm transition cursor-pointer shrink-0"
             title={t('monitor.split_refresh')}
             aria-label={t('monitor.split_refresh')}
             data-testid="split-refresh-btn"
@@ -269,7 +269,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-300 hover:bg-red-950/40 rounded-sm border border-studio-border hover:border-red-800/60 transition cursor-pointer"
+              className="w-6 h-6 flex items-center justify-center bg-black/85 backdrop-blur-md text-slate-400 hover:text-red-300 hover:bg-red-950/40 rounded-sm border border-studio-border hover:border-red-800/60 shadow-sm transition cursor-pointer shrink-0"
               title={t('monitor.split_close')}
               aria-label={t('monitor.split_close')}
               data-testid="split-close-btn"
