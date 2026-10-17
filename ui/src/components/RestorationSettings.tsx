@@ -129,23 +129,26 @@ export const RestorationSettings: React.FC = () => {
   return (
     <div className="bg-studio-panel border border-studio-border rounded-md p-3 shadow-sm flex-1 min-h-0 flex flex-col h-full">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-2.5 shrink-0">
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           <Sliders className="w-4 h-4 text-slate-400 shrink-0" />
-          <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">
+          <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono shrink-0">
             {t('settings.technical_title')}
           </h3>
-          <span className="hidden sm:inline-flex items-center gap-1.5 text-[10px] font-mono font-medium text-slate-300 bg-studio-surface border border-studio-border px-2 py-0.5 rounded-sm">
-            <span className="led-lamp led-live"></span>
-            {presetLabels[store.preset] || t('settings.custom')}
+          <span
+            className="hidden sm:inline-flex items-center gap-1.5 text-[10px] font-mono font-medium text-slate-300 bg-studio-surface border border-studio-border px-2 py-0.5 rounded-sm shrink-0 max-w-[160px]"
+            title={presetLabels[store.preset] || t('settings.custom')}
+          >
+            <span className="led-lamp led-live shrink-0"></span>
+            <span className="truncate">{presetLabels[store.preset] || t('settings.custom')}</span>
           </span>
         </div>
-        <div className="relative w-full sm:w-60">
+        <div className="relative w-full sm:w-56 shrink-0">
           <Search className="absolute left-2.5 top-2 h-4 w-4 text-slate-500" />
           <Input
             placeholder={t('settings.search_placeholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-8.5 h-8 text-xs bg-studio-surface border border-studio-border text-white placeholder:text-slate-500 focus:border-studio-border-focus rounded-sm font-mono"
+            className="pl-8.5 h-8 text-xs bg-studio-surface border border-studio-border text-white placeholder:text-slate-500 focus:border-studio-border-focus rounded-sm font-mono w-full"
           />
         </div>
       </div>
@@ -418,9 +421,9 @@ export const RestorationSettings: React.FC = () => {
               <Zap className="w-3.5 h-3.5 text-amber-500" /> {t('ai.modules_title')}
             </h4>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
               {/* Áudio Neural DeepFilterNet */}
-              <div className="bg-studio-surface p-3 rounded-sm border border-studio-border flex items-center justify-between">
+              <div className="bg-studio-surface p-3 rounded-sm border border-studio-border flex items-center justify-between min-h-[72px]">
                 <div className="space-y-0.5 pr-2">
                   <div className="flex items-center gap-2">
                     <label className="text-xs font-medium text-slate-200 font-mono">{t('ai.deepfilter_label')}</label>
@@ -441,7 +444,7 @@ export const RestorationSettings: React.FC = () => {
               </div>
 
               {/* Dropout Cleaner */}
-              <div className="bg-studio-surface p-3 rounded-sm border border-studio-border flex items-center justify-between">
+              <div className="bg-studio-surface p-3 rounded-sm border border-studio-border flex items-center justify-between min-h-[72px]">
                 <div className="space-y-0.5 pr-2">
                   <div className="flex items-center gap-2">
                     <label className="text-xs font-medium text-slate-200 font-mono">{t('ai.dropout_label')}</label>
@@ -462,7 +465,7 @@ export const RestorationSettings: React.FC = () => {
               </div>
 
               {/* RIFE 60fps */}
-              <div className="bg-studio-surface p-3 rounded-sm border border-studio-border flex items-center justify-between">
+              <div className="bg-studio-surface p-3 rounded-sm border border-studio-border flex items-center justify-between min-h-[72px]">
                 <div className="space-y-0.5 pr-2">
                   <div className="flex items-center gap-2">
                     <label className="text-xs font-medium text-slate-200 font-mono">{t('ai.rife_label')}</label>
@@ -483,7 +486,7 @@ export const RestorationSettings: React.FC = () => {
               </div>
 
               {/* Super Resolução / Upscaler */}
-              <div className="bg-studio-surface p-3 rounded-sm border border-studio-border flex flex-col justify-between gap-2.5">
+              <div className="bg-studio-surface p-3 rounded-sm border border-studio-border flex flex-col justify-between gap-2.5 min-h-[72px]">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">

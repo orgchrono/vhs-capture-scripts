@@ -343,12 +343,6 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
               {t('monitor.split_raw')}
             </span>
           </div>
-
-          {/* Scanline Effect specifically on Raw side */}
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.45)_50%)] bg-[length:100%_4px] opacity-35"
-          />
         </div>
 
         {/* Draggable Divider Handle Line */}

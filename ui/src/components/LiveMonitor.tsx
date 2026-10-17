@@ -99,81 +99,71 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
 
   return (
     <div className="relative w-full h-full bg-black flex flex-col items-center justify-center overflow-hidden" data-testid="live-monitor-container">
-      {/* Top Left Badge & A/B Split Toggle */}
-      <div className="absolute top-3 left-3 right-3 z-10 flex items-center justify-between pointer-events-auto">
-        <div className="flex gap-2 items-center">
-          <span className="bg-studio-panel/90 px-2.5 py-1 rounded-sm text-[10px] font-mono text-slate-300 border border-studio-border shadow-sm flex items-center gap-1.5">
-            <span
-              className={`led-lamp ${
-                isRestoring
-                  ? 'led-live animate-pulse'
-                  : isActive
-                  ? 'led-live'
-                  : selectedFile
-                  ? 'led-idle'
-                  : 'led-idle'
-              }`}
-            />
-            {isRestoring
-              ? t('monitor.rendering_preview')
-              : isActive
-              ? t('monitor.live_preview')
-              : selectedFile
-              ? t('monitor.tape_loaded_preview')
-              : t('monitor.live_preview')}
-          </span>
-          <button
-            type="button"
-            onClick={() => setIsSplitMode(true)}
-            className="bg-studio-panel/90 hover:bg-studio-surface text-slate-300 hover:text-white px-2 py-1 rounded-sm text-[10px] font-mono border border-studio-border shadow-sm flex items-center gap-1.5 transition cursor-pointer"
-            title={t('monitor.split_view')}
-            aria-label={t('monitor.split_view')}
-            data-testid="toggle-split-view-btn"
-          >
-            <Layers className="w-3 h-3 text-amber-400" />
-            <span className="hidden sm:inline">{t('monitor.split_view')}</span>
-          </button>
+      {/* Top Header: Signal Status & Telemetry HUD */}
+      <div className="absolute top-2.5 left-2.5 right-2.5 z-20 flex items-center justify-between pointer-events-auto gap-2 flex-wrap">
+        <span className="bg-black/85 backdrop-blur-md px-2.5 py-1 rounded-sm text-[10px] font-mono text-slate-300 border border-studio-border shadow-sm flex items-center gap-1.5 shrink-0">
+          <span
+            className={`led-lamp ${
+              isRestoring
+                ? 'led-live animate-pulse'
+                : isActive
+                ? 'led-live'
+                : selectedFile
+                ? 'led-idle'
+                : 'led-idle'
+            }`}
+          />
+          {isRestoring
+            ? t('monitor.rendering_preview')
+            : isActive
+            ? t('monitor.live_preview')
+            : selectedFile
+            ? t('monitor.tape_loaded_preview')
+            : t('monitor.live_preview')}
+        </span>
+
+        <div className="flex items-center gap-1.5 ml-auto flex-wrap">
+          <AnimatePresence>
+            {(isCapturing || obsStats?.recording) && (
+              <motion.span
+                key="badge-rec"
+                {...badgeMotion}
+                className="bg-red-900/90 px-2.5 py-1 rounded-sm text-[10px] font-bold text-white border border-red-600/50 shadow-sm flex items-center gap-1.5 animate-pulse tracking-wider font-mono shrink-0"
+              >
+                <span className="led-lamp led-rec"></span>
+                {obsStats?.timecode ? `REC ${obsStats.timecode}` : 'REC'}
+              </motion.span>
+            )}
+            {obsStats?.connected && obsStats?.bitrate_kbps !== undefined && obsStats.bitrate_kbps > 0 && (
+              <motion.span
+                key="badge-bitrate"
+                {...badgeMotion}
+                className="bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-sm text-[10px] font-mono font-semibold text-slate-200 border border-studio-border shadow-sm flex items-center gap-1.5 shrink-0"
+              >
+                <Activity className="w-3 h-3 text-slate-400" />
+                {formatBitrate(obsStats.bitrate_kbps)}
+              </motion.span>
+            )}
+            {obsStats?.connected && obsStats?.fps !== undefined && obsStats.fps > 0 && (
+              <motion.span
+                key="badge-fps"
+                {...badgeMotion}
+                className="bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-sm text-[10px] font-mono text-slate-300 border border-studio-border shadow-sm tabular-nums shrink-0"
+              >
+                {obsStats.fps} FPS
+              </motion.span>
+            )}
+            {Boolean(health?.dropped_frames && health.dropped_frames > 0) && (
+              <motion.span
+                key="badge-drops"
+                {...badgeMotion}
+                className="bg-amber-900/90 px-2.5 py-1 rounded-sm text-[10px] font-bold text-white border border-amber-600/50 shadow-sm flex items-center gap-1.5 animate-pulse tracking-wider font-mono shrink-0"
+              >
+                <AlertTriangle className="w-3 h-3 text-white" /> {t('monitor.dropped_frames', { count: health?.dropped_frames })}
+              </motion.span>
+            )}
+          </AnimatePresence>
         </div>
-        <AnimatePresence>
-          {(isCapturing || obsStats?.recording) && (
-            <motion.span
-              key="badge-rec"
-              {...badgeMotion}
-              className="bg-red-900/90 px-2.5 py-1 rounded-sm text-[10px] font-bold text-white border border-red-600/50 shadow-sm flex items-center gap-1.5 animate-pulse tracking-wider font-mono"
-            >
-              <span className="led-lamp led-rec"></span>
-              {obsStats?.timecode ? `REC ${obsStats.timecode}` : 'REC'}
-            </motion.span>
-          )}
-          {obsStats?.connected && obsStats?.bitrate_kbps !== undefined && obsStats.bitrate_kbps > 0 && (
-            <motion.span
-              key="badge-bitrate"
-              {...badgeMotion}
-              className="bg-studio-panel/90 px-2.5 py-1 rounded-sm text-[10px] font-mono font-semibold text-slate-200 border border-studio-border shadow-sm flex items-center gap-1.5"
-            >
-              <Activity className="w-3 h-3 text-slate-400" />
-              {formatBitrate(obsStats.bitrate_kbps)}
-            </motion.span>
-          )}
-          {obsStats?.connected && obsStats?.fps !== undefined && obsStats.fps > 0 && (
-            <motion.span
-              key="badge-fps"
-              {...badgeMotion}
-              className="bg-studio-panel/90 px-2.5 py-1 rounded-sm text-[10px] font-mono text-slate-300 border border-studio-border shadow-sm tabular-nums"
-            >
-              {obsStats.fps} FPS
-            </motion.span>
-          )}
-          {Boolean(health?.dropped_frames && health.dropped_frames > 0) && (
-            <motion.span
-              key="badge-drops"
-              {...badgeMotion}
-              className="bg-amber-900/90 px-2.5 py-1 rounded-sm text-[10px] font-bold text-white border border-amber-600/50 shadow-sm flex items-center gap-1.5 animate-pulse tracking-wider font-mono"
-            >
-              <AlertTriangle className="w-3 h-3 text-white" /> {t('monitor.dropped_frames', { count: health?.dropped_frames })}
-            </motion.span>
-          )}
-        </AnimatePresence>
       </div>
       
       {/* Live Rendering Miniature or Loaded Tape Preview */}
@@ -235,9 +225,21 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
         <div className="absolute bottom-0 right-0 w-2.5 h-2.5 border-b-2 border-r-2 border-white/20" />
       </div>
 
-      {/* Bottom Right Format Badge */}
-      <div className="absolute bottom-3 right-3 z-10 flex items-center gap-2">
-        <span className="bg-black/70 backdrop-blur-md px-2 py-0.5 rounded-sm text-[9px] font-mono text-slate-400 border border-white/10 shadow-sm">
+      {/* Bottom Broadcast Toolbar: Actions & SMPTE Format */}
+      <div className="absolute bottom-2.5 left-2.5 right-2.5 z-20 flex items-center justify-between gap-2 pointer-events-auto">
+        <button
+          type="button"
+          onClick={() => setIsSplitMode(true)}
+          className="bg-black/85 hover:bg-studio-surface text-amber-300 hover:text-white px-2.5 py-1 rounded-sm text-[10px] font-mono border border-amber-500/40 hover:border-amber-400 shadow-sm flex items-center gap-1.5 transition cursor-pointer"
+          title={t('monitor.split_view')}
+          aria-label={t('monitor.split_view')}
+          data-testid="toggle-split-view-btn"
+        >
+          <Layers className="w-3.5 h-3.5 text-amber-400" />
+          <span>{t('monitor.split_view')}</span>
+        </button>
+
+        <span className="bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-sm text-[9px] font-mono text-slate-400 border border-white/10 shadow-sm">
           {t('monitor.smpte_format')}
         </span>
       </div>

@@ -159,12 +159,12 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
           )}
 
           {/* Industry Standard Log Level Filter */}
-          <div className="hidden xl:flex items-center gap-1 ml-1 bg-studio-panel px-1 py-0.5 rounded-sm border border-studio-border text-[10px] font-mono shrink-0">
+          <div className="hidden xl:flex items-center gap-1 ml-1 bg-studio-panel px-1 h-6 rounded-sm border border-studio-border text-[10px] font-mono shrink-0">
             <Filter className="w-3 h-3 text-slate-500 mr-0.5" />
             <button
               type="button"
               onClick={() => setFilterLevel('all')}
-              className={`px-1.5 py-0.5 rounded-sm cursor-pointer ${
+              className={`px-1.5 h-5 flex items-center rounded-sm cursor-pointer ${
                 filterLevel === 'all'
                   ? 'bg-studio-surface text-white font-bold'
                   : 'text-slate-400 hover:text-slate-200'
@@ -175,7 +175,7 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
             <button
               type="button"
               onClick={() => setFilterLevel('info')}
-              className={`px-1.5 py-0.5 rounded-sm cursor-pointer ${
+              className={`px-1.5 h-5 flex items-center rounded-sm cursor-pointer ${
                 filterLevel === 'info'
                   ? 'bg-slate-800 text-slate-200 font-bold'
                   : 'text-slate-400 hover:text-slate-200'
@@ -186,7 +186,7 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
             <button
               type="button"
               onClick={() => setFilterLevel('warn')}
-              className={`px-1.5 py-0.5 rounded-sm cursor-pointer ${
+              className={`px-1.5 h-5 flex items-center rounded-sm cursor-pointer ${
                 filterLevel === 'warn'
                   ? 'bg-amber-950/60 text-amber-300 font-bold'
                   : 'text-slate-400 hover:text-amber-300'
@@ -197,7 +197,7 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
             <button
               type="button"
               onClick={() => setFilterLevel('error')}
-              className={`px-1.5 py-0.5 rounded-sm cursor-pointer ${
+              className={`px-1.5 h-5 flex items-center rounded-sm cursor-pointer ${
                 filterLevel === 'error'
                   ? 'bg-red-950/60 text-red-300 font-bold'
                   : 'text-slate-400 hover:text-red-300'
@@ -208,7 +208,7 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
             <button
               type="button"
               onClick={() => setFilterLevel('debug')}
-              className={`px-1.5 py-0.5 rounded-sm cursor-pointer ${
+              className={`px-1.5 h-5 flex items-center rounded-sm cursor-pointer ${
                 filterLevel === 'debug'
                   ? 'bg-cyan-950/60 text-cyan-300 font-bold'
                   : 'text-slate-400 hover:text-cyan-300'
@@ -219,7 +219,7 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
           </div>
 
           {/* Real-time Log Search Input */}
-          <div className="relative flex items-center min-w-[100px] max-w-[200px] flex-1">
+          <div className="relative flex items-center min-w-[100px] max-w-[200px] flex-1 h-6">
             <Search className="w-3 h-3 text-slate-500 absolute left-2 pointer-events-none shrink-0" />
             <input
               type="text"
@@ -227,7 +227,7 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t('console.search_placeholder', 'Buscar logs...')}
               aria-label={t('console.search_placeholder', 'Buscar logs')}
-              className="bg-studio-panel border border-studio-border rounded-sm pl-6 pr-6 py-0.5 text-[10px] text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-studio-border-focus focus:ring-1 focus:ring-studio-border-focus w-full transition font-mono"
+              className="bg-studio-panel border border-studio-border rounded-sm pl-6 pr-6 h-6 text-[10px] text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-studio-border-focus focus:ring-1 focus:ring-studio-border-focus w-full transition font-mono leading-none"
             />
             {searchQuery && (
               <button
