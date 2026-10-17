@@ -219,40 +219,40 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           </span>
         </div>
 
-        {/* Center: Clean Segmented Mode Selector */}
-        <div className="flex items-center gap-0.5 bg-black/85 backdrop-blur-md p-0.5 rounded-sm border border-studio-border shadow-sm">
-          <button
-            type="button"
-            onClick={() => handleModeChange('stream')}
-            className={`w-5 h-5 flex items-center justify-center rounded-xs transition cursor-pointer ${
-              viewMode === 'stream'
-                ? 'bg-amber-500/20 text-amber-300 font-semibold'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-            title={t('monitor.mode_live_stream')}
-            aria-label={t('monitor.mode_live_stream')}
-            data-testid="mode-stream-btn"
-          >
-            <Radio className="w-3 h-3" />
-          </button>
-          <button
-            type="button"
-            onClick={() => handleModeChange('freeze')}
-            className={`w-5 h-5 flex items-center justify-center rounded-xs transition cursor-pointer ${
-              viewMode === 'freeze'
-                ? 'bg-amber-500/20 text-amber-300 font-semibold'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-            title={t('monitor.mode_freeze_frame')}
-            aria-label={t('monitor.mode_freeze_frame')}
-            data-testid="mode-freeze-btn"
-          >
-            <Film className="w-3 h-3" />
-          </button>
-        </div>
-
-        {/* Right: Actions */}
+        {/* Right: Controls & Actions (Sub-screen / Scrubber Mode, Refresh & Close) */}
         <div className="flex items-center gap-1.5 ml-auto">
+          {/* Sub-Screen / View Mode Selector */}
+          <div className="flex items-center gap-0.5 bg-black/85 backdrop-blur-md p-0.5 rounded-sm border border-studio-border shadow-sm">
+            <button
+              type="button"
+              onClick={() => handleModeChange('stream')}
+              className={`w-5 h-5 flex items-center justify-center rounded-xs transition cursor-pointer ${
+                viewMode === 'stream'
+                  ? 'bg-amber-500/20 text-amber-300 font-semibold'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+              title={t('monitor.mode_live_stream')}
+              aria-label={t('monitor.mode_live_stream')}
+              data-testid="mode-stream-btn"
+            >
+              <Radio className="w-3 h-3" />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleModeChange('freeze')}
+              className={`w-5 h-5 flex items-center justify-center rounded-xs transition cursor-pointer ${
+                viewMode === 'freeze'
+                  ? 'bg-amber-500/20 text-amber-300 font-semibold'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+              title={t('monitor.mode_freeze_frame')}
+              aria-label={t('monitor.mode_freeze_frame')}
+              data-testid="mode-freeze-btn"
+            >
+              <Film className="w-3 h-3" />
+            </button>
+          </div>
+
           <button
             type="button"
             onClick={handleRefresh}
