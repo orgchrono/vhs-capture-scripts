@@ -536,6 +536,26 @@ def get_comparison_frame(
         return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
 
 
+def _build_proxy_processed_filters(
+    deinterlacer: str,
+    chroma_fix: bool,
+    denoise: bool,
+    scale_filter: str,
+    fps_val: int,
+) -> str:
+    """Build the comma-separated FFmpeg video filter chain for proxy stream rendering."""
+    vf_filters = []
+    if deinterlacer in ("bwdif", "qtgmc", "yadif"):
+        vf_filters.append("bwdif")
+    if chroma_fix:
+        vf_filters.append("colorchannelmixer=rr=1.0:gg=1.0:bb=1.0")
+    if denoise:
+        vf_filters.append("hqdn3d=3:2:6:4")
+    vf_filters.append(scale_filter)
+    vf_filters.append(f"fps={fps_val}")
+    return ",".join(vf_filters)
+
+
 @restoration_router.get("/monitor/stream-proxy")
 async def get_stream_proxy(
     source: str = "",
@@ -581,16 +601,9 @@ async def get_stream_proxy(
                 "pipe:1",
             ]
         elif mode == "split":
-            vf_filters = []
-            if deinterlacer in ("bwdif", "qtgmc", "yadif"):
-                vf_filters.append("bwdif")
-            if chroma_fix:
-                vf_filters.append("colorchannelmixer=rr=1.0:gg=1.0:bb=1.0")
-            if denoise:
-                vf_filters.append("hqdn3d=3:2:6:4")
-            vf_filters.append(scale_filter)
-            vf_filters.append(f"fps={fps_val}")
-            proc_vf = ",".join(vf_filters)
+            proc_vf = _build_proxy_processed_filters(
+                deinterlacer, chroma_fix, denoise, scale_filter, fps_val
+            )
 
             filter_complex = (
                 f"[0:v]split=2[raw_in][proc_in];"
@@ -615,16 +628,9 @@ async def get_stream_proxy(
                 "pipe:1",
             ]
         else:
-            vf_filters = []
-            if deinterlacer in ("bwdif", "qtgmc", "yadif"):
-                vf_filters.append("bwdif")
-            if chroma_fix:
-                vf_filters.append("colorchannelmixer=rr=1.0:gg=1.0:bb=1.0")
-            if denoise:
-                vf_filters.append("hqdn3d=3:2:6:4")
-            vf_filters.append(scale_filter)
-            vf_filters.append(f"fps={fps_val}")
-            vf_str = ",".join(vf_filters)
+            vf_str = _build_proxy_processed_filters(
+                deinterlacer, chroma_fix, denoise, scale_filter, fps_val
+            )
 
             cmd = [
                 ffmpeg_bin,

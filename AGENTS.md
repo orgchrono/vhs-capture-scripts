@@ -42,7 +42,7 @@
 ## 3. Code Integrity & Automated Quality Gates
 
 Every commit or modification must pass the repository's 9 automated quality gates:
-- `JSCPD` (Anti-Duplication): < 5% clone threshold
+- `JSCPD` (Anti-Duplication): 0% clone threshold (zero tolerance)
 - `Oxlint / ESLint` (UI Linter): 0 errors
 - `Mypy` (Python Types): 0 errors
 - `Flake8` (Python Style): 0 violations

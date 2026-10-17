@@ -14,6 +14,64 @@ const getBarColorClass = (pct: number): string => {
   return 'bg-emerald-500';
 };
 
+interface MetricItemProps {
+  icon: React.ReactNode;
+  label: string;
+  detail: React.ReactNode;
+  detailTestId: string;
+  pct: number;
+  history: number[];
+  historyTestId: string;
+}
+
+const MetricItem: React.FC<MetricItemProps> = ({
+  icon,
+  label,
+  detail,
+  detailTestId,
+  pct,
+  history,
+  historyTestId,
+}) => (
+  <div className="bg-studio-surface p-2 rounded-xs border border-studio-border space-y-1.5">
+    <div className="flex items-center justify-between text-[11px]">
+      <span className="flex items-center gap-1 text-slate-400">
+        {icon}
+        {label}
+      </span>
+      <span className="text-white font-bold tabular-nums" data-testid={detailTestId}>
+        {detail}
+      </span>
+    </div>
+    <div
+      role="progressbar"
+      aria-valuenow={Math.round(pct)}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-label={label}
+      className="w-full h-1.5 bg-studio-panel rounded-xs overflow-hidden border border-studio-border"
+    >
+      <div
+        className={`h-full transition-all duration-300 ${getBarColorClass(pct)}`}
+        style={{ width: `${pct}%` }}
+      />
+    </div>
+    <div
+      className="flex items-end gap-0.5 h-5 pt-0.5"
+      aria-hidden="true"
+      data-testid={historyTestId}
+    >
+      {history.map((val, idx) => (
+        <div
+          key={idx}
+          className={`flex-1 rounded-t-xs transition-all duration-300 ${getBarColorClass(val)} opacity-80`}
+          style={{ height: `${Math.max(12, val)}%` }}
+        />
+      ))}
+    </div>
+  </div>
+);
+
 export const SystemTelemetryCard: React.FC<SystemTelemetryCardProps> = ({ compact = false }) => {
   const { t } = useTranslation();
   const { data: metrics } = useGetSystemMetricsQuery(undefined, {
@@ -80,87 +138,28 @@ export const SystemTelemetryCard: React.FC<SystemTelemetryCardProps> = ({ compac
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-        {/* CPU Load Bar & Sparkline History */}
-        <div className="bg-studio-surface p-2 rounded-xs border border-studio-border space-y-1.5">
-          <div className="flex items-center justify-between text-[11px]">
-            <span className="flex items-center gap-1 text-slate-400">
-              <Cpu className="w-3 h-3 text-slate-400" />
-              {t('telemetry.cpu_load')}
-            </span>
-            <span className="text-white font-bold tabular-nums" data-testid="telemetry-cpu-pct">
-              {cpuPct.toFixed(1)}%
-            </span>
-          </div>
-          <div
-            role="progressbar"
-            aria-valuenow={Math.round(cpuPct)}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-label={t('telemetry.cpu_load')}
-            className="w-full h-1.5 bg-studio-panel rounded-xs overflow-hidden border border-studio-border"
-          >
-            <div
-              className={`h-full transition-all duration-300 ${getBarColorClass(cpuPct)}`}
-              style={{ width: `${cpuPct}%` }}
-            />
-          </div>
-          <div
-            className="flex items-end gap-0.5 h-5 pt-0.5"
-            aria-hidden="true"
-            data-testid="telemetry-cpu-history"
-          >
-            {cpuHistory.map((val, idx) => (
-              <div
-                key={idx}
-                className={`flex-1 rounded-t-xs transition-all duration-300 ${getBarColorClass(val)} opacity-80`}
-                style={{ height: `${Math.max(12, val)}%` }}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* RAM Usage Bar & Sparkline History */}
-        <div className="bg-studio-surface p-2 rounded-xs border border-studio-border space-y-1.5">
-          <div className="flex items-center justify-between text-[11px]">
-            <span className="flex items-center gap-1 text-slate-400">
-              <HardDrive className="w-3 h-3 text-slate-400" />
-              {t('telemetry.ram_usage')}
-            </span>
-            <span className="text-white font-bold tabular-nums" data-testid="telemetry-ram-detail">
-              {t('telemetry.ram_detail', {
-                used: ramUsed.toFixed(1),
-                total: ramTotal.toFixed(1),
-                percent: ramPct.toFixed(0),
-              })}
-            </span>
-          </div>
-          <div
-            role="progressbar"
-            aria-valuenow={Math.round(ramPct)}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-label={t('telemetry.ram_usage')}
-            className="w-full h-1.5 bg-studio-panel rounded-xs overflow-hidden border border-studio-border"
-          >
-            <div
-              className={`h-full transition-all duration-300 ${getBarColorClass(ramPct)}`}
-              style={{ width: `${ramPct}%` }}
-            />
-          </div>
-          <div
-            className="flex items-end gap-0.5 h-5 pt-0.5"
-            aria-hidden="true"
-            data-testid="telemetry-ram-history"
-          >
-            {ramHistory.map((val, idx) => (
-              <div
-                key={idx}
-                className={`flex-1 rounded-t-xs transition-all duration-300 ${getBarColorClass(val)} opacity-80`}
-                style={{ height: `${Math.max(12, val)}%` }}
-              />
-            ))}
-          </div>
-        </div>
+        <MetricItem
+          icon={<Cpu className="w-3 h-3 text-slate-400" />}
+          label={t('telemetry.cpu_load')}
+          detail={`${cpuPct.toFixed(1)}%`}
+          detailTestId="telemetry-cpu-pct"
+          pct={cpuPct}
+          history={cpuHistory}
+          historyTestId="telemetry-cpu-history"
+        />
+        <MetricItem
+          icon={<HardDrive className="w-3 h-3 text-slate-400" />}
+          label={t('telemetry.ram_usage')}
+          detail={t('telemetry.ram_detail', {
+            used: ramUsed.toFixed(1),
+            total: ramTotal.toFixed(1),
+            percent: ramPct.toFixed(0),
+          })}
+          detailTestId="telemetry-ram-detail"
+          pct={ramPct}
+          history={ramHistory}
+          historyTestId="telemetry-ram-history"
+        />
       </div>
     </div>
   );

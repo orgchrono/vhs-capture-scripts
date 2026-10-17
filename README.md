@@ -227,7 +227,7 @@ The complete agreement is located in [**docs/COMPLIANCE_LICENSE.md**](docs/COMPL
 Codebase integrity is enforced through **9 parallel automated Quality Gates** verified on every commit and GitHub Actions run:
 
 ```text
-[1. Anti-Plagiarism / Code Duplication (JSCPD < 5%)]  ✅ PASSED
+[1. Anti-Plagiarism / Code Duplication (JSCPD 0% - Zero Tolerance)]  ✅ PASSED
 [2. UI Linter (Oxlint / ESLint)]                      ✅ PASSED
 [3. Strict Python Types (Mypy PEP 484)]               ✅ PASSED
 [4. Python Code Style (Flake8 PEP 8)]                 ✅ PASSED

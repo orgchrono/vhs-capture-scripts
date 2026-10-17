@@ -43,7 +43,7 @@ def main():
     print("[Git Hook] Iniciando validação automática de código (Lint & Types)...\n")
 
     steps = [
-        LintStep("Anti-Plágio/Duplicação (JSCPD)", ["npx", "jscpd", "src", "ui/src", "--threshold", "5"]),
+        LintStep("Anti-Plágio/Duplicação (JSCPD)", ["npx", "jscpd", "src", "ui/src", "--threshold", "0"]),
         LintStep("UI Linter (Oxlint / ESLint)", ["npm", "run", "lint"], cwd="ui"),
         LintStep("Mypy (Python Types)", ["python", "-m", "mypy", "src", "--ignore-missing-imports"]),
         LintStep(

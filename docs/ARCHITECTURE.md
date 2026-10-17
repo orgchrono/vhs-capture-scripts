@@ -137,7 +137,7 @@ Codebase health is enforced across two complementary audit layers:
    - **Oxlint / ESLint:** Ultra-fast static analysis of the React/TypeScript ecosystem.
    - **Mypy:** Strict Python type validation (`--ignore-missing-imports`).
    - **Flake8:** PEP 8 compliance, 120-column line limit, and code smell detection.
-   - **JSCPD:** Clone detection preventing code duplication exceeding a 5% threshold.
+   - **JSCPD:** Clone detection enforcing zero code duplication (0% threshold / zero tolerance).
    - **Vitest:** React component, hook, and store unit test suite.
    - **Playwright:** End-to-End integration testing under headless Chromium.
    - **TSC:** Type-checking compilation (`tsc --noEmit`).

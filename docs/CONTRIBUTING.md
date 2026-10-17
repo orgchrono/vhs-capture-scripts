@@ -49,7 +49,7 @@ Before any commit is accepted by Git, the pre-commit hook runs the complete auto
 
 | Quality Gate | Tool | Scope | Objective |
 | :--- | :--- | :--- | :--- |
-| **1. Anti-Plagiarism / Code Duplication** | JSCPD | `src/`, `ui/src/` | Halts commits if duplicate code exceeds a 5% threshold. |
+| **1. Anti-Plagiarism / Code Duplication** | JSCPD | `src/`, `ui/src/` | Halts commits if duplicate code exceeds 0% (zero tolerance). |
 | **2. UI Linter** | Oxlint / ESLint | `ui/` | High-speed static analysis of the React/TypeScript codebase. |
 | **3. Python Types** | Mypy | `src/` | Enforces strict PEP 484 type annotations (`--ignore-missing-imports`). |
 | **4. Python Code Style** | Flake8 | `src/`, `scripts/`, `tests/` | Enforces PEP 8 compliance, 120-column line limits, and detects code smells. |
