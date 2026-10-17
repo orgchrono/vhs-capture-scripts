@@ -299,3 +299,31 @@ def test_api_check_existing_restoration(client):
     res_dummy = client.get("/api/restoration/check-existing?source=non_existent_tape.mkv")
     assert res_dummy.status_code == 200
     assert res_dummy.json() == {"has_existing": False}
+
+
+def test_api_system_metrics(client):
+    """Verify GET /api/system/metrics returns dynamic CPU, RAM and pipeline state."""
+    res = client.get("/api/system/metrics")
+    assert res.status_code == 200
+    data = res.json()
+    assert "cpu_percent" in data
+    assert "ram_used_gb" in data
+    assert "ram_total_gb" in data
+    assert "ram_percent" in data
+    assert "process_running" in data
+    assert "is_paused" in data
+    assert isinstance(data["cpu_percent"], (int, float))
+    assert isinstance(data["ram_percent"], (int, float))
+
+
+def test_preview_scale_filter_preserves_4_3_aspect_ratio():
+    """Verify 4:3 SD VHS sources receive pillarbox padding and 16:9 HD sources receive 640:360 scale."""
+    from vhs_studio.api.routers.restoration import _resolve_preview_scale_filter
+
+    sd_filter = _resolve_preview_scale_filter("media/raw/vhs_ntsc_tape.mkv")
+    assert "scale=w=480:h=360:force_original_aspect_ratio=decrease" in sd_filter
+    assert "pad=640:360:(ow-iw)/2:(oh-ih)/2" in sd_filter
+
+    hd_filter = _resolve_preview_scale_filter("media/restored/master_1080p.mp4")
+    assert "scale=w=640:h=360:force_original_aspect_ratio=decrease" in hd_filter
+    assert "pad=640:360:(ow-iw)/2:(oh-ih)/2" in hd_filter

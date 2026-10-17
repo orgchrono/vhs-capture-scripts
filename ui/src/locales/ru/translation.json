@@ -375,7 +375,15 @@
     "stage_export": "4. Быстрый экспорт",
     "stage_progress": "Прогресс",
     "streaming": "ПОТОКОВАЯ ОБРАБОТКА",
-    "status_paused": "ПАУЗА"
+    "status_paused": "ПАУЗА",
+    "hw_monitor_title": "Телеметрия оборудования в реальном времени",
+    "cpu_load": "Загрузка ЦП",
+    "ram_usage": "Память ОЗУ",
+    "ram_detail": "{{used}} ГБ / {{total}} ГБ ({{percent}}%)",
+    "toggle_hw_drawer": "Переключить панель телеметрии оборудования",
+    "pipeline_active_badge": "Конвейер активен",
+    "pipeline_idle_badge": "Ожидание",
+    "hw_pill": "CPU {{cpu}}% • RAM {{ram}}%"
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",

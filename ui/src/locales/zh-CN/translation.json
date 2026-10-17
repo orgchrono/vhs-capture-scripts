@@ -375,7 +375,15 @@
     "stage_export": "4. 快速导出",
     "stage_progress": "进度",
     "streaming": "实时处理中",
-    "status_paused": "已暂停"
+    "status_paused": "已暂停",
+    "hw_monitor_title": "实时硬件遥测",
+    "cpu_load": "CPU 负载",
+    "ram_usage": "内存占用",
+    "ram_detail": "{{used}} GB / {{total}} GB ({{percent}}%)",
+    "toggle_hw_drawer": "切换硬件遥测面板",
+    "pipeline_active_badge": "管线运行中",
+    "pipeline_idle_badge": "空闲",
+    "hw_pill": "CPU {{cpu}}% • RAM {{ram}}%"
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",

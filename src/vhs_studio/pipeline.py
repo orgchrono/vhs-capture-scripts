@@ -83,24 +83,75 @@ class PipelineOrchestrator:
             log.info("[RESTORATION] Base restoration finished successfully.")
         except Exception as exc:
             log.error(f"[RESTORATION ERROR] Primary restoration failed: {exc}")
+            self.executor.shutdown(wait=False, cancel_futures=True)
             raise exc
 
-        # Declarative post-restoration neural pipelines
-        post_step_specs: Tuple[Tuple[str, bool, Callable[[], Optional[str]]], ...] = (
+        # Sequential Pipelined Chain for post-restoration neural stages:
+        # BaseOutput -> FaceRestoration(current_video) -> RIFE(current_video) -> Upscaler(current_video)
+        current_video: Optional[str] = restoration_result or self.output_path
+        intermediate_files: list[str] = []
+
+        post_step_specs: Tuple[Tuple[str, bool, Callable[..., Optional[str]]], ...] = (
             ("FaceRestoration", bool(self.params.get("ai_face_restore")), self._task_face_restore),
             ("RIFE", bool(self.params.get("ai_rife_60fps")), self._task_rife),
             ("Upscaler", self._is_upscaler_enabled(), self._task_upscaler),
         )
 
-        def execute_post_step(name: str, step_fn: Callable[[], Optional[str]]) -> Tuple[str, Optional[str]]:
-            runner = make_step_runner(name, step_fn)
-            return name, runner()
+        post_results: Dict[str, Optional[str]] = {}
+        for step_name, enabled, step_fn in post_step_specs:
+            if not enabled:
+                continue
+            try:
+                try:
+                    step_out = step_fn(current_video)
+                except TypeError:
+                    step_out = step_fn()
+                if step_out:
+                    log.info(f"[{step_name.upper()}] Step completed successfully: {step_out}")
+                    if (
+                        current_video
+                        and current_video != self.output_path
+                        and current_video != step_out
+                    ):
+                        intermediate_files.append(current_video)
+                    current_video = step_out
+                    post_results[step_name] = step_out
+                else:
+                    log.warning(
+                        f"[{step_name.upper()} WARNING] Step returned no output; "
+                        f"degrading gracefully with previous video: {current_video}"
+                    )
+                    post_results[step_name] = None
+            except Exception as exc:
+                log.warning(
+                    f"[{step_name.upper()} WARNING] Step failed ({exc}); "
+                    f"degrading gracefully with previous video: {current_video}"
+                )
+                post_results[step_name] = None
 
-        post_results = dict(
-            execute_post_step(name, fn)
-            for name, enabled, fn in post_step_specs
-            if enabled
-        )
+        # Atomic commit of the final chained video to self.output_path when file exists on disk
+        final_master: Optional[str] = current_video
+        if (
+            current_video
+            and current_video != self.output_path
+            and os.path.exists(current_video)
+            and os.path.getsize(current_video) > 0
+        ):
+            try:
+                os.replace(current_video, self.output_path)
+                final_master = self.output_path
+                log.info(f"[PIPELINE ORCHESTRATOR] Committed chained master video to: {self.output_path}")
+                for inter_file in intermediate_files:
+                    if os.path.exists(inter_file) and inter_file != self.output_path:
+                        try:
+                            os.remove(inter_file)
+                        except OSError:
+                            pass
+            except OSError as exc:
+                log.warning(
+                    f"[PIPELINE ORCHESTRATOR] Could not replace master output ({exc}); keeping {current_video}"
+                )
+                final_master = current_video
 
         try:
             whisper_result = f_whisper.result()
@@ -108,17 +159,24 @@ class PipelineOrchestrator:
         except Exception as exc:
             log.warning(f"[WHISPER WARNING] Audio transcription failed: {exc}")
             whisper_result = None
-
-        self._task_scenedetect_and_split()
-        log.info("[PIPELINE ORCHESTRATOR] All pipeline stages finished successfully.")
-
-        CloudOffloadStep.execute(self.output_path, self.params)
+        finally:
+            self.executor.shutdown(wait=False)
 
         self.results = {
-            "Restoration": restoration_result,
+            "Restoration": final_master or restoration_result,
+            "Master": final_master,
             "Whisper": whisper_result,
             **post_results,
         }
+
+        try:
+            self._task_scenedetect_and_split(final_master)
+        except TypeError:
+            self._task_scenedetect_and_split()
+        log.info("[PIPELINE ORCHESTRATOR] All pipeline stages finished successfully.")
+
+        CloudOffloadStep.execute(final_master or self.output_path, self.params)
+
         return self.results
 
     def _task_restoration(self) -> str:
@@ -131,25 +189,27 @@ class PipelineOrchestrator:
         """Delegate whisper transcription step."""
         return WhisperStep.execute(self.raw_file, self.output_path)
 
-    def _task_face_restore(self) -> Optional[str]:
+    def _task_face_restore(self, input_video: Optional[str] = None) -> Optional[str]:
         """Delegate CodeFormer face restoration step."""
-        return FaceRestorationStep.execute(self.output_path, self.params)
+        return FaceRestorationStep.execute(input_video or self.output_path, self.params)
 
-    def _task_rife(self) -> Optional[str]:
+    def _task_rife(self, input_video: Optional[str] = None) -> Optional[str]:
         """Delegate RIFE motion interpolation step."""
-        return RifeInterpolationStep.execute(self.output_path)
+        return RifeInterpolationStep.execute(input_video or self.output_path)
 
-    def _task_upscaler(self) -> Optional[str]:
+    def _task_upscaler(self, input_video: Optional[str] = None) -> Optional[str]:
         """Delegate super-resolution step."""
-        return AIUpscalerStep.execute(self.output_path, self.params)
+        return AIUpscalerStep.execute(input_video or self.output_path, self.params)
 
-    def _task_esrgan(self) -> Optional[str]:
+    def _task_esrgan(self, input_video: Optional[str] = None) -> Optional[str]:
         """Backwards compatibility alias for _task_upscaler."""
-        return self._task_upscaler()
+        return self._task_upscaler(input_video)
 
-    def _task_scenedetect_and_split(self) -> None:
+    def _task_scenedetect_and_split(self, master_file: Optional[str] = None) -> None:
         """Delegate scene segmentation step."""
-        SceneSegmentationStep.execute(self.results.get("Restoration"))
+        target = master_file or self.results.get("Master") or self.results.get("Restoration")
+        if target and os.path.exists(target):
+            SceneSegmentationStep.execute(target)
 
 
 def main(unknown_args):

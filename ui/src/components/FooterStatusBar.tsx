@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Film,
@@ -9,14 +9,22 @@ import {
   Radio,
   Sparkles,
   FileVideo,
+  Cpu,
 } from 'lucide-react';
 import { useStudioStore } from '../store/useStudioStore';
+import { useGetSystemMetricsQuery } from '../api/studioRtkApi';
+import { TIMING } from '../lib/constants';
 import { createTelemetryParser, getPresetStages } from './BroadcastProgress';
+import { SystemTelemetryCard } from './SystemTelemetryCard';
 
 const telemetryParser = createTelemetryParser();
 
 export const FooterStatusBar: React.FC = () => {
   const { t } = useTranslation();
+  const [hwDrawerOpen, setHwDrawerOpen] = useState(false);
+  const { data: sysMetrics } = useGetSystemMetricsQuery(undefined, {
+    pollingInterval: TIMING.METRICS_POLL_MS,
+  });
   const {
     isRestoring,
     isCapturing,
@@ -150,8 +158,40 @@ export const FooterStatusBar: React.FC = () => {
         )}
       </div>
 
-      {/* RIGHT SECTION: Active Preset & Terminal Drawer Toggle */}
-      <div className="flex items-center gap-2.5">
+      {/* RIGHT SECTION: Hardware Telemetry Drawer Toggle, Active Preset & Terminal Drawer Toggle */}
+      <div className="relative flex items-center gap-2.5">
+        {hwDrawerOpen && (
+          <div
+            data-testid="hw-telemetry-drawer"
+            className="fixed bottom-9 right-3 z-40 w-80 sm:w-96 shadow-2xl"
+          >
+            <SystemTelemetryCard compact />
+          </div>
+        )}
+
+        {/* Live CPU / RAM Pill & Drawer Toggle */}
+        <button
+          type="button"
+          onClick={() => setHwDrawerOpen((prev) => !prev)}
+          aria-expanded={hwDrawerOpen}
+          aria-label={t('telemetry.toggle_hw_drawer')}
+          title={t('telemetry.toggle_hw_drawer')}
+          data-testid="toggle-hw-telemetry-btn"
+          className={`hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[10px] font-mono border transition-colors cursor-pointer ${
+            hwDrawerOpen
+              ? 'bg-studio-surface-hover border-studio-border-focus text-emerald-300 shadow-sm'
+              : 'bg-studio-surface border-studio-border text-slate-300 hover:text-white hover:bg-studio-surface-hover'
+          }`}
+        >
+          <Cpu className="w-3 h-3 text-emerald-400 shrink-0" />
+          <span className="tabular-nums">
+            {t('telemetry.hw_pill', {
+              cpu: Math.round(sysMetrics?.cpu_percent ?? 0),
+              ram: Math.round(sysMetrics?.ram_percent ?? 0),
+            })}
+          </span>
+        </button>
+
         {/* Active Strategy Badge */}
         <div className="hidden sm:flex items-center gap-1 text-[10px] bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border text-slate-300">
           <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />

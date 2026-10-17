@@ -73,4 +73,20 @@ describe('FooterStatusBar Broadcast Component', () => {
     expect(screen.getByText('1200/2400')).toBeInTheDocument();
     expect(screen.getByText('00:01:10')).toBeInTheDocument();
   });
+
+  it('toggles hardware telemetry drawer when CPU/RAM pill button is clicked', () => {
+    renderWithStore(<FooterStatusBar />);
+
+    const hwBtn = screen.getByTestId('toggle-hw-telemetry-btn');
+    expect(hwBtn).toBeInTheDocument();
+    expect(screen.queryByTestId('hw-telemetry-drawer')).not.toBeInTheDocument();
+
+    fireEvent.click(hwBtn);
+    expect(screen.getByTestId('hw-telemetry-drawer')).toBeInTheDocument();
+    expect(screen.getByTestId('system-telemetry-card')).toBeInTheDocument();
+
+    fireEvent.click(hwBtn);
+    expect(screen.queryByTestId('hw-telemetry-drawer')).not.toBeInTheDocument();
+  });
 });
+

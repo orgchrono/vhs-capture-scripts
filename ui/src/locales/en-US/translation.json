@@ -374,7 +374,15 @@
     "status_completed": "Restoration Completed (100%)",
     "progress_label": "Restoration Pipeline Progress",
     "streaming": "STREAMING",
-    "status_paused": "PAUSED"
+    "status_paused": "PAUSED",
+    "hw_monitor_title": "Real-Time Hardware Telemetry",
+    "cpu_load": "CPU Load",
+    "ram_usage": "RAM Memory",
+    "ram_detail": "{{used}} GB / {{total}} GB ({{percent}}%)",
+    "toggle_hw_drawer": "Toggle Hardware Telemetry Drawer",
+    "pipeline_active_badge": "Pipeline Active",
+    "pipeline_idle_badge": "Idle",
+    "hw_pill": "CPU {{cpu}}% • RAM {{ram}}%"
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",

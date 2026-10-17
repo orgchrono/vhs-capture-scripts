@@ -375,7 +375,15 @@
     "stage_export": "4. Exportation Rapide",
     "stage_progress": "Progression",
     "streaming": "STREAMING",
-    "status_paused": "EN PAUSE"
+    "status_paused": "EN PAUSE",
+    "hw_monitor_title": "Télémétrie Matérielle en Temps Réel",
+    "cpu_load": "Charge CPU",
+    "ram_usage": "Mémoire RAM",
+    "ram_detail": "{{used}} Go / {{total}} Go ({{percent}}%)",
+    "toggle_hw_drawer": "Basculer le Panneau de Télémétrie Matérielle",
+    "pipeline_active_badge": "Pipeline Actif",
+    "pipeline_idle_badge": "Inactif",
+    "hw_pill": "CPU {{cpu}}% • RAM {{ram}}%"
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",

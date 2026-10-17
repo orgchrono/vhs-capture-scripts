@@ -375,7 +375,15 @@
     "stage_export": "4. Exportación Rápida",
     "stage_progress": "Progreso",
     "streaming": "STREAMING",
-    "status_paused": "PAUSADO"
+    "status_paused": "PAUSADO",
+    "hw_monitor_title": "Telemetría de Hardware en Tiempo Real",
+    "cpu_load": "Carga de CPU",
+    "ram_usage": "Memoria RAM",
+    "ram_detail": "{{used}} GB / {{total}} GB ({{percent}}%)",
+    "toggle_hw_drawer": "Alternar Panel de Telemetría de Hardware",
+    "pipeline_active_badge": "Pipeline Activo",
+    "pipeline_idle_badge": "Inactivo",
+    "hw_pill": "CPU {{cpu}}% • RAM {{ram}}%"
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",

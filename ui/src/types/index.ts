@@ -59,6 +59,15 @@ export interface SystemHealth {
   outputTimecode?: string;
 }
 
+export interface SystemMetrics {
+  cpu_percent: number;
+  ram_used_gb: number;
+  ram_total_gb: number;
+  ram_percent: number;
+  process_running: boolean;
+  is_paused: boolean;
+}
+
 export interface SystemStatus {
   encoder: string;
   vapoursynth_available: boolean;

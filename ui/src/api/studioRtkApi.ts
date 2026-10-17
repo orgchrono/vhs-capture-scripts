@@ -1,6 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type {
   SystemStatus,
+  SystemMetrics,
   HardwareProfile,
   RestorationPayload,
   ObsStats,
@@ -65,6 +66,10 @@ export const studioRtkApi = createApi({
     getHardwareProfile: builder.query<HardwareProfile, void>({
       query: () => 'api/hardware',
       providesTags: ['Status'],
+    }),
+
+    getSystemMetrics: builder.query<SystemMetrics, void>({
+      query: () => 'api/system/metrics',
     }),
 
     getObsStats: builder.query<ObsStats, void>({
@@ -319,6 +324,7 @@ export const studioRtkApi = createApi({
 export const {
   useGetStatusQuery,
   useGetHardwareProfileQuery,
+  useGetSystemMetricsQuery,
   useGetObsStatsQuery,
   useGetLogsQuery,
   useGetQueueQuery,

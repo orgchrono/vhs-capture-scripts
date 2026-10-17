@@ -135,3 +135,76 @@ def test_whisper_step_skips_when_vtt_exists(tmp_path):
 
     res = WhisperStep.execute("raw.mkv", str(output_path))
     assert res == str(target_vtt)
+
+
+def test_pipeline_sequential_ai_chain_and_graceful_degradation(tmp_path):
+    raw_file = tmp_path / "raw.mkv"
+    raw_file.write_text("raw")
+    output_path = tmp_path / "output.mp4"
+    output_path.write_bytes(b"base_video_data")
+
+    faced_path = tmp_path / "output_codeformer.mp4"
+    upscaled_path = tmp_path / "output_codeformer_ai_upscale.mp4"
+
+    orch = PipelineOrchestrator(
+        raw_file=str(raw_file),
+        output_path=str(output_path),
+        opts={"ai_upscaler": True},
+        params={
+            "ai_face_restore": True,
+            "ai_rife_60fps": True,
+            "ai_upscaler": True,
+            "auto_upload": False,
+        },
+    )
+
+    received_inputs = []
+
+    def fake_face(in_vid=None):
+        received_inputs.append(("face", in_vid))
+        faced_path.write_bytes(b"faced_video_data")
+        return str(faced_path)
+
+    def fake_rife_fail(in_vid=None):
+        received_inputs.append(("rife", in_vid))
+        raise RuntimeError("Simulated GPU OOM in RIFE")
+
+    def fake_upscale(in_vid=None):
+        received_inputs.append(("upscale", in_vid))
+        upscaled_path.write_bytes(b"upscaled_video_data")
+        return str(upscaled_path)
+
+    with patch.object(orch, "_task_restoration", return_value=str(output_path)), \
+         patch.object(orch, "_task_whisper", return_value=None), \
+         patch.object(orch, "_task_face_restore", side_effect=fake_face), \
+         patch.object(orch, "_task_rife", side_effect=fake_rife_fail), \
+         patch.object(orch, "_task_upscaler", side_effect=fake_upscale), \
+         patch("vhs_studio.pipeline_steps.SceneSegmentationStep.execute") as mock_scene_exec:
+        results = orch.start()
+
+    assert received_inputs[0] == ("face", str(output_path))
+    assert received_inputs[1] == ("rife", str(faced_path))
+    # RIFE failed, so Upscaler must receive faced_path (graceful degradation)
+    assert received_inputs[2] == ("upscale", str(faced_path))
+    assert results["RIFE"] is None
+    assert results["Master"] == str(output_path)
+    assert output_path.read_bytes() == b"upscaled_video_data"
+    mock_scene_exec.assert_called_once_with(str(output_path))
+
+
+def test_pipeline_shuts_down_executor_on_primary_restoration_failure(tmp_path):
+    raw_file = tmp_path / "raw.mkv"
+    raw_file.write_text("raw")
+    output_path = tmp_path / "output.mp4"
+
+    orch = PipelineOrchestrator(
+        raw_file=str(raw_file),
+        output_path=str(output_path),
+    )
+
+    with patch.object(orch, "_task_restoration", side_effect=RuntimeError("Broken pipe")), \
+         patch.object(orch, "_task_whisper", return_value=None), \
+         patch.object(orch.executor, "shutdown", wraps=orch.executor.shutdown) as mock_shutdown:
+        with pytest.raises(RuntimeError, match="Broken pipe"):
+            orch.start()
+        mock_shutdown.assert_called_with(wait=False, cancel_futures=True)

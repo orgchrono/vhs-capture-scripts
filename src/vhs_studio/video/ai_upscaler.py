@@ -119,8 +119,10 @@ class AIUpscaler:
             log.info(
                 f"[AI UPSCALER] Super-resolution processing complete: {output_video}"
             )
+            return True
         except subprocess.CalledProcessError as e:
             log.error(f"[AI UPSCALER] Real-ESRGAN subprocess failed: {e}")
+            return False
 
     def process_frame_in_memory(
         self, rgb_frame_bytes: bytes, width: int, height: int

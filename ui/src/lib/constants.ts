@@ -2,9 +2,16 @@ import type { DeinterlacerType, VideoMode, AudioMode, OutputCodec, ResolutionMod
 
 export const TIMING = {
   SYSTEM_STATUS_POLL_MS: 4000,
+  METRICS_POLL_MS: 2000,
   LOGS_ACTIVE_POLL_MS: 1000,
   INSTALL_RESET_DELAY_MS: 3000,
   NOTIFICATION_AUTO_DISMISS_MS: 5000,
+} as const;
+
+export const TELEMETRY_CONFIG = {
+  HISTORY_LENGTH: 12,
+  WARN_THRESHOLD_PCT: 75,
+  CRITICAL_THRESHOLD_PCT: 90,
 } as const;
 
 export const DEFAULTS = {
@@ -19,6 +26,7 @@ export const DEFAULTS = {
 
 export const API_ENDPOINTS = {
   STATUS: '/api/status',
+  METRICS: '/api/system/metrics',
   TOKEN: '/api/token',
   ACTION: '/api/action',
   STORAGE_CONFIG: '/api/storage/config',

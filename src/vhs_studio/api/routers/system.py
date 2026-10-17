@@ -209,6 +209,39 @@ def get_hardware():
     return get_hardware_profile()
 
 
+@system_router.get("/system/metrics")
+def get_system_metrics() -> Dict[str, object]:
+    """Return real-time dynamic CPU, RAM and pipeline state telemetry via psutil."""
+    srv = _resolve_server()
+    cpu_pct = 0.0
+    ram_used_gb = 0.0
+    ram_total_gb = 0.0
+    ram_pct = 0.0
+
+    try:
+        import psutil
+        cpu_pct = round(float(psutil.cpu_percent(interval=None)), 1)
+        vm = psutil.virtual_memory()
+        ram_total_gb = round(vm.total / (1024 ** 3), 2)
+        ram_used_gb = round((vm.total - vm.available) / (1024 ** 3), 2)
+        ram_pct = round(float(vm.percent), 1)
+    except Exception:
+        from vhs_studio.core.hardware import get_ram_info
+        ram_info = get_ram_info()
+        ram_total_gb = ram_info["total_gb"]
+        ram_used_gb = round(max(0.0, ram_total_gb - ram_info["available_gb"]), 2)
+        ram_pct = round((ram_used_gb / ram_total_gb) * 100.0, 1) if ram_total_gb > 0 else 0.0
+
+    return {
+        "cpu_percent": cpu_pct,
+        "ram_used_gb": ram_used_gb,
+        "ram_total_gb": ram_total_gb,
+        "ram_percent": ram_pct,
+        "process_running": srv.pm.is_running(),
+        "is_paused": getattr(srv.pm, "is_paused", False),
+    }
+
+
 @system_router.get("/logs")
 def get_all_logs():
     """Return historical log buffer for frontend RTK Query."""

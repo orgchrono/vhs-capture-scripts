@@ -155,8 +155,9 @@ class AIUpscalerStep:
                     f"[AI UPSCALER] Checkpoint: Vídeo super-resolução já existente ({upscaled_path})."
                 )
                 return upscaled_path
-            upscaler.process_video(output_path, upscaled_path)
-            return upscaled_path
+            if upscaler.process_video(output_path, upscaled_path) is not False:
+                return upscaled_path
+            return None
         return output_path
 
 

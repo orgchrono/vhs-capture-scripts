@@ -97,3 +97,27 @@ def test_transcribe_and_generate_vtt(mock_model_cls, mock_extract, tmp_path):
         assert "WEBVTT" in content
         assert "00:00:00.000 --> 00:00:02.500" in content
         assert "Hello world" in content
+
+
+@patch("vhs_studio.ai.whisper_engine.extract_audio")
+@patch("faster_whisper.WhisperModel")
+def test_transcribe_cleans_up_temp_wav_on_error(mock_model_cls, mock_extract, tmp_path):
+    temp_wav = tmp_path / "video_temp.wav"
+
+    def fake_extract(video_p, wav_p):
+        temp_wav.write_bytes(b"RIFF0000WAVE")
+        return True
+
+    mock_extract.side_effect = fake_extract
+    mock_model = MagicMock()
+    mock_model.transcribe.side_effect = RuntimeError("Simulated Whisper OOM")
+    mock_model_cls.return_value = mock_model
+
+    video_path = tmp_path / "video.mkv"
+    video_path.write_text("dummy")
+
+    with patch("vhs_studio.ai.whisper_engine.load_audio_wav", return_value=[0.0] * 1600):
+        with pytest.raises(RuntimeError, match="Simulated Whisper OOM"):
+            transcribe_and_generate_vtt(str(video_path))
+
+    assert not temp_wav.exists()

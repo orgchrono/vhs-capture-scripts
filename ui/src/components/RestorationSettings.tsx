@@ -35,6 +35,7 @@ import {
 import { useRestorationViewModel } from '../viewmodels/useRestorationViewModel'
 import { StorageSettings } from './StorageSettings'
 import { PresetSelector } from './PresetSelector'
+import { SystemTelemetryCard } from './SystemTelemetryCard'
 import { motion, useReducedMotion } from 'motion/react'
 
 const TabTransition: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -407,6 +408,9 @@ export const RestorationSettings: React.FC = () => {
               </div>
             ) : null}
           </div>
+
+          {/* Telemetria Dinâmica de Hardware em Tempo Real */}
+          <SystemTelemetryCard />
 
           {/* Módulos Modulares de Restauração por IA */}
           <div className="space-y-2.5">

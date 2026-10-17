@@ -334,6 +334,67 @@ def _get_ffmpeg_or_error() -> tuple[Optional[str], Optional[JSONResponse]]:
         )
 
 
+def _is_widescreen_source(target_path: str) -> bool:
+    """Detect whether media source is native 16:9 widescreen (>= 1280px wide) vs 4:3 SD VHS."""
+    if not target_path:
+        return False
+    lower_name = os.path.basename(target_path).lower()
+    if any(tag in lower_name for tag in ("1080p", "720p", "16x9", "widescreen")):
+        return True
+    if not os.path.exists(target_path):
+        return False
+    try:
+        import cv2  # type: ignore[import-not-found]
+        cap = cv2.VideoCapture(target_path)
+        if cap.isOpened():
+            w = float(cap.get(cv2.CAP_PROP_FRAME_WIDTH) or 0.0)
+            h = float(cap.get(cv2.CAP_PROP_FRAME_HEIGHT) or 0.0)
+            cap.release()
+            if w >= 1280 and h > 0 and (w / h) >= 1.65:
+                return True
+    except Exception:
+        pass
+    return False
+
+
+def _resolve_preview_scale_filter(target_path: str) -> str:
+    """Return FFmpeg scale+pad filter preserving 4:3 pillarbox for VHS SD sources or 16:9 for HD."""
+    if _is_widescreen_source(target_path):
+        return "scale=w=640:h=360:force_original_aspect_ratio=decrease,pad=640:360:(ow-iw)/2:(oh-ih)/2"
+    return "scale=w=480:h=360:force_original_aspect_ratio=decrease,pad=640:360:(ow-iw)/2:(oh-ih)/2"
+
+
+def _kill_stream_process_tree(proc: subprocess.Popen) -> None:
+    """Forcefully terminate FFmpeg stream proxy process and any child processes on Windows/POSIX."""
+    try:
+        if proc.stdout:
+            try:
+                proc.stdout.close()
+            except Exception:
+                pass
+        import psutil
+        try:
+            parent = psutil.Process(proc.pid)
+            children = parent.children(recursive=True)
+            for child in children:
+                try:
+                    child.kill()
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    pass
+            parent.kill()
+            psutil.wait_procs(children + [parent], timeout=0.5)
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            pass
+    except Exception:
+        pass
+    finally:
+        try:
+            proc.kill()
+            proc.wait(timeout=0.5)
+        except Exception:
+            pass
+
+
 @restoration_router.get("/monitor/comparison-frame")
 def get_comparison_frame(
     source: str = "",
@@ -351,6 +412,7 @@ def get_comparison_frame(
         return err_resp
 
     safe_time = max(0.0, float(timestamp))
+    scale_filter = _resolve_preview_scale_filter(target_path)
 
     if is_valid_source:
         cmd_raw = [
@@ -360,7 +422,7 @@ def get_comparison_frame(
             "-ss", f"{safe_time:.3f}",
             "-i", target_path,
             "-frames:v", "1",
-            "-vf", "scale=640:360",
+            "-vf", scale_filter,
             "-f", "image2",
             "-c:v", "mjpeg",
             "pipe:1",
@@ -372,7 +434,7 @@ def get_comparison_frame(
             vf_filters.append("colorchannelmixer=rr=1.0:gg=1.0:bb=1.0")
         if denoise:
             vf_filters.append("hqdn3d=3:2:6:4")
-        vf_filters.append("scale=640:360")
+        vf_filters.append(scale_filter)
         vf_str = ",".join(vf_filters)
 
         cmd_proc = [
@@ -461,6 +523,7 @@ async def get_stream_proxy(
     fps_val = max(1, min(60, int(fps)))
     safe_time = max(0.0, float(timestamp))
     ss_args = ["-ss", f"{safe_time:.3f}"] if safe_time > 0 else []
+    scale_filter = _resolve_preview_scale_filter(target_path)
 
     if is_valid_source:
         if mode == "raw":
@@ -472,7 +535,7 @@ async def get_stream_proxy(
                 *ss_args,
                 "-stream_loop", "-1",
                 "-i", target_path,
-                "-vf", f"scale=640:360,fps={fps_val}",
+                "-vf", f"{scale_filter},fps={fps_val}",
                 "-c:v", "mjpeg",
                 "-q:v", "8",
                 "-f", "mpjpeg",
@@ -487,13 +550,13 @@ async def get_stream_proxy(
                 vf_filters.append("colorchannelmixer=rr=1.0:gg=1.0:bb=1.0")
             if denoise:
                 vf_filters.append("hqdn3d=3:2:6:4")
-            vf_filters.append("scale=640:360")
+            vf_filters.append(scale_filter)
             vf_filters.append(f"fps={fps_val}")
             proc_vf = ",".join(vf_filters)
 
             filter_complex = (
                 f"[0:v]split=2[raw_in][proc_in];"
-                f"[raw_in]scale=640:360,fps={fps_val}[raw_out];"
+                f"[raw_in]{scale_filter},fps={fps_val}[raw_out];"
                 f"[proc_in]{proc_vf}[proc_out];"
                 f"[raw_out][proc_out]hstack=inputs=2[out]"
             )
@@ -521,7 +584,7 @@ async def get_stream_proxy(
                 vf_filters.append("colorchannelmixer=rr=1.0:gg=1.0:bb=1.0")
             if denoise:
                 vf_filters.append("hqdn3d=3:2:6:4")
-            vf_filters.append("scale=640:360")
+            vf_filters.append(scale_filter)
             vf_filters.append(f"fps={fps_val}")
             vf_str = ",".join(vf_filters)
 
@@ -611,14 +674,7 @@ async def get_stream_proxy(
         except asyncio.CancelledError:
             pass
         finally:
-            try:
-                proc.terminate()
-                try:
-                    await asyncio.to_thread(proc.wait, timeout=1.0)
-                except Exception:
-                    proc.kill()
-            except Exception:
-                pass
+            await asyncio.to_thread(_kill_stream_process_tree, proc)
 
     return StreamingResponse(
         stream_generator(),

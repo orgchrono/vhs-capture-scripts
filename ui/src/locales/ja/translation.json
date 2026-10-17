@@ -375,7 +375,15 @@
     "stage_export": "4. 高速エクスポート",
     "stage_progress": "進捗",
     "streaming": "ストリーミング中",
-    "status_paused": "一時停止中"
+    "status_paused": "一時停止中",
+    "hw_monitor_title": "リアルタイムハードウェアテレメトリ",
+    "cpu_load": "CPU負荷",
+    "ram_usage": "RAMメモリ",
+    "ram_detail": "{{used}} GB / {{total}} GB ({{percent}}%)",
+    "toggle_hw_drawer": "ハードウェアテレメトリパネルの切り替え",
+    "pipeline_active_badge": "パイプライン稼働中",
+    "pipeline_idle_badge": "待機中",
+    "hw_pill": "CPU {{cpu}}% • RAM {{ram}}%"
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",

@@ -375,7 +375,15 @@
     "stage_export": "4. تصدير سريع",
     "stage_progress": "التقدم",
     "streaming": "بث حي",
-    "status_paused": "متوقف مؤقتاً"
+    "status_paused": "متوقف مؤقتاً",
+    "hw_monitor_title": "القياس عن بُعد للأجهزة في الوقت الفعلي",
+    "cpu_load": "حمل المعالج",
+    "ram_usage": "ذاكرة الوصول العشوائي",
+    "ram_detail": "{{used}} غيغابايت / {{total}} غيغابايت ({{percent}}%)",
+    "toggle_hw_drawer": "تبديل لوحة القياس عن بُعد للأجهزة",
+    "pipeline_active_badge": "خط الأنابيب نشط",
+    "pipeline_idle_badge": "خامل",
+    "hw_pill": "CPU {{cpu}}% • RAM {{ram}}%"
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",

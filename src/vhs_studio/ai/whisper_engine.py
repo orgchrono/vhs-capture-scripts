@@ -91,58 +91,61 @@ def transcribe_and_generate_vtt(video_path: str, model_size: str = "tiny") -> st
     temp_wav = os.path.join(base_dir, f"{base_name}_temp.wav")
     vtt_path = os.path.join(base_dir, f"{base_name}.vtt")
 
-    log.info(f"[WHISPER] Extraindo audio temporario de {video_path}...")
-    if not extract_audio(video_path, temp_wav):
-        raise RuntimeError("Falha ao extrair audio via FFmpeg")
-
-    device = "cpu"
-    compute_type = "int8"
-
     try:
-        import torch
+        log.info(f"[WHISPER] Extraindo audio temporario de {video_path}...")
+        if not extract_audio(video_path, temp_wav):
+            raise RuntimeError("Falha ao extrair audio via FFmpeg")
 
-        if torch.cuda.is_available():
-            device = "cuda"
-            compute_type = "float16"  # CUDA generally prefers float16
-    except ImportError:
-        pass
+        device = "cpu"
+        compute_type = "int8"
 
-    total_cpus = os.cpu_count() or 4
-    cpu_threads = max(2, min(8, total_cpus // 2 if total_cpus > 4 else total_cpus))
-    num_workers = max(1, min(2, cpu_threads // 2))
-    log.info(
-        f"[WHISPER] Carregando modelo {model_size} "
-        f"(Device: {device}, Compute: {compute_type}, Threads: {cpu_threads})..."
-    )
-    model = WhisperModel(
-        model_size,
-        device=device,
-        compute_type=compute_type,
-        cpu_threads=cpu_threads,
-        num_workers=num_workers,
-    )
+        try:
+            import torch
 
-    log.info("[WHISPER] Carregando waveform de áudio para transcrição...")
-    audio_data = load_audio_wav(temp_wav)
-    duration_sec = len(audio_data) / 16000.0 if len(audio_data) > 0 else 0.0
-    log.info(f"[WHISPER] Transcrevendo {temp_wav} ({duration_sec:.1f}s)...")
-    segments, info = model.transcribe(audio_data, beam_size=5)
+            if torch.cuda.is_available():
+                device = "cuda"
+                compute_type = "float16"  # CUDA generally prefers float16
+        except ImportError:
+            pass
 
-    log.info(
-        f"[WHISPER] Idioma detectado: {info.language} (probabilidade {info.language_probability:.2f})"
-    )
+        total_cpus = os.cpu_count() or 4
+        cpu_threads = max(2, min(8, total_cpus // 2 if total_cpus > 4 else total_cpus))
+        num_workers = max(1, min(2, cpu_threads // 2))
+        log.info(
+            f"[WHISPER] Carregando modelo {model_size} "
+            f"(Device: {device}, Compute: {compute_type}, Threads: {cpu_threads})..."
+        )
+        model = WhisperModel(
+            model_size,
+            device=device,
+            compute_type=compute_type,
+            cpu_threads=cpu_threads,
+            num_workers=num_workers,
+        )
 
-    with open(vtt_path, "w", encoding="utf-8") as f:
-        f.write("WEBVTT\n\n")
-        for segment in segments:
-            start = format_timestamp(segment.start)
-            end = format_timestamp(segment.end)
-            f.write(f"{start} --> {end}\n")
-            f.write(f"{segment.text.strip()}\n\n")
+        log.info("[WHISPER] Carregando waveform de áudio para transcrição...")
+        audio_data = load_audio_wav(temp_wav)
+        duration_sec = len(audio_data) / 16000.0 if len(audio_data) > 0 else 0.0
+        log.info(f"[WHISPER] Transcrevendo {temp_wav} ({duration_sec:.1f}s)...")
+        segments, info = model.transcribe(audio_data, beam_size=5)
 
-    # Cleanup temp
-    if os.path.exists(temp_wav):
-        os.remove(temp_wav)
+        log.info(
+            f"[WHISPER] Idioma detectado: {info.language} (probabilidade {info.language_probability:.2f})"
+        )
 
-    log.info(f"[WHISPER] Legenda salva em {vtt_path}")
-    return vtt_path
+        with open(vtt_path, "w", encoding="utf-8") as f:
+            f.write("WEBVTT\n\n")
+            for segment in segments:
+                start = format_timestamp(segment.start)
+                end = format_timestamp(segment.end)
+                f.write(f"{start} --> {end}\n")
+                f.write(f"{segment.text.strip()}\n\n")
+
+        log.info(f"[WHISPER] Legenda salva em {vtt_path}")
+        return vtt_path
+    finally:
+        if os.path.exists(temp_wav):
+            try:
+                os.remove(temp_wav)
+            except OSError as exc:
+                log.warning(f"[WHISPER] Falha ao remover WAV temporário ({temp_wav}): {exc}")
