@@ -8,7 +8,6 @@ import {
   ChevronsRight,
   Power,
   Layers,
-  Sparkles,
   Film,
   Radio,
 } from 'lucide-react';
@@ -21,6 +20,31 @@ export interface SplitComparisonMonitorProps {
   onClose?: () => void;
   initialMode?: 'stream' | 'freeze';
 }
+
+interface SplitStreamViewportProps {
+  src: string;
+  alt: string;
+  testId: string;
+  alignLeft?: boolean;
+}
+
+const SplitStreamViewport: React.FC<SplitStreamViewportProps> = ({
+  src,
+  alt,
+  testId,
+  alignLeft = false,
+}) => (
+  <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+    <div className="relative w-full h-full aspect-video max-w-full max-h-full overflow-hidden">
+      <img
+        src={src}
+        alt={alt}
+        className={`absolute top-0 bottom-0 ${alignLeft ? 'left-0' : 'left-[-100%]'} w-[200%] h-full max-w-none object-fill`}
+        data-testid={testId}
+      />
+    </div>
+  </div>
+);
 
 export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
   source = '',
@@ -183,58 +207,59 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
       data-testid="split-comparison-monitor"
     >
       {/* Top Header Bar */}
-      <div className="absolute top-2.5 left-2.5 right-2.5 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-auto">
-        <div className="flex items-center gap-1.5">
-          <span className="bg-black/85 backdrop-blur-md px-2.5 py-1 rounded-sm text-[10px] font-mono text-amber-300 border border-amber-500/40 shadow-sm flex items-center gap-1.5 uppercase font-bold">
-            <Layers className="w-3.5 h-3.5 text-amber-400" />
+      <div className="absolute top-2 left-2 right-2 z-20 flex items-center justify-between pointer-events-auto bg-black/90 backdrop-blur-md px-2.5 py-1.5 rounded-sm border border-studio-border text-xs font-mono gap-2">
+        {/* Left: Monitor Title & Split Percentage */}
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-bold text-slate-200 flex items-center gap-1.5">
+            <Layers className="w-3.5 h-3.5 text-amber-400 shrink-0" />
             {t('monitor.split_title')}
           </span>
-          <span className="bg-black/75 px-2 py-1 rounded-sm text-[9px] font-mono text-slate-300 border border-white/10 hidden sm:flex items-center gap-1">
-            <span className="led-lamp led-live animate-pulse" aria-hidden="true" />
-            {t('monitor.split_position', { percent: splitPos })}
+          <span className="text-[10px] text-slate-400 border-l border-studio-border pl-2 tabular-nums">
+            {splitPos}%
           </span>
         </div>
 
-        {/* View Mode Toggle: Live Sub-Stream vs Freeze Frame */}
-        <div className="flex items-center gap-1 bg-black/85 backdrop-blur-md p-0.5 rounded-sm border border-studio-border">
+        {/* Center: Clean Segmented Mode Selector */}
+        <div className="flex items-center gap-0.5 bg-studio-surface p-0.5 rounded-sm border border-studio-border">
           <button
             type="button"
             onClick={() => handleModeChange('stream')}
-            className={`px-2 py-1 rounded-xs text-[10px] font-mono flex items-center gap-1.5 transition cursor-pointer ${
+            className={`px-2 py-0.5 rounded-xs text-[10px] font-mono flex items-center gap-1 transition cursor-pointer ${
               viewMode === 'stream'
-                ? 'bg-amber-500/25 text-amber-300 font-bold border border-amber-500/50 shadow-xs'
+                ? 'bg-amber-500/20 text-amber-300 font-semibold'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
             title={t('monitor.mode_live_stream')}
             aria-label={t('monitor.mode_live_stream')}
             data-testid="mode-stream-btn"
           >
-            <Radio className={`w-3 h-3 ${viewMode === 'stream' ? 'text-amber-400 animate-pulse' : 'text-slate-400'}`} />
+            <Radio className="w-3 h-3" />
             <span>{t('monitor.mode_live_stream')}</span>
           </button>
           <button
             type="button"
             onClick={() => handleModeChange('freeze')}
-            className={`px-2 py-1 rounded-xs text-[10px] font-mono flex items-center gap-1.5 transition cursor-pointer ${
+            className={`px-2 py-0.5 rounded-xs text-[10px] font-mono flex items-center gap-1 transition cursor-pointer ${
               viewMode === 'freeze'
-                ? 'bg-amber-500/25 text-amber-300 font-bold border border-amber-500/50 shadow-xs'
+                ? 'bg-amber-500/20 text-amber-300 font-semibold'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
             title={t('monitor.mode_freeze_frame')}
             aria-label={t('monitor.mode_freeze_frame')}
             data-testid="mode-freeze-btn"
           >
-            <Film className={`w-3 h-3 ${viewMode === 'freeze' ? 'text-amber-400' : 'text-slate-400'}`} />
+            <Film className="w-3 h-3" />
             <span>{t('monitor.mode_freeze_frame')}</span>
           </button>
         </div>
 
+        {/* Right: Actions */}
         <div className="flex items-center gap-1.5">
           <button
             type="button"
             onClick={handleRefresh}
             disabled={viewMode === 'freeze' && isFetching}
-            className="bg-black/80 hover:bg-studio-surface text-slate-300 hover:text-white px-2 py-1 rounded-sm text-[10px] font-mono border border-studio-border flex items-center gap-1 transition cursor-pointer"
+            className="p-1 text-slate-400 hover:text-white rounded-sm hover:bg-studio-surface border border-studio-border transition cursor-pointer flex items-center gap-1 text-[10px]"
             title={t('monitor.split_refresh')}
             aria-label={t('monitor.split_refresh')}
             data-testid="split-refresh-btn"
@@ -247,13 +272,13 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="bg-red-950/80 hover:bg-red-900 text-red-200 hover:text-white px-2 py-1 rounded-sm text-[10px] font-mono border border-red-700/60 flex items-center gap-1 transition cursor-pointer"
+              className="p-1 text-slate-400 hover:text-red-300 hover:bg-red-950/40 rounded-sm border border-studio-border hover:border-red-800/60 transition cursor-pointer flex items-center gap-1 text-[10px]"
               title={t('monitor.split_close')}
               aria-label={t('monitor.split_close')}
               data-testid="split-close-btn"
             >
               <Power className="w-3 h-3 text-red-400" />
-              <span>{t('monitor.split_close')}</span>
+              <span className="hidden sm:inline">{t('monitor.split_close')}</span>
             </button>
           )}
         </div>
@@ -277,16 +302,12 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
         {/* Side B: Restored / Processed (Underneath, Full Width) */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           {viewMode === 'stream' ? (
-            <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
-              <div className="relative w-full h-full aspect-video max-w-full max-h-full overflow-hidden">
-                <img
-                  src={splitStreamUrl}
-                  alt={t('monitor.split_restored')}
-                  className="absolute top-0 bottom-0 left-[-100%] w-[200%] h-full max-w-none object-fill"
-                  data-testid="split-proc-stream"
-                />
-              </div>
-            </div>
+            <SplitStreamViewport
+              src={splitStreamUrl}
+              alt={t('monitor.split_restored')}
+              testId="split-proc-stream"
+              alignLeft={false}
+            />
           ) : procImg ? (
             <img
               src={procImg}
@@ -299,11 +320,10 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
             </div>
           )}
 
-          {/* Restored Badge (Top Right) */}
-          <div className="absolute top-12 right-3 z-10">
-            <span className="bg-emerald-950/90 text-emerald-300 border border-emerald-600/60 px-2 py-0.5 rounded-xs text-[9px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 shadow-md">
-              <Sparkles className="w-2.5 h-2.5 text-emerald-400" />
-              {t('monitor.qtgmc_filtered')}
+          {/* Subtle Restored Indicator (Bottom Right) */}
+          <div className="absolute bottom-2 right-2 z-10 pointer-events-none">
+            <span className="bg-black/60 backdrop-blur-xs text-emerald-400/90 px-1.5 py-0.5 rounded-xs text-[9px] font-mono uppercase tracking-wider border border-emerald-500/20">
+              {t('monitor.split_restored')}
             </span>
           </div>
         </div>
@@ -314,16 +334,12 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           style={{ clipPath: `polygon(0 0, ${splitPos}% 0, ${splitPos}% 100%, 0 100%)` }}
         >
           {viewMode === 'stream' ? (
-            <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
-              <div className="relative w-full h-full aspect-video max-w-full max-h-full overflow-hidden">
-                <img
-                  src={splitStreamUrl}
-                  alt={t('monitor.split_raw')}
-                  className="absolute top-0 bottom-0 left-0 w-[200%] h-full max-w-none object-fill"
-                  data-testid="split-raw-stream"
-                />
-              </div>
-            </div>
+            <SplitStreamViewport
+              src={splitStreamUrl}
+              alt={t('monitor.split_raw')}
+              testId="split-raw-stream"
+              alignLeft={true}
+            />
           ) : rawImg ? (
             <img
               src={rawImg}
@@ -336,10 +352,9 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
             </div>
           )}
 
-          {/* Raw Analog Badge (Top Left) */}
-          <div className="absolute top-12 left-3 z-10">
-            <span className="bg-amber-950/90 text-amber-300 border border-amber-600/60 px-2 py-0.5 rounded-xs text-[9px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 shadow-md">
-              <span className="led-lamp led-live" aria-hidden="true" />
+          {/* Subtle Raw Indicator (Bottom Left) */}
+          <div className="absolute bottom-2 left-2 z-10 pointer-events-none">
+            <span className="bg-black/60 backdrop-blur-xs text-amber-400/90 px-1.5 py-0.5 rounded-xs text-[9px] font-mono uppercase tracking-wider border border-amber-500/20">
               {t('monitor.split_raw')}
             </span>
           </div>
@@ -350,12 +365,12 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           className="absolute top-0 bottom-0 z-20 pointer-events-none transition-shadow"
           style={{ left: `${splitPos}%`, transform: 'translateX(-50%)' }}
         >
-          {/* Vertical Glowing Line */}
-          <div className="w-0.5 h-full bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.85)]" />
+          {/* Crisp Vertical Line */}
+          <div className="w-0.5 h-full bg-amber-400/80 shadow-[0_0_6px_rgba(251,191,36,0.5)]" />
 
           {/* Center Grip Button */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-studio-surface border-2 border-amber-400 shadow-lg flex items-center justify-center text-amber-400">
-            <Sliders className="w-3 h-3" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-studio-panel border border-amber-400/90 shadow-md flex items-center justify-center text-amber-400">
+            <Sliders className="w-2.5 h-2.5" />
           </div>
         </div>
 
@@ -367,8 +382,8 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
       </div>
 
       {/* Bottom Timeline / Seek Bar */}
-      <div className="w-full bg-studio-panel/95 border-t border-studio-border p-2 z-20 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
-        <div className="flex items-center gap-1.5">
+      <div className="w-full bg-studio-panel/95 border-t border-studio-border px-3 py-1.5 z-20 flex flex-wrap items-center justify-between gap-2.5 text-xs font-mono">
+        <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={() => handleSeek(-30)}
@@ -389,7 +404,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           >
             <ChevronLeft className="w-3.5 h-3.5" />
           </button>
-          <span className="text-[10px] text-slate-300 font-bold tabular-nums min-w-[70px] text-center">
+          <span className="text-[10px] text-slate-200 font-bold tabular-nums px-1.5 min-w-[55px] text-center">
             {t('monitor.split_time', { time: timestamp.toFixed(1) })}
           </span>
           <button
@@ -415,7 +430,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
         </div>
 
         {/* Timeline Scrubber */}
-        <div className="flex-1 min-w-[140px] max-w-sm flex items-center gap-2">
+        <div className="flex-1 min-w-[120px] max-w-md flex items-center gap-2">
           <input
             type="range"
             min={0}
@@ -433,21 +448,17 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
         </div>
 
         {/* Split Divider Slider */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <input
             type="range"
             min={0}
             max={100}
             value={splitPos}
             onChange={(e) => handleSplitChange(Number(e.target.value))}
-            className="w-24 sm:w-32 h-1.5 bg-studio-surface rounded-lg appearance-none cursor-pointer accent-amber-400"
+            className="w-20 sm:w-24 h-1.5 bg-studio-surface rounded-lg appearance-none cursor-pointer accent-amber-400"
             aria-label={t('monitor.split_position', { percent: splitPos })}
             data-testid="split-slider-input"
           />
-        </div>
-
-        <div className="text-[9px] text-slate-400 hidden xl:block">
-          {t('monitor.split_hint')}
         </div>
       </div>
     </div>

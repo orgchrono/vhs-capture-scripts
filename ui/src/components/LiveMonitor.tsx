@@ -99,28 +99,42 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
 
   return (
     <div className="relative w-full h-full bg-black flex flex-col items-center justify-center overflow-hidden" data-testid="live-monitor-container">
-      {/* Top Header: Signal Status & Telemetry HUD */}
-      <div className="absolute top-2.5 left-2.5 right-2.5 z-20 flex items-center justify-between pointer-events-auto gap-2 flex-wrap">
-        <span className="bg-black/85 backdrop-blur-md px-2.5 py-1 rounded-sm text-[10px] font-mono text-slate-300 border border-studio-border shadow-sm flex items-center gap-1.5 shrink-0">
-          <span
-            className={`led-lamp ${
-              isRestoring
-                ? 'led-live animate-pulse'
-                : isActive
-                ? 'led-live'
-                : selectedFile
-                ? 'led-idle'
-                : 'led-idle'
-            }`}
-          />
-          {isRestoring
-            ? t('monitor.rendering_preview')
-            : isActive
-            ? t('monitor.live_preview')
-            : selectedFile
-            ? t('monitor.tape_loaded_preview')
-            : t('monitor.live_preview')}
-        </span>
+      {/* Top Header: Signal Status, Split Toggle & Telemetry HUD */}
+      <div className="absolute top-2.5 left-2.5 right-2.5 z-20 flex items-center justify-between pointer-events-auto gap-2">
+        <div className="flex items-center gap-2">
+          <span className="bg-black/85 backdrop-blur-md px-2.5 py-1 rounded-sm text-[10px] font-mono text-slate-300 border border-studio-border shadow-sm flex items-center gap-1.5 shrink-0">
+            <span
+              className={`led-lamp ${
+                isRestoring
+                  ? 'led-live animate-pulse'
+                  : isActive
+                  ? 'led-live'
+                  : selectedFile
+                  ? 'led-idle'
+                  : 'led-idle'
+              }`}
+            />
+            {isRestoring
+              ? t('monitor.rendering_preview')
+              : isActive
+              ? t('monitor.live_preview')
+              : selectedFile
+              ? t('monitor.tape_loaded_preview')
+              : t('monitor.live_preview')}
+          </span>
+
+          <button
+            type="button"
+            onClick={() => setIsSplitMode(true)}
+            className="bg-black/85 hover:bg-studio-surface text-amber-300 hover:text-white px-2.5 py-1 rounded-sm text-[10px] font-mono border border-amber-500/40 hover:border-amber-400 shadow-sm flex items-center gap-1.5 transition cursor-pointer"
+            title={t('monitor.split_view')}
+            aria-label={t('monitor.split_view')}
+            data-testid="toggle-split-view-btn"
+          >
+            <Layers className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden sm:inline">{t('monitor.split_view')}</span>
+          </button>
+        </div>
 
         <div className="flex items-center gap-1.5 ml-auto flex-wrap">
           <AnimatePresence>
@@ -225,20 +239,8 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
         <div className="absolute bottom-0 right-0 w-2.5 h-2.5 border-b-2 border-r-2 border-white/20" />
       </div>
 
-      {/* Bottom Broadcast Toolbar: Actions & SMPTE Format */}
-      <div className="absolute bottom-2.5 left-2.5 right-2.5 z-20 flex items-center justify-between gap-2 pointer-events-auto">
-        <button
-          type="button"
-          onClick={() => setIsSplitMode(true)}
-          className="bg-black/85 hover:bg-studio-surface text-amber-300 hover:text-white px-2.5 py-1 rounded-sm text-[10px] font-mono border border-amber-500/40 hover:border-amber-400 shadow-sm flex items-center gap-1.5 transition cursor-pointer"
-          title={t('monitor.split_view')}
-          aria-label={t('monitor.split_view')}
-          data-testid="toggle-split-view-btn"
-        >
-          <Layers className="w-3.5 h-3.5 text-amber-400" />
-          <span>{t('monitor.split_view')}</span>
-        </button>
-
+      {/* Bottom Right Format Badge */}
+      <div className="absolute bottom-2.5 right-2.5 z-20 flex items-center pointer-events-auto">
         <span className="bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-sm text-[9px] font-mono text-slate-400 border border-white/10 shadow-sm">
           {t('monitor.smpte_format')}
         </span>
