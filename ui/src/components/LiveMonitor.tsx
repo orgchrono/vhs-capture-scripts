@@ -126,13 +126,12 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
           <button
             type="button"
             onClick={() => setIsSplitMode(true)}
-            className="bg-black/85 hover:bg-studio-surface text-amber-300 hover:text-white px-2.5 py-1 rounded-sm text-[10px] font-mono border border-amber-500/40 hover:border-amber-400 shadow-sm flex items-center gap-1.5 transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-sm bg-black/85 hover:bg-studio-surface text-amber-300 hover:text-white border border-amber-500/40 hover:border-amber-400 shadow-sm transition cursor-pointer"
             title={t('monitor.split_view')}
             aria-label={t('monitor.split_view')}
             data-testid="toggle-split-view-btn"
           >
             <Layers className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden sm:inline">{t('monitor.split_view')}</span>
           </button>
         </div>
 

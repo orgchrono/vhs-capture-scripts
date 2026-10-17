@@ -224,7 +224,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           <button
             type="button"
             onClick={() => handleModeChange('stream')}
-            className={`px-2 py-0.5 rounded-xs text-[10px] font-mono flex items-center gap-1 transition cursor-pointer ${
+            className={`w-6 h-6 flex items-center justify-center rounded-xs transition cursor-pointer ${
               viewMode === 'stream'
                 ? 'bg-amber-500/20 text-amber-300 font-semibold'
                 : 'text-slate-400 hover:text-slate-200'
@@ -233,13 +233,12 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
             aria-label={t('monitor.mode_live_stream')}
             data-testid="mode-stream-btn"
           >
-            <Radio className="w-3 h-3" />
-            <span>{t('monitor.mode_live_stream')}</span>
+            <Radio className="w-3.5 h-3.5" />
           </button>
           <button
             type="button"
             onClick={() => handleModeChange('freeze')}
-            className={`px-2 py-0.5 rounded-xs text-[10px] font-mono flex items-center gap-1 transition cursor-pointer ${
+            className={`w-6 h-6 flex items-center justify-center rounded-xs transition cursor-pointer ${
               viewMode === 'freeze'
                 ? 'bg-amber-500/20 text-amber-300 font-semibold'
                 : 'text-slate-400 hover:text-slate-200'
@@ -248,8 +247,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
             aria-label={t('monitor.mode_freeze_frame')}
             data-testid="mode-freeze-btn"
           >
-            <Film className="w-3 h-3" />
-            <span>{t('monitor.mode_freeze_frame')}</span>
+            <Film className="w-3.5 h-3.5" />
           </button>
         </div>
 
@@ -259,26 +257,24 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
             type="button"
             onClick={handleRefresh}
             disabled={viewMode === 'freeze' && isFetching}
-            className="p-1 text-slate-400 hover:text-white rounded-sm hover:bg-studio-surface border border-studio-border transition cursor-pointer flex items-center gap-1 text-[10px]"
+            className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-white rounded-sm hover:bg-studio-surface border border-studio-border transition cursor-pointer"
             title={t('monitor.split_refresh')}
             aria-label={t('monitor.split_refresh')}
             data-testid="split-refresh-btn"
           >
-            <RefreshCw className={`w-3 h-3 ${viewMode === 'freeze' && isFetching ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">{t('monitor.split_refresh')}</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${viewMode === 'freeze' && isFetching ? 'animate-spin' : ''}`} />
           </button>
 
           {onClose && (
             <button
               type="button"
               onClick={onClose}
-              className="p-1 text-slate-400 hover:text-red-300 hover:bg-red-950/40 rounded-sm border border-studio-border hover:border-red-800/60 transition cursor-pointer flex items-center gap-1 text-[10px]"
+              className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-300 hover:bg-red-950/40 rounded-sm border border-studio-border hover:border-red-800/60 transition cursor-pointer"
               title={t('monitor.split_close')}
               aria-label={t('monitor.split_close')}
               data-testid="split-close-btn"
             >
-              <Power className="w-3 h-3 text-red-400" />
-              <span className="hidden sm:inline">{t('monitor.split_close')}</span>
+              <Power className="w-3.5 h-3.5 text-red-400" />
             </button>
           )}
         </div>
@@ -387,7 +383,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           <button
             type="button"
             onClick={() => handleSeek(-30)}
-            className="p-1 rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-slate-300 hover:text-white transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-slate-300 hover:text-white transition cursor-pointer"
             title={t('monitor.split_seek_backward_30s')}
             aria-label={t('monitor.split_seek_backward_30s')}
             data-testid="split-seek-prev-30-btn"
@@ -397,7 +393,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           <button
             type="button"
             onClick={() => handleSeek(-5)}
-            className="p-1 rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-slate-300 hover:text-white transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-slate-300 hover:text-white transition cursor-pointer"
             title={t('monitor.split_seek_backward')}
             aria-label={t('monitor.split_seek_backward')}
             data-testid="split-seek-prev-btn"
@@ -410,7 +406,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           <button
             type="button"
             onClick={() => handleSeek(5)}
-            className="p-1 rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-slate-300 hover:text-white transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-slate-300 hover:text-white transition cursor-pointer"
             title={t('monitor.split_seek_forward')}
             aria-label={t('monitor.split_seek_forward')}
             data-testid="split-seek-next-btn"
@@ -420,7 +416,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           <button
             type="button"
             onClick={() => handleSeek(30)}
-            className="p-1 rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-slate-300 hover:text-white transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-slate-300 hover:text-white transition cursor-pointer"
             title={t('monitor.split_seek_forward_30s')}
             aria-label={t('monitor.split_seek_forward_30s')}
             data-testid="split-seek-next-30-btn"
