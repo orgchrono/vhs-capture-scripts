@@ -1,25 +1,19 @@
-"""Module documentation pending."""
+"""Unified CLI entrypoint for VHS Studio Pro."""
 
-import sys
 import argparse
+from typing import List, Optional
 from vhs_studio.cli.desktop import run_desktop
 
 
-def main():
-    """Documentation for main."""
+def main(argv: Optional[List[str]] = None) -> int:
+    """Parse CLI subcommands and dispatch execution without mutating global sys.argv."""
     parser = argparse.ArgumentParser(description="VHS Studio CLI")
     subparsers = parser.add_subparsers(dest="command", help="Comandos disponíveis")
 
-    # Comando: desktop
     subparsers.add_parser("desktop", help="Abre a interface gráfica do VHS Studio")
-
-    # Comando: watcher
     subparsers.add_parser("watcher", help="Inicia o monitor de gravação do OBS")
-
-    # Comando: api
     subparsers.add_parser("api", help="Inicia o servidor de API FastAPI")
 
-    # Comando: subtitles
     sub_parser = subparsers.add_parser(
         "subtitles", help="Gera legendas offline via IA (Whisper)"
     )
@@ -31,16 +25,16 @@ def main():
         help="Tamanho do modelo",
     )
 
-    # Comando: restore
+    qc_parser = subparsers.add_parser(
+        "qc", help="Inspeção forense e geração de relatório museológico de defeitos (QC)"
+    )
+    qc_parser.add_argument("input", help="Caminho do arquivo de mídia para inspeção")
+
     subparsers.add_parser("restore", help="Restauração direta FFmpeg")
-
-    # Comando: pipeline
     subparsers.add_parser("pipeline", help="Pipeline orquestrada de restauração")
-
-    # Comando: tui
     subparsers.add_parser("tui", help="Estação interativa de terminal (TUI) sem navegador")
 
-    args, unknown = parser.parse_known_args()
+    args, unknown = parser.parse_known_args(argv)
 
     if args.command == "desktop" or args.command is None:
         run_desktop()
@@ -60,11 +54,14 @@ def main():
         from vhs_studio.ai.whisper_engine import transcribe_and_generate_vtt
 
         transcribe_and_generate_vtt(args.input, args.model_size)
+    elif args.command == "qc":
+        from vhs_studio.capture.qc import QualityControl
+
+        QualityControl.run_qc(args.input)
     elif args.command == "restore":
-        sys.argv = [sys.argv[0]] + unknown
         import vhs_studio.video.direct_restore
 
-        vhs_studio.video.direct_restore.main()
+        vhs_studio.video.direct_restore.main(unknown)
     elif args.command == "pipeline":
         import vhs_studio.pipeline
 

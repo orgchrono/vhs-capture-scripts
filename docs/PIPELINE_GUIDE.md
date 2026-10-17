@@ -15,48 +15,56 @@ Restoring legacy magnetic tape media (VHS, S-VHS, Betamax, Video8, Hi8) requires
 
 ---
 
-## 2. Parallel DAG Orchestration (`pipeline.py`)
+## 2. Sequential Pipelined Chain & DAG Architecture (`pipeline.py`)
 
-VHS Studio Pro replaces monolithic sequential scripts with a modular, concurrent **Directed Acyclic Graph (DAG)** execution pipeline:
+VHS Studio Pro implements a hybrid execution model: high-speed concurrent audio transcription running alongside a **Sequential Pipelined Chain** for cumulative video transformations:
 
 ```mermaid
 flowchart TD
     Raw["Raw Capture (raw/tape.mkv)"] --> BaseRestore["Phase 1: BaseRestorationStep\n(Deinterlacing + Luma/Chroma Filters)"]
     Raw --> Whisper["Phase 1 (Concurrent): WhisperStep\n(Audio Extraction + AI Transcription)"]
     
-    BaseRestore --> PostCheck{"Post-Steps Enabled?"}
+    BaseRestore --> PostCheck{"Neural Post-Processing Chain"}
     
-    PostCheck -->|ai_face_restore| FaceStep["Phase 2: FaceRestorationStep\n(CodeFormer)"]
-    PostCheck -->|ai_rife_60fps| RifeStep["Phase 2: RifeInterpolationStep\n(RIFE v4.6)"]
-    PostCheck -->|ai_upscaler| UpscaleStep["Phase 2: AIUpscalerStep\n(Real-ESRGAN / Real-CUGAN)"]
+    PostCheck --> FaceStep["Phase 2A: FaceRestorationStep\n(CodeFormer)"]
+    FaceStep -->|"current_video"| RifeStep["Phase 2B: RifeInterpolationStep\n(RIFE v4.6 60fps)"]
+    RifeStep -->|"current_video"| UpscaleStep["Phase 2C: AIUpscalerStep\n(Real-ESRGAN / Real-CUGAN)"]
     
-    FaceStep --> SceneStep["Phase 3: SceneSegmentationStep\n(PySceneDetect)"]
-    RifeStep --> SceneStep
-    UpscaleStep --> SceneStep
-    PostCheck -->|None| SceneStep
+    UpscaleStep -->|"final_master"| CommitStep["Atomic Master Commit (os.replace)\n& Intermediate File Purging"]
     
+    CommitStep --> SceneStep["Phase 3: SceneSegmentationStep\n(PySceneDetect on Final Master)"]
     SceneStep --> CloudStep["Phase 4: CloudOffloadStep\n(Sync S3 / Drive / Dropbox)"]
     Whisper --> CloudStep
     CloudStep --> Output["Master Archive Complete\n(restored/tape_name/)"]
 ```
 
-### 2.1 Fault Isolation via Functional Closures (`make_step_runner`)
-Each optional neural post-processing phase is encapsulated inside a functional error-boundary closure:
+### 2.1 State Accumulator & Graceful Degradation
+To prevent the loss of upstream neural improvements, stages pass an accumulator variable `current_video`:
 
 ```python
-def make_step_runner(step_name: str, fn: Callable[[], Optional[str]]) -> Callable[[], Optional[str]]:
-    def run() -> Optional[str]:
-        try:
-            res = fn()
-            log.info(f"[{step_name.upper()}] Step completed successfully.")
-            return res
-        except Exception as exc:
-            log.error(f"[{step_name.upper()} ERROR] Step failed: {exc}")
-            return None
-    return run
+# Sequential Pipelined Chain for neural post-processing:
+# BaseOutput -> FaceRestoration(current_video) -> RIFE(current_video) -> Upscaler(current_video)
+current_video: Optional[str] = restoration_result or self.output_path
+intermediate_files: list[str] = []
+
+for step_name, enabled, step_fn in post_step_specs:
+    if not enabled:
+        continue
+    try:
+        step_out = step_fn(current_video)
+        if step_out:
+            intermediate_files.append(current_video)
+            current_video = step_out
+        else:
+            log.warning(f"[{step_name}] Returned no output; degrading gracefully with previous video.")
+    except Exception as exc:
+        log.warning(f"[{step_name}] Step failed ({exc}); degrading gracefully with previous video.")
 ```
 
-If an optional model (such as CodeFormer) encounters an unhandled runtime error (e.g., missing network weights or GPU out-of-memory), the pipeline logs the diagnostic error cleanly and preserves the master video produced during the base restoration phase without corrupting the pipeline.
+- **Fail-Safe Boundary:** If an optional model fails (e.g. GPU out-of-memory or missing weights), the pipeline gracefully preserves the preceding video without crashing the studio.
+- **Atomic Master Commit:** Once all stages complete, `os.replace` commits the final video to `self.output_path` in a single atomic filesystem operation.
+- **Intermediate Artifact Purging:** Intermediate files recorded in `intermediate_files` are safely deleted, freeing disk space.
+- **Deterministic Audio Cleanup:** The temporary uncompressed WAV file (`_temp.wav`) generated during Whisper transcription is enclosed in a `try ... finally` block, guaranteeing deletion even on unhandled errors or cancellations.
 
 ---
 
@@ -77,14 +85,21 @@ The deinterlacing engine synthesizes interlaced fields into full-rate progressiv
 
 The FFmpeg filtergraph is generated through **pure, declarative functional composition** without global mutable state:
 
-1. **Luma and Chroma Planar Separation:**
-   - Spatial filters operate independently on chrominance planes (`U` and `V`) to suppress color bleeding and cross-color rainbowing without softening the high-frequency luminance (`Y`) plane.
+1. **Luma and Chroma Planar Separation & Realignment (`chromashift`):**
+   - Corrects the horizontal and vertical phase delay inherent to the VHS "Color-Under" system (~629 kHz subcarrier), pulling color bleeding back into alignment with the high-frequency luminance ($Y$) edge data.
 2. **HQDN3D (High-Quality 3D Denoise):**
-   - Evaluates spatio-temporal noise variance across frames, eliminating high-frequency analog snow without creating trailing ghosts (*ghosting*).
-3. **Dropout Cleaner:**
-   - Detects horizontal white dropout streaks caused by magnetic oxide loss and replaces damaged raster segments via temporal interpolation from adjacent fields.
+   - Evaluates spatio-temporal noise variance across frames (`hqdn3d=3:2:6:4`), eliminating high-frequency analog snow without creating trailing ghosts (*ghosting*).
+3. **Temporal Dropout Cleaner ([`DropoutCleaner`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/video/dropout_cleaner.py)):**
+   - Applies `removegrain=1,tmedian=radius=1` to detect and eliminate single-frame white streaks caused by magnetic oxide flaking, replacing corrupted scanlines via temporal interpolation from adjacent fields.
 4. **Overscan Blanking (12px Mask):**
-   - Cleanly blanks out the bottom 12 scanlines containing helical head-switching noise, preventing flashing bars on modern digital displays.
+   - Applies `drawbox=y=ih-12:color=black:width=iw:height=12:t=fill` across the bottom 12 scanlines containing helical head-switching noise, preventing flashing bars on digital flat panels without altering the 4:3 picture framing.
+5. **3D Adaptive Comb Filtering (`dedot` / `TComb`):**
+   - Suppresses cross-color rainbowing and cross-luminance dot crawl caused by composite video notch filtering during original recording.
+6. **Audio Conditioning & Acoustic Restoration:**
+   - **DC Offset Removal:** `dcshift=shift=0` removes bias voltage from analog capture cards.
+   - **60Hz Mains Hum Notch Filter:** `anequalizer=c0 f=60 w=5 g=-30|c1 f=60 w=5 g=-30` cuts electrical hum induced by 110V/60Hz ground loops.
+   - **FFT Spectral Denoise:** `afftdn=nr=12.0:nf=-50.0:tn=1` attenuates linear audio tape hiss without dulling high-frequency speech harmonics.
+   - **Channel Balancing:** Automatic routing (`pan=stereo|c0=c0|c1=c0`) for camcorders recording solely to the Left audio track.
 
 ---
 
@@ -164,4 +179,27 @@ To extract recordings directly from Panasonic DMR hard drives:
 - USB-to-SATA bridge controllers (**JMicron JMS567**, **ASMedia**, **Realtek**) and raw block devices are automatically detected.
 - Native C utilities ([`extract_meihdfs`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/tools/panasonic_rec/extract_meihdfs.exe) and [`dvd-vr`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/tools/panasonic_rec/dvd-vr.exe)) parse proprietary inodes and demux MPEG-2 Program Streams at maximum disk read speeds.
 - For complete operational guidance, consult the [Panasonic DVR Ingest Technical Manual](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/docs/PANASONIC_DVR_GUIDE.md).
+
+---
+
+## 11. Automated Tape Quality Control & Defect Diagnostics (`qc.py`)
+
+Before or after restoration, operators can trigger forensic technical diagnostics on any media file in `media/raw/` or `media/restored/` using the [`QualityControl`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/capture/qc.py) subsystem:
+
+```bash
+# Execute deep QC inspection on a tape capture
+python -c "from vhs_studio.capture.qc import QualityControl; QualityControl.run_qc('media/raw/tape_01.mkv')"
+```
+
+### 11.1 Diagnostic Measurements Performed
+1. **Unrecorded Leader Detection (`find_first_video_frame`):** Measures the initial black/static lead-in segment ($\bar{Y} \le 18.0$) to calculate the precise frame offset for audio/video synchronization.
+2. **Interlace & Cadence Analysis (`idet`):** Probes 300 temporal fields to determine whether the capture contains active interlaced fields (`TFF`/`BFF`) or has already been progressive-scanned, selecting the optimal deinterlacing engine automatically.
+3. **Audio Channel Layout & Decibel Probing (`astats`):** Measures independent channel RMS levels ($L$ vs $R$). If one channel is dead (e.g. $R \le -55\text{ dB}$ while $L \ge -45\text{ dB}$), it automatically flags mono unbalanced recording.
+4. **Temporal Outlier Dropout Detection (`signalstats`):** Computes `TOUT` (Temporal Outliers), detecting white streak bursts from magnetic oxide loss and dirt.
+5. **Head Switching Noise Probing:** Measures variance in the bottom 16 scanlines ($464–480\text{px}$) to confirm whether overscan blanking is needed.
+
+### 11.2 Output Reports Generated
+- `<file>_qc_report.json`: Structured metadata and defect metrics for CI/CD or batch validation.
+- `<file>_defect_report.md`: Complete forensic report mapping each observed flaw, its affected timecode interval, the physical root cause on tape, and the recommended/applied filter.
+
 

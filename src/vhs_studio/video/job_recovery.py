@@ -241,10 +241,56 @@ def scan_incomplete_jobs() -> List[Dict[str, Any]]:
     return [asdict(j) for j in incomplete_jobs]
 
 
+def synchronize_report_with_checkpoint(output_path: str) -> Optional[Dict[str, Any]]:
+    """Synchronize the archival defect report with the exact frame recorded in the job checkpoint."""
+    chk_path = f"{output_path}.checkpoint.json"
+    report_json_path = f"{output_path}_qc_report.json"
+    if not os.path.exists(chk_path):
+        return None
+    try:
+        from vhs_studio.capture.qc import make_archival_report_session
+
+        with open(chk_path, "r", encoding="utf-8") as f:
+            chk_data = json.load(f)
+
+        synced_frame = int(chk_data.get("total_frames", chk_data.get("kept_frames", 0)))
+        fps = float(chk_data.get("fps", 29.97))
+        source = str(chk_data.get("source", output_path))
+        elap = float(chk_data.get("elapsed_seconds", 0.0))
+        start_sec = float(chk_data.get("start_sec", 0.0))
+
+        existing_report = None
+        if os.path.exists(report_json_path):
+            try:
+                with open(report_json_path, "r", encoding="utf-8") as rf:
+                    existing_report = json.load(rf)
+            except Exception:
+                existing_report = None
+
+        session = make_archival_report_session(
+            source_path=source,
+            output_path=output_path,
+            fps=fps,
+            base_start_sec=start_sec,
+            initial_report=existing_report,
+        )
+        session["truncate_to_frame"](synced_frame, reason="checkpoint_sync")
+        session["sync_to_disk"](
+            synced_frame=synced_frame,
+            elapsed_sec=elap,
+            status=str(chk_data.get("status", "in_progress")),
+        )
+        return session["get_snapshot"]()
+    except Exception as e:
+        log.warning(f"[JOB RECOVERY] Failed synchronizing archival report for {output_path}: {e}")
+        return None
+
+
 def finalize_partial_video(output_path: str) -> Optional[str]:
     """Repair container moov atom and index headers for an interrupted video without re-encoding.
 
-    Uses stream-copy muxing (-c copy) to render the processed portion immediately playable.
+    Uses stream-copy muxing (-c copy) to render the processed portion immediately playable
+    and synchronizes the corresponding archival defect report to the finalized container.
 
     Args:
         output_path: Path to incomplete video file or base output path.
@@ -282,6 +328,16 @@ def finalize_partial_video(output_path: str) -> Optional[str]:
         res = subprocess.run(cmd, capture_output=True, text=True, errors="replace", timeout=120)
         if res.returncode == 0 and os.path.exists(finalized_path) and os.path.getsize(finalized_path) > 1024:
             log.info(f"[JOB RECOVERY] Partial video finalized successfully ({os.path.getsize(finalized_path)} bytes).")
+            try:
+                synchronize_report_with_checkpoint(output_path)
+                src_json = f"{output_path}_qc_report.json"
+                src_md = f"{output_path}_defect_report.md"
+                if os.path.exists(src_json):
+                    shutil.copy2(src_json, f"{finalized_path}_qc_report.json")
+                if os.path.exists(src_md):
+                    shutil.copy2(src_md, f"{finalized_path}_defect_report.md")
+            except Exception:
+                pass
             return finalized_path
         else:
             log.warning(f"[JOB RECOVERY] Finalization remux failed with code {res.returncode}:\n{res.stderr}")
@@ -294,11 +350,17 @@ def finalize_partial_video(output_path: str) -> Optional[str]:
 def discard_incomplete_job(output_path: str) -> bool:
     """Safely remove partial artifacts, checkpoints, and locks associated with an interrupted job."""
     chk_path = f"{output_path}.checkpoint.json"
+    qc_json = f"{output_path}_qc_report.json"
+    qc_md = f"{output_path}_defect_report.md"
     files_to_remove = [
         output_path,
         chk_path,
+        qc_json,
+        qc_md,
         f"{output_path}.tmp",
         f"{chk_path}.tmp",
+        f"{qc_json}.tmp",
+        f"{qc_md}.tmp",
         f"{output_path}.part",
         f"{output_path}.log",
     ]

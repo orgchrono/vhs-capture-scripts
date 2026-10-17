@@ -98,6 +98,30 @@ Executes deep host hardware diagnostics via the HAL, classifying host capability
 
 ---
 
+### `GET /api/system/metrics`
+Returns non-blocking, real-time host hardware resource utilization and pipeline operational status via `psutil`.
+
+- **Response (HTTP 200):**
+  ```json
+  {
+    "cpu_percent": 18.4,
+    "ram_used_gb": 7.25,
+    "ram_total_gb": 31.92,
+    "ram_percent": 22.7,
+    "process_running": true,
+    "is_paused": false
+  }
+  ```
+- **Fields:**
+  - `cpu_percent` (`float`): Instantaneous CPU utilization percentage (`0.0`–`100.0`).
+  - `ram_used_gb` (`float`): Physical RAM currently consumed in gigabytes.
+  - `ram_total_gb` (`float`): Total physical RAM installed on the host in gigabytes.
+  - `ram_percent` (`float`): Memory pressure percentage (`0.0`–`100.0`).
+  - `process_running` (`bool`): `true` if a restoration job is actively executing.
+  - `is_paused` (`bool`): `true` if the active job process tree has been suspended.
+
+---
+
 ### `GET /api/logs`
 Returns cumulative in-memory execution logs tracked by the `ProcessManager`.
 
@@ -251,8 +275,11 @@ Dispatches process management commands (`pause_process`, `resume_process`, `abor
 Extracts and returns a comparison frame pair (Raw vs Restored) at a specified timestamp, encoded as base64 JPEG images.
 
 - **Query Parameters:**
-  - `path`: Relative path to raw file in `media/raw/`.
+  - `source`: Relative path to raw file in `media/raw/`.
   - `timestamp`: Float timestamp in seconds (e.g. `12.5`).
+  - `denoise`: Optional boolean (`true`/`false`) to simulate spatial-temporal noise reduction.
+  - `color`: Optional boolean (`true`/`false`) to simulate color channel balancing.
+- **Aspect Ratio Handling:** Uses [`_resolve_preview_scale_filter`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/routers/restoration.py#L360) to pad 4:3 SD tapes with pillarbox bars (`480x360` inside `640x360`), preventing anamorphic stretch.
 - **Response (HTTP 200):**
   ```json
   {
@@ -261,6 +288,22 @@ Extracts and returns a comparison frame pair (Raw vs Restored) at a specified ti
     "timestamp": 12.5
   }
   ```
+
+---
+
+### `GET /api/monitor/stream-proxy`
+Returns a continuous, low-latency live MJPEG stream (`multipart/x-mixed-replace`) for real-time split-screen comparison or timeline scrubbing.
+
+- **Query Parameters:**
+  - `source`: Path to target video file.
+  - `timestamp`: Seek position in seconds (e.g. `0.0`).
+  - `fps`: Stream delivery framerate between `1` and `60` (default: `15`).
+  - `mode`: `"raw"`, `"processed"`, or `"split"` (dual-channel side-by-side comparison).
+  - `denoise`: Boolean flag enabling live preview denoising (`hqdn3d`).
+  - `color`: Boolean flag enabling live preview color matrix calibration.
+- **Aspect Ratio & Subprocess Protection:**
+  - Standard 4:3 VHS tapes receive automatic pillarbox scaling to fit the 16:9 monitor viewport without distortion.
+  - On client disconnect (modal close or timeline seek), [`_kill_stream_process_tree`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/routers/restoration.py#L366) traverses the OS process tree with `psutil` and forcefully terminates all child FFmpeg processes, preventing background process leaks on Windows.
 
 ---
 
@@ -331,3 +374,31 @@ Generates and caches JPEG thumbnail representations for video files at specified
 ### `GET /api/storage/config` & `POST /api/storage/config`
 Retrieves and updates archival destination parameters (Local Storage, AWS S3, Google Drive, Dropbox).
 
+---
+
+## 8. Quality Control & Analog Defect Diagnostics (`qc.py`)
+
+The [`QualityControl`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/capture/qc.py) subsystem exposes Python and CLI methods to inspect any tape media file, catalog its physical artifacts, and produce structured reports:
+
+### `GET /api/restoration/qc-report`
+Retrieves (or optionally generates on demand) the synchronized museum-grade JSON and Markdown defect & restoration report for a media file.
+
+- **Query Parameters:**
+  - `file_path`: Path to the raw or restored media file.
+  - `generate`: Boolean (`true`/`false`) to trigger `QualityControl.run_qc` if the report does not yet exist on disk.
+
+### Programmatic & CLI Invocation:
+```python
+from vhs_studio.capture.qc import QualityControl, make_archival_report_session
+
+# Standalone inspection
+json_path = QualityControl.run_qc("media/raw/tape_01.mkv")
+```
+
+```bash
+vhs-studio qc media/raw/tape_01.mkv
+```
+
+### Generated Files:
+- `<filepath>_qc_report.json`: JSON document containing raw metadata, black leader seconds, `idet` counts, audio decibel levels, `signalstats` dropouts, `pipeline_tools_registry`, `defect_events_log`, `cumulative_telemetry`, and `sync_state`.
+- `<filepath>_defect_report.md`: 8-section Markdown document formatting the complete forensic defect matrix, per-tool correction registry, chronological frame-accurate defect log, and checkpoint synchronization state.

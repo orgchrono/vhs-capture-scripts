@@ -62,7 +62,7 @@ The monolithic 528-line `server.py` implementation was decomposed into specializ
 
 | Module | Core Responsibility | Primary Endpoints |
 | :--- | :--- | :--- |
-| **[`system.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/routers/system.py)** | System diagnostics, hardware capability profiling, and real-time SSE telemetry | `GET /api/token`<br>`GET /api/status`<br>`GET /api/hardware`<br>`GET /api/logs`<br>`GET /api/logs/stream` (SSE) |
+| **[`system.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/routers/system.py)** | System diagnostics, hardware capability profiling, real-time CPU/RAM telemetry, and logs | `GET /api/token`<br>`GET /api/status`<br>`GET /api/hardware`<br>`GET /api/system/metrics`<br>`GET /api/logs`<br>`GET /api/logs/stream` (SSE) |
 | **[`queue.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/routers/queue.py)** | Transactional management of the persistent SQLite FIFO batch queue | `GET /api/queue`<br>`POST /api/queue/enqueue`<br>`POST /api/queue/cancel/{id}`<br>`POST /api/queue/start`<br>`POST /api/queue/stop` |
 | **[`obs.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/routers/obs.py)** | OBS Studio integration and telemetry streaming via WebSocket v5 | `GET /api/obs/stats`<br>`POST /api/obs/start`<br>`POST /api/obs/stop`<br>`POST /api/obs/virtualcam` |
 | **[`restoration.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/routers/restoration.py)** | Restoration job execution, non-destructive pause/resume, and A/B frame comparison | `POST /api/run`<br>`POST /api/action`<br>`GET /api/monitor/comparison-frame`<br>`GET /api/restoration/incomplete` |
@@ -75,49 +75,42 @@ The monolithic 528-line `server.py` implementation was decomposed into specializ
 
 ---
 
-## 4. Concurrent DAG Pipeline Architecture
+## 4. Sequential Pipelined Chain Architecture (DAG)
 
-The [`PipelineOrchestrator`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/pipeline.py#L40) manages video processing tasks via a Directed Acyclic Graph (DAG) designed for maximum resource utilization:
+The [`PipelineOrchestrator`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/pipeline.py#L40) manages video processing tasks via a Directed Acyclic Graph (DAG) implementing a **Sequential Pipelined Chain** for cumulative neural transformations:
 
 ```mermaid
 flowchart TD
     RawInput["Raw Capture Input (raw/tape.mkv)"] --> BaseRestore["Phase 1: Base Restoration (QTGMC / bwdif / TBC)"]
     RawInput --> WhisperTask["Phase 1 (Concurrent): WhisperStep (Audio -> VTT / SRT)"]
     
-    BaseRestore --> PostCheck{"Neural Post-Processing Selection"}
+    BaseRestore --> PostCheck{"Sequential Neural Post-Processing"}
     
-    PostCheck -->|"Face Restore"| FaceRestore["FaceRestorationStep (CodeFormer)"]
-    PostCheck -->|"Motion 60fps"| RifeTask["RifeInterpolationStep (RIFE v4.6 60fps)"]
-    PostCheck -->|"Super-Resolution"| UpscaleTask["AIUpscalerStep (Real-ESRGAN x4plus)"]
-    PostCheck -->|"Standard"| SceneSplit["Phase 3: SceneSegmentationStep (PySceneDetect)"]
+    PostCheck --> FaceRestore["Phase 2A: FaceRestorationStep (CodeFormer)"]
+    FaceRestore -->|"current_video"| RifeTask["Phase 2B: RifeInterpolationStep (RIFE v4.6 60fps)"]
+    RifeTask -->|"current_video"| UpscaleTask["Phase 2C: AIUpscalerStep (Real-ESRGAN / CUGAN)"]
     
-    FaceRestore --> SceneSplit
-    RifeTask --> SceneSplit
-    UpscaleTask --> SceneSplit
+    UpscaleTask -->|"final_master"| CommitMaster["Atomic Master Commit (os.replace) & Intermediate File Cleanup"]
     
+    CommitMaster --> SceneSplit["Phase 3: SceneSegmentationStep (PySceneDetect)"]
     SceneSplit --> CloudSync["Phase 4: CloudOffloadStep (S3 / Drive / Dropbox)"]
     WhisperTask --> CloudSync
     CloudSync --> FinalOutput["Final Master Archive (restored/tape/)"]
 ```
 
-### Error Isolation via Step Closures
-Every post-processing stage is guarded by the [`make_step_runner`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/pipeline.py#L27) closure factory:
+### 4.1 Cumulative State Accumulator & Graceful Degradation
+Unlike parallel fan-out pipelines where stages discard previous outputs, VHS Studio Pro passes an accumulator variable `current_video`:
 
-```python
-def make_step_runner(step_name: str, fn: Callable[[], Optional[str]]) -> Callable[[], Optional[str]]:
-    """Functional closure encapsulating pipeline step execution with uniform logging and error boundaries."""
-    def run() -> Optional[str]:
-        try:
-            res = fn()
-            log.info(f"[{step_name.upper()}] Step completed successfully.")
-            return res
-        except Exception as exc:
-            log.error(f"[{step_name.upper()} ERROR] Step failed: {exc}")
-            return None
-    return run
-```
-
-This guarantees that optional neural models (e.g., CodeFormer failing due to missing model weights or GPU memory exhaustion) will never disrupt the delivery of the primary restored master file.
+1. **Cumulative Chain:**
+   $$\text{BaseOutput} \longrightarrow \text{FaceRestoration}(current) \longrightarrow \text{RIFE}(current) \longrightarrow \text{AIUpscaler}(current) \longrightarrow \text{Master}$$
+2. **Graceful Degradation Error Boundaries:**
+   Each neural stage executes inside an isolated `try ... except` block. If an optional stage fails (e.g., CUDA out-of-memory or missing weights) or returns `None`/`False`, the orchestrator logs a warning and **preserves the intact video from the preceding stage**, ensuring that base restorations are never compromised.
+3. **Atomic Master Commit & Intermediate Artifact Purging:**
+   Once the chain completes, the resulting file is committed atomically to `self.output_path` using `os.replace`. All intermediate temporary files recorded in `intermediate_files` are safely unlinked, preventing disk space exhaustion.
+4. **Deterministic Whisper Lifecycle:**
+   In [`WhisperEngine.transcribe_and_generate_vtt`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/ai/whisper_engine.py), audio extraction is wrapped in a strict `try ... finally` block. The temporary uncompressed PCM `_temp.wav` is unconditionally purged on completion, failure, or cancellation.
+5. **Master-Guarded Scene Detection:**
+   [`_task_scenedetect_and_split`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/pipeline.py#L207) targets only the finalized, committed physical master file on disk, eliminating null reference crashes.
 
 ---
 
@@ -172,6 +165,10 @@ Drawing from industry-standard non-linear editing suites (DaVinci Resolve, Adobe
    - Breadcrumb stages adapt dynamically to the selected preset (Broadcast Standard, Ultrafast, TBC Frame-Hold, AI Master, or Custom).
 4. **Top 2.5px Render Ribbon:**
    - An unobtrusive 2.5px animated gradient ribbon (`sky-400` → `emerald-400` → `indigo-400`) delivers real-time progress along the top window border without consuming editing screen real estate.
+5. **Real-Time Hardware Telemetry Drawer (`SystemTelemetryCard.tsx`):**
+   - The Footer StatusBar includes an interactive hardware pill badge (`CPU X% • RAM Y%`) bound to [`useGetSystemMetricsQuery`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/ui/src/api/studioRtkApi.ts).
+   - Clicking the pill smoothly expands a retractable hardware telemetry drawer with live CSS sparkline load history (tracking the last 12 samples) and color-coded status thresholds (Emerald `< 70%`, Amber `70–89%`, Rose `≥ 90%`).
+   - The same telemetry card is embedded in compact mode within the Hardware & AI tab of [`RestorationSettings.tsx`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/ui/src/components/RestorationSettings.tsx), providing operators with immediate resource visibility before triggering intensive neural jobs.
 
 ---
 
@@ -222,10 +219,12 @@ As stipulated in [`AGENTS.md`](file:///c:/Users/danie/Documents/vhs-capture-scri
 
 ---
 
-## 12. Real-Time A/B Split-Screen Monitor (`<SplitComparisonMonitor />`)
+## 12. Real-Time A/B Split-Screen Monitor & Stream Proxy
 
 To inspect the effects of deinterlacing, chroma alignment, and denoising in real time without competing with production rendering:
 - **Low-Latency Proxy Downscaler (360p / 15fps):** `GET /api/monitor/comparison-frame` processes a dual-frame slice (Raw Interlaced vs Processed Progressive) utilizing under 2% CPU overhead and responding in less than 50ms.
+- **Dynamic 4:3 Aspect Ratio Preservation:** [`_resolve_preview_scale_filter`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/routers/restoration.py#L360) detects SD analog captures (480i/576i) versus modern 16:9 HD material. For standard 4:3 VHS sources, it injects pillarbox padding (`scale=w=480:h=360:force_original_aspect_ratio=decrease,pad=640:360:(ow-iw)/2:(oh-ih)/2`), guaranteeing 1:1 pixel geometry without horizontal stretching.
+- **Robust Process Tree Cleanup (`_kill_stream_process_tree`):** When preview modals are closed or operators scrub the timeline, client HTTP connections disconnect abruptly. To prevent orphaned `ffmpeg.exe` processes from saturating CPU cores on Windows, [`_kill_stream_process_tree`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/routers/restoration.py#L366) closes `proc.stdout`, traverses `psutil.Process(proc.pid).children(recursive=True)`, and forcefully terminates all child worker processes before terminating the parent.
 - **Interactive Split Slider:** [`SplitComparisonMonitor.tsx`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/ui/src/components/SplitComparisonMonitor.tsx) provides smooth dragging, keyboard navigation (`ArrowLeft` / `ArrowRight`), and temporal position seeking.
 - **Zero Overhead Toggle:** Operators can disable the monitor at any moment to allocate 100% of workstation cycles to the primary restoration pipeline.
 
@@ -263,4 +262,26 @@ To prevent data loss caused by unexpected power disruptions or reboots:
      - **`resume`**: Resumes from the last processed frame index.
      - **`finalize`**: Repairs the video container via FFmpeg stream-copy (`-c copy`) and moves the `moov` atom to the file head (`-movflags +faststart`), rendering partial videos immediately playable.
      - **`discard`**: Safely cleans up temporary remnants.
+
+---
+
+## 16. Automated Quality Control & Analog Defect Diagnostics
+
+To bridge the gap between low-level signal processing and historical preservation records, the [`QualityControl`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/capture/qc.py) subsystem performs deep automated diagnostics across archive captures:
+
+1. **Unrecorded Leader Detection (`find_first_video_frame`):**
+   - Automatically probes the head of the file for unrecorded tape leader ($\bar{Y} \le 18.0$) and identifies the exact sub-second timestamp where active recorded video begins.
+2. **Interlace & Cadence Analysis (`idet`):**
+   - Evaluates 300 temporal fields using multi-frame sampling to determine whether the stream is true interlaced (TFF / BFF) or progressive, preventing double-deinterlacing degradation.
+3. **Audio Channel Balance & Hum Probing (`astats`):**
+   - Measures per-channel RMS decibels ($L$ vs $R$). If one channel is dead (e.g. $R \le -55\text{ dB}$ while $L \ge -45\text{ dB}$), it recommends automatic mono-L duplication and 60Hz notch filtering.
+4. **Temporal Outlier Dropout Detection (`signalstats`):**
+   - Measures `TOUT` (Temporal Outliers), identifying magnetic oxide loss, white streaks, and tape dropouts across frames.
+5. **Head Switching Noise Probing:**
+   - Detects the presence of helical head switching noise in the bottom 16 scanlines ($464–480\text{px}$).
+6. **Automated Dual-Report Generation:**
+   - Calling `QualityControl.run_qc(filepath)` produces:
+     - `<file>_qc_report.json`: Machine-readable structured diagnostics for automated tooling.
+     - `<file>_defect_report.md`: Human-readable forensic report mapping every observed flaw, timecode range, physical tape cause, and the exact digital filter to correct it.
+
 

@@ -3,43 +3,108 @@
 import threading
 import subprocess
 import re
-from typing import Tuple, List, Optional
+from typing import Any, Callable, Dict, Tuple, List, Optional
 
 from vhs_studio.core.constants import MAX_PROCESS_LOGS_HISTORY
 
 ANSI_ESCAPE_RE = re.compile(r"(?:\x1b|\u001b)\[[0-9;]*[a-zA-Z]|\x1b\[[0-9;]*m|\[[0-9;]{1,3}m")
 
 
+def make_process_state_closure() -> Dict[str, Callable[..., Any]]:
+    """Create a lexical closure encapsulating subprocess state and log history without class-level globals."""
+    state: Dict[str, Any] = {
+        "active_process": None,
+        "process_logs": [],
+        "last_exit_code": None,
+        "last_success": None,
+        "is_paused": False,
+    }
+
+    def get_val(key: str) -> Any:
+        return state.get(key)
+
+    def set_val(key: str, val: Any) -> None:
+        state[key] = val
+
+    def append_log(line: str) -> None:
+        logs: List[str] = state["process_logs"]
+        logs.append(line)
+        if len(logs) > MAX_PROCESS_LOGS_HISTORY:
+            logs.pop(0)
+
+    def clear_logs() -> None:
+        state["process_logs"].clear()
+
+    return {
+        "get": get_val,
+        "set": set_val,
+        "append_log": append_log,
+        "clear_logs": clear_logs,
+    }
+
+
 class ProcessManager:
-    """Singleton process manager for non-blocking subprocess lifecycle and real-time log capturing."""
+    """Singleton process manager backed by a lexical state closure for non-blocking subprocess lifecycle."""
 
     _instance: Optional["ProcessManager"] = None
     _lock = threading.Lock()
-    active_process: Optional[subprocess.Popen] = None
-    process_logs: List[str] = []
-    last_exit_code: Optional[int] = None
-    last_success: Optional[bool] = None
-    is_paused: bool = False
+    _closure: Dict[str, Callable[..., Any]]
 
     def __new__(cls):
         with cls._lock:
             if cls._instance is None:
-                cls._instance = super(ProcessManager, cls).__new__(cls)
-                cls._instance.active_process = None
-                cls._instance.process_logs = []
-                cls._instance.last_exit_code = None
-                cls._instance.last_success = None
-                cls._instance.is_paused = False
+                instance = super(ProcessManager, cls).__new__(cls)
+                instance._closure = make_process_state_closure()
+                cls._instance = instance
         return cls._instance
 
-    def start_process(self, cmd: List[str]) -> Tuple[bool, str]:
+    @property
+    def active_process(self) -> Optional[subprocess.Popen]:
+        return self._closure["get"]("active_process")
 
+    @active_process.setter
+    def active_process(self, value: Optional[subprocess.Popen]) -> None:
+        self._closure["set"]("active_process", value)
+
+    @property
+    def process_logs(self) -> List[str]:
+        return self._closure["get"]("process_logs")
+
+    @process_logs.setter
+    def process_logs(self, value: List[str]) -> None:
+        self._closure["set"]("process_logs", value)
+
+    @property
+    def last_exit_code(self) -> Optional[int]:
+        return self._closure["get"]("last_exit_code")
+
+    @last_exit_code.setter
+    def last_exit_code(self, value: Optional[int]) -> None:
+        self._closure["set"]("last_exit_code", value)
+
+    @property
+    def last_success(self) -> Optional[bool]:
+        return self._closure["get"]("last_success")
+
+    @last_success.setter
+    def last_success(self, value: Optional[bool]) -> None:
+        self._closure["set"]("last_success", value)
+
+    @property
+    def is_paused(self) -> bool:
+        return bool(self._closure["get"]("is_paused"))
+
+    @is_paused.setter
+    def is_paused(self, value: bool) -> None:
+        self._closure["set"]("is_paused", bool(value))
+
+    def start_process(self, cmd: List[str]) -> Tuple[bool, str]:
         """Spawn a new child process if no active process is currently executing."""
         with self._lock:
             if self.active_process is not None and self.active_process.poll() is None:
                 return False, "A process is already running."
 
-            self.process_logs.clear()
+            self._closure["clear_logs"]()
             self.last_exit_code = None
             self.last_success = None
             self.active_process = subprocess.Popen(
@@ -52,7 +117,6 @@ class ProcessManager:
                 bufsize=1,
             )
 
-            # Start asynchronous background stdout reader thread
             t = threading.Thread(
                 target=self._log_reader_thread,
                 args=(self.active_process,),
@@ -68,9 +132,7 @@ class ProcessManager:
                 clean_line = ANSI_ESCAPE_RE.sub("", line).strip()
                 if clean_line:
                     with self._lock:
-                        self.process_logs.append(clean_line)
-                        if len(self.process_logs) > MAX_PROCESS_LOGS_HISTORY:
-                            self.process_logs.pop(0)
+                        self._closure["append_log"](clean_line)
 
         proc.wait()
         exit_code = proc.returncode
@@ -78,11 +140,11 @@ class ProcessManager:
             self.last_exit_code = exit_code
             self.last_success = (exit_code == 0)
             if exit_code != 0:
-                self.process_logs.append(
+                self._closure["append_log"](
                     f"[PROCESSO ERRO] Processo finalizado com erro (Exit Code: {exit_code})"
                 )
             else:
-                self.process_logs.append(
+                self._closure["append_log"](
                     "[PROCESSO] Processo finalizado com sucesso (Exit Code: 0)"
                 )
 
@@ -116,7 +178,7 @@ class ProcessManager:
                     except (psutil.NoSuchProcess, psutil.AccessDenied):
                         pass
                 self.is_paused = True
-                self.process_logs.append(
+                self._closure["append_log"](
                     "[PROCESSO] Processo pausado pelo operador. Recursos de hardware (CPU/GPU) liberados."
                 )
                 return True, "Process paused successfully."
@@ -141,7 +203,7 @@ class ProcessManager:
                     except (psutil.NoSuchProcess, psutil.AccessDenied):
                         pass
                 self.is_paused = False
-                self.process_logs.append(
+                self._closure["append_log"](
                     "[PROCESSO] Processo retomado. Restauração continuando de onde parou."
                 )
                 return True, "Process resumed successfully."
@@ -160,7 +222,6 @@ class ProcessManager:
                 try:
                     parent = psutil.Process(pid)
                     children = parent.children(recursive=True)
-                    # First resume if paused so they can respond to terminate signals
                     if self.is_paused:
                         for p in [parent] + children:
                             try:
@@ -193,7 +254,7 @@ class ProcessManager:
             self.last_success = False
             self.is_paused = False
             self.active_process = None
-            self.process_logs.append(
+            self._closure["append_log"](
                 "[PROCESSO] Processo abortado pelo operador. Árvore de subprocessos encerrada."
             )
             return True

@@ -208,6 +208,7 @@ async def handle_incomplete_action(request: Request):
     from vhs_studio.video.job_recovery import (
         finalize_partial_video,
         discard_incomplete_job,
+        synchronize_report_with_checkpoint,
     )
 
     data = await request.json()
@@ -258,6 +259,7 @@ async def handle_incomplete_action(request: Request):
                 content={"error": "Arquivo original de entrada não foi encontrado."},
             )
 
+        synchronize_report_with_checkpoint(output_path)
         params: Dict[str, object] = {
             "input": source,
             "output": output_path,
@@ -266,6 +268,42 @@ async def handle_incomplete_action(request: Request):
         return _handle_start_restore(params, pm)
 
     return JSONResponse(status_code=400, content={"error": "Ação inválida."})
+
+
+@restoration_router.get("/restoration/qc-report")
+def get_qc_report(file_path: str = "", generate: bool = False):
+    """Retrieve or generate the synchronized museum archival defect and restoration report."""
+    from vhs_studio.capture.qc import QualityControl
+
+    target = resolve_media_input_path(file_path) if file_path else ""
+    if not target or not is_safe_media_path(target):
+        return JSONResponse(status_code=400, content={"error": "Caminho inválido ou não seguro."})
+
+    json_path = f"{target}_qc_report.json"
+    md_path = f"{target}_defect_report.md"
+
+    if generate and os.path.exists(target) and not os.path.exists(json_path):
+        QualityControl.run_qc(target)
+
+    if not os.path.exists(json_path):
+        return JSONResponse(status_code=404, content={"exists": False})
+
+    try:
+        with open(json_path, "r", encoding="utf-8") as f:
+            report_data = json.load(f)
+        md_text = ""
+        if os.path.exists(md_path):
+            with open(md_path, "r", encoding="utf-8") as mf:
+                md_text = mf.read()
+        return {
+            "exists": True,
+            "report_json_path": json_path,
+            "report_md_path": md_path,
+            "report": report_data,
+            "markdown": md_text,
+        }
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 
 @restoration_router.get("/restoration/check-existing")

@@ -136,11 +136,15 @@ def print_log_tail(log_path, lines=20):
 
 
 def restore_stream(args):
-    """Documentation for restore_stream."""
+    """Execute frame-accurate streaming restoration with synchronized archival defect reporting."""
+    from vhs_studio.capture.qc import make_archival_report_session, sec_to_timecode
+
     w, h, detected_fps, duration, _ = get_stream_info(args.input_path)
     fps = args.target_fps if args.target_fps else detected_fps
     if fps <= 0:
         fps = VideoConfig.DEFAULT_FPS
+    if detected_fps <= 0:
+        detected_fps = fps
     frame_bytes = int(w * h * 1.5)
     y_bytes = w * h
 
@@ -153,19 +157,92 @@ def restore_stream(args):
     )
 
     checkpoint_path = f"{args.output_path}.checkpoint.json"
+    report_json_path = f"{args.output_path}_qc_report.json"
+    resume_state = None
+    existing_report = None
+
     if getattr(args, "resume", False):
-        if os.path.exists(checkpoint_path) and os.path.exists(args.output_path):
+        if os.path.exists(checkpoint_path):
             try:
                 with open(checkpoint_path, "r", encoding="utf-8") as f:
                     chk = json.load(f)
-                if chk.get("status") == "completed" and os.path.getsize(args.output_path) > 1024:
+                if (
+                    chk.get("status") == "completed"
+                    and os.path.exists(args.output_path)
+                    and os.path.getsize(args.output_path) > 1024
+                ):
                     log.info(
                         f"[RESTAURAÇÃO] Checkpoint concluído encontrado para {args.output_path}. "
                         "Processamento já realizado com sucesso. Pulando."
                     )
                     return
+                if int(chk.get("total_frames", 0)) > 0:
+                    resume_state = {
+                        "total_frames": int(chk.get("total_frames", 0)),
+                        "kept_frames": int(chk.get("kept_frames", 0)),
+                        "frozen_frames": int(chk.get("frozen_frames", 0)),
+                        "dropped_frames": int(chk.get("dropped_frames", 0)),
+                        "elapsed_seconds": float(chk.get("elapsed_seconds", 0.0)),
+                        "chapters": list(chk.get("chapters", [])),
+                    }
             except Exception:
                 pass
+        if os.path.exists(report_json_path):
+            try:
+                with open(report_json_path, "r", encoding="utf-8") as f:
+                    existing_report = json.load(f)
+            except Exception:
+                existing_report = None
+
+    apply_chroma = getattr(args, "apply_chroma", getattr(args, "chroma_fix", False))
+    apply_denoise = getattr(args, "apply_denoise", getattr(args, "denoise", False))
+    apply_comb = getattr(args, "apply_comb_filter", getattr(args, "comb_filter", False))
+    apply_blanking = getattr(args, "apply_overscan_blanking", getattr(args, "overscan_blanking", False))
+    apply_dropout = getattr(args, "apply_dropout_clean", getattr(args, "dropout_clean", False))
+    apply_treatment = getattr(args, "apply_audio_treatment", getattr(args, "audio_treatment", False))
+    apply_ai_audio = getattr(args, "apply_ai_audio_denoise", getattr(args, "ai_audio_denoise", False))
+
+    base_start_sec = float(getattr(args, "start_sec", 0.0) or 0.0)
+    pipeline_params = {
+        "mode": args.mode,
+        "crf": args.crf,
+        "output_codec": args.output_codec,
+        "deinterlacer": args.deinterlacer,
+        "audio_mode": args.audio_mode,
+        "chroma_fix": apply_chroma,
+        "denoise": apply_denoise,
+        "comb_filter": apply_comb,
+        "overscan_blanking": apply_blanking,
+        "dropout_clean": apply_dropout,
+        "audio_treatment": apply_treatment,
+        "ai_audio_denoise": apply_ai_audio,
+    }
+
+    report_session = make_archival_report_session(
+        source_path=args.input_path,
+        output_path=args.output_path,
+        fps=detected_fps,
+        width=w,
+        height=h,
+        base_start_sec=base_start_sec,
+        luma_threshold=VideoConfig.LUMA_THRESHOLD,
+        initial_report=existing_report,
+        pipeline_params=pipeline_params,
+        resolved_deint=args.deinterlacer,
+        audio_mode=args.audio_mode,
+        target_1080p=target_1080p,
+        encoder=builder.encoder or "libx264",
+    )
+
+    effective_start_sec = base_start_sec
+    if resume_state and int(resume_state["total_frames"]) > 0:
+        synced_f = int(resume_state["total_frames"])
+        report_session["truncate_to_frame"](synced_f, reason="checkpoint_resume")
+        effective_start_sec = base_start_sec + (synced_f / detected_fps)
+        log.info(
+            f"[RESTAURAÇÃO] Retomando processamento e relatório forense sincronizados a partir do "
+            f"frame {synced_f} ({sec_to_timecode(effective_start_sec)})."
+        )
 
     log.info(f"[RESTAURAÇÃO] Resolução de entrada: {w}x{h} @ {fps:.2f} fps")
     log.info(f"[RESTAURAÇÃO] Modo de desentrelaçamento: {args.deinterlacer}")
@@ -177,12 +254,12 @@ def restore_stream(args):
         "passthrough": "Passthrough Puro (Sem alteração de frames, bit-perfect para uso com TBC Hardware)",
     }.get(args.mode, args.mode)
     log.info(f"[RESTAURAÇÃO] Modo de remoção de pretos: {mode_desc}")
-    apply_comb = getattr(args, "apply_comb_filter", getattr(args, "comb_filter", False))
     if apply_comb:
         log.info("[RESTAURAÇÃO] Filtro 3D Comb ativado")
     if abs(args.audio_offset) > 0.001:
         log.info(
-            f"[RESTAURAÇÃO] Ajuste de sincronia de áudio: {args.audio_offset:+.3f}s ({'adiantando' if args.audio_offset > 0 else 'atrasando'} áudio)"
+            f"[RESTAURAÇÃO] Ajuste de sincronia de áudio: {args.audio_offset:+.3f}s "
+            f"({'adiantando' if args.audio_offset > 0 else 'atrasando'} áudio)"
         )
 
     log_path = f"{args.output_path}.log"
@@ -197,8 +274,8 @@ def restore_stream(args):
         "-threads",
         "0",
     ]
-    if args.start_sec > 0.05:
-        cmd_in += ["-ss", f"{args.start_sec:.3f}"]
+    if effective_start_sec > 0.05:
+        cmd_in += ["-ss", f"{effective_start_sec:.3f}"]
     if args.duration:
         cmd_in += ["-t", f"{args.duration:.3f}"]
     cmd_in += [
@@ -217,14 +294,6 @@ def restore_stream(args):
         cmd_in, stdout=subprocess.PIPE, stderr=log_file, bufsize=16 * 1024 * 1024
     )
 
-    apply_chroma = getattr(args, "apply_chroma", getattr(args, "chroma_fix", False))
-    apply_denoise = getattr(args, "apply_denoise", getattr(args, "denoise", False))
-    apply_comb = getattr(args, "apply_comb_filter", getattr(args, "comb_filter", False))
-    apply_blanking = getattr(args, "apply_overscan_blanking", getattr(args, "overscan_blanking", False))
-    apply_dropout = getattr(args, "apply_dropout_clean", getattr(args, "dropout_clean", False))
-    apply_treatment = getattr(args, "apply_audio_treatment", getattr(args, "audio_treatment", False))
-    apply_ai_audio = getattr(args, "apply_ai_audio_denoise", getattr(args, "ai_audio_denoise", False))
-
     vf = builder.build_video_filters(
         apply_chroma,
         apply_denoise,
@@ -241,7 +310,7 @@ def restore_stream(args):
         "w": w,
         "h": h,
         "fps": detected_fps,
-        "start": args.start_sec,
+        "start": base_start_sec,
         "args.mode": args.mode,
         "args.crf": args.crf,
         "vf": vf,
@@ -271,7 +340,7 @@ def restore_stream(args):
         w,
         h,
         detected_fps,
-        args.start_sec,
+        effective_start_sec,
         args.audio_offset,
         args.duration,
         vf,
@@ -284,7 +353,7 @@ def restore_stream(args):
         cmd_out, stdin=subprocess.PIPE, stderr=log_file, bufsize=16 * 1024 * 1024
     )
 
-    total_duration = args.duration if args.duration else max(0.0, duration - (args.start_sec or 0.0))
+    total_duration = args.duration if args.duration else max(0.0, duration - base_start_sec)
     total_expected_frames = int(total_duration * fps) if total_duration > 0 else 0
 
     runner = StreamRunner(
@@ -297,7 +366,7 @@ def restore_stream(args):
         height=h,
     )
 
-    def on_stream_progress(total, kept, frozen, dropped, elap):
+    def _persist_checkpoint_and_report(total, kept, frozen, dropped, elap, chk_status="in_progress"):
         try:
             tmp_chk = f"{checkpoint_path}.tmp"
             with open(tmp_chk, "w", encoding="utf-8") as f:
@@ -305,7 +374,7 @@ def restore_stream(args):
                     {
                         "source": args.input_path,
                         "destination": args.output_path,
-                        "status": "in_progress",
+                        "status": chk_status,
                         "total_frames": total,
                         "total_expected_frames": total_expected_frames,
                         "kept_frames": kept,
@@ -313,6 +382,7 @@ def restore_stream(args):
                         "dropped_frames": dropped,
                         "elapsed_seconds": elap,
                         "fps": fps,
+                        "start_sec": base_start_sec,
                     },
                     f,
                     indent=2,
@@ -320,8 +390,26 @@ def restore_stream(args):
             os.replace(tmp_chk, checkpoint_path)
         except Exception:
             pass
+        try:
+            report_session["sync_to_disk"](
+                synced_frame=total,
+                elapsed_sec=elap,
+                status=chk_status,
+            )
+        except Exception:
+            pass
 
-    stats = runner.run(p_in, p_out, detected_fps, on_progress=on_stream_progress)
+    def on_stream_progress(total, kept, frozen, dropped, elap):
+        _persist_checkpoint_and_report(total, kept, frozen, dropped, elap, chk_status="in_progress")
+
+    stats = runner.run(
+        p_in,
+        p_out,
+        detected_fps,
+        on_progress=on_stream_progress,
+        report_session=report_session,
+        initial_state=resume_state,
+    )
 
     p_in.stdout.close()
     rc_in = p_in.wait()
@@ -335,6 +423,14 @@ def restore_stream(args):
     log_file.close()
 
     if stats["stream_broken"] or rc_out != 0 or rc_in != 0:
+        _persist_checkpoint_and_report(
+            stats["total_frames"],
+            stats["kept_frames"],
+            stats["frozen_frames"],
+            stats["dropped_frames"],
+            stats["elapsed"],
+            chk_status="interrupted",
+        )
         log.error(
             f"\n[ERRO] O processo de restauração falhou! (in rc={rc_in}, out rc={rc_out})"
         )
@@ -354,24 +450,15 @@ def restore_stream(args):
         except Exception:
             pass
 
-    # Save completed checkpoint
-    try:
-        with open(checkpoint_path, "w", encoding="utf-8") as f:
-            json.dump(
-                {
-                    "source": args.input_path,
-                    "destination": args.output_path,
-                    "status": "completed",
-                    "total_frames": stats["total_frames"],
-                    "kept_frames": stats["kept_frames"],
-                    "elapsed_seconds": stats["elapsed"],
-                    "fps": fps,
-                },
-                f,
-                indent=2,
-            )
-    except Exception:
-        pass
+    # Save completed checkpoint and synchronized archival report
+    _persist_checkpoint_and_report(
+        stats["total_frames"],
+        stats["kept_frames"],
+        stats["frozen_frames"],
+        stats["dropped_frames"],
+        stats["elapsed"],
+        chk_status="completed",
+    )
 
     final_size_bytes = (
         os.path.getsize(args.output_path) if os.path.exists(args.output_path) else 0
@@ -409,6 +496,7 @@ def restore_stream(args):
     )
     log.info(f"  Áudio:               100% contínuo e intacto (sem cortes)")
     log.info(f"  Arquivo de log:      {log_path}")
+    log.info(f"  Relatório Técnico:   {report_json_path}")
 
     if stats.get("chapters"):
         chap_path = f"{final_output_path}_meta.txt"
@@ -468,7 +556,7 @@ def restore_stream(args):
     log.info(f"============================================================")
 
 
-def main():
+def main(argv=None):
     """Documentation for main."""
     JobManager.acquire_lock()
     parser = argparse.ArgumentParser(
@@ -590,7 +678,7 @@ def main():
         action="store_true",
         help="Executa o instalador multiplataforma de VapourSynth + QTGMC para o sistema operacional",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     if getattr(args, "install_qtgmc", False):
         log.info(
