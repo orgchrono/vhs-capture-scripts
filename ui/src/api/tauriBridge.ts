@@ -122,6 +122,22 @@ export interface TauriStorageConfig {
   has_credentials: boolean;
 }
 
+export interface TauriArchivalFileEntry {
+  relative_path: string;
+  sha256_hex: string;
+  size_bytes: number;
+}
+
+export interface TauriQtgmcParams {
+  input_path: string;
+  preset: string;
+  field_order: 'tff' | 'bff';
+  fps_mode: number;
+  apply_comb_filter: boolean;
+  thread_count?: number;
+  cache_size_mb?: number;
+}
+
 export const tauriBridge = {
   isNative(): boolean {
     return isTauriEnvironment();
@@ -310,6 +326,45 @@ export const tauriBridge = {
     if (!cleanBase) return cleanRel;
     if (!cleanRel) return cleanBase;
     return `${cleanBase}/${cleanRel}`;
+  },
+
+  async generateBagitManifest(entries: TauriArchivalFileEntry[]): Promise<string> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<string>('ipc_generate_bagit_manifest', { entries });
+    }
+    return entries.map((e) => `${e.sha256_hex} data/${e.relative_path.replace(/\\/g, '/')}\n`).join('');
+  },
+
+  async generatePremisXml(filename: string, sizeBytes: number, sha256Hex: string): Promise<string> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<string>('ipc_generate_premis_v3_xml', {
+        filename,
+        sizeBytes,
+        sha256Hex,
+      });
+    }
+    return `<?xml version="1.0" encoding="UTF-8"?>\n<premis xmlns="http://www.loc.gov/premis/v3" version="3.0">\n  <object xsi:type="file">\n    <objectIdentifier><objectIdentifierType>local</objectIdentifierType><objectIdentifierValue>${filename}</objectIdentifierValue></objectIdentifier>\n    <objectCharacteristics><size>${sizeBytes}</size><fixity><messageDigestAlgorithm>SHA-256</messageDigestAlgorithm><messageDigest>${sha256Hex}</messageDigest></fixity></objectCharacteristics>\n    <originalName>${filename}</originalName>\n  </object>\n</premis>\n`;
+  },
+
+  async buildQtgmcScript(params: TauriQtgmcParams): Promise<string> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<string>('ipc_build_qtgmc_script_content', { params });
+    }
+    const cleanInput = params.input_path.replace(/\\/g, '/');
+    const tffStr = params.field_order === 'tff' ? 'True' : 'False';
+    const fpsDiv = params.fps_mode === 2 ? 1 : 2;
+    return `# Auto-generated VapourSynth QTGMC script for VHS Studio Pro\nimport vapoursynth as vs\nfrom vapoursynth import core\nimport havsfunc as haf\ncore.num_threads = ${params.thread_count ?? 8}\ncore.max_cache_size = ${params.cache_size_mb ?? 4000}\nclip = core.ffms2.Source(source=r"${cleanInput}")\nclip = haf.QTGMC(clip, Preset="${params.preset}", TFF=${tffStr}, FPSDivisor=${fpsDiv}, EdiMode="NNEDI3")\nclip.set_output()\n`;
+  },
+
+  async buildVspipeArgs(vspipeBinary: string, vpyPath: string): Promise<string[]> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<string[]>('ipc_build_vspipe_cli_args', { vspipeBinary, vpyPath });
+    }
+    return [vspipeBinary, '-c', 'y4m', vpyPath, '-'];
   },
 
   async startRestoration(payload: RestorationPayload): Promise<{ status: string; message?: string }> {

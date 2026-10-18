@@ -12,6 +12,7 @@
 //! - `recovery`: Pure functional restoration checkpoint validator and recovery state machine.
 
 pub mod ai;
+pub mod archive;
 pub mod audio;
 pub mod chapters;
 pub mod fixity;
@@ -21,9 +22,11 @@ pub mod panasonic;
 pub mod pipeline;
 pub mod presets;
 pub mod qc;
+pub mod qtgmc;
 pub mod queue;
 pub mod recovery;
 pub mod storage;
+pub mod stream;
 pub mod tbc;
 
 use ai::{
@@ -228,10 +231,87 @@ pub fn ipc_verify_storage_capacity(available_bytes: u64, required_bytes: u64) ->
     verify_capacity(available_bytes, required_bytes)
 }
 
+use archive::{
+    generate_bagit_declaration, generate_bagit_manifest, generate_premis_v3_xml,
+    generate_tape_sidecar_json, ArchivalFileEntry,
+};
+use qtgmc::{build_qtgmc_script_content, build_vspipe_cli_args, QtgmcScriptParams};
+use stream::{
+    compute_mean_luma, step_stream_frame, FrameStepResult, StreamProcessingMode, StreamState,
+};
+
 /// Typed IPC ViewModel command formatting destination storage object keys.
 #[must_use]
 pub fn ipc_format_destination_key(base_folder: &str, relative_path: &str) -> String {
     format_destination_key(base_folder, relative_path)
+}
+
+/// Typed IPC ViewModel command returning BagIt declaration text.
+#[must_use]
+pub fn ipc_generate_bagit_declaration() -> &'static str {
+    generate_bagit_declaration()
+}
+
+/// Typed IPC ViewModel command generating BagIt SHA-256 manifest.
+#[must_use]
+pub fn ipc_generate_bagit_manifest(entries: &[ArchivalFileEntry]) -> String {
+    generate_bagit_manifest(entries)
+}
+
+/// Typed IPC ViewModel command generating PREMIS v3 preservation XML.
+#[must_use]
+pub fn ipc_generate_premis_v3_xml(filename: &str, size_bytes: u64, sha256_hex: &str) -> String {
+    generate_premis_v3_xml(filename, size_bytes, sha256_hex)
+}
+
+/// Typed IPC ViewModel command generating VHS sidecar JSON metadata.
+#[must_use]
+pub fn ipc_generate_tape_sidecar_json(
+    filename: &str,
+    timestamp: f64,
+    metadata: &serde_json::Value,
+) -> String {
+    generate_tape_sidecar_json(filename, timestamp, metadata)
+}
+
+/// Typed IPC ViewModel command building VapourSynth QTGMC script content.
+#[must_use]
+pub fn ipc_build_qtgmc_script_content(params: &QtgmcScriptParams) -> String {
+    build_qtgmc_script_content(params)
+}
+
+/// Typed IPC ViewModel command building vspipe execution CLI arguments.
+#[must_use]
+pub fn ipc_build_vspipe_cli_args(vspipe_binary: &str, vpy_path: &str) -> Vec<String> {
+    build_vspipe_cli_args(vspipe_binary, vpy_path)
+}
+
+/// Typed IPC ViewModel command executing a pure streaming step over a planar frame.
+#[must_use]
+pub fn ipc_step_stream_frame(
+    state: StreamState,
+    mode: StreamProcessingMode,
+    y_plane: &[u8],
+    stride: usize,
+    luma_threshold: f32,
+    has_last_good_frame: bool,
+    streak_break_limit: u64,
+) -> FrameStepResult {
+    step_stream_frame(
+        state,
+        mode,
+        y_plane,
+        stride,
+        luma_threshold,
+        has_last_good_frame,
+        streak_break_limit,
+    )
+}
+
+/// Typed IPC ViewModel command computing mean luma of planar Y buffer.
+#[must_use]
+pub fn ipc_compute_mean_luma(y_plane: &[u8], stride: usize) -> f32 {
+    compute_mean_luma(y_plane, stride)
 }
 
 

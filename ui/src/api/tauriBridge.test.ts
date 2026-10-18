@@ -140,5 +140,32 @@ describe('Tauri v2 IPC Bridge & Fallback (tauriBridge)', () => {
     const key = await tauriBridge.formatDestinationKey('/captures/2026/', '\\tapes\\family.mkv');
     expect(key).toBe('captures/2026/tapes/family.mkv');
   });
+
+  it('generates BagIt manifests and PREMIS v3 XML', async () => {
+    const manifest = await tauriBridge.generateBagitManifest([
+      { relative_path: 'tape.mkv', sha256_hex: 'abc123', size_bytes: 1024 },
+    ]);
+    expect(manifest).toBe('abc123 data/tape.mkv\n');
+
+    const xml = await tauriBridge.generatePremisXml('tape.mkv', 1024, 'abc123');
+    expect(xml).toContain('<objectIdentifierValue>tape.mkv</objectIdentifierValue>');
+    expect(xml).toContain('<messageDigest>abc123</messageDigest>');
+  });
+
+  it('builds VapourSynth QTGMC script and vspipe args', async () => {
+    const script = await tauriBridge.buildQtgmcScript({
+      input_path: 'C:\\media\\tape.avi',
+      preset: 'Slower',
+      field_order: 'tff',
+      fps_mode: 2,
+      apply_comb_filter: false,
+    });
+    expect(script).toContain('clip = core.ffms2.Source(source=r"C:/media/tape.avi")');
+    expect(script).toContain('Preset="Slower"');
+    expect(script).toContain('EdiMode="NNEDI3"');
+
+    const vspipeArgs = await tauriBridge.buildVspipeArgs('vspipe', 'test.vpy');
+    expect(vspipeArgs).toEqual(['vspipe', '-c', 'y4m', 'test.vpy', '-']);
+  });
 });
 
