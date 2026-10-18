@@ -265,6 +265,11 @@ describe('Tauri v2 IPC Bridge & Fallback (tauriBridge)', () => {
     const [lowLang, lowAmbig] = await tauriBridge.disambiguateSpeechLanguage('ru', 0.40, true);
     expect(lowLang).toBe('pt');
     expect(lowAmbig).toBe(true);
+
+    const extractArgs = await tauriBridge.buildAudioExtractArgs('in.mkv', 'out.wav');
+    expect(extractArgs).toContain('-ar');
+    expect(extractArgs).toContain('16000');
+    expect(extractArgs).toContain('pcm_s16le');
   });
 
   it('evaluates lock decisions and constructs OAuth URLs', async () => {

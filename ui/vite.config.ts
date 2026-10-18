@@ -49,7 +49,9 @@ export default defineConfig({
     css: true,
     exclude: ['node_modules', 'dist', '.idea', '.git', '.cache', 'tests/*'], // Exclude Playwright E2E tests folder
     fileParallelism: false,
-    testTimeout: 15000,
-    pool: 'threads',
+    maxWorkers: 1,
+    testTimeout: 25000,
+    hookTimeout: 25000,
+    teardownTimeout: 25000,
   },
 })

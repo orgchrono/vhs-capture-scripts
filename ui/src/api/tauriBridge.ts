@@ -686,6 +686,38 @@ export const tauriBridge = {
     return out;
   },
 
+  async buildAudioExtractArgs(
+    videoPath: string,
+    outputWavPath: string,
+    ffmpegBinary: string = 'ffmpeg'
+  ): Promise<string[]> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<string[]>('ipc_build_audio_extract_args', {
+        videoPath,
+        outputWavPath,
+        ffmpegBinary,
+      });
+    }
+    return [
+      ffmpegBinary,
+      '-hide_banner',
+      '-threads',
+      '0',
+      '-y',
+      '-i',
+      videoPath,
+      '-vn',
+      '-acodec',
+      'pcm_s16le',
+      '-ar',
+      '16000',
+      '-ac',
+      '1',
+      outputWavPath,
+    ];
+  },
+
   async disambiguateSpeechLanguage(detectedLang: string, prob: number, hasSpeech: boolean): Promise<[string, boolean]> {
     const tauri = getTauriInternals();
     if (tauri) {

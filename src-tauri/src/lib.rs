@@ -490,7 +490,8 @@ pub fn ipc_has_ffmpeg_filter(filters_output: &str, filter_name: &str) -> bool {
 use obs::compute_obs_auth_response;
 use preferences::{parse_preferences_json, validate_and_clamp_preferences, AppPreferences};
 use whisper::{
-    disambiguate_speech_language, generate_srt_content, generate_vtt_content, SubtitleSegment,
+    build_audio_extract_args, disambiguate_speech_language, generate_srt_content,
+    generate_vtt_content, SubtitleSegment,
 };
 
 /// Typed IPC ViewModel command computing OBS WebSocket challenge-response authentication.
@@ -521,6 +522,16 @@ pub fn ipc_format_vtt_subtitles(segments: &[SubtitleSegment]) -> String {
 #[must_use]
 pub fn ipc_format_srt_subtitles(segments: &[SubtitleSegment]) -> String {
     generate_srt_content(segments)
+}
+
+/// Typed IPC ViewModel command building FFmpeg arguments for extracting 16kHz audio for Whisper.
+#[must_use]
+pub fn ipc_build_audio_extract_args(
+    video_path: &str,
+    output_wav_path: &str,
+    ffmpeg_binary: &str,
+) -> Vec<String> {
+    build_audio_extract_args(video_path, output_wav_path, ffmpeg_binary)
 }
 
 /// Typed IPC ViewModel command disambiguating speech language to prevent tape noise hallucination.
