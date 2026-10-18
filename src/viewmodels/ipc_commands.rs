@@ -26,13 +26,17 @@ pub fn ipc_execute_restoration_job(
 
 /// Initializes and starts the native desktop window using the OS WebView.
 pub fn run_desktop_app() {
-    // Start the local HTTP micro-server in background for REST/SSE endpoints
+    // Start the local HTTP micro-server in background for REST/SSE endpoints and static UI assets
     std::thread::spawn(|| {
         let _ = crate::infrastructure::http_server::run_native_http_server(
             crate::models::constants::DEFAULT_API_HOST,
             crate::models::constants::DEFAULT_API_PORT,
+            false, // do not open external browser when inside native desktop WebView window!
         );
     });
+
+    // Small delay ensuring TCP listener is ready before WebView2 connects
+    std::thread::sleep(std::time::Duration::from_millis(150));
 
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![

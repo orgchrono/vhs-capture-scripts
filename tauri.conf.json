@@ -4,8 +4,8 @@
   "version": "2.1.0",
   "identifier": "org.vhsstudiopro.desktop",
   "build": {
-    "beforeDevCommand": "npm --prefix ui run dev",
-    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "",
+    "devUrl": "http://127.0.0.1:8088",
     "beforeBuildCommand": "npm --prefix ui run build",
     "frontendDist": "ui/dist"
   },

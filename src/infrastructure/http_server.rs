@@ -118,14 +118,16 @@ pub fn launch_default_browser(url: &str) {
 }
 
 /// Starts the native Rust HTTP/IPC server on `host:port`.
-pub fn run_native_http_server(host: &str, port: u16) -> Result<(), String> {
+pub fn run_native_http_server(host: &str, port: u16, open_browser: bool) -> Result<(), String> {
     let bind_addr = format!("{host}:{port}");
     let listener = TcpListener::bind(&bind_addr)
         .map_err(|e| format!("Failed to bind native server on {bind_addr}: {e}"))?;
 
     println!("[VHS Studio Native Engine] Listening on http://{bind_addr}");
-    let app_url = format!("http://{bind_addr}");
-    launch_default_browser(&app_url);
+    if open_browser {
+        let app_url = format!("http://{bind_addr}");
+        launch_default_browser(&app_url);
+    }
 
     for stream_res in listener.incoming() {
         let Ok(mut stream) = stream_res else {

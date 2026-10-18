@@ -887,6 +887,7 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
             if let Err(err) = crate::infrastructure::http_server::run_native_http_server(
                 crate::models::constants::DEFAULT_API_HOST,
                 port,
+                true,
             ) {
                 eprintln!("Error: {err}");
                 std::process::exit(1);
