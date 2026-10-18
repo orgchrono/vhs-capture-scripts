@@ -266,5 +266,21 @@ describe('Tauri v2 IPC Bridge & Fallback (tauriBridge)', () => {
     expect(lowLang).toBe('pt');
     expect(lowAmbig).toBe(true);
   });
+
+  it('evaluates lock decisions and constructs OAuth URLs', async () => {
+    expect(await tauriBridge.evaluateLockDecision(null, false, 100)).toBe('acquired');
+    expect(await tauriBridge.evaluateLockDecision(100, true, 100)).toBe('alreadyowned');
+    expect(await tauriBridge.evaluateLockDecision(200, true, 100)).toBe('blocked');
+    expect(await tauriBridge.evaluateLockDecision(200, false, 100)).toBe('acquired');
+
+    const gdriveUrl = await tauriBridge.buildOAuthUrl('gdrive', 'cid', 'http://localhost/cb', 'state1');
+    expect(gdriveUrl).toContain('accounts.google.com');
+    expect(gdriveUrl).toContain('client_id=cid');
+    expect(gdriveUrl).toContain('access_type=offline');
+
+    const dropboxUrl = await tauriBridge.buildOAuthUrl('dropbox', 'cid', 'http://localhost/cb', 'state2');
+    expect(dropboxUrl).toContain('dropbox.com');
+    expect(dropboxUrl).toContain('token_access_type=offline');
+  });
 });
 

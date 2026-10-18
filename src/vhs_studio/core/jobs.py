@@ -8,7 +8,7 @@ from vhs_studio.core.logger import log
 
 
 def is_pid_active(pid: int) -> bool:
-    """Verifica se um PID está ativo no sistema operacional sem dependência estrita."""
+    """Verify whether a given process ID is actively executing on the OS without strict external dependencies."""
     if pid <= 0:
         return False
     try:
@@ -42,11 +42,11 @@ def is_pid_active(pid: int) -> bool:
 
 
 class JobManager:
-    """Gerencia locks de processo baseados em PID para evitar multiplas execucoes concorrentes."""
+    """Manages PID-based file locks to prevent multiple concurrent pipeline executions."""
 
     @staticmethod
     def _get_lock_path():
-        """Documentation for _get_lock_path."""
+        """Resolve canonical path to lock file."""
         from vhs_studio.core.paths import WORK_MEDIA_DIR
 
         work_dir = WORK_MEDIA_DIR
@@ -55,7 +55,7 @@ class JobManager:
 
     @staticmethod
     def _read_lock_pid(lock_path: str) -> Optional[int]:
-        """Le o PID do arquivo de lock de forma segura."""
+        """Read PID from lock file safely."""
         if not os.path.exists(lock_path):
             return None
         try:
@@ -67,23 +67,23 @@ class JobManager:
 
     @staticmethod
     def acquire_lock():
-        """Tenta adquirir o lock. Se o processo dono morreu, limpa e readquire."""
+        """Attempt to acquire process lock. If previous owner is dead, cleans and re-acquires."""
         lock_path = JobManager._get_lock_path()
         pid = JobManager._read_lock_pid(lock_path)
 
         if pid is not None:
             if is_pid_active(pid):
                 log.error(
-                    f"[AVISO] Ja existe outra instancia do pipeline em execucao! (PID {pid})"
+                    f"[WARNING] Another pipeline instance is already running! (PID {pid})"
                 )
                 sys.exit(1)
             else:
                 log.warning(
-                    f"[INFO] Lock antigo de processo morto detectado (PID {pid}). Substituindo..."
+                    f"[INFO] Stale lock from dead process detected (PID {pid}). Replacing..."
                 )
                 os.remove(lock_path)
         elif os.path.exists(lock_path):
-            # lock file exists mas ta corrompido (retornou None)
+            # Stale corrupted lock file
             os.remove(lock_path)
 
         with open(lock_path, "w", encoding="utf-8") as f:
@@ -92,7 +92,7 @@ class JobManager:
 
     @staticmethod
     def release_lock():
-        """Remove o lock se ele for do processo atual."""
+        """Release process lock if owned by the current process."""
         lock_path = JobManager._get_lock_path()
         pid = JobManager._read_lock_pid(lock_path)
         if pid == os.getpid():

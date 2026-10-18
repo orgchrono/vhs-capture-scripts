@@ -674,6 +674,47 @@ export const tauriBridge = {
     return [detectedLang.trim().toLowerCase(), false];
   },
 
+  async evaluateLockDecision(
+    existingPid: number | null,
+    isExistingActive: boolean,
+    currentPid: number
+  ): Promise<'acquired' | 'blocked' | 'alreadyowned'> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<'acquired' | 'blocked' | 'alreadyowned'>('ipc_evaluate_lock_decision', {
+        existingPid,
+        isExistingActive,
+        currentPid,
+      });
+    }
+    if (existingPid === null) return 'acquired';
+    if (existingPid === currentPid) return 'alreadyowned';
+    if (isExistingActive) return 'blocked';
+    return 'acquired';
+  },
+
+  async buildOAuthUrl(
+    provider: 'gdrive' | 'dropbox' | 'onedrive',
+    clientId: string,
+    redirectUri: string,
+    state: string
+  ): Promise<string> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<string>('ipc_build_oauth_auth_url', { provider, clientId, redirectUri, state });
+    }
+    const baseUrls: Record<string, string> = {
+      gdrive: 'https://accounts.google.com/o/oauth2/v2/auth',
+      dropbox: 'https://www.dropbox.com/oauth2/authorize',
+      onedrive: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
+    };
+    let url = `${baseUrls[provider]}?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&state=${state}`;
+    if (provider === 'gdrive') url += '&scope=https://www.googleapis.com/auth/drive.file&access_type=offline&prompt=consent';
+    if (provider === 'dropbox') url += '&token_access_type=offline';
+    if (provider === 'onedrive') url += '&scope=' + encodeURIComponent('Files.ReadWrite.All offline_access');
+    return url;
+  },
+
   async startRestoration(payload: RestorationPayload): Promise<{ status: string; message?: string }> {
     return studioApi.startRestoration(payload);
   },

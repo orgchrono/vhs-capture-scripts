@@ -38,6 +38,8 @@ pub mod package;
 pub mod obs;
 pub mod preferences;
 pub mod whisper;
+pub mod lock;
+pub mod oauth;
 
 use ai::{
     build_codeformer_command, build_realesrgan_command, build_rife_command,
@@ -515,6 +517,48 @@ pub fn ipc_disambiguate_speech_language(
     has_speech: bool,
 ) -> (String, bool) {
     disambiguate_speech_language(detected_lang, prob, has_speech)
+}
+
+use lock::{evaluate_lock_decision, format_lock_content, parse_lock_pid, LockDecision};
+
+/// Typed IPC ViewModel command parsing PID from lock file.
+#[must_use]
+pub fn ipc_parse_lock_pid(content: &str) -> Option<u32> {
+    parse_lock_pid(content)
+}
+
+/// Typed IPC ViewModel command evaluating lock decision.
+#[must_use]
+pub fn ipc_evaluate_lock_decision(
+    existing_pid: Option<u32>,
+    is_existing_active: bool,
+    current_pid: u32,
+) -> LockDecision {
+    evaluate_lock_decision(existing_pid, is_existing_active, current_pid)
+}
+
+/// Typed IPC ViewModel command formatting lock content string.
+#[must_use]
+pub fn ipc_format_lock_content(pid: u32, label: &str) -> String {
+    format_lock_content(pid, label)
+}
+
+use oauth::{build_oauth_auth_url, parse_oauth_token_response, OAuthProvider, OAuthTokenResponse};
+
+/// Typed IPC ViewModel command building OAuth authorization redirect URL.
+#[must_use]
+pub fn ipc_build_oauth_auth_url(
+    provider: OAuthProvider,
+    client_id: &str,
+    redirect_uri: &str,
+    state: &str,
+) -> String {
+    build_oauth_auth_url(provider, client_id, redirect_uri, state)
+}
+
+/// Typed IPC ViewModel command parsing OAuth token response JSON.
+pub fn ipc_parse_oauth_token_response(json_body: &str) -> Result<OAuthTokenResponse, String> {
+    parse_oauth_token_response(json_body)
 }
 
 

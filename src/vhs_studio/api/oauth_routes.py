@@ -40,16 +40,15 @@ OAUTH_CONFIG = {
 
 
 def get_redirect_uri(request: Request) -> str:
-    # Retorna o callback baseando-se na URL do request
-    """Documentation for get_redirect_uri."""
+    """Return the callback URI based on current request URL."""
     return str(request.url_for("oauth_callback"))
 
 
 @oauth_router.get("/login/{provider}")
 async def oauth_login(provider: str, request: Request):
-    """Documentation for oauth_login."""
+    """Initiate OAuth authorization workflow for cloud storage provider."""
     if provider not in OAUTH_CONFIG:
-        raise HTTPException(status_code=404, detail="Provedor OAuth não suportado")
+        raise HTTPException(status_code=404, detail="OAuth provider not supported")
 
     config_data = load_storage_config()
     config = config_data.get("config", {})
@@ -58,7 +57,7 @@ async def oauth_login(provider: str, request: Request):
     client_id = config.get(p_config["client_id_key"])
     if not client_id:
         return HTMLResponse(
-            content=f"<html><body><h2>Erro</h2><p>O <b>{p_config['client_id_key']}</b> não está configurado. Configure no painel de Storage antes de autenticar.</p></body></html>"  # noqa: E501
+            content=f"<html><body><h2>Configuration Error</h2><p><b>{p_config['client_id_key']}</b> is not configured. Configure in the Storage panel before authenticating.</p></body></html>"  # noqa: E501
         )
 
     state = str(uuid.uuid4())
@@ -74,15 +73,15 @@ async def oauth_login(provider: str, request: Request):
     if p_config["scope"]:
         auth_url += f"&scope={p_config['scope']}"
 
-    # Especifico do Google para garantir refresh token
+    # Google-specific parameter to guarantee refresh token grant
     if provider == "gdrive":
         auth_url += "&access_type=offline&prompt=consent"
 
-    # Especifico do Dropbox para tokens offline
+    # Dropbox-specific parameter for offline access
     if provider == "dropbox":
         auth_url += "&token_access_type=offline"
 
-    log.info(f"[OAuth] Redirecionando usuário para login em: {provider}")
+    log.info(f"[OAuth] Redirecting user for login with provider: {provider}")
     return RedirectResponse(url=auth_url)
 
 
@@ -93,20 +92,20 @@ async def oauth_callback(
     state: Optional[str] = None,
     error: Optional[str] = None,
 ):
-    """Documentation for oauth_callback."""
+    """Handle OAuth redirection callback, exchange code for tokens, and persist to vault."""
     if error:
-        log.error(f"[OAuth] Erro retornado pelo provedor: {error}")
+        log.error(f"[OAuth] Error returned by provider: {error}")
         raise HTTPException(status_code=400, detail=error)
     if not code or not state:
         raise HTTPException(
-            status_code=400, detail="Código de autorização ou state ausente."
+            status_code=400, detail="Missing authorization code or state parameter."
         )
 
     provider = oauth_sessions.pop(state, None)
     if not provider:
         raise HTTPException(
             status_code=400,
-            detail="Sessão OAuth inválida ou expirada (state mismatch).",
+            detail="Invalid or expired OAuth session (state mismatch).",
         )
 
     p_config = OAUTH_CONFIG[provider]
@@ -120,7 +119,7 @@ async def oauth_callback(
     if not client_id or not client_secret:
         raise HTTPException(
             status_code=400,
-            detail="Credenciais de aplicativo ausentes no servidor local.",
+            detail="Application credentials missing in local vault.",
         )
 
     data = {
@@ -131,7 +130,7 @@ async def oauth_callback(
         "client_secret": client_secret,
     }
 
-    log.info(f"[OAuth] Trocando código por token no provedor {provider}...")
+    log.info(f"[OAuth] Exchanging authorization code for token with provider {provider}...")
 
     try:
         async with httpx.AsyncClient() as client:
@@ -140,41 +139,41 @@ async def oauth_callback(
 
             if response.status_code != 200:
                 err_desc = response_data.get(
-                    "error_description", response_data.get("error", "Erro desconhecido")
+                    "error_description", response_data.get("error", "Unknown error")
                 )
                 log.error(
-                    f"[OAuth] Falha ao obter token. HTTP {response.status_code}: {err_desc}"
+                    f"[OAuth] Failed to retrieve token. HTTP {response.status_code}: {err_desc}"
                 )
                 return HTMLResponse(
-                    content=f"<html><body><h2>Falha na Autenticação</h2><p>{err_desc}</p></body></html>"
+                    content=f"<html><body><h2>Authentication Failure</h2><p>{err_desc}</p></body></html>"
                 )
 
-            # Sucesso! Extraindo tokens
+            # Success! Extract tokens
             access_token = response_data.get("access_token")
             refresh_token = response_data.get("refresh_token")
 
-            # Nem todos os provedores retornam refresh token no primeiro grant (ex: dropbox as vezes só retorna access se nao pedir offline)  # noqa: E501
+            # Store refresh token if present, otherwise access token
             token_to_save = refresh_token if refresh_token else access_token
 
             if token_to_save:
                 current_config[p_config["token_key"]] = token_to_save
                 save_storage_config(provider, current_config)
                 log.info(
-                    f"[OAuth] Tokens para {provider} obtidos e salvos no Cofre Seguro nativo com sucesso."
+                    f"[OAuth] Tokens for {provider} retrieved and saved to vault successfully."
                 )
                 return HTMLResponse(
-                    content=f"<html><body><h2>Autenticação Bem-Sucedida!</h2><p>VHS Studio foi conectado ao {provider}. Você pode fechar esta janela.</p></body></html>"  # noqa: E501
+                    content=f"<html><body><h2>Authentication Successful!</h2><p>VHS Studio connected to {provider}. You may close this window.</p></body></html>"  # noqa: E501
                 )
             else:
                 log.warning(
-                    "[OAuth] A resposta foi 200 OK, mas nenhum token foi encontrado no payload."
+                    "[OAuth] Response was 200 OK, but no token was found in payload."
                 )
                 return HTMLResponse(
-                    content="<html><body><h2>Falha Estranha</h2><p>Nenhum token retornado pelo servidor.</p></body></html>"  # noqa: E501
+                    content="<html><body><h2>Unexpected Result</h2><p>No token returned by server.</p></body></html>"  # noqa: E501
                 )
 
     except httpx.RequestError as e:
-        log.error(f"[OAuth] Falha de rede ao contatar provedor: {e}")
+        log.error(f"[OAuth] Network failure contacting provider: {e}")
         return HTMLResponse(
-            content=f"<html><body><h2>Erro de Rede</h2><p>Não foi possível alcançar {p_config['token_url']}</p></body></html>"  # noqa: E501
+            content=f"<html><body><h2>Network Error</h2><p>Could not reach {p_config['token_url']}</p></body></html>"  # noqa: E501
         )
