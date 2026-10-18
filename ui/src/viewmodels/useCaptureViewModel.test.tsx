@@ -46,7 +46,7 @@ describe('useCaptureViewModel', () => {
 
     expect(mockStartCaptureTrigger).toHaveBeenCalledTimes(1);
     expect(useStudioStore.getState().isCapturing).toBe(true);
-    expect(useStudioStore.getState().logs).toContain('[OBS] Gravação iniciada com sucesso.');
+    expect(useStudioStore.getState().logs).toContain('log.obs_capture_started');
   });
 
   it('stops capture successfully and updates state and selectedFile', async () => {

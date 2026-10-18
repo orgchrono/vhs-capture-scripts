@@ -110,6 +110,29 @@ pub fn build_rife_command(params: &RifeParams) -> Vec<String> {
     args
 }
 
+/// Construct adaptive facial detail sharpening filter string for FFmpeg fallback.
+#[must_use]
+pub fn build_face_restoration_filter(fidelity: f32) -> String {
+    let clamped = fidelity.clamp(0.0, 1.0);
+    let cas_strength = 0.3 + (1.0 - clamped) * 0.4;
+    format!("cas={:.2},unsharp=5:5:0.8:3:3:0.4", cas_strength)
+}
+
+/// Construct magnetic tape spectral subtraction and hum notch filter string for FFmpeg audio pipeline.
+#[must_use]
+pub fn build_neural_audio_filter(
+    hum_freq_hz: u32,
+    hum_width_hz: u32,
+    attenuation_db: f32,
+    noise_reduction_db: f32,
+    noise_floor_db: f32,
+) -> String {
+    format!(
+        "dcshift=shift=0,anequalizer=c0 f={} w={} g={:.1}|c1 f={} w={} g={:.1},afftdn=nr={:.1}:nf={:.1}:tn=1",
+        hum_freq_hz, hum_width_hz, attenuation_db, hum_freq_hz, hum_width_hz, attenuation_db, noise_reduction_db, noise_floor_db
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -200,5 +223,23 @@ mod tests {
         assert_eq!(cmd[5], "rife-v4.6");
         assert_eq!(cmd[6], "-g");
         assert_eq!(cmd[7], "0");
+    }
+
+    #[test]
+    fn test_build_face_restoration_filter() {
+        let f = build_face_restoration_filter(0.5);
+        assert!(f.contains("cas=0.50"));
+        assert!(f.contains("unsharp=5:5:0.8:3:3:0.4"));
+
+        let f_high = build_face_restoration_filter(1.0);
+        assert!(f_high.contains("cas=0.30"));
+    }
+
+    #[test]
+    fn test_build_neural_audio_filter() {
+        let filter = build_neural_audio_filter(60, 5, -30.0, 12.0, -50.0);
+        assert!(filter.contains("dcshift=shift=0"));
+        assert!(filter.contains("f=60 w=5 g=-30.0"));
+        assert!(filter.contains("afftdn=nr=12.0:nf=-50.0:tn=1"));
     }
 }
