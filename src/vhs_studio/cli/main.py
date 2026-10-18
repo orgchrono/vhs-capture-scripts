@@ -24,13 +24,13 @@ def main(argv: Optional[List[str]] = None) -> int:
             argv = argv[2:]
 
     parser = argparse.ArgumentParser(description="VHS Studio CLI")
-    subparsers = parser.add_subparsers(dest="command", help="Comandos disponíveis")
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
-    subparsers.add_parser("desktop", help="Abre a interface gráfica do VHS Studio")
-    subparsers.add_parser("watcher", help="Inicia o monitor de gravação do OBS")
-    subparsers.add_parser("api", help="Inicia o servidor de API FastAPI")
-    subparsers.add_parser("setup-qtgmc", help="Instalação e configuração do VapourSynth + QTGMC")
-    subparsers.add_parser("setup-obs", help="Instalação e configuração do OBS Studio")
+    subparsers.add_parser("desktop", help="Launch VHS Studio graphic workstation")
+    subparsers.add_parser("watcher", help="Start OBS recording folder watcher daemon")
+    subparsers.add_parser("api", help="Start FastAPI local backend server")
+    subparsers.add_parser("setup-qtgmc", help="Install and configure VapourSynth and QTGMC deinterlacer")
+    subparsers.add_parser("setup-obs", help="Install and configure OBS Studio workstation")
 
     sub_parser = subparsers.add_parser(
         "subtitles", help="Generate offline subtitles via AI (Whisper)"
