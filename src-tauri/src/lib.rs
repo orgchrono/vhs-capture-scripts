@@ -35,6 +35,9 @@ pub mod probe;
 pub mod runner;
 pub mod media;
 pub mod package;
+pub mod obs;
+pub mod preferences;
+pub mod whisper;
 
 use ai::{
     build_codeformer_command, build_realesrgan_command, build_rife_command,
@@ -466,6 +469,52 @@ pub fn ipc_has_ffmpeg_encoder(encoders_output: &str, encoder_name: &str) -> bool
 #[must_use]
 pub fn ipc_has_ffmpeg_filter(filters_output: &str, filter_name: &str) -> bool {
     has_ffmpeg_filter(filters_output, filter_name)
+}
+
+use obs::compute_obs_auth_response;
+use preferences::{parse_preferences_json, validate_and_clamp_preferences, AppPreferences};
+use whisper::{
+    disambiguate_speech_language, generate_srt_content, generate_vtt_content, SubtitleSegment,
+};
+
+/// Typed IPC ViewModel command computing OBS WebSocket challenge-response authentication.
+#[must_use]
+pub fn ipc_compute_obs_auth_response(password: &str, salt: &str, challenge: &str) -> String {
+    compute_obs_auth_response(password, salt, challenge)
+}
+
+/// Typed IPC ViewModel command parsing preferences JSON with dual-casing support and clamping.
+#[must_use]
+pub fn ipc_parse_preferences(json_content: &str) -> AppPreferences {
+    parse_preferences_json(json_content)
+}
+
+/// Typed IPC ViewModel command validating and clamping preferences.
+#[must_use]
+pub fn ipc_validate_preferences(prefs: AppPreferences) -> AppPreferences {
+    validate_and_clamp_preferences(prefs)
+}
+
+/// Typed IPC ViewModel command generating WebVTT subtitle document.
+#[must_use]
+pub fn ipc_format_vtt_subtitles(segments: &[SubtitleSegment]) -> String {
+    generate_vtt_content(segments)
+}
+
+/// Typed IPC ViewModel command generating SubRip (.srt) subtitle document.
+#[must_use]
+pub fn ipc_format_srt_subtitles(segments: &[SubtitleSegment]) -> String {
+    generate_srt_content(segments)
+}
+
+/// Typed IPC ViewModel command disambiguating speech language to prevent tape noise hallucination.
+#[must_use]
+pub fn ipc_disambiguate_speech_language(
+    detected_lang: &str,
+    prob: f32,
+    has_speech: bool,
+) -> (String, bool) {
+    disambiguate_speech_language(detected_lang, prob, has_speech)
 }
 
 

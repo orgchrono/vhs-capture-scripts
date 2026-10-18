@@ -25,6 +25,7 @@ fn print_usage() {
     println!("  bagit-manifest <DIR>      Generate RFC 8493 BagIt manifest for target directory");
     println!("  timecode <SECONDS>        Format seconds as broadcast timecode HH:MM:SS.mmm");
     println!("  install-ffmpeg <MGR>      Display package manager installation command for FFmpeg");
+    println!("  preferences               Print canonical default program preferences");
     println!("  version                   Print version information");
     println!("  help                      Print this help message");
 }
@@ -159,6 +160,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     std::process::exit(1);
                 }
             }
+        }
+        "preferences" => {
+            let default_prefs = vhs_studio_core::preferences::AppPreferences::default();
+            println!("{}", serde_json::to_string_pretty(&default_prefs)?);
         }
         unknown => {
             eprintln!("Unknown command: '{unknown}'");

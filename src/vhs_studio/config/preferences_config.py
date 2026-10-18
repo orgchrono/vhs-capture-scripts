@@ -59,7 +59,7 @@ def load_preferences() -> Dict[str, object]:
                         snake_k = CAMEL_TO_SNAKE.get(str(k), str(k))
                         merged[snake_k] = v
         except Exception as err:
-            log.warning(f"[PREFERENCES] Erro ao ler preferences.json ({err}). Usando padrões.")
+            log.warning(f"[PREFERENCES] Error reading preferences.json ({err}). Using defaults.")
 
     # Populate camelCase mirrors for seamless frontend consumption
     for s_key, c_key in SNAKE_TO_CAMEL.items():

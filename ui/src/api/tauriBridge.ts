@@ -179,6 +179,31 @@ export interface TauriMediaProbeResult {
   standard: string;
 }
 
+export interface TauriSubtitleSegment {
+  start_seconds: number;
+  end_seconds: number;
+  text: string;
+}
+
+export interface TauriAppPreferences {
+  raw_dir: string;
+  restored_dir: string;
+  cache_dir: string;
+  live_preview_enabled: boolean;
+  preview_fps: number;
+  verbose_console: boolean;
+  auto_scroll_console: boolean;
+  max_console_lines: number;
+  panasonic_hotplug_enabled: boolean;
+  panasonic_poll_interval_ms: number;
+  preferred_ai_device: string;
+  whisper_max_threads: number;
+  hardware_encoder_preference: string;
+  high_contrast: boolean;
+  large_text: boolean;
+  theme: string;
+}
+
 export const tauriBridge = {
   isNative(): boolean {
     return isTauriEnvironment();
@@ -568,6 +593,85 @@ export const tauriBridge = {
     if (mgrName === 'brew') return ['brew', 'install', 'ffmpeg'];
     if (mgrName === 'apt-get' || mgrName === 'apt') return ['apt-get', 'install', '-y', 'ffmpeg'];
     return null;
+  },
+
+  async computeObsAuthResponse(password: string, salt: string, challenge: string): Promise<string> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<string>('ipc_compute_obs_auth_response', { password, salt, challenge });
+    }
+    // Web Crypto fallback
+    const enc = new TextEncoder();
+    const hash1 = await crypto.subtle.digest('SHA-256', enc.encode(password + salt));
+    const b64Secret = btoa(String.fromCharCode(...new Uint8Array(hash1)));
+    const hash2 = await crypto.subtle.digest('SHA-256', enc.encode(b64Secret + challenge));
+    return btoa(String.fromCharCode(...new Uint8Array(hash2)));
+  },
+
+  async parsePreferences(jsonContent: string): Promise<TauriAppPreferences> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<TauriAppPreferences>('ipc_parse_preferences', { jsonContent });
+    }
+    const raw = JSON.parse(jsonContent);
+    return {
+      raw_dir: String(raw.raw_dir || raw.rawDir || ''),
+      restored_dir: String(raw.restored_dir || raw.restoredDir || ''),
+      cache_dir: String(raw.cache_dir || raw.cacheDir || ''),
+      live_preview_enabled: Boolean(raw.live_preview_enabled ?? raw.livePreviewEnabled ?? true),
+      preview_fps: Math.max(1, Math.min(60, Number(raw.preview_fps || raw.previewFps || 30))),
+      verbose_console: Boolean(raw.verbose_console || raw.verboseConsole || false),
+      auto_scroll_console: Boolean(raw.auto_scroll_console ?? raw.autoScrollConsole ?? true),
+      max_console_lines: Math.max(10, Math.min(5000, Number(raw.max_console_lines || raw.maxConsoleLines || 500))),
+      panasonic_hotplug_enabled: Boolean(raw.panasonic_hotplug_enabled ?? raw.panasonicHotplugEnabled ?? true),
+      panasonic_poll_interval_ms: Math.max(500, Math.min(60000, Number(raw.panasonic_poll_interval_ms || raw.panasonicPollIntervalMs || 3000))),
+      preferred_ai_device: String(raw.preferred_ai_device || raw.preferredAiDevice || 'auto'),
+      whisper_max_threads: Math.max(1, Math.min(32, Number(raw.whisper_max_threads || raw.whisperMaxThreads || 4))),
+      hardware_encoder_preference: String(raw.hardware_encoder_preference || raw.hardwareEncoderPreference || 'auto'),
+      high_contrast: Boolean(raw.high_contrast || raw.highContrast || false),
+      large_text: Boolean(raw.large_text || raw.largeText || false),
+      theme: String(raw.theme || 'dark').toLowerCase() === 'light' ? 'light' : 'dark',
+    };
+  },
+
+  async formatVttSubtitles(segments: TauriSubtitleSegment[]): Promise<string> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<string>('ipc_format_vtt_subtitles', { segments });
+    }
+    let out = 'WEBVTT\n\n';
+    for (const seg of segments) {
+      const start = await this.secondsToTimecode(seg.start_seconds, true);
+      const end = await this.secondsToTimecode(seg.end_seconds, true);
+      out += `${start} --> ${end}\n${seg.text.trim()}\n\n`;
+    }
+    return out;
+  },
+
+  async formatSrtSubtitles(segments: TauriSubtitleSegment[]): Promise<string> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<string>('ipc_format_srt_subtitles', { segments });
+    }
+    let out = '';
+    for (let i = 0; i < segments.length; i++) {
+      const seg = segments[i];
+      const start = (await this.secondsToTimecode(seg.start_seconds, true)).replace('.', ',');
+      const end = (await this.secondsToTimecode(seg.end_seconds, true)).replace('.', ',');
+      out += `${i + 1}\n${start} --> ${end}\n${seg.text.trim()}\n\n`;
+    }
+    return out;
+  },
+
+  async disambiguateSpeechLanguage(detectedLang: string, prob: number, hasSpeech: boolean): Promise<[string, boolean]> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<[string, boolean]>('ipc_disambiguate_speech_language', { detectedLang, prob, hasSpeech });
+    }
+    if (!hasSpeech || prob < 0.70) {
+      return ['pt', true];
+    }
+    return [detectedLang.trim().toLowerCase(), false];
   },
 
   async startRestoration(payload: RestorationPayload): Promise<{ status: string; message?: string }> {

@@ -233,5 +233,38 @@ describe('Tauri v2 IPC Bridge & Fallback (tauriBridge)', () => {
     const brewCmd = await tauriBridge.getFfmpegInstallCommand('brew');
     expect(brewCmd).toEqual(['brew', 'install', 'ffmpeg']);
   });
+
+  it('computes OBS WebSocket auth response and parses preferences', async () => {
+    const auth = await tauriBridge.computeObsAuthResponse('pass', 'salt', 'challenge');
+    expect(typeof auth).toBe('string');
+    expect(auth.length).toBeGreaterThan(0);
+
+    const json = JSON.stringify({ rawDir: 'D:/dumps', previewFps: 50, theme: 'light' });
+    const prefs = await tauriBridge.parsePreferences(json);
+    expect(prefs.raw_dir).toBe('D:/dumps');
+    expect(prefs.preview_fps).toBe(50);
+    expect(prefs.theme).toBe('light');
+  });
+
+  it('formats VTT and SRT subtitles and disambiguates speech language', async () => {
+    const segments = [
+      { start_seconds: 1.0, end_seconds: 4.5, text: 'Audio test' },
+    ];
+    const vtt = await tauriBridge.formatVttSubtitles(segments);
+    expect(vtt).toContain('WEBVTT');
+    expect(vtt).toContain('00:00:01.000 --> 00:00:04.500');
+    expect(vtt).toContain('Audio test');
+
+    const srt = await tauriBridge.formatSrtSubtitles(segments);
+    expect(srt).toContain('1\n00:00:01,000 --> 00:00:04,500\nAudio test');
+
+    const [highLang, highAmbig] = await tauriBridge.disambiguateSpeechLanguage('en', 0.95, true);
+    expect(highLang).toBe('en');
+    expect(highAmbig).toBe(false);
+
+    const [lowLang, lowAmbig] = await tauriBridge.disambiguateSpeechLanguage('ru', 0.40, true);
+    expect(lowLang).toBe('pt');
+    expect(lowAmbig).toBe(true);
+  });
 });
 
