@@ -67,17 +67,17 @@ describe('PanasonicIngestCard Component', () => {
       invoke: mockInvoke,
     };
 
-    await act(async () => {
-      renderComponent();
-    });
+    try {
+      await act(async () => {
+        renderComponent();
+      });
 
-    const toggle = screen.getByTestId('toggle-panasonic-ingest-btn');
-    await act(async () => {
+      const toggle = screen.getByTestId('toggle-panasonic-ingest-btn');
       fireEvent.click(toggle);
-    });
 
-    expect(screen.getByTestId('panasonic-path-input')).toBeInTheDocument();
-
-    delete (window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;
+      expect(await screen.findByTestId('panasonic-path-input')).toBeInTheDocument();
+    } finally {
+      delete (window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;
+    }
   });
 });

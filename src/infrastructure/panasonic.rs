@@ -392,9 +392,16 @@ pub fn detect_connected_drives() -> Vec<PanasonicDiskInfo> {
             if let Ok(val) = serde_json::from_str::<serde_json::Value>(&stdout) {
                 if let Some(devices) = val.get("blockdevices").and_then(|d| d.as_array()) {
                     return devices.iter().filter_map(|dev| {
-                        let path = dev.get("path").and_then(|p| p.as_str()).or_else(|| {
-                            dev.get("name").and_then(|n| n.as_str()).map(|n| format!("/dev/{n}"))
-                        }).unwrap_or_default();
+                        let path: String = dev
+                            .get("path")
+                            .and_then(|p| p.as_str())
+                            .map(String::from)
+                            .or_else(|| {
+                                dev.get("name")
+                                    .and_then(|n| n.as_str())
+                                    .map(|n| format!("/dev/{n}"))
+                            })
+                            .unwrap_or_default();
                         let model = dev.get("model").and_then(|m| m.as_str()).unwrap_or("Block Device").trim().to_string();
                         let size_b = dev.get("size").and_then(|s| s.as_u64()).unwrap_or(0);
                         let size_gb = ((size_b as f64) / (1024.0 * 1024.0 * 1024.0) * 10.0).round() / 10.0;

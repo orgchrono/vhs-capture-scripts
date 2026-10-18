@@ -1,3 +1,12 @@
 fn main() {
-    tauri_build::build();
+    #[cfg(windows)]
+    {
+        let attrs = tauri_build::Attributes::new()
+            .windows_attributes(tauri_build::WindowsAttributes::new_without_app_manifest());
+        tauri_build::try_build(attrs).expect("failed to run tauri-build");
+    }
+    #[cfg(not(windows))]
+    {
+        tauri_build::build();
+    }
 }

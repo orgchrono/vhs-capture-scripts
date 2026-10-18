@@ -184,12 +184,16 @@ pub fn verify_binary_integrity(
 /// Spawns a background Command configured to never flash console windows on Windows GUI.
 #[must_use]
 pub fn create_silent_command(program: &Path) -> Command {
-    let mut cmd = Command::new(program);
     #[cfg(windows)]
     {
+        let mut cmd = Command::new(program);
         cmd.creation_flags(CREATE_NO_WINDOW);
+        cmd
     }
-    cmd
+    #[cfg(not(windows))]
+    {
+        Command::new(program)
+    }
 }
 
 /// Executes a subprocess synchronously with invisible console window and captures output.
