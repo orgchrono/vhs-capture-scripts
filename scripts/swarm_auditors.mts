@@ -98,11 +98,16 @@ class DependencyAuditor implements Auditor {
     }
 
     if (fs.existsSync(UI_DIR)) {
-      const npmCmd: string = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-      const npmAudit: SpawnSyncReturns<Buffer> = spawnSync(npmCmd, ['audit', '--audit-level=high'], {
-        cwd: UI_DIR,
-        shell: false,
-      });
+      const isWindows: boolean = process.platform === 'win32';
+      const npmAudit: SpawnSyncReturns<Buffer> = isWindows
+        ? spawnSync('npm audit --audit-level=high', {
+            cwd: UI_DIR,
+            shell: true,
+          })
+        : spawnSync('npm', ['audit', '--audit-level=high'], {
+            cwd: UI_DIR,
+            shell: false,
+          });
       if (npmAudit.status === 0) {
         details.push('NPM dependencies are secure.');
       } else {
