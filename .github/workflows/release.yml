@@ -52,6 +52,12 @@ jobs:
       with:
         node-version: 24
 
+    - name: Install System Dependencies (Ubuntu)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y ffmpeg libgl1 libwebkit2gtk-4.1-dev build-essential libssl-dev libayatana-appindicator3-dev librsvg2-dev
+
     - name: Build & Verify Native Panasonic C Tools
       run: |
         node scripts/build_panasonic_tools.mts

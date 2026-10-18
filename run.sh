@@ -25,5 +25,5 @@ if [ "$1" == "--lint" ]; then
     exit 0
 fi
 
-echo "[*] Starting VHS Studio Pro (Native Rust Engine)..."
-exec cargo run -- serve "$@"
+echo "[*] Starting VHS Studio Pro (Native Desktop Suite with OS WebView)..."
+exec cargo run -- "$@"

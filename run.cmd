@@ -37,8 +37,8 @@ if "%1"=="--lint" (
     exit /b 0
 )
 
-echo [*] Starting VHS Studio Pro (Native Rust Engine)...
-cargo run -- serve %*
+echo [*] Starting VHS Studio Pro (Native Desktop Suite with WebView2)...
+cargo run -- %*
 if %ERRORLEVEL% NEQ 0 (
     echo.
     echo [WARNING] Process exited with code %ERRORLEVEL%.

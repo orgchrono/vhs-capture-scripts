@@ -133,7 +133,32 @@ async function main(): Promise<void> {
   logger.info('Running Linters and Quality Gates (Parallelized)...');
 
   const startTime: number = Date.now();
-  const results: StepResult[] = await Promise.all(steps.map((s) => runStep(s)));
+  // UI steps can safely run concurrently in parallel
+  const uiSteps = steps.filter(
+    (s) => !s.command.startsWith('cargo') && s.name !== 'i18n Parity (10 Locales)'
+  );
+  // Rust steps share the target/ lock directory and must run sequentially
+  const rustSteps = steps.filter(
+    (s) => s.command.startsWith('cargo') || s.name === 'i18n Parity (10 Locales)'
+  );
+
+  const [uiResults, rustResults] = await Promise.all([
+    Promise.all(uiSteps.map((s) => runStep(s))),
+    (async () => {
+      const res: StepResult[] = [];
+      for (const step of rustSteps) {
+        res.push(await runStep(step));
+      }
+      return res;
+    })(),
+  ]);
+
+  // Maintain original step ordering for reports
+  const resultsMap = new Map<string, StepResult>();
+  for (const r of [...uiResults, ...rustResults]) {
+    resultsMap.set(r.step.name, r);
+  }
+  const results: StepResult[] = steps.map((s) => resultsMap.get(s.name)!);
   const elapsed: string = ((Date.now() - startTime) / 1000).toFixed(2);
 
   let allPassed: boolean = true;

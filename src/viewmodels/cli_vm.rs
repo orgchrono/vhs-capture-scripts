@@ -46,6 +46,7 @@ pub fn print_usage() {
     println!("  storage-copy <SRC> <DST>  Copy file to destination and verify integrity");
     println!("  validate-i18n [DIR]       Verify 100% translation key parity across all 10 locales");
     println!("  serve [PORT]              Start native Rust HTTP/IPC server for UI on 127.0.0.1");
+    println!("  desktop                   Start native OS desktop window with WebView2 / WebKit");
     println!("  version                   Print version information");
     println!("  help                      Print this help message");
 }
@@ -890,6 +891,9 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
                 eprintln!("Error: {err}");
                 std::process::exit(1);
             }
+        }
+        "desktop" | "gui" => {
+            crate::viewmodels::ipc_commands::run_desktop_app();
         }
         unknown => {
             eprintln!("Unknown command: '{unknown}'");
