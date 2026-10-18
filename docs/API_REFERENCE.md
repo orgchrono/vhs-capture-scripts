@@ -16,7 +16,7 @@ All inbound requests targeted at `/api/*` pass through the security middleware i
 - Policy violations return `HTTP 403 Forbidden` (`{"error": "Access denied."}` or `{"error": "Invalid origin."}`).
 
 ### 1.2 Session Token (Localhost CSRF Mitigation)
-On every backend initialization, a unique 32-character hexadecimal cryptographic session secret is generated (`SESSION_TOKEN` via `secrets.token_hex(16)`).
+On every backend initialization, a unique 32-character hexadecimal cryptographic session secret is generated (`SESSION_TOKEN` in `src/viewmodels/api_router.rs`).
 - **Endpoint:** `GET /api/token`
 - **Required Header on POST/Mutations:** `X-Session-Token: <token>`
 - Mutating requests with missing or invalid tokens return `HTTP 403 Forbidden` (`{"error": "Invalid session token."}`).
@@ -152,10 +152,10 @@ Server-Sent Events (SSE) streaming endpoint with `text/event-stream` MIME type. 
 
 ---
 
-## 3. Persistent Batch Queue (`src/viewmodels/queue.rs` & `src/infrastructure/database.rs`)
+## 3. Persistent Batch Queue (`src/viewmodels/api_router.rs` & `src/domain/queue.rs`)
 
 ### `GET /api/queue`
-Retrieves all pending, processing, and completed jobs from the persistent SQLite queue.
+Retrieves all pending, processing, and completed jobs from the persistent batch queue.
 
 - **Response (HTTP 200):**
   ```json
@@ -213,7 +213,7 @@ Starts or pauses the background queue worker thread.
 
 ---
 
-## 4. OBS Studio Ingest & Telemetry (`src/viewmodels/obs.rs` & `src/infrastructure/obs.rs`)
+## 4. OBS Studio Ingest & Telemetry (`src/viewmodels/capture_vm.rs` & `src/infrastructure/obs.rs`)
 
 ### `GET /api/obs/stats`
 Queries real-time telemetry from OBS Studio via WebSocket v5.
@@ -239,7 +239,7 @@ Remotely triggers recording start and stop within OBS Studio.
 
 ---
 
-## 5. Restoration & Process Actions (`src/viewmodels/restoration.rs` & `src/domain/pipeline.rs`)
+## 5. Restoration & Process Actions (`src/viewmodels/restoration_vm.rs` & `src/domain/pipeline.rs`)
 
 ### `POST /api/run`
 Initiates direct pipeline execution for a selected media file.
@@ -317,7 +317,7 @@ Performs recovery actions (`resume`, `finalize`, or `discard`) on incomplete rec
 
 ---
 
-## 6. Panasonic DVR Ingestion (`src/viewmodels/ingest.rs` & `src/infrastructure/panasonic.rs`)
+## 6. Panasonic DVR Ingestion (`src/viewmodels/ingest_vm.rs` & `src/infrastructure/panasonic.rs`)
 
 ### `GET /api/ingest/panasonic/disks`
 Enumerates attached physical block drives and USB-SATA bridge controllers.
@@ -360,7 +360,7 @@ Extracts selected program titles via native C utilities into `media/raw/`.
 
 ---
 
-## 7. Media & Storage Endpoints (`src/viewmodels/media.rs` & `src/infrastructure/storage/`)
+## 7. Media & Storage Endpoints (`src/viewmodels/storage_vm.rs` & `src/infrastructure/storage.rs`)
 
 ### `GET /api/media/thumbnail`
 Generates and caches JPEG thumbnail representations for video files at specified positions.
@@ -389,7 +389,7 @@ Retrieves (or optionally generates on demand) the synchronized museum-grade JSON
 
 ### Programmatic & CLI Invocation:
 ```rust
-use vhs_studio::domain::qc::QualityControl;
+use vhs_studio_core::domain::qc::*;
 
 # Standalone inspection
 let json_path = QualityControl::run_qc("media/raw/tape_01.mkv")?;

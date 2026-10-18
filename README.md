@@ -45,8 +45,8 @@ Built upon a **Concurrent Directed Acyclic Graph (DAG) Pipeline Engine**, the sy
   - **Real-ESRGAN x4plus & Real-CUGAN:** Deep convolutional neural super-resolution networks tailored for edge reconstruction, analog blur elimination, and organic film grain preservation.
   - **CodeFormer:** Blind face restoration network with adjustable fidelity weighting (`0.1` to `0.9`), reconstituting distant facial contours without synthetic plastic artifacts.
   - **RIFE v4.6:** Bidirectional optical flow motion interpolation, elevating 25p/30p video to cinematic 60fps fluid motion.
-  - **PySceneDetect:** Algorithmic scene change detection and chapter segmentation based on luminance content shift.
-- **Persistent SQLite Batch Queue:** Industrial-grade FIFO queue manager with transactional job state persistence, dynamic priority ordering, error isolation, and host overload throttling.
+  - **FFmpeg Scene Cut Detection:** Algorithmic scene change detection and chapter segmentation (`src/domain/chapters.rs`) based on luminance content shift.
+- **Deterministic Functional Batch Queue:** Industrial-grade FIFO queue manager (`src/domain/queue.rs`) with immutable job state persistence, dynamic priority ordering, error isolation, and host overload throttling.
 - **Archival Cloud Connectivity:** Asynchronous offloading to AWS S3, Google Drive (OAuth2 PKCE), and Dropbox with BagIt checksum manifests and preservation metadata.
 - **Zero-Hardcode Internationalization (10 Locales):** Complete out-of-the-box localization supporting `pt-BR`, `en-US`, `es`, `fr`, `de`, `it`, `ja`, `ar` (with RTL structural layouts), `ru`, and `zh-CN`.
 
@@ -154,7 +154,7 @@ flowchart TD
 
 ## 💻 Hardware Abstraction Layer (HAL) & Honest Performance Tiers
 
-The Hardware Abstraction Layer ([`src/vhs_studio/core/hardware.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/core/hardware.py)) probes host capabilities and classifies the environment into four honest tiers without exaggerated performance claims:
+The Hardware Abstraction Layer ([`src/infrastructure/hardware.rs`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/infrastructure/hardware.rs)) probes host capabilities and classifies the environment into four honest tiers without exaggerated performance claims:
 
 | Tier             | Classification                  | Hardware Profile Requirements                                                                            | Recommended Execution Profile                                                                                                  |
 | :--------------- | :------------------------------ | :------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------- |
@@ -198,8 +198,8 @@ The user interface is engineered according to professional non-linear editing (N
 
 VHS Studio Pro implements rigorous defensive controls against vulnerabilities common to hybrid desktop applications:
 
-- **Command Injection Prevention (CWE-78):** Absolute elimination of `shell=True`. All external tool invocations pass sanitized, structured argument lists (`list[str]`). Dynamic modules pass parameters strictly via OS argument vectors (`sys.argv`).
-- **Path Traversal Guard (CWE-22):** The canonical validator [`is_safe_media_path`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/routers/security.py#L16-L32) neutralizes null bytes (`\0`), traversal sequences (`..`), and blocks access outside the designated working directories.
+- **Command Injection Prevention (CWE-78):** Absolute elimination of shell execution. All external tool invocations pass sanitized, structured argument lists (`Vec<String>`) through the pure executor (`src/infrastructure/executor.rs`).
+- **Path Traversal Guard (CWE-22):** The canonical validator [`is_safe_relative_asset_path`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/infrastructure/http_server.rs) neutralizes null bytes (`\0`), traversal sequences (`..`), and blocks access outside designated working directories.
 - **Localhost Network Isolation & CSRF Mitigation:** The API listens exclusively on `127.0.0.1:8088`. Inbound requests validate `Host` and `Origin` headers against DNS rebinding, and all mutating actions require a cryptographic 32-character session token (`X-Session-Token`).
 - **100% Offline Data Sovereignty:** Video frames, audio tracks, transcriptions, and metadata never leave the local workstation. Cloud transfers occur solely when the operator explicitly inputs private credentials.
 

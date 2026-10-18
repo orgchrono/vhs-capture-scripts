@@ -86,7 +86,7 @@ The deinterlacing engine synthesizes interlaced fields into full-rate progressiv
 
 ---
 
-## 4. Analog Noise Reduction & Declarative Filterchain (`src/domain/filter_builder.rs`)
+## 4. Analog Noise Reduction & Declarative Filterchain (`src/domain/filter.rs`)
 
 The FFmpeg filtergraph is generated through **pure, declarative functional composition** without global mutable state:
 
@@ -94,7 +94,7 @@ The FFmpeg filtergraph is generated through **pure, declarative functional compo
    - Corrects the horizontal and vertical phase delay inherent to the VHS "Color-Under" system (~629 kHz subcarrier), pulling color bleeding back into alignment with the high-frequency luminance ($Y$) edge data.
 2. **HQDN3D (High-Quality 3D Denoise):**
    - Evaluates spatio-temporal noise variance across frames (`hqdn3d=3:2:6:4`), eliminating high-frequency analog snow without creating trailing ghosts (*ghosting*).
-3. **Temporal Dropout Cleaner ([`DropoutCleaner`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/domain/dropout_cleaner.rs)):**
+3. **Temporal Dropout Cleaner ([`DropoutCleaner`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/domain/filter.rs)):**
    - Applies `removegrain=1,tmedian=radius=1` to detect and eliminate single-frame white streaks caused by magnetic oxide flaking, replacing corrupted scanlines via temporal interpolation from adjacent fields.
 4. **Overscan Blanking (12px Mask):**
    - Applies `drawbox=y=ih-12:color=black:width=iw:height=12:t=fill` across the bottom 12 scanlines containing helical head-switching noise, preventing flashing bars on digital flat panels without altering the 4:3 picture framing.

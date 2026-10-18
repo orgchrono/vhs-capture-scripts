@@ -76,7 +76,7 @@ flowchart TD
 - **Physical Root Cause:** Inherent to dual-head helical scan. The mechanical transfer of signal from Head A to Head B occurs roughly 3 to 6 scanlines before the lower vertical blanking pulse. While masked by CRT televisions' overscan bezel, modern progressive flat panels display the entire digital raster, exposing the switching transient.
 - **VHS Studio Remediation:**
   - Automated detection flags the presence of head switching noise in scanlines 464–480.
-  - [`filter_builder.rs`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/domain/filter_builder.rs) applies an exact 12px overscan mask:
+  - [`filter.rs`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/domain/filter.rs) applies an exact 12px overscan mask:
     ```text
     drawbox=y=ih-12:color=black:width=iw:height=12:t=fill
     ```
@@ -88,7 +88,7 @@ flowchart TD
 - **Visual Manifestation:** Thin, bright horizontal white or dark streaks lasting exactly one frame (1/60s), appearing randomly across the screen.
 - **Physical Root Cause:** Binder breakdown (*hydrolysis*) or dust particles causing localized loss of magnetic oxide. When a head passes over a void, the FM radio-frequency (RF) signal drops below threshold; the FM demodulator clips to maximum carrier frequency, displaying maximum luminance (saturated white).
 - **VHS Studio Remediation:**
-  - [`DropoutCleaner`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/domain/dropout_cleaner.rs) identifies scanlines where $> 85\%$ of pixels exceed saturated luma thresholds ($Y \ge 235$).
+  - [`DropoutCleaner`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/domain/filter.rs) identifies scanlines where $> 85\%$ of pixels exceed saturated luma thresholds ($Y \ge 235$).
   - A spatio-temporal filterchain cleans the artifact:
     ```text
     removegrain=1,tmedian=radius=1
@@ -140,7 +140,7 @@ flowchart TD
 - **Physical Root Cause:** Blank tape leader before the camera trigger; paused camcorder recordings where RF synchronization was dropped.
 - **VHS Studio Remediation:**
   - [`find_first_video_frame`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/domain/qc.rs) scans luma averages ($\bar{Y} > 22.0$) and automatically trims the leader, starting audio and video simultaneously at the first authentic recorded frame.
-  - During mid-tape pauses, the `freeze` mode (TBC Frame-Hold in [`StreamRunner`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/domain/stream_runner.rs)) freezes the last known good frame during black dropouts ($\bar{Y} \le 18.0$), keeping 100% lip-sync continuity with the unbroken audio stream.
+  - During mid-tape pauses, the `freeze` mode (TBC Frame-Hold in [`stream.rs`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/domain/stream.rs)) freezes the last known good frame during black dropouts ($\bar{Y} \le 18.0$), keeping 100% lip-sync continuity with the unbroken audio stream.
 
 ---
 
