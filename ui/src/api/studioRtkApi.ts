@@ -15,16 +15,10 @@ import type {
   PanasonicRecordingTreeResponse,
   ExistingRestorationCheck,
 } from '../types';
+import { tauriBridge, isTauriEnvironment, getApiBaseUrl } from './tauriBridge';
 
 
 let cachedSessionToken: string | null = null;
-
-const getApiBaseUrl = (): string => {
-  if (typeof window !== 'undefined' && window.location?.origin && window.location.origin !== 'null') {
-    return window.location.origin.replace(/\/+$/, '');
-  }
-  return 'http://localhost:8088';
-};
 
 export const studioRtkApi = createApi({
   reducerPath: 'studioApi',
@@ -92,7 +86,20 @@ export const studioRtkApi = createApi({
       status: StorageStatus;
       available_providers: string[];
     }, void>({
-      query: () => 'api/storage/config',
+      queryFn: async (_arg, _queryApi, _extraOptions, baseQuery) => {
+        if (isTauriEnvironment()) {
+          try {
+            const data = await tauriBridge.getStorageConfig();
+            return { data: data as unknown as { provider: string; config: Record<string, unknown>; status: StorageStatus; available_providers: string[] } };
+          } catch (error) {
+            return { error: { status: 'CUSTOM_ERROR', error: String(error) } };
+          }
+        }
+        const result = await baseQuery('api/storage/config');
+        return result.data
+          ? { data: result.data as { provider: string; config: Record<string, unknown>; status: StorageStatus; available_providers: string[] } }
+          : { error: result.error as { status: number; data: unknown } };
+      },
       providesTags: ['Storage'],
     }),
 
@@ -179,11 +186,24 @@ export const studioRtkApi = createApi({
       { status: string; message: string },
       { provider: string; config: Record<string, unknown> }
     >({
-      query: (body) => ({
-        url: 'api/storage/config',
-        method: 'POST',
-        body,
-      }),
+      queryFn: async (body, _queryApi, _extraOptions, baseQuery) => {
+        if (isTauriEnvironment()) {
+          try {
+            const status = await tauriBridge.saveStorageConfig(body.provider, body.config);
+            return { data: { status: status.ready ? 'ok' : 'error', message: status.message || 'Storage configuration updated' } };
+          } catch (error) {
+            return { error: { status: 'CUSTOM_ERROR', error: String(error) } };
+          }
+        }
+        const result = await baseQuery({
+          url: 'api/storage/config',
+          method: 'POST',
+          body,
+        });
+        return result.data
+          ? { data: result.data as { status: string; message: string } }
+          : { error: result.error as { status: number; data: unknown } };
+      },
       invalidatesTags: ['Storage'],
     }),
 
@@ -267,7 +287,20 @@ export const studioRtkApi = createApi({
     }),
 
     getIncompleteJobs: builder.query<{ incomplete_jobs: IncompleteJob[]; total: number }, void>({
-      query: () => 'api/restoration/incomplete',
+      queryFn: async (_arg, _queryApi, _extraOptions, baseQuery) => {
+        if (isTauriEnvironment()) {
+          try {
+            const data = await tauriBridge.getIncompleteJobs();
+            return { data };
+          } catch (error) {
+            return { error: { status: 'CUSTOM_ERROR', error: String(error) } };
+          }
+        }
+        const result = await baseQuery('api/restoration/incomplete');
+        return result.data
+          ? { data: result.data as { incomplete_jobs: IncompleteJob[]; total: number } }
+          : { error: result.error as { status: number; data: unknown } };
+      },
       providesTags: ['Status'],
     }),
 
@@ -275,11 +308,24 @@ export const studioRtkApi = createApi({
       { status: string; message?: string; finalized_file?: string },
       { output_path: string; action: 'resume' | 'finalize' | 'discard'; source?: string }
     >({
-      query: (body) => ({
-        url: 'api/restoration/incomplete/action',
-        method: 'POST',
-        body,
-      }),
+      queryFn: async (body, _queryApi, _extraOptions, baseQuery) => {
+        if (isTauriEnvironment()) {
+          try {
+            const data = await tauriBridge.handleIncompleteJob(body);
+            return { data };
+          } catch (error) {
+            return { error: { status: 'CUSTOM_ERROR', error: String(error) } };
+          }
+        }
+        const result = await baseQuery({
+          url: 'api/restoration/incomplete/action',
+          method: 'POST',
+          body,
+        });
+        return result.data
+          ? { data: result.data as { status: string; message?: string; finalized_file?: string } }
+          : { error: result.error as { status: number; data: unknown } };
+      },
       invalidatesTags: ['Status'],
     }),
 
@@ -288,7 +334,20 @@ export const studioRtkApi = createApi({
     }),
 
     getPanasonicDisks: builder.query<{ disks: PanasonicDisk[]; total: number }, void>({
-      query: () => 'api/ingest/panasonic/disks',
+      queryFn: async (_arg, _queryApi, _extraOptions, baseQuery) => {
+        if (isTauriEnvironment()) {
+          try {
+            const disks = await tauriBridge.detectConnectedDrives();
+            return { data: { disks, total: disks.length } };
+          } catch (error) {
+            return { error: { status: 'CUSTOM_ERROR', error: String(error) } };
+          }
+        }
+        const result = await baseQuery('api/ingest/panasonic/disks');
+        return result.data
+          ? { data: result.data as { disks: PanasonicDisk[]; total: number } }
+          : { error: result.error as { status: number; data: unknown } };
+      },
       providesTags: ['Status'],
     }),
 
@@ -313,20 +372,46 @@ export const studioRtkApi = createApi({
       ComparisonFrameResponse,
       { source?: string; timestamp?: number; deinterlacer?: string; denoise?: boolean; chroma_fix?: boolean }
     >({
-      query: (params) => ({
-        url: 'api/monitor/comparison-frame',
-        params: {
-          source: params.source || '',
-          timestamp: params.timestamp ?? 5.0,
-          deinterlacer: params.deinterlacer || 'qtgmc',
-          denoise: params.denoise ?? true,
-          chroma_fix: params.chroma_fix ?? true,
-        },
-      }),
+      queryFn: async (params, _queryApi, _extraOptions, baseQuery) => {
+        if (isTauriEnvironment()) {
+          try {
+            const data = await tauriBridge.getComparisonFrame(params);
+            return { data };
+          } catch (error) {
+            return { error: { status: 'CUSTOM_ERROR', error: String(error) } };
+          }
+        }
+        const result = await baseQuery({
+          url: 'api/monitor/comparison-frame',
+          params: {
+            source: params.source || '',
+            timestamp: params.timestamp ?? 5.0,
+            deinterlacer: params.deinterlacer || 'qtgmc',
+            denoise: params.denoise ?? true,
+            chroma_fix: params.chroma_fix ?? true,
+          },
+        });
+        return result.data
+          ? { data: result.data as ComparisonFrameResponse }
+          : { error: result.error as { status: number; data: unknown } };
+      },
     }),
 
     getPreferences: builder.query<Record<string, unknown>, void>({
-      query: () => 'api/preferences',
+      queryFn: async (_arg, _queryApi, _extraOptions, baseQuery) => {
+        if (isTauriEnvironment()) {
+          try {
+            const data = await tauriBridge.getPreferences();
+            return { data };
+          } catch (error) {
+            return { error: { status: 'CUSTOM_ERROR', error: String(error) } };
+          }
+        }
+        const result = await baseQuery('api/preferences');
+        return result.data
+          ? { data: result.data as Record<string, unknown> }
+          : { error: result.error as { status: number; data: unknown } };
+      },
       providesTags: ['Preferences'],
     }),
 
@@ -334,11 +419,24 @@ export const studioRtkApi = createApi({
       { success: boolean; preferences: Record<string, unknown> },
       Record<string, unknown>
     >({
-      query: (body) => ({
-        url: 'api/preferences',
-        method: 'POST',
-        body,
-      }),
+      queryFn: async (body, _queryApi, _extraOptions, baseQuery) => {
+        if (isTauriEnvironment()) {
+          try {
+            const data = await tauriBridge.savePreferences(body);
+            return { data };
+          } catch (error) {
+            return { error: { status: 'CUSTOM_ERROR', error: String(error) } };
+          }
+        }
+        const result = await baseQuery({
+          url: 'api/preferences',
+          method: 'POST',
+          body,
+        });
+        return result.data
+          ? { data: result.data as { success: boolean; preferences: Record<string, unknown> } }
+          : { error: result.error as { status: number; data: unknown } };
+      },
       invalidatesTags: ['Preferences'],
     }),
   }),

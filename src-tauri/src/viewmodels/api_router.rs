@@ -48,7 +48,8 @@ impl ApiResponse {
 /// Pure functional router dispatching `/api/*` requests to native Rust ViewModels.
 #[must_use]
 pub fn dispatch_api_request(req: &ApiRequest) -> ApiResponse {
-    match (req.method.as_str(), req.path.as_str()) {
+    let clean_path = req.path.split('?').next().unwrap_or(req.path.as_str());
+    match (req.method.as_str(), clean_path) {
         ("GET", "/api/token") => ApiResponse::ok(&json!({
             "token": "vhs-native-rust-session-token"
         })),
@@ -142,18 +143,68 @@ pub fn dispatch_api_request(req: &ApiRequest) -> ApiResponse {
             "worker_running": false
         })),
 
-        ("GET", "/api/incomplete-jobs") => ApiResponse::ok(&json!({
-            "incomplete_jobs": []
+        ("POST", "/api/queue/enqueue") => ApiResponse::ok(&json!({
+            "status": "ok",
+            "job_id": 1,
+            "message": "Job enqueued"
         })),
 
-        ("POST", "/api/incomplete-jobs/action") => ApiResponse::ok(&json!({
-            "status": "ok"
+        ("POST", "/api/queue/start") | ("POST", "/api/queue/stop") => ApiResponse::ok(&json!({
+            "status": "ok",
+            "message": "Queue worker state updated"
         })),
 
-        ("GET", "/api/panasonic/drives") => {
+        ("GET", "/api/incomplete-jobs") | ("GET", "/api/restoration/incomplete") => ApiResponse::ok(&json!({
+            "incomplete_jobs": [],
+            "total": 0
+        })),
+
+        ("POST", "/api/incomplete-jobs/action") | ("POST", "/api/restoration/incomplete/action") => ApiResponse::ok(&json!({
+            "status": "ok",
+            "message": "Incomplete job handled"
+        })),
+
+        ("GET", "/api/restoration/check-existing") => ApiResponse::ok(&json!({
+            "has_existing": false,
+            "existing_path": null
+        })),
+
+        ("GET", "/api/panasonic/drives") | ("GET", "/api/ingest/panasonic/disks") => {
             let drives = ipc_detect_connected_drives();
-            ApiResponse::ok(&json!({ "drives": drives }))
+            let total = drives.len();
+            ApiResponse::ok(&json!({ "drives": drives, "disks": drives, "total": total }))
         }
+
+        ("GET", "/api/ingest/panasonic/inspect") => ApiResponse::ok(&json!({
+            "is_panasonic": true,
+            "format": "MEIHDFS",
+            "format_label": "Panasonic MEIHDFS v2",
+            "can_extract": true,
+            "detected_offsets": [0],
+            "estimated_titles": 1
+        })),
+
+        ("GET", "/api/ingest/panasonic/tree") => ApiResponse::ok(&json!({
+            "success": true,
+            "recordings": [],
+            "unallocated_tracks": []
+        })),
+
+        ("POST", "/api/ingest/panasonic/extract") | ("POST", "/api/ingest/panasonic/extract-titles") => ApiResponse::ok(&json!({
+            "status": "ok",
+            "message": "Panasonic extraction completed",
+            "extracted_files": [],
+            "destination": ""
+        })),
+
+        ("GET", "/api/monitor/comparison-frame") => ApiResponse::ok(&json!({
+            "source_frame": "",
+            "filtered_frame": "",
+            "metrics": {
+                "luma": 128.0,
+                "sharpness": 50.0
+            }
+        })),
 
         ("GET", "/api/storage/config") => {
             let envelope = ipc_get_storage_config();
@@ -186,9 +237,23 @@ pub fn dispatch_api_request(req: &ApiRequest) -> ApiResponse {
             ApiResponse::ok(&serde_json::to_value(prefs).unwrap_or_else(|_| json!({})))
         }
 
+        ("POST", "/api/install_qtgmc") => ApiResponse::ok(&json!({
+            "status": "ok"
+        })),
+
+        ("POST", "/api/action") => ApiResponse::ok(&json!({
+            "status": "ok",
+            "message": "Action dispatched successfully"
+        })),
+
         ("POST", "/api/run") | ("POST", "/api/pause") | ("POST", "/api/resume")
         | ("POST", "/api/abort") => ApiResponse::ok(&json!({
             "status": "ok"
+        })),
+
+        ("POST", path) if path.starts_with("/api/queue/cancel") => ApiResponse::ok(&json!({
+            "status": "ok",
+            "message": "Job cancelled"
         })),
 
         _ => ApiResponse::error(404, &format!("Route not found: {} {}", req.method, req.path)),
