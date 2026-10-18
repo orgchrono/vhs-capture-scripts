@@ -90,7 +90,7 @@ pub fn parse_advanced_toml(toml_str: &str) -> AdvancedConfig {
         }
 
         if clean.starts_with('[') && clean.ends_with(']') {
-            current_section = &clean[1..clean.len() - 1].trim();
+            current_section = clean[1..clean.len() - 1].trim();
             continue;
         }
 

@@ -16,7 +16,7 @@ use std::os::windows::process::CommandExt;
 pub const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
 /// Status summary of all core external CLI binaries.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct ToolchainReport {
     pub ffmpeg: Option<String>,
     pub ffprobe: Option<String>,
@@ -27,22 +27,6 @@ pub struct ToolchainReport {
     pub vspipe: Option<String>,
     pub realesrgan: Option<String>,
     pub codeformer: Option<String>,
-}
-
-impl Default for ToolchainReport {
-    fn default() -> Self {
-        Self {
-            ffmpeg: None,
-            ffprobe: None,
-            obs: None,
-            extract_meihdfs: None,
-            dvd_vr: None,
-            udf_dump: None,
-            vspipe: None,
-            realesrgan: None,
-            codeformer: None,
-        }
-    }
 }
 
 /// JSON schema for binary fixity manifests (checksums.json).

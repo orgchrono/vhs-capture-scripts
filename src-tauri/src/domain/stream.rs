@@ -21,7 +21,7 @@ pub enum FrameAction {
     Dropped,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct StreamState {
     pub total_frames: u64,
     pub kept_frames: u64,
@@ -29,19 +29,6 @@ pub struct StreamState {
     pub dropped_frames: u64,
     pub bad_streak: u64,
     pub is_stream_broken: bool,
-}
-
-impl Default for StreamState {
-    fn default() -> Self {
-        Self {
-            total_frames: 0,
-            kept_frames: 0,
-            frozen_frames: 0,
-            dropped_frames: 0,
-            bad_streak: 0,
-            is_stream_broken: false,
-        }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

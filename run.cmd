@@ -31,16 +31,11 @@ if "%1"=="--lint" (
         pause
         exit /b !ERRORLEVEL!
     )
+    exit /b 0
 )
 
-if "%1"=="--native" (
-    echo [*] Starting VHS Studio Pro (Pure Native Rust Desktop Engine)...
-    cargo run --manifest-path src-tauri\Cargo.toml
-    exit /b !ERRORLEVEL!
-)
-
-echo [*] Starting VHS Studio Pro...
-python -m vhs_studio %*
+echo [*] Starting VHS Studio Pro (Native Rust Engine)...
+cargo run --manifest-path src-tauri\Cargo.toml -- serve %*
 if %ERRORLEVEL% NEQ 0 (
     echo.
     echo [WARNING] Process exited with code %ERRORLEVEL%.

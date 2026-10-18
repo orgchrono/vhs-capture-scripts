@@ -329,7 +329,7 @@ pub fn parse_drive_entries_from_json(json_content: &str) -> Vec<PanasonicDiskInf
 
     items
         .into_iter()
-        .filter_map(|item| {
+        .map(|item| {
             let dev_id = item.get("DeviceID").and_then(|v| v.as_str()).unwrap_or("").to_string();
             let model = item.get("Model").and_then(|v| v.as_str()).unwrap_or("Hard Disk Drive").to_string();
             let size_b = item.get("Size").and_then(|v| v.as_u64()).unwrap_or(0);
@@ -340,7 +340,7 @@ pub fn parse_drive_entries_from_json(json_content: &str) -> Vec<PanasonicDiskInf
             let h = evaluate_panasonic_drive(&model, iface, pnp);
             let name = format!("{model} ({size_gb:.1} GB)");
 
-            Some(PanasonicDiskInfo {
+            PanasonicDiskInfo {
                 device_id: dev_id,
                 name,
                 model,
@@ -352,7 +352,7 @@ pub fn parse_drive_entries_from_json(json_content: &str) -> Vec<PanasonicDiskInf
                 is_jmicron: h.is_jmicron_bridge,
                 is_asmedia: h.is_asmedia_bridge,
                 bus_type: h.bus_type,
-            })
+            }
         })
         .collect()
 }

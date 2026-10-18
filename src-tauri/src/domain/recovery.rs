@@ -6,19 +6,14 @@
 use serde::{Deserialize, Serialize};
 
 /// Restoration job lifecycle execution state.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum JobLifecycleStatus {
+    #[default]
     Standby,
     InProgress,
     Paused,
     Aborted,
     Completed,
-}
-
-impl Default for JobLifecycleStatus {
-    fn default() -> Self {
-        Self::Standby
-    }
 }
 
 /// Raw checkpoint schema serialized to `.checkpoint.json`.

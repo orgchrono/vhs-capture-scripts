@@ -58,10 +58,7 @@ impl ProgressAccumulator {
     /// Feeds a single progress key=value line into accumulator.
     /// Returns a complete `FFmpegProgressSnapshot` when a block terminator (`progress=continue` or `progress=end`) is encountered.
     pub fn feed_line(&mut self, line: &str) -> Option<FFmpegProgressSnapshot> {
-        let (key, value) = match parse_progress_key_value(line) {
-            Some(pair) => pair,
-            None => return None,
-        };
+        let (key, value) = parse_progress_key_value(line)?;
 
         match key {
             "frame" => {

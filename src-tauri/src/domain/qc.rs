@@ -120,12 +120,12 @@ pub fn analyze_chroma_planar(u_plane: &[u8], v_plane: &[u8]) -> ChromaMetrics {
     let v_len = v_plane.len();
 
     let (sum_u, u_excursions) = u_plane.iter().fold((0u64, 0usize), |(sum, exc), &val| {
-        let is_exc = val < BT601_LEGAL_CHROMA_MIN || val > BT601_LEGAL_CHROMA_MAX;
+        let is_exc = !(BT601_LEGAL_CHROMA_MIN..=BT601_LEGAL_CHROMA_MAX).contains(&val);
         (sum + u64::from(val), exc + (is_exc as usize))
     });
 
     let (sum_v, v_excursions) = v_plane.iter().fold((0u64, 0usize), |(sum, exc), &val| {
-        let is_exc = val < BT601_LEGAL_CHROMA_MIN || val > BT601_LEGAL_CHROMA_MAX;
+        let is_exc = !(BT601_LEGAL_CHROMA_MIN..=BT601_LEGAL_CHROMA_MAX).contains(&val);
         (sum + u64::from(val), exc + (is_exc as usize))
     });
 

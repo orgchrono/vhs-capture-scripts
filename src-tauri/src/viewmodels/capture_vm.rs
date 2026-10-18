@@ -116,6 +116,7 @@ pub fn ipc_analyze_visual_frame(
 
 /// Typed IPC ViewModel command evaluating intelligent capture triggers.
 #[must_use]
+#[allow(clippy::too_many_arguments)]
 pub fn ipc_evaluate_capture_trigger(
     is_recording: bool,
     has_audio: bool,

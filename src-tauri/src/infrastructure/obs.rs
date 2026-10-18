@@ -15,7 +15,7 @@ pub fn base64_encode(data: &[u8]) -> String {
         return String::new();
     }
 
-    let mut out = String::with_capacity((data.len() + 2) / 3 * 4);
+    let mut out = String::with_capacity(data.len().div_ceil(3) * 4);
     for chunk in data.chunks(3) {
         let b0 = chunk[0] as usize;
         let b1 = if chunk.len() > 1 { chunk[1] as usize } else { 0 };
@@ -240,6 +240,7 @@ pub enum CaptureTriggerDecision {
 
 /// Pure functional evaluation of intelligent capture triggers (immediate start / auto-stop with scene protection).
 #[must_use]
+#[allow(clippy::too_many_arguments)]
 pub fn evaluate_capture_trigger(
     is_recording: bool,
     has_audio: bool,

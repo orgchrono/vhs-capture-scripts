@@ -23,12 +23,8 @@ if [ "$1" == "--lint" ]; then
         echo "[ERROR] Code quality checks failed!"
         exit 1
     fi
+    exit 0
 fi
 
-if [ "$1" == "--native" ]; then
-    echo "[*] Starting VHS Studio Pro (Pure Native Rust Desktop Engine)..."
-    exec cargo run --manifest-path src-tauri/Cargo.toml
-fi
-
-echo "[*] Starting VHS Studio Pro..."
-exec python -m vhs_studio "$@"
+echo "[*] Starting VHS Studio Pro (Native Rust Engine)..."
+exec cargo run --manifest-path src-tauri/Cargo.toml -- serve "$@"

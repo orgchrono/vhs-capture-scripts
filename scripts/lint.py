@@ -54,6 +54,8 @@ def main():
         LintStep("TSC (TypeScript Types)", ["npm", "run", "build"], cwd="ui"),
         LintStep("Playwright (E2E React)", ["npx", "playwright", "test", "--project=chromium", "--reporter=list"], cwd="ui"),
         LintStep("Pytest (Python Tests)", ["python", "-m", "pytest", "tests"]),
+        LintStep("Cargo Clippy (Rust Quality)", ["cargo", "clippy", "--manifest-path", "src-tauri/Cargo.toml", "--", "-D", "warnings"]),
+        LintStep("Cargo Test (Rust Unit Tests)", ["cargo", "test", "--manifest-path", "src-tauri/Cargo.toml"]),
         LintStep("i18n Parity (10 Locales)", ["python", "scripts/validate_i18n.py"]),
     ]
 

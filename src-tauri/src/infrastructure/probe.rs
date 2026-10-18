@@ -125,10 +125,10 @@ pub fn classify_broadcast_standard(width: u32, height: u32, fps: f64) -> &'stati
 #[must_use]
 pub fn is_interlaced_field_order(field_order: &str) -> bool {
     let lower = field_order.to_ascii_lowercase();
-    match lower.as_str() {
-        "tt" | "bb" | "tb" | "bt" | "top first" | "bottom first" => true,
-        _ => false,
-    }
+    matches!(
+        lower.as_str(),
+        "tt" | "bb" | "tb" | "bt" | "top first" | "bottom first"
+    )
 }
 
 /// Pure calculation of total expected frames given duration and frame rate.

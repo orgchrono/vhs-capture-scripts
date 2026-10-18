@@ -338,7 +338,7 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
                 vspipe_bin.as_deref(),
                 &ffmpeg_bin,
             )
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+            .map_err(io::Error::other)?;
             println!("{}", serde_json::to_string_pretty(&planned)?);
         }
         "execute-restore" => {
@@ -422,7 +422,7 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
                 vspipe_bin.as_deref(),
                 &ffmpeg_bin,
             )
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+            .map_err(io::Error::other)?;
 
             println!(
                 "Starting native restoration: {} -> {}",
@@ -446,7 +446,7 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
 
             let summary =
                 crate::infrastructure::executor::execute_restoration_job(&planned, None, Some(&listener))
-                    .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+                    .map_err(io::Error::other)?;
 
             println!("\nRestoration completed: success={}", summary.success);
             println!("{}", serde_json::to_string_pretty(&summary)?);
