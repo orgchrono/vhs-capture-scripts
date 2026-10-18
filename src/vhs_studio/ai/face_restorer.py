@@ -77,11 +77,11 @@ class FaceRestorer:
                 timeout=180,
             )
             if res.returncode == 0:
-                log.info("[FACE RESTORER] Dependências neurais instaladas com sucesso via auto-install!")
+                log.info("[FACE RESTORER] Neural dependencies installed successfully via auto-install!")
                 return True
-            log.warning(f"[FACE RESTORER] Auto-instalação falhou: {res.stderr.strip()[:200]}")
+            log.warning(f"[FACE RESTORER] Auto-installation failed: {res.stderr.strip()[:200]}")
         except Exception as err:
-            log.warning(f"[FACE RESTORER] Exceção durante auto-instalação de dependências: {err}")
+            log.warning(f"[FACE RESTORER] Exception during dependency auto-installation: {err}")
         return False
 
     def ensure_available(self) -> bool:
@@ -112,15 +112,15 @@ class FaceRestorer:
                 output_path,
             ]
             res = run_silent(cmd, capture_output=True, text=True, errors="replace", check=True)
-            log.info(f"[FACE RESTORER] Nitidez facial adaptativa gerada com sucesso: {output_path}")
+            log.info(f"[FACE RESTORER] Adaptive facial sharpness generated successfully: {output_path}")
             return res.returncode == 0
         except Exception as err:
-            log.warning(f"[FACE RESTORER] Fallback FFmpeg gerou erro ({err}), copiando fluxo original.")
+            log.warning(f"[FACE RESTORER] FFmpeg fallback returned error ({err}), copying original stream.")
             try:
                 shutil.copy2(input_path, output_path)
                 return True
             except Exception as copy_err:
-                log.error(f"[FACE RESTORER] Falha crítica de cópia: {copy_err}")
+                log.error(f"[FACE RESTORER] Critical copy failure: {copy_err}")
                 return False
 
     def process_video(
@@ -128,18 +128,18 @@ class FaceRestorer:
     ) -> bool:
         """Process entire video file through neural facial enhancement or adaptive clarity fallback."""
         if not os.path.exists(input_path):
-            log.error(f"[FACE RESTORER] Arquivo de entrada inexistente: {input_path}")
+            log.error(f"[FACE RESTORER] Input file does not exist: {input_path}")
             return False
 
         if auto_install and not self.is_available():
             self.ensure_available()
 
-        # 1. Tentativa via binário standalone Vulkan NCNN (se presente no projeto ou PATH)
+        # 1. Attempt via standalone Vulkan NCNN binary (if present in project or PATH)
         bin_path = self._find_standalone_binary()
         if bin_path:
             log.info(
-                f"[FACE RESTORER] Executando binário Vulkan ({os.path.basename(bin_path)}) "
-                f"com fidelidade={self.fidelity_weight:.2f}..."
+                f"[FACE RESTORER] Executing Vulkan binary ({os.path.basename(bin_path)}) "
+                f"with fidelity={self.fidelity_weight:.2f}..."
             )
             cmd = [
                 bin_path,
@@ -150,21 +150,20 @@ class FaceRestorer:
             ]
             try:
                 run_silent(cmd, check=True, stdout=None, stderr=None)
-                log.info(f"[FACE RESTORER] Restauração facial concluída: {output_path}")
+                log.info(f"[FACE RESTORER] Facial restoration completed: {output_path}")
                 return True
             except Exception as bin_err:
-                log.warning(f"[FACE RESTORER] Subprocesso NCNN falhou ({bin_err}). Tentando método Python...")
+                log.warning(f"[FACE RESTORER] NCNN subprocess failed ({bin_err}). Attempting Python method...")
 
-        # 2. Tentativa via módulo Python facexlib
+        # 2. Attempt via Python module facexlib
         if self.is_python_available():
             log.info(
-                f"[FACE RESTORER] Executando restauração neural CodeFormer em Python "
-                f"(fidelidade={self.fidelity_weight:.2f})..."
+                f"[FACE RESTORER] Executing CodeFormer neural restoration in Python "
+                f"(fidelity={self.fidelity_weight:.2f})..."
             )
-            # Ao concluir o processamento neural Python, retorna True
-            # Caso não haja pipeline frame-a-frame pesado importado, aplica sharpening e retorna True
+            # If no frame-by-frame pipeline imported, apply sharpening and return True
             return self._process_video_ffmpeg_fallback(input_path, output_path)
 
-        # 3. Fallback inteligente sem dependências externas
-        log.info("[FACE RESTORER] Aplicando nitidez facial adaptativa integrada (FFmpeg CAS/Unsharp)...")
+        # 3. Intelligent fallback without external dependencies
+        log.info("[FACE RESTORER] Applying integrated adaptive facial sharpness (FFmpeg CAS/Unsharp)...")
         return self._process_video_ffmpeg_fallback(input_path, output_path)

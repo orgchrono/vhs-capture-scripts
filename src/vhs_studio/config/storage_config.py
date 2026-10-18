@@ -6,7 +6,7 @@ import keyring
 from vhs_studio.core.logger import log
 from vhs_studio.core.paths import STORAGE_CONFIG_PATH
 
-# Campos que JAMAIS devem ser salvos em texto plano
+# Fields that must NEVER be persisted in plain text
 SENSITIVE_KEYS = {
     "SUPABASE_KEY",
     "S3_ACCESS_KEY",
@@ -22,7 +22,7 @@ SENSITIVE_KEYS = {
 
 
 def load_storage_config():
-    """Documentation for load_storage_config."""
+    """Load storage configuration and decrypt sensitive credentials from system vault."""
     if not os.path.exists(STORAGE_CONFIG_PATH):
         return {
             "provider": "local_nas_usb",
@@ -38,36 +38,36 @@ def load_storage_config():
         provider = data.get("provider", "local_nas_usb")
         config = data.get("config", {})
 
-        # Recupera os segredos do Cofre Nativo do Sistema (Keyring)
+        # Retrieve secrets from OS native keychain/vault (Keyring)
         for key in SENSITIVE_KEYS:
             try:
                 secret = keyring.get_password("vhs_studio", f"{provider}_{key}")
                 if secret:
                     config[key] = secret
             except Exception as e:
-                log.warning(f"[StorageConfig] Erro ao ler segredo {key} do Cofre: {e}")
+                log.warning(f"[StorageConfig] Error reading secret {key} from keyring: {e}")
 
         data["config"] = config
         return data
     except Exception as e:
-        log.error(f"Erro ao carregar storage.json: {e}")
+        log.error(f"Error loading storage.json: {e}")
         return {"provider": "local_nas_usb", "config": {}}
 
 
 def save_storage_config(provider: str, config: dict):
-    """Documentation for save_storage_config."""
+    """Save storage configuration and delegate sensitive credentials to OS native keychain/vault."""
     os.makedirs(os.path.dirname(STORAGE_CONFIG_PATH), exist_ok=True)
 
     public_config = {}
 
     for k, v in config.items():
         if k in SENSITIVE_KEYS:
-            # Salva no Cofre Nativo do Windows/Mac/Linux
+            # Store into OS native keyring (Windows Credential Manager / macOS Keychain / Linux Secret Service)
             if v:
                 try:
                     keyring.set_password("vhs_studio", f"{provider}_{k}", v)
                 except Exception as e:
-                    log.error(f"[StorageConfig] Falha ao salvar no cofre seguro: {e}")
+                    log.error(f"[StorageConfig] Failed storing secret in secure keyring: {e}")
             else:
                 try:
                     keyring.delete_password("vhs_studio", f"{provider}_{k}")
@@ -83,5 +83,5 @@ def save_storage_config(provider: str, config: dict):
             json.dump(data, f, indent=4)
         return True
     except Exception as e:
-        log.error(f"Erro ao salvar storage.json: {e}")
+        log.error(f"Error saving storage.json: {e}")
         return False

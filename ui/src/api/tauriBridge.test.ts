@@ -286,6 +286,18 @@ describe('Tauri v2 IPC Bridge & Fallback (tauriBridge)', () => {
     expect(tomlConf.capture.audio_threshold_db).toBe(-50.0);
     expect(tomlConf.vapoursynth.qtgmc_preset_gold).toBe('Slower');
     expect(tomlConf.ffmpeg.crf_gold).toBe(18);
+
+    const binName = await tauriBridge.formatBinaryName('ffmpeg');
+    expect(binName).toBeDefined();
+
+    const [verified] = await tauriBridge.verifyBinaryIntegrity('test.exe', 'sha', 'win', '{}');
+    expect(verified).toBe(true);
+
+    const hasLibx264 = await tauriBridge.checkFfmpegCapability('encoders: V..... libx264', 'libx264', false);
+    expect(hasLibx264).toBe(true);
+
+    const hasFilter = await tauriBridge.checkFfmpegCapability('filters: T.. bwdif', 'bwdif', true);
+    expect(hasFilter).toBe(true);
   });
 });
 

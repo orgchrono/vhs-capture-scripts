@@ -27,6 +27,7 @@ fn print_usage() {
     println!("  install-ffmpeg <MGR>      Display package manager installation command for FFmpeg");
     println!("  preferences               Print canonical default program preferences");
     println!("  advanced-config [PATH]    Parse and print advanced TOML parameters");
+    println!("  toolchain-check           Inspect and resolve all external binary paths");
     println!("  version                   Print version information");
     println!("  help                      Print this help message");
 }
@@ -171,6 +172,29 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let content = fs::read_to_string(path_opt).unwrap_or_default();
             let conf = vhs_studio_core::config::parse_advanced_toml(&content);
             println!("{}", serde_json::to_string_pretty(&conf)?);
+        }
+        "toolchain-check" => {
+            let cwd = env::current_dir().ok();
+            let home_str = env::var("USERPROFILE").or_else(|_| env::var("HOME")).ok();
+            let home = home_str.as_ref().map(Path::new);
+
+            let resolve = |name: &str| {
+                vhs_studio_core::toolchain::resolve_executable_path(name, cwd.as_deref(), home)
+                    .map(|p| p.to_string_lossy().to_string())
+            };
+
+            let report = vhs_studio_core::toolchain::ToolchainReport {
+                ffmpeg: resolve("ffmpeg"),
+                ffprobe: resolve("ffprobe"),
+                obs: resolve("obs"),
+                extract_meihdfs: resolve("extract_meihdfs"),
+                dvd_vr: resolve("dvd-vr"),
+                udf_dump: resolve("udf_dump"),
+                vspipe: resolve("vspipe"),
+                realesrgan: resolve("realesrgan-ncnn-vulkan"),
+                codeformer: resolve("codeformer"),
+            };
+            println!("{}", serde_json::to_string_pretty(&report)?);
         }
         unknown => {
             eprintln!("Unknown command: '{unknown}'");

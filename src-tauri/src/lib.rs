@@ -41,6 +41,7 @@ pub mod whisper;
 pub mod lock;
 pub mod oauth;
 pub mod config;
+pub mod toolchain;
 
 use ai::{
     build_codeformer_command, build_realesrgan_command, build_rife_command,
@@ -570,6 +571,50 @@ pub fn ipc_parse_advanced_toml(toml_content: &str) -> AdvancedConfig {
     parse_advanced_toml(toml_content)
 }
 
+use toolchain::{
+    check_ffmpeg_encoder_in_output, check_ffmpeg_filter_in_output, format_binary_name,
+    resolve_executable_path, verify_binary_integrity,
+};
 
+/// Typed IPC ViewModel command resolving binary path on host system.
+#[must_use]
+pub fn ipc_resolve_tool_path(
+    tool_name: &str,
+    project_root: Option<&str>,
+    user_home: Option<&str>,
+) -> Option<String> {
+    let root = project_root.map(std::path::Path::new);
+    let home = user_home.map(std::path::Path::new);
+    resolve_executable_path(tool_name, root, home).map(|p| p.to_string_lossy().to_string())
+}
 
+/// Typed IPC ViewModel command verifying SHA-256 fixity of a binary against checksums manifest.
+#[must_use]
+pub fn ipc_verify_binary_integrity(
+    binary_filename: &str,
+    actual_sha256: &str,
+    platform_key: &str,
+    manifest_json: &str,
+) -> (bool, String) {
+    verify_binary_integrity(binary_filename, actual_sha256, platform_key, manifest_json)
+}
 
+/// Typed IPC ViewModel command formatting binary name with platform extension (.exe).
+#[must_use]
+pub fn ipc_format_binary_name(base_name: &str) -> String {
+    format_binary_name(base_name)
+}
+
+/// Typed IPC ViewModel command checking if encoder or filter exists in ffmpeg capability text.
+#[must_use]
+pub fn ipc_check_ffmpeg_capability(
+    output_text: &str,
+    name: &str,
+    is_filter: bool,
+) -> bool {
+    if is_filter {
+        check_ffmpeg_filter_in_output(output_text, name)
+    } else {
+        check_ffmpeg_encoder_in_output(output_text, name)
+    }
+}

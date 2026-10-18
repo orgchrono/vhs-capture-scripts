@@ -27,30 +27,30 @@ class DropboxProvider(StorageProvider):
     def configure(self, config: Dict[str, object]) -> bool:
         """Documentation for configure."""
         if not HAS_DROPBOX:
-            log.error("[Dropbox] Biblioteca 'dropbox' não instalada.")
+            log.error("[Dropbox] Package 'dropbox' is not installed.")
             return False
 
         token = config.get("DROPBOX_ACCESS_TOKEN")
         if not token:
-            log.error("[Dropbox] Access Token ausente.")
+            log.error("[Dropbox] Access Token is missing.")
             return False
 
         try:
             self.dbx = dropbox.Dropbox(token)
-            # Testa a conexão
+            # Test connection
             self.dbx.users_get_current_account()
             return True
         except Exception as e:
-            log.error(f"[Dropbox] Erro de autenticação: {e}")
+            log.error(f"[Dropbox] Authentication error: {e}")
             return False
 
     def upload_video(self, local_filepath: str, destination_path: str) -> bool:
-        """Documentation for upload_video."""
+        """Upload video file to Dropbox destination path."""
         if not self.dbx:
             return False
 
         try:
-            # Dropbox API precisa que caminhos comecem com /
+            # Dropbox API requires destination paths to begin with /
             if not destination_path.startswith("/"):
                 destination_path = "/" + destination_path
 

@@ -75,24 +75,24 @@ class JsonFormatter(logging.Formatter):
 
 
 class MemoryLogHandler(logging.Handler):
-    """Armazena logs em memoria para serem consumidos pela interface web do React."""
+    """Stores logs in memory buffer to be streamed to the React UI."""
 
     def __init__(self, capacity: int = 1000) -> None:
-        """Documentation for __init__."""
+        """Initialize memory log buffer with bounded capacity."""
         super().__init__()
         self.capacity = capacity
         self.logs: List[str] = []
         self.setFormatter(logging.Formatter("[%(levelname)s] %(message)s"))
 
     def emit(self, record: logging.LogRecord) -> None:
-        """Documentation for emit."""
+        """Append log record to memory buffer, dropping oldest entries upon reaching capacity."""
         msg = self.format(record)
         self.logs.append(msg)
         if len(self.logs) > self.capacity:
             self.logs.pop(0)
 
     def get_logs(self) -> List[str]:
-        """Documentation for get_logs."""
+        """Return snapshot of memory logs."""
         return self.logs
 
 
@@ -136,16 +136,16 @@ def setup_logger() -> Tuple[logging.Logger, MemoryLogHandler]:
         logger.addHandler(mh)
         return logger, mh
 
-    # 1. Console Handler (Colorido)
+    # 1. Console Handler (Colorized)
     ch = logging.StreamHandler(sys.stdout)
     ch.setLevel(logging.INFO)
     ch.setFormatter(ColoredFormatter())
 
-    # 2. Memory Handler (Para a UI do React via WS ou Endpoint)
+    # 2. Memory Handler (For React UI via SSE/WebSocket)
     mh = MemoryLogHandler()
     mh.setLevel(logging.INFO)
 
-    # 3. File Handler Rotativo Seguro (JSONL Estruturado para Data Analytics)
+    # 3. Safe Rotating File Handler (Structured JSONL for Data Analytics)
     fh = SafeRotatingFileHandler(
         "logs/runtime.jsonl", maxBytes=5 * 1024 * 1024, backupCount=5, encoding="utf-8"
     )

@@ -98,16 +98,16 @@ def make_obs_launcher() -> Callable[[], bool]:
     lock = threading.Lock()
 
     def check_and_launch() -> bool:
-        # 1. Se a porta TCP do WebSocket do OBS já está respondendo, a instância existente está ativa!
+        # 1. If OBS WebSocket TCP port is already responding, existing instance is active.
         if is_obs_websocket_port_open():
             return True
 
-        # 2. Se o processo do OBS já está em execução no sistema operacional:
-        # NUNCA iniciar novo processo para evitar conflitos, pop-ups de duplicidade e Safe Mode!
+        # 2. If OBS process is already executing in the OS:
+        # Never launch duplicate instance to prevent conflicts, duplicate popups, and Safe Mode.
         if is_obs_process_active():
             return True
 
-        # 3. Se nem a porta nem o processo estão ativos, podemos tentar lançar uma única vez
+        # 3. If neither port nor process are active, attempt a single launch.
         with lock:
             if has_attempted_launch[0]:
                 return False
@@ -322,5 +322,5 @@ async def save_system_preferences(request: Request) -> Dict[str, object]:
             ok = save_preferences(body)
             return {"success": ok, "preferences": load_preferences()}
     except Exception as err:
-        log.error(f"[PREFERENCES] Erro ao decodificar payload de preferências: {err}")
+        log.error(f"[PREFERENCES] Error decoding preferences payload: {err}")
     return {"success": False, "preferences": load_preferences()}

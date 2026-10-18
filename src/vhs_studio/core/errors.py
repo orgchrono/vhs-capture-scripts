@@ -1,17 +1,17 @@
-"""Module documentation pending."""
+"""Custom exception definitions for VHS Studio Pro."""
 
 
 class VHSStudioError(Exception):
-    """Exceção base para todos os erros do VHS Studio."""
+    """Base exception for all VHS Studio errors."""
 
 
 class ToolchainError(VHSStudioError):
-    """Exceção levantada quando há problemas na toolchain (ex: FFmpeg ausente)."""
+    """Exception raised when required external tools (FFmpeg, OBS, VSPipe) are unavailable."""
 
 
 class MediaProbeError(VHSStudioError):
-    """Exceção levantada quando não é possível analisar o arquivo de mídia."""
+    """Exception raised when media container or stream inspection fails."""
 
 
 class VapourSynthError(VHSStudioError):
-    """Exceção levantada por erros durante a execução de filtros VapourSynth."""
+    """Exception raised on VapourSynth script execution or filtergraph failures."""

@@ -13,38 +13,38 @@ except ImportError:
 
 
 class SupabaseStorageProvider(StorageProvider):
-    """Integração com Supabase Storage (Object Storage acoplado ao Postgres)."""
+    """Integration with Supabase Storage (Postgres-coupled object store)."""
 
     def __init__(self):
-        """Documentation for __init__."""
+        """Initialize Supabase storage adapter."""
         self.client = None
         self.bucket_name = "vhs-archive"
 
     def get_id(self) -> str:
-        """Documentation for get_id."""
+        """Return provider identifier."""
         return "supabase"
 
     def configure(self, config: Dict[str, object]) -> bool:
-        """Documentation for configure."""
+        """Configure Supabase credentials and verify target bucket."""
         if not HAS_SUPABASE:
-            log.error("[Supabase] Biblioteca 'supabase' não instalada.")
+            log.error("[Supabase] Package 'supabase' is not installed.")
             return False
         url = str(config.get("SUPABASE_URL", ""))
         key = str(config.get("SUPABASE_KEY", ""))
         bucket = str(config.get("SUPABASE_BUCKET", self.bucket_name))
         if not url or not key:
-            log.error("[Supabase] Credenciais URL ou KEY ausentes.")
+            log.error("[Supabase] Missing SUPABASE_URL or SUPABASE_KEY credentials.")
             return False
         try:
             self.client = create_client(url, key)
             self.bucket_name = bucket
-            # Checa se o bucket existe, se nao, tenta criar
+            # Check if bucket exists, creating it if absent
             buckets = self.client.storage.list_buckets()
             if not any(b.name == bucket for b in buckets):
                 self.client.storage.create_bucket(bucket)
             return True
         except Exception as e:
-            log.error(f"[Supabase] Falha ao conectar/configurar: {e}")
+            log.error(f"[Supabase] Failed to connect/configure: {e}")
             return False
 
     def upload_video(self, local_filepath: str, destination_path: str) -> bool:

@@ -364,9 +364,9 @@ def main(unknown_args: List[str]) -> None:
         os.remove(test_file)
     except PermissionError:
         log.error(
-            f"[WINDOWS DEFENDER / PERMISSÃO] Acesso de escrita negado no diretório: {output_dir}\n"
-            "O recurso 'Acesso a Pastas Controladas' do Windows Defender bloqueou a gravação.\n"
-            "Solução: Permita o processo nas exceções do Defender ou use outro diretório."
+            f"[WINDOWS DEFENDER / PERMISSION] Write access denied in directory: {output_dir}\n"
+            "Windows Defender 'Controlled Folder Access' blocked write access.\n"
+            "Solution: Add process to Defender exceptions or select a different output directory."
         )
         sys.exit(1)
 

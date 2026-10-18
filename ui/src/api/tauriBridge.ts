@@ -768,6 +768,48 @@ export const tauriBridge = {
     };
   },
 
+  async resolveToolPath(toolName: string, projectRoot?: string, userHome?: string): Promise<string | null> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<string | null>('ipc_resolve_tool_path', { toolName, projectRoot, userHome });
+    }
+    return null;
+  },
+
+  async verifyBinaryIntegrity(
+    binaryFilename: string,
+    actualSha256: string,
+    platformKey: string,
+    manifestJson: string
+  ): Promise<[boolean, string]> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<[boolean, string]>('ipc_verify_binary_integrity', {
+        binaryFilename,
+        actualSha256,
+        platformKey,
+        manifestJson,
+      });
+    }
+    return [true, 'Integrity check bypassed in browser fallback mode'];
+  },
+
+  async formatBinaryName(baseName: string): Promise<string> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<string>('ipc_format_binary_name', { baseName });
+    }
+    return baseName;
+  },
+
+  async checkFfmpegCapability(outputText: string, name: string, isFilter: boolean): Promise<boolean> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<boolean>('ipc_check_ffmpeg_capability', { outputText, name, isFilter });
+    }
+    return outputText.includes(name);
+  },
+
   async startRestoration(payload: RestorationPayload): Promise<{ status: string; message?: string }> {
     return studioApi.startRestoration(payload);
   },

@@ -142,11 +142,11 @@ class ProcessManager:
             self.last_success = (exit_code == 0)
             if exit_code != 0:
                 self._closure["append_log"](
-                    f"[PROCESSO ERRO] Processo finalizado com erro (Exit Code: {exit_code})"
+                    f"[PROCESS ERROR] Process terminated with error (Exit Code: {exit_code})"
                 )
             else:
                 self._closure["append_log"](
-                    "[PROCESSO] Processo finalizado com sucesso (Exit Code: 0)"
+                    "[PROCESS] Process finished successfully (Exit Code: 0)"
                 )
 
     def get_logs(self) -> List[str]:
@@ -180,7 +180,7 @@ class ProcessManager:
                         pass
                 self.is_paused = True
                 self._closure["append_log"](
-                    "[PROCESSO] Processo pausado pelo operador. Recursos de hardware (CPU/GPU) liberados."
+                    "[PROCESS] Process suspended by operator. Hardware resources (CPU/GPU) released."
                 )
                 return True, "Process paused successfully."
             except Exception as e:
@@ -205,7 +205,7 @@ class ProcessManager:
                         pass
                 self.is_paused = False
                 self._closure["append_log"](
-                    "[PROCESSO] Processo retomado. Restauração continuando de onde parou."
+                    "[PROCESS] Process resumed. Continuing restoration pipeline."
                 )
                 return True, "Process resumed successfully."
             except Exception as e:
@@ -256,6 +256,6 @@ class ProcessManager:
             self.is_paused = False
             self.active_process = None
             self._closure["append_log"](
-                "[PROCESSO] Processo abortado pelo operador. Árvore de subprocessos encerrada."
+                "[PROCESS] Process aborted by operator. Process tree terminated."
             )
             return True

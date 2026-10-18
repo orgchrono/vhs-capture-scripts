@@ -7,7 +7,7 @@ import multiprocessing
 if __name__ == "__main__":
     multiprocessing.freeze_support()
 
-    # Previne crash do PyInstaller --windowed quando sys.stdout/stderr é None
+    # Prevent PyInstaller --windowed crash when sys.stdout/stderr is None
     if sys.stdout is None:
         sys.stdout = open(os.devnull, "w")
     if sys.stderr is None:

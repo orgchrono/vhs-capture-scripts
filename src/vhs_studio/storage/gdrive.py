@@ -31,12 +31,12 @@ class GoogleDriveProvider(StorageProvider):
         """Documentation for configure."""
         self.folder_id = str(config.get("folder_id", ""))
         if not HAS_GDRIVE:
-            log.error("[GDrive] Dependências do Google não instaladas.")
+            log.error("[GDrive] Google dependencies are not installed.")
             return False
         try:
             token = keyring.get_password("vhs_studio", "gdrive_token")
             if not token:
-                log.warning("[GDrive] Nenhum token OAuth salvo no keyring.")
+                log.warning("[GDrive] No OAuth token found in keyring.")
                 return False
             import json
 
@@ -45,7 +45,7 @@ class GoogleDriveProvider(StorageProvider):
             self.service = build("drive", "v3", credentials=creds)
             return True
         except Exception as e:
-            log.error(f"[GDrive] Erro ao configurar: {e}")
+            log.error(f"[GDrive] Configuration error: {e}")
             return False
 
     def upload_video(self, local_filepath: str, destination_path: str) -> bool:

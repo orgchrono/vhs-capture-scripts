@@ -250,33 +250,33 @@ def run_watcher():
                     event_type = d.get("eventType")
                     event_data = d.get("eventData", {})
 
-                    # Acompanha status da gravação
+                    # Track recording state
                     if event_type == "RecordStateChanged":
                         is_recording = event_data.get("outputActive", False)
 
                         if is_recording:
-                            log.info("\n[OBS] 🔴 GRAVAÇÃO EM ANDAMENTO ({state_str})")
+                            log.info("\n[OBS] 🔴 RECORDING IN PROGRESS ({state_str})")
                         else:
-                            log.info("\n[OBS] ⏹ GRAVAÇÃO FINALIZADA ({state_str})")
+                            log.info("\n[OBS] ⏹ RECORDING STOPPED ({state_str})")
                             signal_start_time = None
                             blank_silence_start_time = None
                             quiet_scene_start_time = None
 
-                            # Adiciona fita na Fila do Pipeline para Pós-Processamento!
+                            # Enqueue captured raw tape to processing queue
                             out_path = event_data.get("outputPath")
                             if out_path and os.path.exists(out_path):
-                                log.info(f"[OBS] Arquivo bruto salvo em: {out_path}")
+                                log.info(f"[OBS] Raw tape saved at: {out_path}")
                                 enqueue_job(out_path)
                             else:
                                 log.warning(
-                                    f"[OBS] Aviso: Gravação finalizada mas 'outputPath' não foi encontrado ou arquivo não existe: {out_path}"  # noqa: E501
+                                    f"[OBS] Warning: Recording stopped but 'outputPath' was missing or file not found: {out_path}"  # noqa: E501
                                 )
 
-                    # Monitor de Níveis de Áudio (dispara a cada 50ms)
+                    # Audio Volume Meters monitor (fires every 50ms)
                     elif event_type == "InputVolumeMeters":
                         inputs = event_data.get("inputs", [])
 
-                        # Localiza nome da fonte Blackmagic se ainda não estiver vinculada
+                        # Locate Blackmagic capture source name if not yet bound
                         if not target_input_name:
                             for inp in inputs:
                                 name = inp.get("inputName", "")
@@ -292,7 +292,7 @@ def run_watcher():
                                 ):
                                     target_input_name = name
                                     log.info(
-                                        f"\n[Fonte] Vinculado com sucesso à entrada: '{target_input_name}'"
+                                        f"\n[Source] Successfully bound to capture input: '{target_input_name}'"
                                     )
                                     break
                             if not target_input_name and inputs:
@@ -312,7 +312,7 @@ def run_watcher():
                         mul_to_db(current_max_mul)
                         has_audio = current_max_mul >= THRESHOLD_MUL
 
-                        # Solicita miniatura visual periodicamente para análise visual
+                        # Periodically request visual thumbnail for frame analysis
                         if (
                             HAS_PIL
                             and target_input_name
@@ -365,10 +365,10 @@ def run_watcher():
                             last_feedback_time = now
 
                         # =========================================================
-                        # 1. LÓGICA DE AUTO-START INTELIGENTE (< 100ms)
+                        # 1. INTELLIGENT AUTO-START LOGIC (< 100ms)
                         # =========================================================
                         if not is_recording:
-                            # Dispara se houver áudio OU se a imagem sair de tela preta/azul para vídeo ativo!
+                            # Trigger if audio is present OR visual state transitions from black/blue to active video
                             has_content_signal = has_audio or is_visual_active
 
                             if has_content_signal:
@@ -376,15 +376,15 @@ def run_watcher():
                                     signal_start_time = now
                                 elif now - signal_start_time >= START_CONFIRM_SEC:
                                     cause = (
-                                        "Áudio detectado"
+                                        "Audio detected"
                                         if has_audio
-                                        else "Vídeo ativo detectado"
+                                        else "Active video detected"
                                     )
                                     log.info(
-                                        f"\n[Auto-Start] ▶ SINAL DETECTADO ({cause})!"
+                                        f"\n[Auto-Start] ▶ SIGNAL DETECTED ({cause})!"
                                     )
                                     log.info(
-                                        "[Auto-Start] Disparando gravação no OBS imediatamente..."
+                                        "[Auto-Start] Triggering OBS recording immediately..."
                                     )
                                     ws.send(
                                         json.dumps(
@@ -404,18 +404,18 @@ def run_watcher():
                                 signal_start_time = None
 
                         # =========================================================
-                        # 2. LÓGICA DE AUTO-STOP INTELIGENTE (~1.0s)
+                        # 2. INTELLIGENT AUTO-STOP LOGIC (~1.0s)
                         # =========================================================
                         else:
                             signal_start_time = None
 
-                            # Se há áudio forte, reseta todos os contadores de parada
+                            # If active audio is detected, reset all stop counters
                             if has_audio:
                                 blank_silence_start_time = None
                                 quiet_scene_start_time = None
                             else:
-                                # Áudio silencioso (< -50 dB)
-                                # CASO A: Silêncio + Tela de Parada (Azul, Preta ou Imagem Congelada) -> FITA ACABOU!
+                                # Silence threshold (< -50 dB)
+                                # CASE A: Silence + Stop Screen (Blue, Black, or Freeze) -> TAPE END!
                                 if is_visual_blank or not HAS_PIL:
                                     quiet_scene_start_time = None
                                     if blank_silence_start_time is None:
@@ -425,15 +425,15 @@ def run_watcher():
                                         >= STOP_BLANK_CONFIRM_SEC
                                     ):
                                         stop_reason = (
-                                            f"Silêncio + {visual_label}"
+                                            f"Silence + {visual_label}"
                                             if HAS_PIL
-                                            else "Silêncio contínuo"
+                                            else "Continuous silence"
                                         )
                                         log.info(
-                                            f"\n[Auto-Stop] ⏹ FIM DE FITA / STOP DETECTADO ({stop_reason})!"
+                                            f"\n[Auto-Stop] ⏹ TAPE END / STOP DETECTED ({stop_reason})!"
                                         )
                                         log.info(
-                                            "[Auto-Stop] Encerrando gravação no OBS..."
+                                            "[Auto-Stop] Stopping OBS recording..."
                                         )
                                         ws.send(
                                             json.dumps(
@@ -449,7 +449,7 @@ def run_watcher():
                                         blank_silence_start_time = None
                                         is_recording = False
 
-                                # CASO B: Silêncio MAS o vídeo continua ATIVO -> CENA SILENCIOSA DO FILME!
+                                # CASE B: Silence BUT video remains ACTIVE -> SILENT MOVIE SCENE!
                                 elif is_visual_active:
                                     blank_silence_start_time = None
                                     if quiet_scene_start_time is None:
@@ -458,9 +458,9 @@ def run_watcher():
                                         now - quiet_scene_start_time
                                         >= STOP_QUIET_SCENE_SEC
                                     ):
-                                        # Apenas corta se ficar em silêncio absoluto por mais de 20s seguidos
+                                        # Only stop if continuous silence exceeds 20s
                                         log.info(
-                                            f"\n[Auto-Stop] ⏹ Silêncio prolongado ({STOP_QUIET_SCENE_SEC}s). Encerrando gravação..."  # noqa: E501
+                                            f"\n[Auto-Stop] ⏹ Prolonged silence ({STOP_QUIET_SCENE_SEC}s). Stopping recording..."  # noqa: E501
                                         )
                                         ws.send(
                                             json.dumps(
@@ -477,14 +477,14 @@ def run_watcher():
                                         is_recording = False
 
         except Exception as e:
-            log.info(f"\n[Aviso] Conexão com OBS interrompida ({e}).")
+            log.info(f"\n[Notice] OBS connection interrupted ({e}).")
         finally:
             ws.close()
 
         time.sleep(1.0)
         if not is_obs_running():
             log.info(
-                "[VHS Studio] OBS Studio foi finalizado. Encerrando monitor de gravação."
+                "[VHS Studio] OBS Studio terminated. Exiting capture monitor."
             )
             return
         time.sleep(1.5)
@@ -494,4 +494,4 @@ if __name__ == "__main__":
     try:
         run_watcher()
     except KeyboardInterrupt:
-        log.info("\nEncerrando monitoramento.")
+        log.info("\nExiting watcher.")

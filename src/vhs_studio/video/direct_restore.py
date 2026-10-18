@@ -274,7 +274,7 @@ def restore_stream(args):
         log_path, "w", encoding="utf-8", errors="replace"
     )  # pylint: disable=consider-using-with
 
-    # Inicia decodificador rawvideo do vídeo
+    # Start rawvideo decoder for input video
     cmd_in = [
         Toolchain.get_ffmpeg_path(),
         "-hide_banner",
@@ -497,32 +497,32 @@ def restore_stream(args):
     duration_hours = (stats["total_frames"] / fps / 3600.0) if fps > 0 else 0.0
 
     log.info(f"\n============================================================")
-    log.info(f"[SUCESSO] Vídeo master restaurado e finalizado com êxito!")
-    log.info(f"  Destino:             {args.output_path}")
-    log.info(f"  Tamanho:             {size_str}")
+    log.info(f"[SUCCESS] Master video restored and finalized successfully!")
+    log.info(f"  Destination:         {args.output_path}")
+    log.info(f"  Size:                {size_str}")
     log.info(
-        f"  Total analisado:     {stats['total_frames']:,} frames ({duration_hours:.2f}h de conteúdo)"
+        f"  Total analyzed:      {stats['total_frames']:,} frames ({duration_hours:.2f}h of content)"
     )
-    log.info(f"  Frames de vídeo:     {stats['kept_frames']:,} frames válidos")
+    log.info(f"  Video frames:        {stats['kept_frames']:,} valid frames")
     if args.mode == "freeze":
         log.info(
-            f"  Pretos neutralizados:{stats['frozen_frames']+stats['dropped_frames']:,} frames ({stats['frozen_frames']:,} mantidos via TBC frame-hold)"
+            f"  Blackouts held:      {stats['frozen_frames']+stats['dropped_frames']:,} frames ({stats['frozen_frames']:,} held via TBC frame-hold)"
         )
         log.info(
-            f"  Modo de sincronia:   TBC Frame-Hold aplicado (taxa constante mantida)"
+            f"  Sync mode:           TBC Frame-Hold applied (constant frame rate maintained)"
         )
     else:
         sec_recup = (stats["dropped_frames"] / fps) if fps > 0 else 0
         log.info(
-            f"  Pretos descartados:  {stats['dropped_frames']:,} frames pretos eliminados ({sec_recup:.2f}s recuperados)"
+            f"  Blackouts dropped:   {stats['dropped_frames']:,} black frames discarded ({sec_recup:.2f}s recovered)"
         )
     fps_avg = (stats["total_frames"] / stats["elapsed"]) if stats["elapsed"] > 0 else 0
     log.info(
-        f"  Tempo gasto:         {stats['elapsed']/60:.1f} minutos ({fps_avg:.0f} fps médio)"
+        f"  Time elapsed:        {stats['elapsed']/60:.1f} minutes ({fps_avg:.0f} average fps)"
     )
-    log.info(f"  Áudio:               100% contínuo e intacto (sem cortes)")
-    log.info(f"  Arquivo de log:      {log_path}")
-    log.info(f"  Relatório Técnico:   {report_json_path}")
+    log.info(f"  Audio:               100% continuous and intact (uncut)")
+    log.info(f"  Log file:            {log_path}")
+    log.info(f"  Technical report:    {report_json_path}")
 
     if stats.get("chapters"):
         chap_path = f"{final_output_path}_meta.txt"
@@ -541,9 +541,9 @@ def restore_stream(args):
                 f.write("TIMEBASE=1/1000\n")
                 f.write(f"START={start_time}\n")
                 f.write(f"END={end_time}\n")
-                f.write(f"title=Cena {i}\n")
+                f.write(f"title=Scene {i}\n")
         log.info(
-            f"  Cenas detectadas:    {len(stats['chapters'])}. Embutindo metadados no arquivo final..."
+            f"  Scenes detected:     {len(stats['chapters'])}. Embedding metadata into final master..."
         )
 
         # Muxing the metadata into the container

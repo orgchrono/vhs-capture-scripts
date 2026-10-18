@@ -98,5 +98,5 @@ def save_preferences(prefs: Mapping[str, object]) -> bool:
             json.dump(disk_payload, f, indent=2, ensure_ascii=False)
         return True
     except Exception as err:
-        log.error(f"[PREFERENCES] Falha ao salvar preferences.json: {err}")
+        log.error(f"[PREFERENCES] Failed to save preferences.json: {err}")
         return False

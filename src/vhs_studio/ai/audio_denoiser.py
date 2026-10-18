@@ -36,7 +36,7 @@ class AudioDenoiser:
         """
         if AudioDenoiser.is_deepfilter_available():
             try:
-                log.info("[AUDIO AI] Aplicando DeepFilterNet (rede neural em tempo real)...")
+                log.info("[AUDIO AI] Applying DeepFilterNet (real-time neural network)...")
                 from df.enhance import enhance, init_df
                 import torchaudio
 
@@ -44,13 +44,13 @@ class AudioDenoiser:
                 audio, sr = torchaudio.load(input_wav)
                 enhanced = enhance(model, df_state, audio)
                 torchaudio.save(output_wav, enhanced, sr)
-                log.info("[AUDIO AI] Denoise neural com DeepFilterNet concluído com sucesso!")
+                log.info("[AUDIO AI] Neural denoise with DeepFilterNet completed successfully!")
                 return True
             except Exception as e:
-                log.warning(f"[AUDIO AI] DeepFilterNet falhou ({e}), usando fallback espectral do FFmpeg.")
+                log.warning(f"[AUDIO AI] DeepFilterNet failed ({e}), falling back to FFmpeg spectral denoiser.")
 
         # Fallback: High-quality FFmpeg adaptive FFT spectral denoiser + DC notch filter
-        log.info("[AUDIO AI] Aplicando filtro espectral adaptativo de fita magnética (FFmpeg afftdn)...")
+        log.info("[AUDIO AI] Applying magnetic tape adaptive spectral filter (FFmpeg afftdn)...")
         ffmpeg_bin = Toolchain.get_ffmpeg_path()
         filter_str = (
             f"dcshift=shift=0,"
@@ -71,5 +71,5 @@ class AudioDenoiser:
             res = run_silent(cmd, capture_output=True, text=True, errors="replace", check=True)
             return res.returncode == 0
         except Exception as e:
-            log.error(f"[AUDIO AI] Falha no filtro de áudio: {e}")
+            log.error(f"[AUDIO AI] Audio filter failure: {e}")
             return False

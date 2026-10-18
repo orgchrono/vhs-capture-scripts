@@ -4,14 +4,14 @@ import sys
 import os
 from vhs_studio.core.paths import ADVANCED_CONFIG_PATH
 
-# Compatibilidade de import para tomllib (Nativo no Python 3.11+, tomli no 3.10)
+# Compatibility import for tomllib (Standard in Python 3.11+, tomli fallback for 3.10)
 try:
     import tomllib
 except ImportError:
     try:
         import tomli as tomllib  # type: ignore
     except ImportError:
-        print("FATAL: tomllib e tomli ausentes.")
+        print("FATAL: Neither tomllib nor tomli is available.")
         sys.exit(1)
 
 
