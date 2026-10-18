@@ -40,6 +40,7 @@ pub mod preferences;
 pub mod whisper;
 pub mod lock;
 pub mod oauth;
+pub mod config;
 
 use ai::{
     build_codeformer_command, build_realesrgan_command, build_rife_command,
@@ -559,6 +560,14 @@ pub fn ipc_build_oauth_auth_url(
 /// Typed IPC ViewModel command parsing OAuth token response JSON.
 pub fn ipc_parse_oauth_token_response(json_body: &str) -> Result<OAuthTokenResponse, String> {
     parse_oauth_token_response(json_body)
+}
+
+use config::{parse_advanced_toml, AdvancedConfig};
+
+/// Typed IPC ViewModel command parsing advanced TOML configuration.
+#[must_use]
+pub fn ipc_parse_advanced_toml(toml_content: &str) -> AdvancedConfig {
+    parse_advanced_toml(toml_content)
 }
 
 

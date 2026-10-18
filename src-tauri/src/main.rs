@@ -26,6 +26,7 @@ fn print_usage() {
     println!("  timecode <SECONDS>        Format seconds as broadcast timecode HH:MM:SS.mmm");
     println!("  install-ffmpeg <MGR>      Display package manager installation command for FFmpeg");
     println!("  preferences               Print canonical default program preferences");
+    println!("  advanced-config [PATH]    Parse and print advanced TOML parameters");
     println!("  version                   Print version information");
     println!("  help                      Print this help message");
 }
@@ -164,6 +165,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "preferences" => {
             let default_prefs = vhs_studio_core::preferences::AppPreferences::default();
             println!("{}", serde_json::to_string_pretty(&default_prefs)?);
+        }
+        "advanced-config" => {
+            let path_opt = args.get(2).map(String::as_str).unwrap_or("vhs_advanced_config.toml");
+            let content = fs::read_to_string(path_opt).unwrap_or_default();
+            let conf = vhs_studio_core::config::parse_advanced_toml(&content);
+            println!("{}", serde_json::to_string_pretty(&conf)?);
         }
         unknown => {
             eprintln!("Unknown command: '{unknown}'");

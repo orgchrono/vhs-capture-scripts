@@ -204,6 +204,29 @@ export interface TauriAppPreferences {
   theme: string;
 }
 
+export interface TauriAdvancedConfig {
+  capture: {
+    audio_threshold_db: number;
+    start_confirm_sec: number;
+    stop_blank_confirm_sec: number;
+    stop_quiet_scene_sec: number;
+    screenshot_interval_sec: number;
+  };
+  vapoursynth: {
+    qtgmc_preset_gold: string;
+    qtgmc_preset_speed: string;
+    chroma_shift_x: number;
+    chroma_shift_y: number;
+  };
+  ffmpeg: {
+    crf_gold: number;
+    crf_speed: number;
+    crf_tbc_hold: number;
+    crf_ai_master: number;
+    scene_threshold: number;
+  };
+}
+
 export const tauriBridge = {
   isNative(): boolean {
     return isTauriEnvironment();
@@ -713,6 +736,36 @@ export const tauriBridge = {
     if (provider === 'dropbox') url += '&token_access_type=offline';
     if (provider === 'onedrive') url += '&scope=' + encodeURIComponent('Files.ReadWrite.All offline_access');
     return url;
+  },
+
+  async parseAdvancedToml(tomlContent: string): Promise<TauriAdvancedConfig> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<TauriAdvancedConfig>('ipc_parse_advanced_toml', { tomlContent });
+    }
+    // Fallback default config
+    return {
+      capture: {
+        audio_threshold_db: -50.0,
+        start_confirm_sec: 0.1,
+        stop_blank_confirm_sec: 3.5,
+        stop_quiet_scene_sec: 25.0,
+        screenshot_interval_sec: 0.25,
+      },
+      vapoursynth: {
+        qtgmc_preset_gold: 'Slower',
+        qtgmc_preset_speed: 'Faster',
+        chroma_shift_x: -2,
+        chroma_shift_y: 0,
+      },
+      ffmpeg: {
+        crf_gold: 18,
+        crf_speed: 22,
+        crf_tbc_hold: 20,
+        crf_ai_master: 16,
+        scene_threshold: 27.0,
+      },
+    };
   },
 
   async startRestoration(payload: RestorationPayload): Promise<{ status: string; message?: string }> {

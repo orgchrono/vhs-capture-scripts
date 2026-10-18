@@ -281,6 +281,11 @@ describe('Tauri v2 IPC Bridge & Fallback (tauriBridge)', () => {
     const dropboxUrl = await tauriBridge.buildOAuthUrl('dropbox', 'cid', 'http://localhost/cb', 'state2');
     expect(dropboxUrl).toContain('dropbox.com');
     expect(dropboxUrl).toContain('token_access_type=offline');
+
+    const tomlConf = await tauriBridge.parseAdvancedToml('');
+    expect(tomlConf.capture.audio_threshold_db).toBe(-50.0);
+    expect(tomlConf.vapoursynth.qtgmc_preset_gold).toBe('Slower');
+    expect(tomlConf.ffmpeg.crf_gold).toBe(18);
   });
 });
 
