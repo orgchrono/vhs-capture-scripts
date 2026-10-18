@@ -43,17 +43,12 @@ def main():
     print("[Git Hook] Starting automated code validation (Lint & Types)...\n")
 
     steps = [
-        LintStep("Anti-Duplication (JSCPD)", ["npx", "jscpd", "src", "ui/src", "--threshold", "0"]),
+        LintStep("Anti-Duplication (JSCPD)", ["npx", "jscpd", "ui/src", "--threshold", "0"]),
         LintStep("UI Linter (Oxlint / ESLint)", ["npm", "run", "lint"], cwd="ui"),
-        LintStep("Mypy (Python Types)", ["python", "-m", "mypy", "src", "--ignore-missing-imports"]),
-        LintStep(
-            "Flake8 (Python Style)",
-            ["python", "-m", "flake8", "src", "scripts", "tests", "--max-line-length=120", "--ignore=E501,F401,E402,W293,E226"]
-        ),
+        LintStep("TSC (TypeScript Strict Types)", ["npm", "run", "build"], cwd="ui"),
         LintStep("Vitest (React Unit Tests)", ["npm", "run", "test:unit"], cwd="ui"),
-        LintStep("TSC (TypeScript Types)", ["npm", "run", "build"], cwd="ui"),
         LintStep("Playwright (E2E React)", ["npx", "playwright", "test", "--project=chromium", "--reporter=list"], cwd="ui"),
-        LintStep("Pytest (Python Tests)", ["python", "-m", "pytest", "tests"]),
+        LintStep("Cargo Check (Rust Compilation)", ["cargo", "check", "--manifest-path", "src-tauri/Cargo.toml"]),
         LintStep("Cargo Clippy (Rust Quality)", ["cargo", "clippy", "--manifest-path", "src-tauri/Cargo.toml", "--", "-D", "warnings"]),
         LintStep("Cargo Test (Rust Unit Tests)", ["cargo", "test", "--manifest-path", "src-tauri/Cargo.toml"]),
         LintStep("i18n Parity (10 Locales)", ["python", "scripts/validate_i18n.py"]),

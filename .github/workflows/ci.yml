@@ -33,6 +33,11 @@ jobs:
           uv pip install --system -e ".[dev,ai,cloud]"
           choco install ffmpeg --no-progress -y
 
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
       - name: Set up Node.js 24
         uses: actions/setup-node@v4
         with:
@@ -97,8 +102,13 @@ jobs:
       - name: Build Native Panasonic C Tools
         run: python scripts/build_panasonic_tools.py
 
-      - name: Run Python Pytest
-        run: python -m pytest tests/ -v
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Run Native Rust Tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml
 
       - name: Install UI Dependencies
         working-directory: ./ui

@@ -4,42 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vhs-studio"
-version = "0.1.0"
-description = "VHS Studio - Automated VHS capturing and frame-accurate restoration pipeline"
+version = "2.1.0"
+description = "VHS Studio Pro - High-performance native Rust desktop application and restoration pipeline"
 readme = "README.md"
 requires-python = ">=3.8"
-dependencies = [
-    "tomli; python_version < '3.11'",
-    "websocket-client>=1.0.0", "fastapi", "uvicorn", "pywebview", "httpx", "httpx2"
-]
-
-[project.scripts]
-vhs-studio = "vhs_studio.cli.main:main"
-
-[tool.setuptools]
-packages = ["vhs_studio", "vhs_studio.ai", "vhs_studio.api", "vhs_studio.api.routers", "vhs_studio.archive", "vhs_studio.capture", "vhs_studio.cli", "vhs_studio.config", "vhs_studio.core", "vhs_studio.ingest", "vhs_studio.media", "vhs_studio.storage", "vhs_studio.video"]
-package-dir = {"" = "src"}
-
-[project.optional-dependencies]
-ai = ["faster-whisper", "scenedetect", "opencv-python"]
-cloud = ["google-api-python-client", "google-auth-httplib2", "google-auth-oauthlib", "keyring", "supabase", "dropbox", "O365", "boto3"]
-dev = ["pytest", "flake8", "black", "isort", "mypy", "httpx2"]
-
-[tool.mypy]
-ignore_missing_imports = true
-check_untyped_defs = true
-
-[tool.flake8]
-max-line-length = 120
-extend-ignore = "E203"
-
-
-[tool.pytest.ini_options]
-pythonpath = [
-  "src",
-  "."
-]
+dependencies = []
 
 [tool.uv]
 managed = true
-package = true
+package = false
