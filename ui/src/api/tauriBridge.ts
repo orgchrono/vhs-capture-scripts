@@ -871,6 +871,33 @@ export const tauriBridge = {
     };
   },
 
+  async probeMediaFile(
+    filePath: string,
+    ffprobeBinary: string = 'ffprobe'
+  ): Promise<Record<string, unknown>> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke('ipc_probe_media_file', { filePath, ffprobeBinary });
+    }
+    return {
+      file_path: filePath,
+      width: 720,
+      height: 480,
+      fps: 29.97,
+      duration: 3600.0,
+      standard: 'NTSC',
+      is_interlaced: true,
+    };
+  },
+
+  async generateQcReport(assessment: Record<string, unknown>): Promise<string> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<string>('ipc_generate_qc_report', { assessment });
+    }
+    return `# Technical Inspection & Broadcast Quality Control Report: \`${String(assessment.file_path || '')}\`\n`;
+  },
+
   async startRestoration(payload: RestorationPayload): Promise<{ status: string; message?: string }> {
     return studioApi.startRestoration(payload);
   },

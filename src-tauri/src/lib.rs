@@ -59,7 +59,7 @@ use hardware::{
 use meihdfs::{inspect_panasonic_probe, IngestProbeError, PanasonicMediaDescriptor};
 use pipeline::{build_pipeline_plan, PipelinePlan, PipelineSpec};
 use presets::{PresetConfig, RestorationPreset};
-use qc::{inspect_frame_qc, FrameQcReport};
+use qc::{generate_qc_markdown_report, inspect_frame_qc, FileQcAssessment, FrameQcReport};
 use recovery::{assess_checkpoint, CheckpointData, JobRecoveryAssessment};
 use tbc::{classify_uyvy422_frame, FrameSignalMetrics, LUMA_STRIDE_STEP};
 
@@ -100,6 +100,12 @@ pub fn ipc_inspect_frame_qc(
     height: usize,
 ) -> FrameQcReport {
     inspect_frame_qc(y_plane, u_plane, v_plane, width, height)
+}
+
+/// Typed IPC ViewModel command generating an archival QC inspection markdown report.
+#[must_use]
+pub fn ipc_generate_qc_report(assessment: &FileQcAssessment) -> String {
+    generate_qc_markdown_report(assessment)
 }
 
 /// Typed IPC ViewModel command analyzing stereo audio for EBU R128 / ATSC A/85 compliance.

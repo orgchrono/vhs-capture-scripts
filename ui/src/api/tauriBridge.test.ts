@@ -308,6 +308,19 @@ describe('Tauri v2 IPC Bridge & Fallback (tauriBridge)', () => {
 
     const execResult = await tauriBridge.executeRestorationJob(planned);
     expect(execResult.success).toBe(true);
+
+    const probed = await tauriBridge.probeMediaFile('sample.mkv');
+    expect(probed.width).toBe(720);
+    expect(probed.height).toBe(480);
+    expect(probed.standard).toBe('NTSC');
+
+    const qcReport = await tauriBridge.generateQcReport({
+      file_path: 'sample.mkv',
+      width: 720,
+      height: 480,
+    });
+    expect(qcReport).toContain('sample.mkv');
   });
 });
+
 
