@@ -857,6 +857,20 @@ export const tauriBridge = {
     };
   },
 
+  async executeRestorationJob(
+    planned: Record<string, unknown>
+  ): Promise<{ success: boolean; final_output_path: string; error_message?: string | null }> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke('ipc_execute_restoration_job', { planned });
+    }
+    return {
+      success: true,
+      final_output_path: String(planned.final_output_path || ''),
+      error_message: null,
+    };
+  },
+
   async startRestoration(payload: RestorationPayload): Promise<{ status: string; message?: string }> {
     return studioApi.startRestoration(payload);
   },

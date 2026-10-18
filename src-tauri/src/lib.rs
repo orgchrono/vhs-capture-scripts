@@ -620,7 +620,10 @@ pub fn ipc_check_ffmpeg_capability(
     }
 }
 
-use executor::{plan_restoration_job, resolve_final_output_path, PlannedRestoration, RestorationJobRequest};
+use executor::{
+    execute_restoration_job, plan_restoration_job, resolve_final_output_path,
+    PlannedRestoration, RestorationJobRequest, RestorationSummary,
+};
 use pipeline::OutputCodec;
 
 /// Typed IPC ViewModel command resolving destination output path for restoration.
@@ -646,4 +649,13 @@ pub fn ipc_plan_restoration_job(
 ) -> Result<PlannedRestoration, String> {
     plan_restoration_job(&request, &probe, vspipe_path_opt, ffmpeg_binary)
 }
+
+/// Typed IPC ViewModel command executing a planned restoration job natively.
+pub fn ipc_execute_restoration_job(
+    planned: PlannedRestoration,
+    cancel_flag: Option<&std::sync::atomic::AtomicBool>,
+) -> Result<RestorationSummary, String> {
+    execute_restoration_job(&planned, cancel_flag, None)
+}
+
 

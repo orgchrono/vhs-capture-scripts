@@ -29,6 +29,7 @@ fn print_usage() {
     println!("  advanced-config [PATH]    Parse and print advanced TOML parameters");
     println!("  toolchain-check           Inspect and resolve all external binary paths");
     println!("  plan-restore <INPUT> [P]  Generate complete pipeline plan and FFmpeg arguments");
+    println!("  execute-restore <IN> [P]  Execute video restoration natively via Rust engine");
     println!("  version                   Print version information");
     println!("  help                      Print this help message");
 }
@@ -254,6 +255,94 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let planned = vhs_studio_core::executor::plan_restoration_job(&req, &probe, Some("vspipe"), "ffmpeg")
                 .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
             println!("{}", serde_json::to_string_pretty(&planned)?);
+        }
+        "execute-restore" => {
+            let input_path = match args.get(2) {
+                Some(p) => p,
+                None => {
+                    eprintln!("Error: Missing input path. Usage: vhs-studio execute-restore <INPUT_PATH> [PRESET]");
+                    std::process::exit(1);
+                }
+            };
+            let preset_name = args.get(3).map(String::as_str).unwrap_or("gold");
+            let preset = match preset_name {
+                "gold" => RestorationPreset::Gold,
+                "ai_master" | "ai" => RestorationPreset::AiMaster,
+                "speed" | "fast" => RestorationPreset::Speed,
+                "tbc_hold" | "tbc" => RestorationPreset::TbcHold,
+                _ => RestorationPreset::Gold,
+            };
+
+            let cwd = env::current_dir().ok();
+            let home_str = env::var("USERPROFILE").or_else(|_| env::var("HOME")).ok();
+            let home = home_str.as_ref().map(Path::new);
+
+            let ffmpeg_bin = vhs_studio_core::toolchain::resolve_executable_path("ffmpeg", cwd.as_deref(), home)
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_else(|| "ffmpeg".to_string());
+            let vspipe_bin = vhs_studio_core::toolchain::resolve_executable_path("vspipe", cwd.as_deref(), home)
+                .map(|p| p.to_string_lossy().to_string());
+
+            let req = vhs_studio_core::executor::RestorationJobRequest {
+                input_path: input_path.clone(),
+                output_dir: "media/restored".to_string(),
+                preset,
+                target_1080p: true,
+                output_codec: None,
+                custom_deinterlacer: None,
+                audio_policy: None,
+                apply_audio_notch_hum: true,
+                apply_loudness_norm: true,
+                start_sec: 0.0,
+                duration_sec: None,
+            };
+
+            let probe = vhs_studio_core::probe::MediaProbeResult {
+                file_path: input_path.clone(),
+                width: 720,
+                height: 480,
+                fps: 29.97,
+                fps_rational: "30000/1001".to_string(),
+                duration: 3600.0,
+                total_frames: 107892,
+                video_codec: "h264".to_string(),
+                audio_codec: "pcm_s16le".to_string(),
+                audio_channels: 2,
+                audio_sample_rate: 48000,
+                field_order: "tff".to_string(),
+                is_interlaced: true,
+                pix_fmt: "yuv420p".to_string(),
+                color_space: "smpte170m".to_string(),
+                color_primaries: "smpte170m".to_string(),
+                color_transfer: "smpte170m".to_string(),
+                format_name: "avi".to_string(),
+                standard: "NTSC".to_string(),
+            };
+
+            let planned = vhs_studio_core::executor::plan_restoration_job(
+                &req,
+                &probe,
+                vspipe_bin.as_deref(),
+                &ffmpeg_bin,
+            ).map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+            println!("Starting native restoration: {} -> {}", planned.input_path, planned.final_output_path);
+
+            let listener = vhs_studio_core::executor::CallbackListener {
+                on_progress_fn: |acc| {
+                    print!("\r[Progress] Frame: {} | FPS: {:.1} | Bitrate: {:.0} kbps | Speed: {:.2}x",
+                        acc.current_frame, acc.current_fps, acc.current_bitrate_kbps, acc.current_speed);
+                    use std::io::Write;
+                    let _ = std::io::stdout().flush();
+                },
+                on_log_fn: |_line| {},
+            };
+
+            let summary = vhs_studio_core::executor::execute_restoration_job(&planned, None, Some(&listener))
+                .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+            println!("\nRestoration completed: success={}", summary.success);
+            println!("{}", serde_json::to_string_pretty(&summary)?);
         }
         unknown => {
             eprintln!("Unknown command: '{unknown}'");

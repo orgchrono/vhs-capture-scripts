@@ -4,9 +4,16 @@
 //! Media Probing -> Pipeline Planning -> Toolchain Execution -> Telemetry Streaming ->
 //! Archival Manifest Generation -> Atomic Finalization.
 
+use std::fs;
+use std::io::{BufRead, BufReader, Read};
 use std::path::{Path, PathBuf};
+use std::process::Stdio;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Instant;
+
 use serde::{Deserialize, Serialize};
 
+use crate::fixity::compute_file_sha256_hex;
 use crate::media::{get_part_path, seconds_to_timecode};
 use crate::pipeline::{
     build_pipeline_plan, AudioChannelPolicy, DeinterlaceFilter, OutputCodec,
@@ -16,6 +23,7 @@ use crate::presets::{Deinterlacer, PresetConfig, RestorationPreset};
 use crate::probe::MediaProbeResult;
 use crate::qtgmc::{build_qtgmc_script_content, build_vspipe_cli_args, FieldOrder, QtgmcScriptParams};
 use crate::runner::ProgressAccumulator;
+use crate::toolchain::create_silent_command;
 
 /// Declarative user request to execute a restoration job.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -304,6 +312,243 @@ pub fn build_restoration_summary(
     }
 }
 
+/// Execution listener callback trait for real-time progress and logs.
+pub trait RestorationListener: Send + Sync {
+    fn on_progress(&self, progress: &ProgressAccumulator);
+    fn on_log(&self, line: &str);
+}
+
+/// Simple closure-based listener adapter.
+pub struct CallbackListener<F, L>
+where
+    F: Fn(&ProgressAccumulator) + Send + Sync,
+    L: Fn(&str) + Send + Sync,
+{
+    pub on_progress_fn: F,
+    pub on_log_fn: L,
+}
+
+impl<F, L> RestorationListener for CallbackListener<F, L>
+where
+    F: Fn(&ProgressAccumulator) + Send + Sync,
+    L: Fn(&str) + Send + Sync,
+{
+    fn on_progress(&self, progress: &ProgressAccumulator) {
+        (self.on_progress_fn)(progress);
+    }
+
+    fn on_log(&self, line: &str) {
+        (self.on_log_fn)(line);
+    }
+}
+
+/// Real-time native execution of a planned restoration pipeline.
+/// Spawns silent subprocesses, pipes VSPipe into FFmpeg if QTGMC is requested,
+/// streams telemetry line-by-line into `ProgressAccumulator`, supports clean
+/// non-blocking atomic cancellation, performs atomic rename from `.part` to final destination,
+/// and calculates cryptographic OAIS SHA-256 fixity.
+pub fn execute_restoration_job(
+    planned: &PlannedRestoration,
+    cancel_flag: Option<&AtomicBool>,
+    listener: Option<&dyn RestorationListener>,
+) -> Result<RestorationSummary, String> {
+    let start_time = Instant::now();
+
+    // 1. Ensure target directory exists
+    if let Some(parent) = Path::new(&planned.part_output_path).parent() {
+        if !parent.as_os_str().is_empty() {
+            fs::create_dir_all(parent).map_err(|e| format!("Failed to create output dir: {e}"))?;
+        }
+    }
+
+    // 2. Write VSPipe QTGMC script if active
+    if planned.is_qtgmc_active {
+        if let (Some(ref content), Some(ref vpy_path)) = (&planned.qtgmc_vpy_content, &planned.qtgmc_vpy_path) {
+            fs::write(vpy_path, content).map_err(|e| format!("Failed to write QTGMC script to '{vpy_path}': {e}"))?;
+        }
+    }
+
+    // 3. Early cancellation check
+    if let Some(flag) = cancel_flag {
+        if flag.load(Ordering::Relaxed) {
+            cleanup_part_and_vpy(planned);
+            return Err("Restoration job cancelled prior to process spawn".to_string());
+        }
+    }
+
+    // 4. Subprocess execution
+    let mut vspipe_child: Option<std::process::Child> = None;
+
+    if let Some(ref vspipe_args) = planned.vspipe_cli_args {
+        if vspipe_args.is_empty() {
+            cleanup_part_and_vpy(planned);
+            return Err("Empty VSPipe arguments provided in plan".to_string());
+        }
+        let mut cmd = create_silent_command(Path::new(&vspipe_args[0]));
+        cmd.args(&vspipe_args[1..]);
+        cmd.stdout(Stdio::piped());
+        cmd.stderr(Stdio::null());
+
+        let child = cmd.spawn().map_err(|e| {
+            cleanup_part_and_vpy(planned);
+            format!("Failed to spawn VSPipe process '{:?}': {e}", vspipe_args[0])
+        })?;
+        vspipe_child = Some(child);
+    }
+
+    if planned.ffmpeg_cli_args.is_empty() {
+        cleanup_part_and_vpy(planned);
+        return Err("Empty FFmpeg arguments provided in plan".to_string());
+    }
+
+    let mut ffmpeg_cmd = create_silent_command(Path::new(&planned.ffmpeg_cli_args[0]));
+    ffmpeg_cmd.args(&planned.ffmpeg_cli_args[1..]);
+    ffmpeg_cmd.stdout(Stdio::piped());
+    ffmpeg_cmd.stderr(Stdio::piped());
+
+    if let Some(ref mut vs_child) = vspipe_child {
+        if let Some(vs_stdout) = vs_child.stdout.take() {
+            ffmpeg_cmd.stdin(vs_stdout);
+        }
+    }
+
+    let mut ffmpeg_child = ffmpeg_cmd.spawn().map_err(|e| {
+        if let Some(ref mut vs) = vspipe_child {
+            let _ = vs.kill();
+        }
+        cleanup_part_and_vpy(planned);
+        format!("Failed to spawn FFmpeg process: {e}")
+    })?;
+
+    let stdout = ffmpeg_child
+        .stdout
+        .take()
+        .ok_or_else(|| "Failed to capture FFmpeg stdout pipe".to_string())?;
+
+    let mut reader = BufReader::new(stdout);
+    let mut accumulator = ProgressAccumulator::new(planned.expected_frames, planned.expected_duration_sec);
+    let mut line_buf = String::new();
+    let mut was_cancelled = false;
+
+    loop {
+        line_buf.clear();
+        match reader.read_line(&mut line_buf) {
+            Ok(0) => break, // EOF reached
+            Ok(_) => {
+                let trimmed = line_buf.trim();
+                if let Some(l) = listener {
+                    l.on_log(trimmed);
+                }
+
+                if let Some(_snapshot) = accumulator.feed_line(trimmed) {
+                    if let Some(l) = listener {
+                        l.on_progress(&accumulator);
+                    }
+                }
+
+                if let Some(flag) = cancel_flag {
+                    if flag.load(Ordering::Relaxed) {
+                        was_cancelled = true;
+                        let _ = ffmpeg_child.kill();
+                        if let Some(ref mut vs) = vspipe_child {
+                            let _ = vs.kill();
+                        }
+                        break;
+                    }
+                }
+            }
+            Err(e) => {
+                let _ = ffmpeg_child.kill();
+                if let Some(ref mut vs) = vspipe_child {
+                    let _ = vs.kill();
+                }
+                cleanup_part_and_vpy(planned);
+                return Err(format!("I/O error reading FFmpeg progress: {e}"));
+            }
+        }
+    }
+
+    let status = ffmpeg_child
+        .wait()
+        .map_err(|e| format!("Failed to wait on FFmpeg exit: {e}"))?;
+
+    if let Some(ref mut vs) = vspipe_child {
+        let _ = vs.wait();
+    }
+
+    let elapsed = start_time.elapsed().as_secs_f64();
+
+    if was_cancelled {
+        cleanup_part_and_vpy(planned);
+        return Ok(build_restoration_summary(
+            planned,
+            &accumulator,
+            elapsed,
+            "",
+            false,
+            Some("Job cancelled by user".to_string()),
+        ));
+    }
+
+    if !status.success() {
+        let mut err_msg = format!("FFmpeg exited with error status: {status}");
+        if let Some(mut stderr) = ffmpeg_child.stderr.take() {
+            let mut err_text = String::new();
+            let _ = stderr.read_to_string(&mut err_text);
+            if !err_text.is_empty() {
+                err_msg = format!("{err_msg} | Stderr: {err_text}");
+            }
+        }
+        cleanup_part_and_vpy(planned);
+        return Ok(build_restoration_summary(
+            planned,
+            &accumulator,
+            elapsed,
+            "",
+            false,
+            Some(err_msg),
+        ));
+    }
+
+    // 5. Atomic Rename from .part to final destination
+    if let Err(e) = fs::rename(&planned.part_output_path, &planned.final_output_path) {
+        cleanup_part_and_vpy(planned);
+        return Err(format!(
+            "Failed atomic move from '{}' to '{}': {e}",
+            planned.part_output_path, planned.final_output_path
+        ));
+    }
+
+    // Clean up temporary VPY script
+    if let Some(ref vpy) = planned.qtgmc_vpy_path {
+        let _ = fs::remove_file(vpy);
+    }
+
+    // 6. Compute Cryptographic SHA-256 Fixity
+    let sha256 = compute_file_sha256_hex(Path::new(&planned.final_output_path))
+        .unwrap_or_else(|_| "sha256_compute_failed".to_string());
+
+    Ok(build_restoration_summary(
+        planned,
+        &accumulator,
+        elapsed,
+        &sha256,
+        true,
+        None,
+    ))
+}
+
+fn cleanup_part_and_vpy(planned: &PlannedRestoration) {
+    if Path::new(&planned.part_output_path).exists() {
+        let _ = fs::remove_file(&planned.part_output_path);
+    }
+    if let Some(ref vpy) = planned.qtgmc_vpy_path {
+        if Path::new(vpy).exists() {
+            let _ = fs::remove_file(vpy);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -408,5 +653,75 @@ mod tests {
         assert_eq!(summary.average_fps, 60.0);
         assert_eq!(summary.duration_formatted, "00:01:40");
         assert!(summary.success);
+    }
+
+    #[test]
+    fn test_execute_restoration_job_cancelled_early() {
+        let req = RestorationJobRequest {
+            input_path: "tape.avi".to_string(),
+            output_dir: "restored".to_string(),
+            preset: RestorationPreset::Speed,
+            target_1080p: false,
+            output_codec: None,
+            custom_deinterlacer: None,
+            audio_policy: None,
+            apply_audio_notch_hum: false,
+            apply_loudness_norm: false,
+            start_sec: 0.0,
+            duration_sec: Some(10.0),
+        };
+        let probe = dummy_probe();
+        let planned = plan_restoration_job(&req, &probe, None, "ffmpeg.exe").unwrap();
+
+        let cancel = AtomicBool::new(true);
+        let res = execute_restoration_job(&planned, Some(&cancel), None);
+        assert!(res.is_err());
+        assert!(res.unwrap_err().contains("cancelled prior to process spawn"));
+    }
+
+    #[test]
+    fn test_execute_restoration_job_fails_gracefully_on_missing_binary() {
+        let req = RestorationJobRequest {
+            input_path: "tape.avi".to_string(),
+            output_dir: "restored".to_string(),
+            preset: RestorationPreset::Speed,
+            target_1080p: false,
+            output_codec: None,
+            custom_deinterlacer: None,
+            audio_policy: None,
+            apply_audio_notch_hum: false,
+            apply_loudness_norm: false,
+            start_sec: 0.0,
+            duration_sec: Some(10.0),
+        };
+        let probe = dummy_probe();
+        let planned = plan_restoration_job(&req, &probe, None, "nonexistent_ffmpeg_bin_xyz").unwrap();
+
+        let res = execute_restoration_job(&planned, None, None);
+        assert!(res.is_err());
+        assert!(res.unwrap_err().contains("Failed to spawn FFmpeg process"));
+    }
+
+    #[test]
+    fn test_callback_listener_invokes_handlers() {
+        use std::sync::atomic::AtomicUsize;
+        let progress_calls = AtomicUsize::new(0);
+        let log_calls = AtomicUsize::new(0);
+
+        let listener = CallbackListener {
+            on_progress_fn: |_p| {
+                progress_calls.fetch_add(1, Ordering::SeqCst);
+            },
+            on_log_fn: |_l| {
+                log_calls.fetch_add(1, Ordering::SeqCst);
+            },
+        };
+
+        let acc = ProgressAccumulator::new(100, 10.0);
+        listener.on_progress(&acc);
+        listener.on_log("test log message");
+
+        assert_eq!(progress_calls.load(Ordering::SeqCst), 1);
+        assert_eq!(log_calls.load(Ordering::SeqCst), 1);
     }
 }

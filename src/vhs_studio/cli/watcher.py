@@ -1,10 +1,10 @@
 """
-VHS Studio - Monitor Inteligente de Captura (OBS WebSocket 5.x)
-Monitoramento em tempo real de ÁUDIO e VÍDEO da Blackmagic Intensity Shuttle:
-- AUTO-START IMEDIATO (< 100ms): Dispara assim que a fita começa (áudio detectado OU imagem ativa). Zero quadros perdidos!  # noqa: E501
-- AUTO-STOP INTELIGENTE (~1.0s): Detecta parada real combinando silêncio + tela azul/preta/sem sinal. Sem 5s de sobra vazia!  # noqa: E501
-- PROTEÇÃO DE CENA: Cenas silenciosas com vídeo em movimento NÃO são cortadas.
-- 100% thread-safe, nativo, fora do processo do OBS (à prova de crash).
+VHS Studio - Intelligent Capture Monitor (OBS WebSocket 5.x)
+Real-time AUDIO and VIDEO monitoring for capture devices (e.g., Blackmagic Intensity Shuttle):
+- IMMEDIATE AUTO-START (< 100ms): Triggers as soon as tape playback begins (audio detected OR active video). Zero dropped frames!
+- INTELLIGENT AUTO-STOP (~1.0s): Detects tape end by combining silence + blue/black/no-signal screen.
+- SCENE PROTECTION: Silent scenes with active moving video are NOT cut.
+- 100% thread-safe, native, outside of OBS process.
 """
 
 import json
@@ -28,24 +28,24 @@ try:
 except ImportError:
     HAS_PIL = False
 
-# Limiares de áudio
+# Audio thresholds
 THRESHOLD_DB = AdvancedConfig.get("capture", "audio_threshold_db", -50.0)
-# Multiplicador correspondente a -50 dB: 10^(-50/20) ≈ 0.00316
+# Multiplier corresponding to -50 dB: 10^(-50/20) ≈ 0.00316
 THRESHOLD_MUL = 10.0 ** (THRESHOLD_DB / 20.0)
 
-# Tempos de confirmação ultrarrápidos e inteligentes
+# Ultra-fast confirmation timing
 START_CONFIRM_SEC = AdvancedConfig.get(
     "capture", "start_confirm_sec", 0.10
-)  # 100ms (apenas 2 pacotes de áudio): disparo imediato ao dar play!
+)  # 100ms (2 audio packets): immediate trigger on tape play!
 STOP_BLANK_CONFIRM_SEC = AdvancedConfig.get(
     "capture", "stop_blank_confirm_sec", 3.5
-)  # 3.5s quando confirmada tela de parada (silêncio + azul/preto) para evitar corte em pausas entre takes
+)  # 3.5s stop screen confirmation (silence + blue/black)
 STOP_QUIET_SCENE_SEC = AdvancedConfig.get(
     "capture", "stop_quiet_scene_sec", 25.0
-)  # Tolerância estendida se o áudio estiver quieto mas a imagem estiver ativa!
+)  # Extended tolerance if audio is quiet but video is active
 SCREENSHOT_INTERVAL_SEC = AdvancedConfig.get(
     "capture", "screenshot_interval_sec", 0.25
-)  # Captura miniatura a cada 250ms (4x/seg) para análise visual instantânea
+)  # Thumbnail capture interval for instant visual analysis
 
 
 def mul_to_db(mul):
@@ -81,8 +81,8 @@ def is_obs_running() -> bool:
 
 def analyze_visual_frame(img_b64, prev_pixels=None):
     """
-    Analisa uma miniatura JPEG (16x12) capturada via OBS WebSocket:
-    - Retorna se é tela preta, tela azul, vídeo ativo e nível de variação/movimento.
+    Analyze JPEG thumbnail (16x12) captured via OBS WebSocket:
+    - Returns whether it is black screen, blue screen, active video, and variance/motion level.
     """
     if not HAS_PIL or not img_b64:
         return None
@@ -103,20 +103,20 @@ def analyze_visual_frame(img_b64, prev_pixels=None):
         g_avg = g_sum / n
         b_avg = b_sum / n
 
-        # Detecção de Tela Preta (brilho abaixo do piso de sinal)
+        # Black screen detection (brightness below signal floor)
         is_black = r_avg < 25 and g_avg < 25 and b_avg < 25
 
-        # Detecção de Tela Azul (filmadora/VCR em standby ou stop)
+        # Blue screen detection (camcorder/VCR in standby or stop)
         is_blue = b_avg > 90 and b_avg > (r_avg + g_avg) * 1.4
 
-        # Variância interna da imagem (mede se é tela lisa ou se contém texturas/conteúdo)
+        # Image internal variance (measures texture and detail vs flat solid color)
         variance = sum(
             (p[0] - r_avg) ** 2 + (p[1] - g_avg) ** 2 + (p[2] - b_avg) ** 2
             for p in pixels
         ) / (n * 3)
         is_solid = variance < 15.0
 
-        # Diferença entre quadros consecutivos (mede movimento / ruído analógico de fita)
+        # Frame difference across consecutive samples (measures motion and analog tape noise)
         diff = 0.0
         if prev_pixels and len(prev_pixels) == n:
             diff = sum(
@@ -125,7 +125,7 @@ def analyze_visual_frame(img_b64, prev_pixels=None):
             ) / (n * 3)
 
         is_blank = is_black or is_blue or (is_solid and (r_avg < 35 or b_avg > 80))
-        # Vídeo ativo: não é tela lisa e possui textura/movimento de fita
+        # Active video: not flat and exhibits tape texture or movement
         is_active = not is_blank and (variance >= 20.0 or diff >= 2.0)
 
         return {
@@ -145,8 +145,8 @@ def analyze_visual_frame(img_b64, prev_pixels=None):
 
 
 def run_watcher():
-    """Documentation for run_watcher."""
-    os.system("title VHS Studio - Monitor Inteligente de Gravacao")
+    """Execute real-time capture monitoring loop."""
+    os.system("title VHS Studio - Intelligent Capture Monitor")
     log.info(
         "=============================================================================="
     )
@@ -175,7 +175,7 @@ def run_watcher():
         import websocket
 
         ws = websocket.WebSocket()
-        log.info("\n[Conexão] Aguardando OBS Studio iniciar...")
+        log.info("\n[Connection] Waiting for OBS Studio to launch...")
         retries = 0
         while True:
             try:
@@ -185,21 +185,21 @@ def run_watcher():
                 retries += 1
                 if retries > 10 and not is_obs_running():
                     log.info(
-                        "[VHS Studio] OBS Studio não está em execução. Encerrando monitor."
+                        "[VHS Studio] OBS Studio is not running. Terminating monitor."
                     )
                     return
                 time.sleep(1.5)
 
-        log.info("[Conexão] OBS Studio conectado via WebSocket nativo!")
+        log.info("[Connection] OBS Studio connected via native WebSocket!")
 
         try:
-            # 1. Recebe Hello (OpCode 0)
+            # 1. Receive Hello (OpCode 0)
             hello_raw = ws.recv()
             if not hello_raw:
                 continue
             json.loads(hello_raw)
 
-            # 2. Envia Identify (OpCode 1)
+            # 2. Send Identify (OpCode 1)
             # EventSubscription: General (1) + Outputs (4) + InputVolumeMeters (65536)
             sub_mask = 1 | 4 | 65536
             ws.send(
@@ -231,7 +231,7 @@ def run_watcher():
                 op = msg.get("op")
                 now = time.time()
 
-                # Resposta de Screenshot (OpCode 7)
+                # Screenshot response (OpCode 7)
                 if op == 7:
                     d = msg.get("d", {})
                     req_id = d.get("requestId", "")
@@ -244,7 +244,7 @@ def run_watcher():
                                 latest_visual_info = vinfo
                                 prev_visual_pixels = vinfo.get("pixels")
 
-                # Evento recebido (OpCode 5)
+                # Event received (OpCode 5)
                 elif op == 5:
                     d = msg.get("d", {})
                     event_type = d.get("eventType")

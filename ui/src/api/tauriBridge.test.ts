@@ -305,6 +305,9 @@ describe('Tauri v2 IPC Bridge & Fallback (tauriBridge)', () => {
     const planned = await tauriBridge.planRestorationJob({ input_path: 'tape.avi', output_dir: 'out' }, {});
     expect(planned.input_path).toBe('tape.avi');
     expect(planned.part_output_path).toContain('.part');
+
+    const execResult = await tauriBridge.executeRestorationJob(planned);
+    expect(execResult.success).toBe(true);
   });
 });
 
