@@ -104,6 +104,41 @@ pub fn scan_media_directory(dir_path: &Path) -> Result<Vec<MediaFileEntry>, std:
     Ok(entries)
 }
 
+/// Check if a video file is completely written and ready for ingest processing.
+#[must_use]
+pub fn is_file_ready_for_ingest(path: &Path, min_size_bytes: u64) -> bool {
+    if !path.is_file() {
+        return false;
+    }
+
+    let ext = match path.extension().and_then(|e| e.to_str()) {
+        Some(e) => e,
+        None => return false,
+    };
+
+    if !is_valid_media_extension(ext) {
+        return false;
+    }
+
+    let file_str = path.to_string_lossy().to_ascii_lowercase();
+    if file_str.ends_with(".part") || file_str.ends_with(".tmp") {
+        return false;
+    }
+
+    match fs::metadata(path) {
+        Ok(meta) => {
+            if meta.len() < min_size_bytes {
+                return false;
+            }
+        }
+        Err(_) => return false,
+    }
+
+    // Attempt to open read-only to verify no exclusive write lock is blocking access
+    fs::File::open(path).is_ok()
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -141,5 +176,30 @@ mod tests {
         assert_eq!(hash1, hash2);
         let hash3 = generate_param_hash(b"{\"crf\": 22, \"preset\": \"fast\"}");
         assert_ne!(hash1, hash3);
+    }
+
+    #[test]
+    fn test_is_file_ready_for_ingest() {
+        let temp_dir = std::env::temp_dir();
+        let valid_file = temp_dir.join(format!("vhs_test_ready_{}.mp4", std::process::id()));
+        let part_file = temp_dir.join(format!("vhs_test_ready_{}.mp4.part", std::process::id()));
+        let txt_file = temp_dir.join(format!("vhs_test_ready_{}.txt", std::process::id()));
+
+        // Create 2KB valid file
+        std::fs::write(&valid_file, vec![0u8; 2048]).expect("Write failed");
+        std::fs::write(&part_file, vec![0u8; 2048]).expect("Write failed");
+        std::fs::write(&txt_file, vec![0u8; 2048]).expect("Write failed");
+
+        assert!(is_file_ready_for_ingest(&valid_file, 1024));
+        // Reject .part files
+        assert!(!is_file_ready_for_ingest(&part_file, 1024));
+        // Reject non-media files
+        assert!(!is_file_ready_for_ingest(&txt_file, 1024));
+        // Reject undersized files
+        assert!(!is_file_ready_for_ingest(&valid_file, 4096));
+
+        let _ = std::fs::remove_file(valid_file);
+        let _ = std::fs::remove_file(part_file);
+        let _ = std::fs::remove_file(txt_file);
     }
 }

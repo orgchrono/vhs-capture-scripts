@@ -126,6 +126,163 @@ pub fn parse_record_status_response(response: &serde_json::Value) -> Option<ObsR
     })
 }
 
+/// Convert linear amplitude multiplier (0.0 to 1.0) to decibels (dBFS).
+#[must_use]
+pub fn mul_to_db(mul: f64) -> f64 {
+    if mul <= 0.000_001 {
+        -100.0
+    } else {
+        20.0 * mul.log10()
+    }
+}
+
+/// Convert decibels (dBFS) to linear amplitude multiplier.
+#[must_use]
+pub fn db_to_mul(db: f64) -> f64 {
+    10.0f64.powf(db / 20.0)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RgbPixel {
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct VisualFrameAnalysis {
+    pub r_avg: f64,
+    pub g_avg: f64,
+    pub b_avg: f64,
+    pub is_black: bool,
+    pub is_blue: bool,
+    pub is_solid: bool,
+    pub is_blank: bool,
+    pub is_active: bool,
+    pub variance: f64,
+    pub diff: f64,
+}
+
+/// Analyze raw RGB pixel buffer (e.g. 16x12 OBS preview thumbnail) using pure functional statistical metrics.
+#[must_use]
+pub fn analyze_visual_frame_rgb(
+    pixels: &[RgbPixel],
+    prev_pixels: Option<&[RgbPixel]>,
+) -> Option<VisualFrameAnalysis> {
+    if pixels.is_empty() {
+        return None;
+    }
+
+    let n = pixels.len() as f64;
+    let (r_sum, g_sum, b_sum) = pixels.iter().fold((0.0, 0.0, 0.0), |(r, g, b), p| {
+        (r + p.r as f64, g + p.g as f64, b + p.b as f64)
+    });
+
+    let r_avg = r_sum / n;
+    let g_avg = g_sum / n;
+    let b_avg = b_sum / n;
+
+    // Black screen detection: low signal floor
+    let is_black = r_avg < 25.0 && g_avg < 25.0 && b_avg < 25.0;
+
+    // Blue screen detection: tape deck standby / no-signal screen
+    let is_blue = b_avg > 90.0 && b_avg > (r_avg + g_avg) * 1.4;
+
+    // Color variance across frame
+    let variance = pixels.iter().fold(0.0, |acc, p| {
+        let dr = p.r as f64 - r_avg;
+        let dg = p.g as f64 - g_avg;
+        let db = p.b as f64 - b_avg;
+        acc + (dr * dr + dg * dg + db * db)
+    }) / (n * 3.0);
+
+    let is_solid = variance < 15.0;
+
+    // Difference between consecutive frames (motion / analog tape noise)
+    let diff = if let Some(prev) = prev_pixels {
+        if prev.len() == pixels.len() {
+            pixels.iter().zip(prev.iter()).fold(0.0, |acc, (p1, p2)| {
+                acc + (p1.r as f64 - p2.r as f64).abs()
+                    + (p1.g as f64 - p2.g as f64).abs()
+                    + (p1.b as f64 - p2.b as f64).abs()
+            }) / (n * 3.0)
+        } else {
+            0.0
+        }
+    } else {
+        0.0
+    };
+
+    let is_blank = is_black || is_blue || (is_solid && (r_avg < 35.0 || b_avg > 80.0));
+    let is_active = !is_blank && (variance >= 20.0 || diff >= 2.0);
+
+    Some(VisualFrameAnalysis {
+        r_avg,
+        g_avg,
+        b_avg,
+        is_black,
+        is_blue,
+        is_solid,
+        is_blank,
+        is_active,
+        variance,
+        diff,
+    })
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CaptureTriggerDecision {
+    StartRecording,
+    StopRecording,
+    ContinueWaiting,
+    HoldRecording,
+}
+
+/// Pure functional evaluation of intelligent capture triggers (immediate start / auto-stop with scene protection).
+#[must_use]
+pub fn evaluate_capture_trigger(
+    is_recording: bool,
+    has_audio: bool,
+    visual: Option<&VisualFrameAnalysis>,
+    active_duration_sec: f64,
+    blank_silence_duration_sec: f64,
+    quiet_scene_duration_sec: f64,
+    start_confirm_sec: f64,
+    stop_blank_confirm_sec: f64,
+    stop_quiet_scene_sec: f64,
+) -> CaptureTriggerDecision {
+    let visual_is_active = visual.map(|v| v.is_active).unwrap_or(false);
+    let visual_is_blank = visual.map(|v| v.is_blank).unwrap_or(true);
+
+    if !is_recording {
+        if (has_audio || visual_is_active) && active_duration_sec >= start_confirm_sec {
+            CaptureTriggerDecision::StartRecording
+        } else {
+            CaptureTriggerDecision::ContinueWaiting
+        }
+    } else if !has_audio {
+        if visual_is_blank {
+            if blank_silence_duration_sec >= stop_blank_confirm_sec {
+                CaptureTriggerDecision::StopRecording
+            } else {
+                CaptureTriggerDecision::HoldRecording
+            }
+        } else if visual_is_active {
+            // Scene protection: quiet dialogue or silent film with moving video
+            if quiet_scene_duration_sec >= stop_quiet_scene_sec {
+                CaptureTriggerDecision::StopRecording
+            } else {
+                CaptureTriggerDecision::HoldRecording
+            }
+        } else {
+            CaptureTriggerDecision::HoldRecording
+        }
+    } else {
+        CaptureTriggerDecision::HoldRecording
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -191,4 +348,131 @@ mod tests {
         assert_eq!(status.duration_seconds, 105.0);
         assert_eq!(status.bytes, 2048576);
     }
+
+    #[test]
+    fn test_mul_and_db_conversions() {
+        assert_eq!(mul_to_db(0.0), -100.0);
+        assert!((mul_to_db(1.0) - 0.0).abs() < 0.001);
+        let db_minus_50 = mul_to_db(0.00316227766);
+        assert!((db_minus_50 - -50.0).abs() < 0.01);
+        let mul_reconstructed = db_to_mul(-50.0);
+        assert!((mul_reconstructed - 0.00316227766).abs() < 0.0001);
+    }
+
+    #[test]
+    fn test_analyze_visual_frame_rgb_black_and_blue_and_active() {
+        // Black screen
+        let black_pixels = vec![RgbPixel { r: 10, g: 10, b: 10 }; 192];
+        let analysis_black = analyze_visual_frame_rgb(&black_pixels, None).expect("Analysis failed");
+        assert!(analysis_black.is_black);
+        assert!(analysis_black.is_blank);
+        assert!(!analysis_black.is_active);
+
+        // Blue screen (e.g. tape deck stop / no signal screen)
+        let blue_pixels = vec![RgbPixel { r: 10, g: 10, b: 200 }; 192];
+        let analysis_blue = analyze_visual_frame_rgb(&blue_pixels, None).expect("Analysis failed");
+        assert!(analysis_blue.is_blue);
+        assert!(analysis_blue.is_blank);
+        assert!(!analysis_blue.is_active);
+
+        // Active video frame with texture/detail
+        let mut active_pixels = Vec::with_capacity(192);
+        for i in 0..192 {
+            active_pixels.push(RgbPixel {
+                r: ((i * 17) % 200 + 40) as u8,
+                g: ((i * 31) % 200 + 40) as u8,
+                b: ((i * 47) % 200 + 40) as u8,
+            });
+        }
+        let analysis_active = analyze_visual_frame_rgb(&active_pixels, None).expect("Analysis failed");
+        assert!(!analysis_active.is_blank);
+        assert!(analysis_active.is_active);
+        assert!(analysis_active.variance >= 20.0);
+    }
+
+    #[test]
+    fn test_evaluate_capture_trigger_decisions() {
+        let active_visual = VisualFrameAnalysis {
+            r_avg: 120.0,
+            g_avg: 120.0,
+            b_avg: 120.0,
+            is_black: false,
+            is_blue: false,
+            is_solid: false,
+            is_blank: false,
+            is_active: true,
+            variance: 45.0,
+            diff: 5.0,
+        };
+
+        let blank_visual = VisualFrameAnalysis {
+            r_avg: 10.0,
+            g_avg: 10.0,
+            b_avg: 210.0,
+            is_black: false,
+            is_blue: true,
+            is_solid: true,
+            is_blank: true,
+            is_active: false,
+            variance: 2.0,
+            diff: 0.0,
+        };
+
+        // 1. Not recording yet -> Active signal for 150ms (> 100ms) -> Start
+        let decision1 = evaluate_capture_trigger(
+            false,
+            true, // has audio
+            Some(&active_visual),
+            0.15, // active for 150ms
+            0.0,
+            0.0,
+            0.10, // start threshold
+            3.5,
+            25.0,
+        );
+        assert_eq!(decision1, CaptureTriggerDecision::StartRecording);
+
+        // 2. Not recording yet -> Active signal for only 50ms (< 100ms) -> Continue waiting
+        let decision2 = evaluate_capture_trigger(
+            false,
+            true,
+            Some(&active_visual),
+            0.05,
+            0.0,
+            0.0,
+            0.10,
+            3.5,
+            25.0,
+        );
+        assert_eq!(decision2, CaptureTriggerDecision::ContinueWaiting);
+
+        // 3. Recording in progress -> Tape ends (silence + blue screen for 4.0s > 3.5s) -> Stop
+        let decision3 = evaluate_capture_trigger(
+            true,
+            false, // silence
+            Some(&blank_visual),
+            0.0,
+            4.0, // blank silence for 4 seconds
+            0.0,
+            0.10,
+            3.5,
+            25.0,
+        );
+        assert_eq!(decision3, CaptureTriggerDecision::StopRecording);
+
+        // 4. Recording in progress -> Scene protection: Silent scene with moving video for 10s (< 25s) -> Hold
+        let decision4 = evaluate_capture_trigger(
+            true,
+            false, // silent scene
+            Some(&active_visual), // moving video!
+            0.0,
+            0.0,
+            10.0, // quiet scene for 10s
+            0.10,
+            3.5,
+            25.0,
+        );
+        assert_eq!(decision4, CaptureTriggerDecision::HoldRecording);
+    }
 }
+

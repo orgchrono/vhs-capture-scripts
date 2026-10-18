@@ -227,6 +227,25 @@ export interface TauriAdvancedConfig {
   };
 }
 
+export interface TauriRgbPixel {
+  r: number;
+  g: number;
+  b: number;
+}
+
+export interface TauriVisualFrameAnalysis {
+  r_avg: number;
+  g_avg: number;
+  b_avg: number;
+  is_black: boolean;
+  is_blue: boolean;
+  is_solid: boolean;
+  is_blank: boolean;
+  is_active: boolean;
+  variance: number;
+  diff: number;
+}
+
 export const tauriBridge = {
   isNative(): boolean {
     return isTauriEnvironment();
@@ -952,6 +971,142 @@ export const tauriBridge = {
 
   async getStatus(): Promise<SystemStatus> {
     return studioApi.getStatus();
+  },
+
+  async mulToDb(mul: number): Promise<number> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<number>('ipc_mul_to_db', { mul });
+    }
+    return mul <= 0.000001 ? -100.0 : 20.0 * Math.log10(mul);
+  },
+
+  async dbToMul(db: number): Promise<number> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<number>('ipc_db_to_mul', { db });
+    }
+    return Math.pow(10, db / 20.0);
+  },
+
+  async analyzeVisualFrame(
+    pixels: TauriRgbPixel[],
+    prevPixels?: TauriRgbPixel[]
+  ): Promise<TauriVisualFrameAnalysis | null> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<TauriVisualFrameAnalysis | null>('ipc_analyze_visual_frame', {
+        pixels,
+        prevPixels: prevPixels ?? null,
+      });
+    }
+    if (pixels.length === 0) return null;
+    const n = pixels.length;
+    let rSum = 0;
+    let gSum = 0;
+    let bSum = 0;
+    for (const p of pixels) {
+      rSum += p.r;
+      gSum += p.g;
+      bSum += p.b;
+    }
+    const r_avg = rSum / n;
+    const g_avg = gSum / n;
+    const b_avg = bSum / n;
+
+    const is_black = r_avg < 25 && g_avg < 25 && b_avg < 25;
+    const is_blue = b_avg > 90 && b_avg > (r_avg + g_avg) * 1.4;
+
+    let varSum = 0;
+    for (const p of pixels) {
+      const dr = p.r - r_avg;
+      const dg = p.g - g_avg;
+      const db = p.b - b_avg;
+      varSum += dr * dr + dg * dg + db * db;
+    }
+    const variance = varSum / (n * 3);
+    const is_solid = variance < 15.0;
+
+    let diff = 0;
+    if (prevPixels && prevPixels.length === n) {
+      let diffSum = 0;
+      for (let i = 0; i < n; i++) {
+        diffSum +=
+          Math.abs(pixels[i].r - prevPixels[i].r) +
+          Math.abs(pixels[i].g - prevPixels[i].g) +
+          Math.abs(pixels[i].b - prevPixels[i].b);
+      }
+      diff = diffSum / (n * 3);
+    }
+
+    const is_blank = is_black || is_blue || (is_solid && (r_avg < 35 || b_avg > 80));
+    const is_active = !is_blank && (variance >= 20.0 || diff >= 2.0);
+
+    return {
+      r_avg,
+      g_avg,
+      b_avg,
+      is_black,
+      is_blue,
+      is_solid,
+      is_blank,
+      is_active,
+      variance,
+      diff,
+    };
+  },
+
+  async evaluateCaptureTrigger(
+    isRecording: boolean,
+    hasAudio: boolean,
+    visual: TauriVisualFrameAnalysis | null,
+    activeDurationSec: number,
+    blankSilenceDurationSec: number,
+    quietSceneDurationSec: number,
+    startConfirmSec: number = 0.1,
+    stopBlankConfirmSec: number = 3.5,
+    stopQuietSceneSec: number = 25.0
+  ): Promise<'StartRecording' | 'StopRecording' | 'ContinueWaiting' | 'HoldRecording'> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<'StartRecording' | 'StopRecording' | 'ContinueWaiting' | 'HoldRecording'>(
+        'ipc_evaluate_capture_trigger',
+        {
+          isRecording,
+          hasAudio,
+          visual,
+          activeDurationSec,
+          blankSilenceDurationSec,
+          quietSceneDurationSec,
+          startConfirmSec,
+          stopBlankConfirmSec,
+          stopQuietSceneSec,
+        }
+      );
+    }
+    const visualIsActive = visual?.is_active ?? false;
+    const visualIsBlank = visual?.is_blank ?? true;
+
+    if (!isRecording) {
+      if ((hasAudio || visualIsActive) && activeDurationSec >= startConfirmSec) {
+        return 'StartRecording';
+      }
+      return 'ContinueWaiting';
+    } else if (!hasAudio) {
+      if (visualIsBlank) {
+        if (blankSilenceDurationSec >= stopBlankConfirmSec) {
+          return 'StopRecording';
+        }
+        return 'HoldRecording';
+      } else if (visualIsActive) {
+        if (quietSceneDurationSec >= stopQuietSceneSec) {
+          return 'StopRecording';
+        }
+        return 'HoldRecording';
+      }
+      return 'HoldRecording';
+    }
+    return 'HoldRecording';
   },
 };
 

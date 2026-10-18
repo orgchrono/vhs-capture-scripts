@@ -690,4 +690,57 @@ pub fn ipc_execute_restoration_job(
     execute_restoration_job(&planned, cancel_flag, None)
 }
 
+use obs::{
+    analyze_visual_frame_rgb, evaluate_capture_trigger, mul_to_db, db_to_mul,
+    CaptureTriggerDecision, RgbPixel, VisualFrameAnalysis,
+};
+
+/// Typed IPC ViewModel command converting audio multiplier to decibels.
+#[must_use]
+pub fn ipc_mul_to_db(mul: f64) -> f64 {
+    mul_to_db(mul)
+}
+
+/// Typed IPC ViewModel command converting decibels to audio multiplier.
+#[must_use]
+pub fn ipc_db_to_mul(db: f64) -> f64 {
+    db_to_mul(db)
+}
+
+/// Typed IPC ViewModel command analyzing raw RGB pixel buffer for OBS monitor.
+#[must_use]
+pub fn ipc_analyze_visual_frame(
+    pixels: &[RgbPixel],
+    prev_pixels: Option<&[RgbPixel]>,
+) -> Option<VisualFrameAnalysis> {
+    analyze_visual_frame_rgb(pixels, prev_pixels)
+}
+
+/// Typed IPC ViewModel command evaluating intelligent capture triggers.
+#[must_use]
+pub fn ipc_evaluate_capture_trigger(
+    is_recording: bool,
+    has_audio: bool,
+    visual: Option<&VisualFrameAnalysis>,
+    active_duration_sec: f64,
+    blank_silence_duration_sec: f64,
+    quiet_scene_duration_sec: f64,
+    start_confirm_sec: f64,
+    stop_blank_confirm_sec: f64,
+    stop_quiet_scene_sec: f64,
+) -> CaptureTriggerDecision {
+    evaluate_capture_trigger(
+        is_recording,
+        has_audio,
+        visual,
+        active_duration_sec,
+        blank_silence_duration_sec,
+        quiet_scene_duration_sec,
+        start_confirm_sec,
+        stop_blank_confirm_sec,
+        stop_quiet_scene_sec,
+    )
+}
+
+
 

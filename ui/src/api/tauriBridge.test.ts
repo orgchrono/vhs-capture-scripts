@@ -331,6 +331,80 @@ describe('Tauri v2 IPC Bridge & Fallback (tauriBridge)', () => {
     });
     expect(qcReport).toContain('sample.mkv');
   });
+
+  it('converts audio dB / multiplier, analyzes visual frames, and evaluates capture triggers', async () => {
+    const db = await tauriBridge.mulToDb(0.00316227766);
+    expect(db).toBeCloseTo(-50.0, 1);
+
+    const mul = await tauriBridge.dbToMul(-50.0);
+    expect(mul).toBeCloseTo(0.00316227766, 3);
+
+    const blackPixels = Array(192).fill({ r: 10, g: 10, b: 10 });
+    const blackAnalysis = await tauriBridge.analyzeVisualFrame(blackPixels);
+    expect(blackAnalysis).not.toBeNull();
+    expect(blackAnalysis?.is_black).toBe(true);
+    expect(blackAnalysis?.is_blank).toBe(true);
+    expect(blackAnalysis?.is_active).toBe(false);
+
+    const bluePixels = Array(192).fill({ r: 10, g: 10, b: 200 });
+    const blueAnalysis = await tauriBridge.analyzeVisualFrame(bluePixels);
+    expect(blueAnalysis?.is_blue).toBe(true);
+    expect(blueAnalysis?.is_blank).toBe(true);
+    expect(blueAnalysis?.is_active).toBe(false);
+
+    const activeAnalysis: import('./tauriBridge').TauriVisualFrameAnalysis = {
+      r_avg: 120,
+      g_avg: 120,
+      b_avg: 120,
+      is_black: false,
+      is_blue: false,
+      is_solid: false,
+      is_blank: false,
+      is_active: true,
+      variance: 40,
+      diff: 4,
+    };
+
+    const startDecision = await tauriBridge.evaluateCaptureTrigger(
+      false,
+      true,
+      activeAnalysis,
+      0.15,
+      0.0,
+      0.0,
+      0.10,
+      3.5,
+      25.0
+    );
+    expect(startDecision).toBe('StartRecording');
+
+    const stopDecision = await tauriBridge.evaluateCaptureTrigger(
+      true,
+      false,
+      blueAnalysis,
+      0.0,
+      4.0,
+      0.0,
+      0.10,
+      3.5,
+      25.0
+    );
+    expect(stopDecision).toBe('StopRecording');
+
+    const holdDecision = await tauriBridge.evaluateCaptureTrigger(
+      true,
+      false,
+      activeAnalysis,
+      0.0,
+      0.0,
+      10.0,
+      0.10,
+      3.5,
+      25.0
+    );
+    expect(holdDecision).toBe('HoldRecording');
+  });
 });
+
 
 

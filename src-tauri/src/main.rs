@@ -37,6 +37,8 @@ fn print_usage() {
     println!("  thumbnail <IN> [S] [OUT]  Extract crisp preview thumbnail from video frame");
     println!("  ai-upscale <IN> <OUT>     Generate Real-ESRGAN / Real-CUGAN upscaling CLI command");
     println!("  ai-interpolate <IN> <OUT> Generate RIFE 60fps frame interpolation CLI command");
+    println!("  watch-ingest <DIR>        Scan directory for finalized VHS capture video files");
+    println!("  obs-eval-trigger <ARGS..> Evaluate intelligent capture start/stop trigger state");
     println!("  version                   Print version information");
     println!("  help                      Print this help message");
 }
@@ -637,6 +639,59 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             let cmd_args = vhs_studio_core::ai::build_rife_command(&params);
             println!("{}", cmd_args.join(" "));
+        }
+        "watch-ingest" => {
+            let dir_str = match args.get(2) {
+                Some(d) => d,
+                None => {
+                    eprintln!("Error: Missing directory argument. Usage: vhs-studio watch-ingest <DIR>");
+                    std::process::exit(1);
+                }
+            };
+            let dir_path = Path::new(dir_str);
+            let entries = vhs_studio_core::media::scan_media_directory(dir_path)?;
+            let ready_files: Vec<vhs_studio_core::media::MediaFileEntry> = entries
+                .into_iter()
+                .filter(|e| vhs_studio_core::media::is_file_ready_for_ingest(Path::new(&e.path), 1024))
+                .collect();
+
+            println!("{}", serde_json::to_string_pretty(&ready_files)?);
+        }
+        "obs-eval-trigger" => {
+            let is_recording: bool = args.get(2).and_then(|s| s.parse().ok()).unwrap_or(false);
+            let has_audio: bool = args.get(3).and_then(|s| s.parse().ok()).unwrap_or(false);
+            let is_blank: bool = args.get(4).and_then(|s| s.parse().ok()).unwrap_or(false);
+            let is_active: bool = args.get(5).and_then(|s| s.parse().ok()).unwrap_or(false);
+            let active_sec: f64 = args.get(6).and_then(|s| s.parse().ok()).unwrap_or(0.0);
+            let blank_sec: f64 = args.get(7).and_then(|s| s.parse().ok()).unwrap_or(0.0);
+            let quiet_sec: f64 = args.get(8).and_then(|s| s.parse().ok()).unwrap_or(0.0);
+
+            let visual = vhs_studio_core::obs::VisualFrameAnalysis {
+                r_avg: 128.0,
+                g_avg: 128.0,
+                b_avg: 128.0,
+                is_black: false,
+                is_blue: false,
+                is_solid: false,
+                is_blank,
+                is_active,
+                variance: if is_active { 30.0 } else { 5.0 },
+                diff: if is_active { 3.0 } else { 0.0 },
+            };
+
+            let decision = vhs_studio_core::obs::evaluate_capture_trigger(
+                is_recording,
+                has_audio,
+                Some(&visual),
+                active_sec,
+                blank_sec,
+                quiet_sec,
+                0.10,
+                3.5,
+                25.0,
+            );
+
+            println!("{}", serde_json::to_string_pretty(&decision)?);
         }
         unknown => {
             eprintln!("Unknown command: '{unknown}'");
