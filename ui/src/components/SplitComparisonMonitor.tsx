@@ -76,7 +76,6 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
   const {
     data: frameData,
     isFetching,
-    refetch,
   } = useGetComparisonFrameQuery({
     source,
     timestamp,
@@ -192,14 +191,6 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
     }
   };
 
-  const handleRefresh = () => {
-    if (viewMode === 'stream') {
-      setStreamKey((prev) => prev + 1);
-    } else {
-      refetch();
-    }
-  };
-
   const handleModeChange = (mode: 'stream' | 'freeze') => {
     setViewMode(mode);
     setPreviewMode(mode);
@@ -242,18 +233,21 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
     >
       {/* Top Header Bar (SSOT with LiveMonitor) */}
       <div className="absolute top-2.5 left-2.5 right-2.5 z-30 flex items-center justify-between pointer-events-auto gap-2">
-        {/* Left: Monitor Title & Split Presets */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="bg-black/85 backdrop-blur-md px-2.5 py-1 rounded-sm text-[10px] font-mono text-slate-300 border border-studio-border shadow-sm flex items-center gap-1.5 shrink-0">
+        {/* Left: Monitor Title & Split Percentage Badge (Fixed Width to prevent layout shift) */}
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="bg-black/85 backdrop-blur-md px-2.5 py-1 rounded-sm text-[10px] font-mono text-slate-300 border border-studio-border shadow-sm flex items-center gap-1.5 shrink-0 whitespace-nowrap">
             <Layers className="w-3.5 h-3.5 text-amber-400 shrink-0" />
             <span className="font-bold text-slate-200">{t('monitor.split_title')}</span>
-            <span className="text-slate-400 border-l border-studio-border pl-1.5 tabular-nums">
+            <span className="text-slate-400 border-l border-studio-border pl-1.5 tabular-nums inline-block min-w-[34px] text-center font-mono">
               {splitPos}%
             </span>
           </span>
+        </div>
 
+        {/* Right: Controls & Actions (Split Presets, View Mode & Close - pulled to the right, clear of the central 50% divider) */}
+        <div className="flex items-center gap-1.5 ml-auto shrink-0">
           {/* Quick Split Presets */}
-          <div className="flex items-center gap-0.5 bg-black/85 backdrop-blur-md p-0.5 rounded-sm border border-studio-border text-[9px] font-mono shadow-sm">
+          <div className="flex items-center gap-0.5 bg-black/85 backdrop-blur-md p-0.5 rounded-sm border border-studio-border text-[9px] font-mono shadow-sm shrink-0">
             {SPLIT_PRESETS.map((p) => (
               <button
                 key={p}
@@ -272,12 +266,9 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
               </button>
             ))}
           </div>
-        </div>
 
-        {/* Right: Controls & Actions (Sub-screen / Scrubber Mode, Refresh & Close) */}
-        <div className="flex items-center gap-1.5 ml-auto">
           {/* Sub-Screen / View Mode Selector */}
-          <div className="flex items-center gap-0.5 bg-black/85 backdrop-blur-md p-0.5 rounded-sm border border-studio-border shadow-sm">
+          <div className="flex items-center gap-0.5 bg-black/85 backdrop-blur-md p-0.5 rounded-sm border border-studio-border shadow-sm shrink-0">
             <button
               type="button"
               onClick={() => handleModeChange('stream')}
@@ -307,18 +298,6 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
               <Film className="w-3 h-3" />
             </button>
           </div>
-
-          <button
-            type="button"
-            onClick={handleRefresh}
-            disabled={viewMode === 'freeze' && isFetching}
-            className="w-6 h-6 flex items-center justify-center bg-black/85 backdrop-blur-md text-slate-400 hover:text-white rounded-sm hover:bg-studio-surface border border-studio-border shadow-sm transition cursor-pointer shrink-0"
-            title={t('monitor.split_refresh')}
-            aria-label={t('monitor.split_refresh')}
-            data-testid="split-refresh-btn"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${viewMode === 'freeze' && isFetching ? 'animate-spin' : ''}`} />
-          </button>
 
           {onClose && (
             <button

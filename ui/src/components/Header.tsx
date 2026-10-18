@@ -65,26 +65,26 @@ export const Header: React.FC<HeaderProps> = ({
   }, [prefs.theme]);
 
   return (
-    <header className="border-b border-studio-border bg-studio-panel px-4 sm:px-6 flex items-center justify-between shrink-0 h-14 sm:h-15 z-20 select-none">
-      <div className="flex items-center gap-3">
+    <header className="border-b border-studio-border bg-studio-panel px-4 sm:px-6 flex items-center justify-between shrink-0 h-14 sm:h-15 z-20 select-none overflow-x-auto custom-scrollbar">
+      <div className="flex items-center gap-3 shrink-0">
         <h1
-          className="bg-studio-surface border border-studio-border text-slate-100 text-xs px-3 py-1.5 rounded-sm tracking-wider font-mono font-bold flex items-center gap-2 select-none shadow-sm cursor-default"
+          className="bg-studio-surface border border-studio-border text-slate-100 text-xs px-3 py-1.5 rounded-sm tracking-wider font-mono font-bold flex items-center gap-2 select-none shadow-sm cursor-default shrink-0 whitespace-nowrap"
           title="VHS Studio Pro"
           aria-label="VHS Studio Pro"
         >
           <span className="sr-only">VHS Studio Pro</span>
           <Film className="w-3.5 h-3.5 text-amber-500 shrink-0" aria-hidden="true" />
-          <span className="text-white tracking-wider">VHS STUDIO</span>
-          <span className="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] px-1.5 py-0.5 rounded font-bold font-mono">
+          <span className="text-white tracking-wider shrink-0 whitespace-nowrap">VHS STUDIO</span>
+          <span className="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] px-1.5 py-0.5 rounded font-bold font-mono shrink-0 whitespace-nowrap">
             PRO
           </span>
         </h1>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 shrink-0">
         {/* Language Selector (10 Global Archival Languages) */}
         <div
-          className="flex items-center bg-studio-surface border border-studio-border rounded-sm px-2 py-0.5 text-xs text-slate-300 h-8"
+          className="flex items-center bg-studio-surface border border-studio-border rounded-sm px-2 py-0.5 text-xs text-slate-300 h-8 shrink-0 whitespace-nowrap"
         >
           <Globe className="w-3.5 h-3.5 text-slate-400 mr-1.5 shrink-0" />
           <select
@@ -103,11 +103,11 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* UI Accessibility & Compliance Controls */}
-        <div className="flex items-center gap-1 bg-studio-surface border border-studio-border rounded-sm p-0.5 h-8">
+        <div className="flex items-center gap-1 bg-studio-surface border border-studio-border rounded-sm p-0.5 h-8 shrink-0">
           <Button
             variant="ghost"
             size="icon"
-            className={`w-7 h-7 rounded-sm hover:bg-studio-surface-hover ${prefs.highContrast ? 'text-amber-400' : 'text-slate-400'}`}
+            className={`w-7 h-7 rounded-sm hover:bg-studio-surface-hover shrink-0 ${prefs.highContrast ? 'text-amber-400' : 'text-slate-400'}`}
             onClick={() => prefs.setHighContrast(!prefs.highContrast)}
             title={t('header.accessibility_contrast')}
             aria-label={t('header.accessibility_contrast')}
@@ -117,7 +117,7 @@ export const Header: React.FC<HeaderProps> = ({
           <Button
             variant="ghost"
             size="icon"
-            className={`w-7 h-7 rounded-sm hover:bg-studio-surface-hover ${prefs.largeText ? 'text-amber-400' : 'text-slate-400'}`}
+            className={`w-7 h-7 rounded-sm hover:bg-studio-surface-hover shrink-0 ${prefs.largeText ? 'text-amber-400' : 'text-slate-400'}`}
             onClick={() => prefs.setLargeText(!prefs.largeText)}
             title={t('header.accessibility_text_size')}
             aria-label={t('header.accessibility_text_size')}
@@ -128,7 +128,7 @@ export const Header: React.FC<HeaderProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              className="w-7 h-7 rounded-sm hover:bg-studio-surface-hover text-slate-400 hover:text-emerald-400"
+              className="w-7 h-7 rounded-sm hover:bg-studio-surface-hover text-slate-400 hover:text-emerald-400 shrink-0"
               onClick={onOpenPrivacy}
               title={t('header.eula_terms')}
             >
@@ -139,7 +139,7 @@ export const Header: React.FC<HeaderProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              className="w-7 h-7 rounded-sm hover:bg-studio-surface-hover text-slate-400 hover:text-amber-400"
+              className="w-7 h-7 rounded-sm hover:bg-studio-surface-hover text-slate-400 hover:text-amber-400 shrink-0"
               onClick={onOpenPreferences}
               title={t('header.preferences_title')}
               aria-label={t('header.preferences_title')}
@@ -151,12 +151,12 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Workspace Layout Controls */}
-        <div className="flex items-center gap-1 bg-studio-surface border border-studio-border rounded-sm p-0.5 h-8">
+        <div className="flex items-center gap-1 bg-studio-surface border border-studio-border rounded-sm p-0.5 h-8 shrink-0">
           {onToggleSidebar && (
             <Button
               variant="ghost"
               size="icon"
-              className={`w-7 h-7 rounded-sm hover:bg-studio-surface-hover ${sidebarCollapsed ? 'text-slate-600' : 'text-slate-200'}`}
+              className={`w-7 h-7 rounded-sm hover:bg-studio-surface-hover shrink-0 ${sidebarCollapsed ? 'text-slate-600' : 'text-slate-200'}`}
               onClick={onToggleSidebar}
               title={sidebarCollapsed ? t('header.expand_sidebar') : t('header.collapse_sidebar')}
             >
@@ -167,7 +167,7 @@ export const Header: React.FC<HeaderProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              className={`w-7 h-7 rounded-sm hover:bg-studio-surface-hover ${consoleCollapsed ? 'text-slate-600' : 'text-emerald-400'}`}
+              className={`w-7 h-7 rounded-sm hover:bg-studio-surface-hover shrink-0 ${consoleCollapsed ? 'text-slate-600' : 'text-emerald-400'}`}
               onClick={onToggleConsole}
               title={consoleCollapsed ? t('header.expand_console') : t('header.collapse_console')}
             >
@@ -176,43 +176,43 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
 
-        <div className="w-px h-5 bg-studio-border mx-0.5 hidden sm:block" />
+        <div className="w-px h-5 bg-studio-border mx-0.5 hidden sm:block shrink-0" />
 
         {/* Hardware Status Tally Indicators */}
-        <div className="hidden md:flex items-center gap-2 bg-studio-surface border border-studio-border px-2.5 py-1 rounded-sm text-xs h-8">
-          <Cpu className="w-3.5 h-3.5 text-slate-400" />
-          <span className="text-slate-400 text-[10px] font-mono uppercase">ENC:</span>
-          <strong className="text-white font-mono uppercase text-[11px]">
+        <div className="hidden md:flex items-center gap-2 bg-studio-surface border border-studio-border px-2.5 py-1 rounded-sm text-xs h-8 shrink-0 whitespace-nowrap">
+          <Cpu className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <span className="text-slate-400 text-[10px] font-mono uppercase shrink-0 whitespace-nowrap">ENC:</span>
+          <strong className="text-white font-mono uppercase text-[11px] shrink-0 whitespace-nowrap truncate max-w-[180px]">
             {status?.encoder || t('status.detecting')}
           </strong>
         </div>
 
-        <div className="hidden sm:flex items-center gap-2 bg-studio-surface border border-studio-border px-2.5 py-1 rounded-sm text-xs h-8">
-          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+        <div className="hidden sm:flex items-center gap-2 bg-studio-surface border border-studio-border px-2.5 py-1 rounded-sm text-xs h-8 shrink-0 whitespace-nowrap">
+          <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
           {status?.vapoursynth_available ? (
-            <span className="flex items-center gap-1.5 text-slate-200 font-semibold text-[11px] bg-studio-panel border border-studio-border px-2 py-0.5 rounded-sm font-mono">
-              <span className="led-lamp led-live" />
-              {t('header.qtgmc_installed')}
+            <span className="flex items-center gap-1.5 text-slate-200 font-semibold text-[11px] bg-studio-panel border border-studio-border px-2 py-0.5 rounded-sm font-mono shrink-0 whitespace-nowrap">
+              <span className="led-lamp led-live shrink-0" />
+              <span className="shrink-0 whitespace-nowrap">{t('header.qtgmc_installed')}</span>
             </span>
           ) : (
-            <Button variant="outline" size="sm" onClick={onInstallQtgmc} disabled={isInstallingQtgmc} className="h-6 px-2 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-200 border-studio-border font-mono rounded-sm">
-              <Wrench className="w-3 h-3 mr-1" />
-              {isInstallingQtgmc ? t('header.installing') : t('header.install_qtgmc')}
+            <Button variant="outline" size="sm" onClick={onInstallQtgmc} disabled={isInstallingQtgmc} className="h-6 px-2 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-200 border-studio-border font-mono rounded-sm shrink-0 whitespace-nowrap">
+              <Wrench className="w-3 h-3 mr-1 shrink-0" />
+              <span className="shrink-0 whitespace-nowrap">{isInstallingQtgmc ? t('header.installing') : t('header.install_qtgmc')}</span>
             </Button>
           )}
         </div>
       
-        <div className="hidden sm:flex items-center gap-2 bg-studio-surface border border-studio-border px-2.5 py-1 rounded-sm text-xs h-8">
-          <Video className="w-3.5 h-3.5 text-slate-400" />
+        <div className="hidden sm:flex items-center gap-2 bg-studio-surface border border-studio-border px-2.5 py-1 rounded-sm text-xs h-8 shrink-0 whitespace-nowrap">
+          <Video className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           {status?.obs_connected ? (
-            <span className="flex items-center gap-1.5 text-slate-200 font-semibold text-[11px] bg-studio-panel border border-studio-border px-2 py-0.5 rounded-sm font-mono">
-              <span className="led-lamp led-live" />
-              {t('header.obs_installed')}
+            <span className="flex items-center gap-1.5 text-slate-200 font-semibold text-[11px] bg-studio-panel border border-studio-border px-2 py-0.5 rounded-sm font-mono shrink-0 whitespace-nowrap">
+              <span className="led-lamp led-live shrink-0" />
+              <span className="shrink-0 whitespace-nowrap">{t('header.obs_installed')}</span>
             </span>
           ) : (
-            <Button variant="outline" size="sm" onClick={onInstallObs} disabled={isInstallingObs} className="h-6 px-2 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-200 border-studio-border font-mono rounded-sm">
-              <Wrench className="w-3 h-3 mr-1" />
-              {isInstallingObs ? t('header.installing') : t('header.install_obs')}
+            <Button variant="outline" size="sm" onClick={onInstallObs} disabled={isInstallingObs} className="h-6 px-2 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-200 border-studio-border font-mono rounded-sm shrink-0 whitespace-nowrap">
+              <Wrench className="w-3 h-3 mr-1 shrink-0" />
+              <span className="shrink-0 whitespace-nowrap">{isInstallingObs ? t('header.installing') : t('header.install_obs')}</span>
             </Button>
           )}
         </div>

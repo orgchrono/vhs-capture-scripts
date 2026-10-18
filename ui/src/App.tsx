@@ -294,12 +294,12 @@ const StudioMain: React.FC<{
                 <div className="w-full h-full min-h-0 grid grid-cols-1 lg:grid-cols-[minmax(320px,1.05fr)_minmax(420px,1.35fr)] 2xl:grid-cols-[minmax(420px,1.15fr)_minmax(540px,1.45fr)] gap-4 lg:gap-5 items-stretch">
                   {/* Left Column: Video Monitor (Expansível) */}
                   <div className="flex flex-col h-full min-h-[320px] lg:min-h-[380px]">
-                    <div className="flex items-center justify-between mb-2 shrink-0">
-                      <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2 font-mono">
-                        <span className="led-lamp led-live animate-pulse"></span>
+                    <div className="flex items-center justify-between mb-2 shrink-0 h-6">
+                      <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2 font-mono shrink-0 whitespace-nowrap">
+                        <span className="led-lamp led-live animate-pulse shrink-0"></span>
                         {t('app.crt_monitor_title')}
                       </h2>
-                      <span className="text-[10px] font-mono text-slate-300 bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border">
+                      <span className="text-[10px] font-mono text-slate-300 bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border shrink-0 whitespace-nowrap">
                         {t('app.crt_monitor_badge')}
                       </span>
                     </div>
@@ -310,17 +310,17 @@ const StudioMain: React.FC<{
 
                   {/* Right Column: Engine Settings (Nivelado perfeitamente com o Monitor CRT) */}
                   <div className="flex flex-col h-full min-h-[320px] lg:min-h-[380px]">
-                    <div className="flex items-center justify-between mb-2 shrink-0">
-                      <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
-                        <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2 font-mono shrink-0">
-                          <span className="bg-slate-500 w-1 h-3 rounded-sm"></span>
+                    <div className="flex items-center justify-between mb-2 shrink-0 h-6">
+                      <div className="flex items-center gap-2 min-w-0 flex-1 flex-nowrap overflow-hidden">
+                        <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2 font-mono shrink-0 whitespace-nowrap">
+                          <span className="bg-slate-500 w-1 h-3 rounded-sm shrink-0"></span>
                           {t('app.engine_title')}
                         </h2>
-                        <span className="text-[10px] font-mono text-slate-300 bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border uppercase shrink-0">
+                        <span className="text-[10px] font-mono text-slate-300 bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border uppercase shrink-0 whitespace-nowrap">
                           {t('app.engine_badge')}
                         </span>
                         <span
-                          className="inline-flex items-center gap-1.5 text-[10px] font-mono font-medium text-slate-300 bg-studio-surface border border-studio-border px-2 py-0.5 rounded-sm shrink-0 max-w-[180px]"
+                          className="inline-flex items-center gap-1.5 text-[10px] font-mono font-medium text-slate-300 bg-studio-surface border border-studio-border px-2 py-0.5 rounded-sm shrink-0 whitespace-nowrap max-w-[180px]"
                           title={currentPresetLabel}
                         >
                           <span className="led-lamp led-live shrink-0"></span>

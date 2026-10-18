@@ -66,7 +66,7 @@ export const FooterStatusBar: React.FC = () => {
       className="h-8 bg-studio-panel/95 backdrop-blur border-t border-studio-border text-slate-300 font-mono text-[11px] select-none flex items-center justify-between px-3 shrink-0 z-30"
     >
       {/* LEFT SECTION: Tally Status, Current Stage & Active File */}
-      <div className="flex items-center gap-3 min-w-0">
+      <div className="flex items-center gap-3 min-w-0 shrink-0">
         <div className="flex items-center gap-1.5 shrink-0">
           <span
             className={`led-lamp ${
@@ -78,7 +78,7 @@ export const FooterStatusBar: React.FC = () => {
             }`}
             aria-hidden="true"
           />
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300 shrink-0 whitespace-nowrap">
             {isCapturing
               ? '[REC OBS]'
               : isRestoring
@@ -89,7 +89,7 @@ export const FooterStatusBar: React.FC = () => {
 
         {fileName && (
           <div
-            className="hidden sm:flex items-center gap-1 text-[10px] text-slate-400 bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border truncate max-w-[200px]"
+            className="hidden sm:flex items-center gap-1 text-[10px] text-slate-400 bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border truncate max-w-[200px] shrink-0"
             title={selectedFile}
           >
             <FileVideo className="w-3 h-3 text-slate-400 shrink-0" />
@@ -99,11 +99,11 @@ export const FooterStatusBar: React.FC = () => {
       </div>
 
       {/* CENTER SECTION: Frame Accurate Telemetry Meters */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 shrink-0">
         {isRestoring ? (
           <>
             {/* Mini Progress Pill */}
-            <div className="flex items-center gap-1.5 bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border">
+            <div className="flex items-center gap-1.5 bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border shrink-0 whitespace-nowrap">
               <span className="text-[10px] text-slate-400">{t('telemetry.stage_progress', 'Progresso')}:</span>
               <span className="text-emerald-400 font-bold tabular-nums">
                 {telemetry.progressPercent}%
@@ -111,7 +111,7 @@ export const FooterStatusBar: React.FC = () => {
             </div>
 
             {/* Frames */}
-            <div className="hidden md:flex items-center gap-1 text-[10px] bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border">
+            <div className="hidden md:flex items-center gap-1 text-[10px] bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border shrink-0 whitespace-nowrap">
               <Film className="w-3 h-3 text-slate-400 shrink-0" />
               <span className="text-slate-400">{t('telemetry.frames', 'Quadros')}:</span>
               <span className="text-white font-medium tabular-nums">
@@ -124,7 +124,7 @@ export const FooterStatusBar: React.FC = () => {
             </div>
 
             {/* FPS */}
-            <div className="hidden lg:flex items-center gap-1 text-[10px] bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border">
+            <div className="hidden lg:flex items-center gap-1 text-[10px] bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border shrink-0 whitespace-nowrap">
               <Gauge className="w-3 h-3 text-emerald-400 shrink-0" />
               <span className="text-slate-400">{t('telemetry.fps', 'FPS')}:</span>
               <span className="text-white font-medium tabular-nums">
@@ -133,7 +133,7 @@ export const FooterStatusBar: React.FC = () => {
             </div>
 
             {/* ETA */}
-            <div className="hidden sm:flex items-center gap-1 text-[10px] bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border">
+            <div className="hidden sm:flex items-center gap-1 text-[10px] bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border shrink-0 whitespace-nowrap">
               <Clock className="w-3 h-3 text-amber-400 shrink-0" />
               <span className="text-slate-400">{t('telemetry.eta', 'ETA')}:</span>
               <span className="text-white font-medium tabular-nums">
@@ -142,7 +142,7 @@ export const FooterStatusBar: React.FC = () => {
             </div>
 
             {/* Speed */}
-            <div className="hidden xl:flex items-center gap-1 text-[10px] bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border">
+            <div className="hidden xl:flex items-center gap-1 text-[10px] bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border shrink-0 whitespace-nowrap">
               <Activity className="w-3 h-3 text-slate-300 shrink-0" />
               <span className="text-slate-400">{t('telemetry.speed', 'Vel')}:</span>
               <span className="text-white font-medium tabular-nums">
@@ -151,15 +151,15 @@ export const FooterStatusBar: React.FC = () => {
             </div>
           </>
         ) : (
-          <div className="hidden md:flex items-center gap-2 text-[10px] text-slate-500">
-            <Radio className="w-3 h-3 text-slate-600" />
+          <div className="hidden md:flex items-center gap-2 text-[10px] text-slate-500 shrink-0 whitespace-nowrap">
+            <Radio className="w-3 h-3 text-slate-600 shrink-0" />
             <span>DAG: VapourSynth + FFmpeg • YUV422p10le Studio Pipeline</span>
           </div>
         )}
       </div>
 
       {/* RIGHT SECTION: Hardware Telemetry Drawer Toggle, Active Preset & Terminal Drawer Toggle */}
-      <div className="relative flex items-center gap-2.5">
+      <div className="relative flex items-center gap-2.5 shrink-0">
         {hwDrawerOpen && (
           <div
             data-testid="hw-telemetry-drawer"
@@ -177,7 +177,7 @@ export const FooterStatusBar: React.FC = () => {
           aria-label={t('telemetry.toggle_hw_drawer')}
           title={t('telemetry.toggle_hw_drawer')}
           data-testid="toggle-hw-telemetry-btn"
-          className={`hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[10px] font-mono border transition-colors cursor-pointer ${
+          className={`hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[10px] font-mono border transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
             hwDrawerOpen
               ? 'bg-studio-surface-hover border-studio-border-focus text-emerald-300 shadow-sm'
               : 'bg-studio-surface border-studio-border text-slate-300 hover:text-white hover:bg-studio-surface-hover'
@@ -193,7 +193,7 @@ export const FooterStatusBar: React.FC = () => {
         </button>
 
         {/* Active Strategy Badge */}
-        <div className="hidden sm:flex items-center gap-1 text-[10px] bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border text-slate-300">
+        <div className="hidden sm:flex items-center gap-1 text-[10px] bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border text-slate-300 shrink-0 whitespace-nowrap">
           <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />
           <span className="truncate max-w-[130px]">{presetLabels[preset] || preset}</span>
         </div>
@@ -204,7 +204,7 @@ export const FooterStatusBar: React.FC = () => {
           onClick={toggleConsole}
           aria-expanded={!consoleCollapsed}
           aria-label={t('console.toggle', 'Alternar Console de Logs')}
-          className={`flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[10px] font-mono border transition-colors cursor-pointer ${
+          className={`flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[10px] font-mono border transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
             !consoleCollapsed
               ? 'bg-studio-surface-hover border-studio-border-focus text-slate-200 shadow-sm'
               : 'bg-studio-surface border-studio-border text-slate-400 hover:text-slate-200 hover:bg-studio-surface-hover'

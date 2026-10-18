@@ -14,13 +14,11 @@ const renderComponent = (props: { source?: string; onClose?: () => void; initial
 };
 
 describe('SplitComparisonMonitor Component', () => {
-  it('renders split container, header title, presets, mode buttons and refresh button', () => {
+  it('renders split container, header title, presets, mode buttons and close button', () => {
     const handleClose = vi.fn();
     renderComponent({ onClose: handleClose });
 
     expect(screen.getByTestId('split-comparison-monitor')).toBeInTheDocument();
-    expect(screen.getByTestId('split-refresh-btn')).toBeInTheDocument();
-    expect(screen.getByTestId('split-slider-container')).toBeInTheDocument();
     expect(screen.getByTestId('split-preset-50-btn')).toBeInTheDocument();
     expect(screen.getByTestId('split-close-btn')).toBeInTheDocument();
     expect(screen.getByTestId('mode-stream-btn')).toBeInTheDocument();

@@ -11,13 +11,13 @@ export const CaptureBar: React.FC = () => {
   return (
     <div className="bg-studio-panel border border-studio-border rounded-md p-3 mb-2 flex flex-col gap-2.5">
       <div className="flex items-start gap-3">
-        <div className={`p-2 rounded-sm border ${isCapturing ? 'bg-red-950/40 text-red-400 border-red-500/30' : 'bg-studio-surface text-slate-400 border-studio-border'}`}>
-          <Radio className="w-4 h-4" />
+        <div className={`p-2 rounded-sm border shrink-0 ${isCapturing ? 'bg-red-950/40 text-red-400 border-red-500/30' : 'bg-studio-surface text-slate-400 border-studio-border'}`}>
+          <Radio className="w-4 h-4 shrink-0" />
         </div>
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs font-semibold text-slate-200 uppercase font-mono">{t('capture.automated_title')}</span>
-            <span className="bg-studio-surface text-slate-300 border border-studio-border text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-sm uppercase">
+            <span className="bg-studio-surface text-slate-300 border border-studio-border text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-sm uppercase shrink-0 whitespace-nowrap">
               {t('capture.decklink_sdk')}
             </span>
           </div>

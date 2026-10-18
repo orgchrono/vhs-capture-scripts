@@ -101,10 +101,10 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
     <div className="relative w-full h-full bg-black flex flex-col items-center justify-center overflow-hidden" data-testid="live-monitor-container">
       {/* Top Header: Signal Status, Split Toggle & Telemetry HUD */}
       <div className="absolute top-2.5 left-2.5 right-2.5 z-20 flex items-center justify-between pointer-events-auto gap-2">
-        <div className="flex items-center gap-2">
-          <span className="bg-black/85 backdrop-blur-md px-2.5 py-1 rounded-sm text-[10px] font-mono text-slate-300 border border-studio-border shadow-sm flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="bg-black/85 backdrop-blur-md px-2.5 py-1 rounded-sm text-[10px] font-mono text-slate-300 border border-studio-border shadow-sm flex items-center gap-1.5 shrink-0 whitespace-nowrap">
             <span
-              className={`led-lamp ${
+              className={`led-lamp shrink-0 ${
                 isRestoring
                   ? 'led-live animate-pulse'
                   : isActive
@@ -114,29 +114,31 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
                   : 'led-idle'
               }`}
             />
-            {isRestoring
-              ? t('monitor.rendering_preview')
-              : isActive
-              ? t('monitor.live_preview')
-              : selectedFile
-              ? t('monitor.tape_loaded_preview')
-              : t('monitor.live_preview')}
+            <span className="shrink-0 whitespace-nowrap">
+              {isRestoring
+                ? t('monitor.rendering_preview')
+                : isActive
+                ? t('monitor.live_preview')
+                : selectedFile
+                ? t('monitor.tape_loaded_preview')
+                : t('monitor.live_preview')}
+            </span>
           </span>
 
           <button
             type="button"
             onClick={() => setIsSplitMode(true)}
-            className="bg-black/85 hover:bg-studio-surface text-amber-300 hover:text-white px-2.5 py-1 rounded-sm text-[10px] font-mono border border-amber-500/40 hover:border-amber-400 shadow-sm flex items-center gap-1.5 transition cursor-pointer shrink-0"
+            className="bg-black/85 hover:bg-studio-surface text-amber-300 hover:text-white px-2.5 py-1 rounded-sm text-[10px] font-mono border border-amber-500/40 hover:border-amber-400 shadow-sm flex items-center gap-1.5 transition cursor-pointer shrink-0 whitespace-nowrap"
             title={t('monitor.split_title')}
             aria-label={t('monitor.split_title')}
             data-testid="toggle-split-view-btn"
           >
-            <Layers className="w-3.5 h-3.5 text-amber-400" />
-            <span>{t('monitor.split_title')}</span>
+            <Layers className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span className="shrink-0 whitespace-nowrap">{t('monitor.split_title')}</span>
           </button>
         </div>
 
-        <div className="flex items-center gap-1.5 ml-auto flex-wrap">
+        <div className="flex items-center gap-1.5 ml-auto shrink-0">
           <AnimatePresence>
             {(isCapturing || obsStats?.recording) && (
               <motion.span
