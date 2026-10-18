@@ -5,13 +5,19 @@ from unittest.mock import patch, MagicMock
 # Ensure faster_whisper module is present in sys.modules for mock patching
 if "faster_whisper" not in sys.modules:
     mock_module = MagicMock()
+    mock_module.__path__ = []
     sys.modules["faster_whisper"] = mock_module
+if "faster_whisper.vad" not in sys.modules:
+    mock_vad = MagicMock()
+    sys.modules["faster_whisper.vad"] = mock_vad
+    sys.modules["faster_whisper"].vad = mock_vad
 
 from vhs_studio.ai.whisper_engine import (
     extract_audio,
     format_timestamp,
     transcribe_and_generate_vtt,
     load_audio_wav,
+    detect_first_speech_and_language,
 )
 
 
@@ -89,9 +95,11 @@ def test_transcribe_and_generate_vtt(mock_model_cls, mock_extract, tmp_path):
     video_path = tmp_path / "video.mkv"
     video_path.write_text("dummy")
 
-    vtt_path = transcribe_and_generate_vtt(str(video_path))
+    vtt_path = transcribe_and_generate_vtt(str(video_path), language="pt")
 
     assert vtt_path == str(tmp_path / "video.vtt")
+    mock_model.transcribe.assert_called_once()
+    assert mock_model.transcribe.call_args[1].get("language") == "pt"
     with open(vtt_path, "r", encoding="utf-8") as f:
         content = f.read()
         assert "WEBVTT" in content
@@ -121,3 +129,26 @@ def test_transcribe_cleans_up_temp_wav_on_error(mock_model_cls, mock_extract, tm
             transcribe_and_generate_vtt(str(video_path))
 
     assert not temp_wav.exists()
+
+
+@patch("vhs_studio.ai.whisper_engine.extract_audio")
+@patch("faster_whisper.WhisperModel")
+def test_detect_first_speech_and_language(mock_model_cls, mock_extract, tmp_path):
+    mock_extract.return_value = True
+    mock_model = MagicMock()
+    mock_model_cls.return_value = mock_model
+    mock_model.detect_language.return_value = ("pt", 0.96, [("pt", 0.96), ("es", 0.03)])
+
+    video_path = tmp_path / "video.mkv"
+    video_path.write_text("dummy")
+
+    with patch("vhs_studio.ai.whisper_engine.load_audio_wav", return_value=[0.1] * 16000 * 5):
+        with patch("faster_whisper.vad.get_speech_timestamps", return_value=[{"start": 32000, "end": 48000}]):
+            res = detect_first_speech_and_language(str(video_path))
+
+    assert res["has_speech"] is True
+    assert res["first_speech_time"] == 2.0
+    assert res["detected_language"] == "pt"
+    assert res["probability"] == 0.96
+    assert res["is_ambiguous"] is False
+    assert len(res["candidates"]) == 2

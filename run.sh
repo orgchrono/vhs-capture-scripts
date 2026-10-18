@@ -2,28 +2,28 @@
 set -eo pipefail
 
 echo "========================================================"
-echo "  VHS Studio Pro - Ambiente de Producao e Studio"
+echo "  VHS Studio Pro - Production and Studio Environment"
 echo "========================================================"
 
 if [ ! -d ".venv" ]; then
-    echo "[*] Criando ambiente virtual isolado .venv..."
+    echo "[*] Creating isolated virtual environment .venv..."
     python3 -m uv venv .venv 2>/dev/null || python3 -m venv .venv
 fi
 
-echo "[*] Ativando ambiente virtual..."
+echo "[*] Activating virtual environment..."
 source .venv/bin/activate
 
-echo "[*] Verificando dependencias Python e UI via FastDeps..."
+echo "[*] Verifying Python and UI dependencies via FastDeps..."
 python scripts/fast_deps.py
 
 if [ "$1" == "--lint" ]; then
-    echo "[*] Rodando Linter e Type Checking..."
+    echo "[*] Running Linters and Quality Gates..."
     if ! python scripts/lint.py; then
         echo ""
-        echo "[ERRO] O codigo nao passou no crivo de qualidade!"
+        echo "[ERROR] Code quality checks failed!"
         exit 1
     fi
 fi
 
-echo "[*] Iniciando o VHS Studio Pro..."
+echo "[*] Starting VHS Studio Pro..."
 exec python -m vhs_studio "$@"

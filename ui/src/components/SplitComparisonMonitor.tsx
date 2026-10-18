@@ -63,34 +63,35 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
     setPreviewTimestamp,
     setSplitPosition,
     setPreviewMode,
+    deinterlacer,
   } = useStudioStore();
 
   const [splitPos, setSplitPos] = useState<number>(splitPosition ?? 50);
   const [timestamp, setTimestamp] = useState<number>(previewTimestamp ?? 5.0);
+  const [streamAnchor, setStreamAnchor] = useState<number>(previewTimestamp ?? 5.0);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<'stream' | 'freeze'>(previewMode ?? initialMode);
   const [streamKey, setStreamKey] = useState<number>(0);
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [isPlaying, setIsPlaying] = useState<boolean>((previewMode ?? initialMode) === 'stream');
   const containerRef = useRef<HTMLDivElement>(null);
 
   const hasMedia = Boolean(source && source.trim().length > 0);
-
-  useEffect(() => {
-    if (!hasMedia && isPlaying) {
-      setIsPlaying(false);
-    }
-  }, [hasMedia, isPlaying]);
+  const activePlaying = hasMedia && isPlaying;
+  const isStreamActive = viewMode === 'stream' && activePlaying;
 
   const {
     data: frameData,
     isFetching,
-  } = useGetComparisonFrameQuery({
-    source,
-    timestamp,
-    deinterlacer: 'bwdif',
-    denoise: true,
-    chroma_fix: true,
-  });
+  } = useGetComparisonFrameQuery(
+    {
+      source,
+      timestamp,
+      deinterlacer: deinterlacer || 'qtgmc',
+      denoise: true,
+      chroma_fix: true,
+    },
+    { skip: !hasMedia || isStreamActive }
+  );
 
   const totalDuration = frameData?.duration && frameData.duration > 0 ? frameData.duration : 3600;
   const progressPct = totalDuration > 0
@@ -99,22 +100,19 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | undefined;
-    if (isPlaying) {
+    if (activePlaying) {
       interval = setInterval(() => {
         setTimestamp((prev) => {
           const next = prev >= totalDuration ? 0 : Math.round((prev + 1) * 10) / 10;
           setPreviewTimestamp(next);
           return next;
         });
-        if (viewMode === 'stream') {
-          setStreamKey((k) => k + 1);
-        }
       }, 1000);
     }
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isPlaying, viewMode, setPreviewTimestamp, totalDuration]);
+  }, [activePlaying, setPreviewTimestamp, totalDuration]);
 
   const handlePointerMove = useCallback(
     (clientX: number) => {
@@ -202,33 +200,48 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
   const handleModeChange = (mode: 'stream' | 'freeze') => {
     setViewMode(mode);
     setPreviewMode(mode);
-  };
-
-  const handleSeek = (delta: number) => {
-    const nextTime = Math.max(0, timestamp + delta);
-    setTimestamp(nextTime);
-    setPreviewTimestamp(nextTime);
-    if (viewMode === 'stream') {
+    if (mode === 'stream') {
+      setStreamAnchor(timestamp);
+      setIsPlaying(true);
       setStreamKey((prev) => prev + 1);
+    } else {
+      setIsPlaying(false);
     }
   };
 
+  const handleSeek = (delta: number) => {
+    const nextTime = Math.max(0, Math.min(totalDuration, timestamp + delta));
+    setTimestamp(nextTime);
+    setPreviewTimestamp(nextTime);
+    setStreamAnchor(nextTime);
+    setStreamKey((prev) => prev + 1);
+  };
+
   const handleTimelineInput = (newTime: number) => {
-    const safeTime = Math.max(0, newTime);
+    const safeTime = Math.max(0, Math.min(totalDuration, newTime));
     setTimestamp(safeTime);
     setPreviewTimestamp(safeTime);
   };
 
   const handleTimelineCommit = () => {
-    if (viewMode === 'stream') {
-      setStreamKey((prev) => prev + 1);
-    }
+    setStreamAnchor(timestamp);
+    setStreamKey((prev) => prev + 1);
   };
 
-  const rawImg = frameData?.raw_image;
-  const procImg = frameData?.processed_image;
+  const lastRawImgRef = useRef<string | undefined>(undefined);
+  const lastProcImgRef = useRef<string | undefined>(undefined);
 
-  const splitStreamUrl = `/api/monitor/stream-proxy?mode=split&source=${encodeURIComponent(source)}&fps=15&timestamp=${timestamp}&k=${streamKey}`;
+  if (frameData?.raw_image) {
+    lastRawImgRef.current = frameData.raw_image;
+  }
+  if (frameData?.processed_image) {
+    lastProcImgRef.current = frameData.processed_image;
+  }
+
+  const rawImg = frameData?.raw_image || lastRawImgRef.current;
+  const procImg = frameData?.processed_image || lastProcImgRef.current;
+
+  const splitStreamUrl = `/api/monitor/stream-proxy?mode=split&source=${encodeURIComponent(source)}&fps=15&timestamp=${streamAnchor}&k=${streamKey}`;
 
   return (
     <div
@@ -322,13 +335,13 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
         </div>
       </div>
 
-      {/* Main Split Image Viewer with Interactive Sliding Curtain */}
+        {/* Main Split Image Viewer with Interactive Sliding Curtain */}
       <div
         ref={containerRef}
         className="relative w-full flex-1 overflow-hidden flex items-center justify-center bg-slate-950"
         data-testid="split-slider-container"
       >
-        {viewMode === 'freeze' && isFetching && !rawImg && (
+        {!isStreamActive && isFetching && !rawImg && (
           <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/75 backdrop-blur-xs text-xs font-mono text-slate-400 gap-2">
             <RefreshCw className="w-6 h-6 text-amber-400 animate-spin" />
             <span>{t('monitor.split_loading')}</span>
@@ -337,7 +350,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
 
         {/* Side B: Restored / Processed (Underneath, Full Width) */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          {viewMode === 'stream' ? (
+          {isStreamActive ? (
             <SplitStreamViewport
               src={splitStreamUrl}
               alt={t('monitor.split_restored')}
@@ -346,6 +359,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
             />
           ) : procImg ? (
             <img
+              key={`proc-${timestamp}`}
               src={procImg}
               alt={t('monitor.split_restored')}
               className="w-full h-full object-contain"
@@ -369,7 +383,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           className="absolute inset-0 overflow-hidden pointer-events-none flex items-center justify-center"
           style={{ clipPath: `polygon(0 0, ${splitPos}% 0, ${splitPos}% 100%, 0 100%)` }}
         >
-          {viewMode === 'stream' ? (
+          {isStreamActive ? (
             <SplitStreamViewport
               src={splitStreamUrl}
               alt={t('monitor.split_raw')}
@@ -378,6 +392,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
             />
           ) : rawImg ? (
             <img
+              key={`raw-${timestamp}`}
               src={rawImg}
               alt={t('monitor.split_raw')}
               className="w-full h-full object-contain"
@@ -452,7 +467,17 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
             type="button"
             onClick={() => {
               if (hasMedia) {
-                setIsPlaying(!isPlaying);
+                const nextPlaying = !isPlaying;
+                setIsPlaying(nextPlaying);
+                setStreamAnchor(timestamp);
+                if (nextPlaying) {
+                  setViewMode('stream');
+                  setPreviewMode('stream');
+                  setStreamKey((k) => k + 1);
+                } else {
+                  setViewMode('freeze');
+                  setPreviewMode('freeze');
+                }
               }
             }}
             disabled={!hasMedia}

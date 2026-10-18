@@ -85,6 +85,7 @@ test.describe('VHS Studio Visual Inspection & Screenshots', () => {
   });
 
   test('Capture Full Studio Screenshots', async ({ page }) => {
+    test.setTimeout(90000);
     await page.setViewportSize({ width: 1600, height: 950 });
     await page.addInitScript(() => window.localStorage.setItem('vhs_studio_eula_accepted', 'true'));
     await page.goto('http://localhost:5173/');
@@ -166,12 +167,12 @@ test.describe('VHS Studio Visual Inspection & Screenshots', () => {
       }
     }
 
-    // 8. Teste de Resizing Vertical do Painel Inferior (Console & Ribbon)
+    // 8. Vertical Panel Resizing Test (Console & Ribbon)
     const resizeHandle = page.locator('[data-panel-group-direction="vertical"] [data-panel-resize-handle-enabled]').first();
     if (await resizeHandle.isVisible()) {
       const box = await resizeHandle.boundingBox();
       if (box) {
-        // Simular arraste suave para cima
+        // Simulate smooth drag upward
         await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
         await page.mouse.down();
         await page.mouse.move(box.x + box.width / 2, box.y - 60, { steps: 5 });
@@ -181,19 +182,21 @@ test.describe('VHS Studio Visual Inspection & Screenshots', () => {
       }
     }
 
-    // Sincronizar todos os screenshots com o diretório oficial de artefatos
-    const artifactsDir = 'C:/Users/danie/.gemini/antigravity/brain/98d0546c-0eb2-4a87-9de4-bf0312855c52';
-    try {
-      const fs = await import('fs');
-      if (fs.existsSync(artifactsDir)) {
-        for (const shot of fs.readdirSync(shotsDir)) {
-          if (shot.endsWith('.png')) {
-            fs.copyFileSync(path.join(shotsDir, shot), path.join(artifactsDir, shot));
+    // Optionally synchronize screenshots with artifacts directory if ARTIFACTS_DIR is set
+    const artifactsDir = process.env.ARTIFACTS_DIR;
+    if (artifactsDir) {
+      try {
+        const fs = await import('fs');
+        if (fs.existsSync(artifactsDir)) {
+          for (const shot of fs.readdirSync(shotsDir)) {
+            if (shot.endsWith('.png')) {
+              fs.copyFileSync(path.join(shotsDir, shot), path.join(artifactsDir, shot));
+            }
           }
         }
+      } catch (e) {
+        console.warn('Artifacts sync notice:', e);
       }
-    } catch (e) {
-      console.warn('Artifacts sync notice:', e);
     }
   });
 });

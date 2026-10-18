@@ -16,8 +16,7 @@ import {
   BroadcastProgressRibbon,
   RestorationConflictModal,
 } from './components'
-import { getPresetLabels } from './components/RestorationSettings'
-import { createTelemetryParser } from './components/BroadcastProgress'
+import { getPresetLabels, createTelemetryParser } from './lib/telemetry'
 import { Toaster } from './components/ui/sonner'
 import {
   ResizablePanelGroup,

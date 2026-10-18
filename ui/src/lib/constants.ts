@@ -19,7 +19,7 @@ export const DEFAULTS = {
   AUDIO_OFFSET_MS: 0,
   RESOLUTION: '1080p' as ResolutionMode,
   OUTPUT_CODEC: 'h264' as OutputCodec,
-  DEINTERLACER: 'bwdif' as DeinterlacerType,
+  DEINTERLACER: 'qtgmc' as DeinterlacerType,
   VIDEO_MODE: 'passthrough' as VideoMode,
   AUDIO_MODE: 'stereo' as AudioMode,
 } as const;
@@ -72,17 +72,49 @@ export const RESOLUTION_OPTIONS: { value: ResolutionMode; label: string }[] = [
 ];
 
 export const AI_UPSCALER_OPTIONS: { value: string; label: string }[] = [
-  { value: 'realesrgan-x4plus', label: 'Real-ESRGAN x4plus (Alta Fidelidade & Nitidez)' },
-  { value: 'realesr-animevideov3-x4', label: 'Real-ESRGAN Anime 6B (V3 Desenhos/Animes)' },
-  { value: 'span-x4', label: 'SPAN x4 (Super-Pixel Attention - Ultraleve)' },
-  { value: 'models-se', label: 'Real-CUGAN SE (Preservação de Grão Analógico Natural)' },
-  { value: 'swinir-classical-sr', label: 'SwinIR Classical (Restauração Fita Severa)' },
+  { value: 'realesrgan-x4plus', label: 'Real-ESRGAN x4plus (High Fidelity & Sharpness)' },
+  { value: 'realesr-animevideov3-x4', label: 'Real-ESRGAN Anime 6B (V3 Animation/Anime)' },
+  { value: 'span-x4', label: 'SPAN x4 (Super-Pixel Attention - Ultra-light)' },
+  { value: 'models-se', label: 'Real-CUGAN SE (Natural Analog Grain Preservation)' },
+  { value: 'swinir-classical-sr', label: 'SwinIR Classical (Severe Tape Restoration)' },
 ];
 
 export const WHISPER_MODEL_OPTIONS: { value: string; label: string }[] = [
-  { value: 'tiny', label: 'Tiny (Rápido, ~40MB RAM)' },
-  { value: 'base', label: 'Base (Equilibrado, ~75MB RAM)' },
-  { value: 'small', label: 'Small (Preciso, ~250MB RAM)' },
+  { value: 'tiny', label: 'Tiny (Fast, ~40MB RAM)' },
+  { value: 'base', label: 'Base (Balanced, ~75MB RAM)' },
+  { value: 'small', label: 'Small (Accurate, ~250MB RAM)' },
+];
+
+export const WHISPER_LANGUAGE_OPTIONS: { value: string; labelKey: string }[] = [
+  { value: 'pt', labelKey: 'ai.lang_pt' },
+  { value: 'auto', labelKey: 'ai.lang_auto' },
+  { value: 'en', labelKey: 'ai.lang_en' },
+  { value: 'es', labelKey: 'ai.lang_es' },
+  { value: 'fr', labelKey: 'ai.lang_fr' },
+  { value: 'de', labelKey: 'ai.lang_de' },
+  { value: 'it', labelKey: 'ai.lang_it' },
+  { value: 'ja', labelKey: 'ai.lang_ja' },
+];
+
+export const WHISPER_SUPPORTED_LANGUAGES: { code: string; label: string }[] = [
+  { code: 'pt', label: 'Português (pt)' },
+  { code: 'en', label: 'English (en)' },
+  { code: 'es', label: 'Español (es)' },
+  { code: 'fr', label: 'Français (fr)' },
+  { code: 'de', label: 'Deutsch (de)' },
+  { code: 'it', label: 'Italiano (it)' },
+  { code: 'ja', label: '日本語 (ja)' },
+  { code: 'zh', label: '中文 (zh)' },
+  { code: 'ru', label: 'Русский (ru)' },
+  { code: 'ar', label: 'العربية (ar)' },
+  { code: 'nl', label: 'Nederlands (nl)' },
+  { code: 'pl', label: 'Polski (pl)' },
+  { code: 'sv', label: 'Svenska (sv)' },
+  { code: 'ko', label: '한국어 (ko)' },
+  { code: 'tr', label: 'Türkçe (tr)' },
+  { code: 'el', label: 'Ελληνικά (el)' },
+  { code: 'he', label: 'עברית (he)' },
+  { code: 'hi', label: 'हिन्दी (hi)' },
 ];
 
 export const FACE_FIDELITY_CONFIG = {
@@ -100,8 +132,11 @@ export const TIER_CONFIG = {
 
 export const CRF_CONFIG = {
   MIN: 14,
+  AI_MASTER: 16,
+  GOLD: 18,
   DEFAULT: 18,
-  FAST: 20,
+  TBC_HOLD: 20,
+  FAST: 22,
   MAX: 28,
   STEP: 1,
 } as const;

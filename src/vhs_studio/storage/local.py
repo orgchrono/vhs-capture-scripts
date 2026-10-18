@@ -8,23 +8,23 @@ from vhs_studio.core.logger import log
 
 
 class LocalStorageProvider(StorageProvider):
-    """Lida com HDDs Externos, Pendrives USB e NAS (Network Attached Storage) mapeados no SO."""
+    """Handles external HDDs, USB flash drives, and OS-mapped NAS (Network Attached Storage)."""
 
     def __init__(self):
-        """Documentation for __init__."""
+        """Initialize LocalStorageProvider instance."""
         self.base_path = ""
         self.is_ready = False
 
     def get_id(self) -> str:
-        """Documentation for get_id."""
+        """Return provider identifier."""
         return "local_nas_usb"
 
     def configure(self, config: Dict[str, object]) -> bool:
-        """Documentation for configure."""
+        """Configure local storage path and verify accessibility."""
         path = str(config.get("path", ""))
         if not path:
             log.error(
-                "[LocalStorage] Caminho de destino não fornecido na configuração."
+                "[LocalStorage] Destination path not provided in configuration."
             )
             return False
         if not os.path.exists(path):
@@ -32,7 +32,7 @@ class LocalStorageProvider(StorageProvider):
                 os.makedirs(path, exist_ok=True)
             except Exception as e:
                 log.error(
-                    f"[LocalStorage] Falha ao criar/acessar diretório NAS/USB: {e}"
+                    f"[LocalStorage] Failed to create or access NAS/USB directory: {e}"
                 )
                 return False
         self.base_path = path
@@ -40,20 +40,20 @@ class LocalStorageProvider(StorageProvider):
         return True
 
     def upload_video(self, local_filepath: str, destination_path: str) -> bool:
-        """Documentation for upload_video."""
+        """Copy video file to local or mapped destination directory."""
         if not self.is_ready:
-            log.error("[LocalStorage] Provedor não está configurado.")
+            log.error("[LocalStorage] Provider is not configured.")
             return False
         dest = os.path.join(self.base_path, destination_path)
         dest_dir = os.path.dirname(dest)
         try:
             os.makedirs(dest_dir, exist_ok=True)
-            log.info(f"[LocalStorage] Copiando {local_filepath} para {dest} ...")
+            log.info(f"[LocalStorage] Copying {local_filepath} to {dest} ...")
             shutil.copy2(local_filepath, dest)
-            log.info("[LocalStorage] Cópia concluída com sucesso.")
+            log.info("[LocalStorage] Copy completed successfully.")
             return True
         except Exception as e:
-            log.error(f"[LocalStorage] Erro ao copiar arquivo: {e}")
+            log.error(f"[LocalStorage] Error copying file: {e}")
             return False
 
     def get_status(self) -> Dict[str, object]:

@@ -81,7 +81,7 @@ export function useLiveMonitor(): UseLiveMonitorResult {
       }
       toggleVirtualCam({ enable: false }).unwrap().catch(console.error);
     };
-  }, [toggleVirtualCam]);
+  }, [toggleVirtualCam, t]);
 
   return {
     videoRef,

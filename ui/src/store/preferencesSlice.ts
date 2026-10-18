@@ -63,7 +63,7 @@ function loadStoredPreferences(): AppPreferencesState {
   }
 }
 
-function persistPreferences(state: AppPreferencesState): void {
+export function persistPreferences(state: AppPreferencesState): void {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(STORAGE_PREFERENCES_KEY, JSON.stringify(state));
@@ -81,69 +81,54 @@ export const preferencesSlice = createSlice({
       action: PayloadAction<Partial<AppPreferencesState>>,
     ) => {
       Object.assign(state, action.payload);
-      persistPreferences(state);
     },
     resetPreferences: (state) => {
       Object.assign(state, initialPreferencesState);
-      persistPreferences(state);
     },
     setLivePreviewEnabled: (state, action: PayloadAction<boolean>) => {
       state.livePreviewEnabled = action.payload;
-      persistPreferences(state);
     },
     setPreviewFps: (state, action: PayloadAction<15 | 30 | 60>) => {
       state.previewFps = action.payload;
-      persistPreferences(state);
     },
     setVerboseConsole: (state, action: PayloadAction<boolean>) => {
       state.verboseConsole = action.payload;
-      persistPreferences(state);
     },
     setAutoScrollConsole: (state, action: PayloadAction<boolean>) => {
       state.autoScrollConsole = action.payload;
-      persistPreferences(state);
     },
     setMaxConsoleLines: (state, action: PayloadAction<number>) => {
       state.maxConsoleLines = action.payload;
-      persistPreferences(state);
     },
     setPanasonicHotplugEnabled: (state, action: PayloadAction<boolean>) => {
       state.panasonicHotplugEnabled = action.payload;
-      persistPreferences(state);
     },
     setPanasonicPollIntervalMs: (state, action: PayloadAction<number>) => {
       state.panasonicPollIntervalMs = action.payload;
-      persistPreferences(state);
     },
     setPreferredAiDevice: (
       state,
       action: PayloadAction<'auto' | 'vulkan' | 'cpu' | 'directml'>,
     ) => {
       state.preferredAiDevice = action.payload;
-      persistPreferences(state);
     },
     setWhisperMaxThreads: (state, action: PayloadAction<number>) => {
       state.whisperMaxThreads = action.payload;
-      persistPreferences(state);
     },
     setHardwareEncoderPreference: (
       state,
       action: PayloadAction<'auto' | 'qsv' | 'nvenc' | 'amf' | 'software'>,
     ) => {
       state.hardwareEncoderPreference = action.payload;
-      persistPreferences(state);
     },
     setHighContrast: (state, action: PayloadAction<boolean>) => {
       state.highContrast = action.payload;
-      persistPreferences(state);
     },
     setLargeText: (state, action: PayloadAction<boolean>) => {
       state.largeText = action.payload;
-      persistPreferences(state);
     },
     setTheme: (state, action: PayloadAction<'dark' | 'oled_black'>) => {
       state.theme = action.payload;
-      persistPreferences(state);
     },
   },
 });

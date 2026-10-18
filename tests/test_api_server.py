@@ -252,7 +252,7 @@ def test_api_monitor_stream_proxy_security(client):
     """Verify that insecure paths in stream-proxy are rejected with 400."""
     res = client.get("/api/monitor/stream-proxy?source=../../etc/passwd")
     assert res.status_code == 400
-    assert "Caminho de arquivo inválido" in res.json()["message"]
+    assert res.json()["message"] in ("Invalid or insecure file path.", "Caminho de arquivo inválido ou não seguro.")
 
 
 def test_api_monitor_stream_proxy_stream(client):

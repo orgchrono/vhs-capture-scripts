@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useMemo } from 'react';
 import { Cpu, HardDrive, Activity } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useGetSystemMetricsQuery } from '../api/studioRtkApi';
@@ -12,6 +12,14 @@ const getBarColorClass = (pct: number): string => {
   if (pct >= TELEMETRY_CONFIG.CRITICAL_THRESHOLD_PCT) return 'bg-rose-500';
   if (pct >= TELEMETRY_CONFIG.WARN_THRESHOLD_PCT) return 'bg-amber-400';
   return 'bg-emerald-500';
+};
+
+const buildSparklineSeries = (currentPct: number): number[] => {
+  const len = TELEMETRY_CONFIG.HISTORY_LENGTH;
+  return Array.from({ length: len }, (_, idx) => {
+    const weight = (idx + 1) / len;
+    return Math.max(0, Math.min(100, Math.round(currentPct * weight)));
+  });
 };
 
 interface MetricItemProps {
@@ -85,24 +93,8 @@ export const SystemTelemetryCard: React.FC<SystemTelemetryCardProps> = ({ compac
   const isRunning = Boolean(metrics?.process_running);
   const isPaused = Boolean(metrics?.is_paused);
 
-  const [cpuHistory, setCpuHistory] = useState<number[]>(() =>
-    Array(TELEMETRY_CONFIG.HISTORY_LENGTH).fill(0)
-  );
-  const [ramHistory, setRamHistory] = useState<number[]>(() =>
-    Array(TELEMETRY_CONFIG.HISTORY_LENGTH).fill(0)
-  );
-
-  useEffect(() => {
-    if (!metrics) return;
-    setCpuHistory((prev) => [
-      ...prev.slice(1 - TELEMETRY_CONFIG.HISTORY_LENGTH),
-      Math.max(0, Math.min(100, metrics.cpu_percent)),
-    ]);
-    setRamHistory((prev) => [
-      ...prev.slice(1 - TELEMETRY_CONFIG.HISTORY_LENGTH),
-      Math.max(0, Math.min(100, metrics.ram_percent)),
-    ]);
-  }, [metrics]);
+  const cpuHistory = useMemo(() => buildSparklineSeries(cpuPct), [cpuPct]);
+  const ramHistory = useMemo(() => buildSparklineSeries(ramPct), [ramPct]);
 
   return (
     <div

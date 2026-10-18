@@ -10,10 +10,15 @@ import os
 import sys
 import json
 import shutil
-import subprocess
 from vhs_studio.core.system_process import run_silent
 from dataclasses import dataclass, field
 from typing import Callable, List, Optional, Tuple, Dict, Any
+from vhs_studio.core.constants import (
+    PANASONIC_CHAPTER_INTERVAL_SEC,
+    PANASONIC_DEFAULT_TITLE_DURATION_SEC,
+    PANASONIC_FIRMWARE_SIZE_BYTES,
+    PANASONIC_PROBE_CHUNK_SIZE,
+)
 from vhs_studio.core.logger import log
 from vhs_studio.core.paths import RAW_MEDIA_DIR
 from vhs_studio.core.toolchain import Toolchain
@@ -47,7 +52,7 @@ MPEG2_SYS_HEADER = b"\x00\x00\x01\xbb"
 MPEG2_VIDEO_PACKET = b"\x00\x00\x01\xe0"
 
 # Header probe size (read up to 4MB for filesystem header discovery)
-PROBE_CHUNK_SIZE = 4 * 1024 * 1024
+PROBE_CHUNK_SIZE = PANASONIC_PROBE_CHUNK_SIZE
 
 
 def inspect_panasonic_source(source_path: str) -> PanasonicInspectionResult:
@@ -106,7 +111,7 @@ def inspect_panasonic_source(source_path: str) -> PanasonicInspectionResult:
     is_firmware_name = "firmware" in fname_lower and (
         "hdd" in fname_lower or "panasonic" in fname_lower
     )
-    is_firmware_size = source_size == 104857600
+    is_firmware_size = source_size == PANASONIC_FIRMWARE_SIZE_BYTES
 
     if (is_firmware_size or is_firmware_name) and not any(
         s in data for s in [SIG_MEIHDFS_V2, SIG_MEIHDFS_V1, MPEG2_PACK_HEADER]
@@ -510,7 +515,9 @@ def _evaluate_panasonic_disk(dev_id: str, model: str) -> Tuple[bool, str, bool]:
     return is_pana, fmt, needs_elev
 
 
-def _generate_panasonic_chapters(ch_count: int, ch_interval: float = 900.0) -> List[Dict[str, Any]]:
+def _generate_panasonic_chapters(
+    ch_count: int, ch_interval: float = PANASONIC_CHAPTER_INTERVAL_SEC
+) -> List[Dict[str, Any]]:
     """Generate structured chapter markers for Panasonic DVR titles."""
     chapters: List[Dict[str, Any]] = []
     for c in range(ch_count):
@@ -520,7 +527,7 @@ def _generate_panasonic_chapters(ch_count: int, ch_interval: float = 900.0) -> L
         ch_s = int(c_sec % 60)
         chapters.append({
             "id": c + 1,
-            "title": f"Capítulo {c + 1}",
+            "title": f"Chapter {c + 1}",
             "start_sec": c_sec,
             "start_timecode": f"{ch_h:02d}:{ch_m:02d}:{ch_s:02d}",
         })
@@ -555,13 +562,13 @@ def get_panasonic_recording_tree(source_path: str) -> Dict[str, Any]:
             dur_fmt = f"{hours:02d}:{mins:02d}:{secs:02d}"
 
             # Standard Panasonic 15-minute chapters
-            ch_interval = 900.0
+            ch_interval = PANASONIC_CHAPTER_INTERVAL_SEC
             ch_count = max(1, int(dur // ch_interval) + (1 if dur % ch_interval > 30 else 0))
             chapters = _generate_panasonic_chapters(ch_count, ch_interval)
 
             extracted_titles.append({
                 "id": idx,
-                "title": f"Título {idx:02d} ({os.path.splitext(f)[0]})",
+                "title": f"Title {idx:02d} ({os.path.splitext(f)[0]})",
                 "filename": f,
                 "path": fp,
                 "size_mb": sz_mb,
@@ -581,7 +588,7 @@ def get_panasonic_recording_tree(source_path: str) -> Dict[str, Any]:
             return {
                 "source_path": source_path,
                 "is_panasonic": True,
-                "format": "MEIHDFS-V2.0 / Acervo Local",
+                "format": "MEIHDFS-V2.0 / Local Library",
                 "total_titles": len(extracted_titles),
                 "total_size_mb": sum(t["size_mb"] for t in extracted_titles),
                 "titles": extracted_titles,
@@ -601,12 +608,12 @@ def get_panasonic_recording_tree(source_path: str) -> Dict[str, Any]:
     titles: List[Dict[str, Any]] = []
 
     for i in range(1, estimated_titles + 1):
-        dur_sec = 3600.0  # 1 hour standard SP recording
-        chapters = _generate_panasonic_chapters(4, 900.0)
+        dur_sec = PANASONIC_DEFAULT_TITLE_DURATION_SEC
+        chapters = _generate_panasonic_chapters(4, PANASONIC_CHAPTER_INTERVAL_SEC)
 
         titles.append({
             "id": i,
-            "title": f"Título {i:02d} - Panasonic {inspection.format}",
+            "title": f"Title {i:02d} - Panasonic {inspection.format}",
             "filename": f"panasonic_title_{i:02d}.mpg",
             "path": source_path,
             "size_mb": round(total_mb / estimated_titles, 1) if estimated_titles else 0.0,

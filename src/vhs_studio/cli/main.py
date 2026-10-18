@@ -33,24 +33,30 @@ def main(argv: Optional[List[str]] = None) -> int:
     subparsers.add_parser("setup-obs", help="Instalação e configuração do OBS Studio")
 
     sub_parser = subparsers.add_parser(
-        "subtitles", help="Gera legendas offline via IA (Whisper)"
+        "subtitles", help="Generate offline subtitles via AI (Whisper)"
     )
-    sub_parser.add_argument("input", help="Caminho do vídeo de entrada")
+    sub_parser.add_argument("input", help="Input video file path")
     sub_parser.add_argument(
         "--model-size",
         default="tiny",
         choices=["tiny", "base", "small"],
-        help="Tamanho do modelo",
+        help="Whisper model size",
+    )
+    sub_parser.add_argument(
+        "--language",
+        "-l",
+        default="pt",
+        help="Language code for transcription (e.g. pt, en, es, auto)",
     )
 
     qc_parser = subparsers.add_parser(
-        "qc", help="Inspeção forense e geração de relatório museológico de defeitos (QC)"
+        "qc", help="Forensic inspection and archival defect report generation (QC)"
     )
-    qc_parser.add_argument("input", help="Caminho do arquivo de mídia para inspeção")
+    qc_parser.add_argument("input", help="Media file path for forensic QC inspection")
 
-    subparsers.add_parser("restore", help="Restauração direta FFmpeg")
-    subparsers.add_parser("pipeline", help="Pipeline orquestrada de restauração")
-    subparsers.add_parser("tui", help="Estação interativa de terminal (TUI) sem navegador")
+    subparsers.add_parser("restore", help="Direct FFmpeg restoration engine")
+    subparsers.add_parser("pipeline", help="Multi-engine restoration DAG orchestrator")
+    subparsers.add_parser("tui", help="Interactive terminal workstation (TUI)")
 
     args, unknown = parser.parse_known_args(argv)
 
@@ -71,7 +77,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     elif args.command == "subtitles":
         from vhs_studio.ai.whisper_engine import transcribe_and_generate_vtt
 
-        transcribe_and_generate_vtt(args.input, args.model_size)
+        transcribe_and_generate_vtt(args.input, args.model_size, language=args.language)
     elif args.command == "qc":
         from vhs_studio.capture.qc import QualityControl
 

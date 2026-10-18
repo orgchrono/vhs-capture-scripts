@@ -2,13 +2,41 @@ import sqlite3
 import os
 import json
 import threading
-import time
-from typing import Optional, List, Dict, Mapping, TypedDict
+from typing import Optional, List, Dict, Mapping, Protocol, Tuple, TypedDict
 from vhs_studio.core.logger import log
+from vhs_studio.core.paths import VHS_STUDIO_DIR
 
-DEFAULT_QUEUE_DB_PATH = os.path.join(
-    os.path.expanduser("~"), ".vhs_studio", "pipeline_queue.db"
+DEFAULT_QUEUE_DB_PATH = os.environ.get(
+    "VHS_STUDIO_QUEUE_DB",
+    os.path.join(VHS_STUDIO_DIR, "pipeline_queue.db")
 )
+
+
+class ProcessRunnerProtocol(Protocol):
+    """Protocol decoupling QueueWorker from concrete API ProcessManager."""
+
+    def is_running(self) -> bool:
+        """Return True if a child process is currently executing."""
+        ...
+
+    def start_process(self, cmd: List[str]) -> Tuple[bool, str]:
+        """Launch a child process with the given command list."""
+        ...
+
+
+class _DefaultProcessRunner:
+    """Fallback standalone process runner when no API ProcessManager is injected."""
+
+    def is_running(self) -> bool:
+        return False
+
+    def start_process(self, cmd: List[str]) -> Tuple[bool, str]:
+        import subprocess
+        try:
+            subprocess.run(cmd, check=False)
+            return True, "Completed"
+        except Exception as exc:
+            return False, str(exc)
 
 
 class JobDict(TypedDict, total=False):
@@ -214,14 +242,25 @@ queue_manager = PersistentQueueManager()
 class QueueWorker:
     """Sequential background daemon for safely consuming queued batch rendering tasks."""
 
-    def __init__(self, manager: PersistentQueueManager = queue_manager):
+    def __init__(
+        self,
+        manager: PersistentQueueManager = queue_manager,
+        process_runner: Optional[ProcessRunnerProtocol] = None,
+    ):
         self.manager = manager
+        self._process_runner: ProcessRunnerProtocol = process_runner or _DefaultProcessRunner()
         self._running = False
         self._stop_event = threading.Event()
         self._thread: Optional[threading.Thread] = None
 
-    def start(self):
+    def set_process_runner(self, process_runner: ProcessRunnerProtocol) -> None:
+        """Inject process runner implementation (e.g. API ProcessManager)."""
+        self._process_runner = process_runner
+
+    def start(self, process_runner: Optional[ProcessRunnerProtocol] = None) -> None:
         """Start worker thread."""
+        if process_runner is not None:
+            self._process_runner = process_runner
         if not self._running:
             self._running = True
             self._stop_event.clear()
@@ -229,20 +268,20 @@ class QueueWorker:
             self._thread.start()
             log.info("[QUEUE WORKER] Batch worker thread started.")
 
-    def stop(self, timeout: float = 2.0):
+    def stop(self, timeout: float = 2.0) -> None:
         """Stop worker loop and join thread cleanly."""
         self._running = False
         self._stop_event.set()
         if self._thread and self._thread.is_alive():
             self._thread.join(timeout=timeout)
 
-    def _run_loop(self):
+    def _run_loop(self) -> None:
         """Sequential polling and task execution loop."""
-        from vhs_studio.api.server import pm
         import sys
 
+        runner = self._process_runner
         while self._running and not self._stop_event.is_set():
-            if not pm.is_running():
+            if not runner.is_running():
                 job = self.manager.get_next_pending_job()
                 if job:
                     job_id = job["id"]
@@ -261,10 +300,9 @@ class QueueWorker:
                         params_json,
                     ]
 
-                    success, _ = pm.start_process(cmd)
+                    success, _ = runner.start_process(cmd)
                     if success:
-                        # Await process completion
-                        while pm.is_running() and not self._stop_event.is_set():
+                        while runner.is_running() and not self._stop_event.is_set():
                             self._stop_event.wait(0.5)
                         self.manager.complete_job(job_id)
                     else:

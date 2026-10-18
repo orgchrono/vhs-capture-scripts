@@ -5,7 +5,7 @@ import sys
 import base64
 import subprocess
 from vhs_studio.core.system_process import run_silent, popen_silent
-from typing import Dict, Mapping, Union, Optional, List
+from typing import Dict, Mapping, Union, Optional, List, Tuple, Any
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse, Response
 
@@ -74,12 +74,12 @@ def _handle_start_restore(params: Mapping[str, object], pm):
         pm.start_process(cmd)
         return {
             "status": "started",
-            "message": "Instalando dependências do QTGMC em segundo plano.",
+            "message": "Installing QTGMC dependencies in the background.",
         }
 
     input_file = resolve_media_input_path(str(params.get("input", "")))
     if not is_safe_media_path(input_file):
-        return {"status": "error", "message": "Caminho de arquivo inválido ou não seguro."}
+        return {"status": "error", "message": "Invalid or insecure file path."}
 
     cmd = _build_cli_cmd(
         "pipeline",
@@ -89,47 +89,73 @@ def _handle_start_restore(params: Mapping[str, object], pm):
     )
     success, msg = pm.start_process(cmd)
     if success:
-        return {"status": "ok", "message": "Pipeline de restauração iniciada com sucesso."}
+        return {"status": "ok", "message": "Restoration pipeline started successfully."}
     return {"status": "error", "message": msg}
 
 
 def _handle_install_obs(pm):
     if pm.is_running():
-        return {"status": "error", "message": "Aguarde a conclusão do processo em andamento."}
+        return {"status": "error", "message": "Please wait for current process to finish."}
     cmd = _build_cli_cmd("setup-obs")
     success, msg = pm.start_process(cmd)
     if success:
-        return {"status": "started", "message": "Instalador do OBS Portable iniciado em segundo plano."}
+        return {"status": "started", "message": "OBS portable installer started in the background."}
     return {"status": "error", "message": msg}
 
 
 def _handle_install_vapoursynth(pm):
     if pm.is_running():
-        return {"status": "error", "message": "Aguarde a conclusão do processo em andamento."}
+        return {"status": "error", "message": "Please wait for current process to finish."}
     cmd = _build_cli_cmd("setup-qtgmc")
     success, msg = pm.start_process(cmd)
     if success:
-        return {"status": "ok", "message": "Instalador do VapourSynth + QTGMC iniciado em segundo plano."}
+        return {"status": "ok", "message": "VapourSynth + QTGMC installer started in the background."}
     return {"status": "error", "message": msg}
+
+
+def _resolve_safe_input_and_model_size(params: Mapping[str, object]) -> Tuple[Optional[str], str]:
+    input_file = resolve_media_input_path(str(params.get("input", "")))
+    if not is_safe_media_path(input_file):
+        return None, "tiny"
+    raw_size = str(params.get("model_size", "tiny"))
+    valid_models = ("tiny", "base", "small", "medium", "large")
+    model_size = raw_size if raw_size in valid_models else "tiny"
+    return input_file, model_size
 
 
 def _handle_generate_subtitles(params: Mapping[str, object], pm):
     if pm.is_running():
-        return {"status": "error", "message": "Aguarde a conclusão do processo em andamento."}
+        return {"status": "error", "message": "Please wait for current process to finish."}
 
-    input_file = resolve_media_input_path(str(params.get("input", "")))
-    if not is_safe_media_path(input_file):
-        return {"status": "error", "message": "Caminho de arquivo inválido ou não seguro."}
+    input_file, model_size = _resolve_safe_input_and_model_size(params)
+    if not input_file:
+        return {"status": "error", "message": "Invalid or insecure file path."}
 
-    raw_size = str(params.get("model_size", "tiny"))
-    valid_models = ("tiny", "base", "small", "medium", "large")
-    model_size = raw_size if raw_size in valid_models else "tiny"
+    raw_lang = str(params.get("language", "pt")).strip().lower()
 
-    cmd = _build_cli_cmd("subtitles", input_file, "--model-size", model_size)
+    cmd = _build_cli_cmd(
+        "subtitles",
+        input_file,
+        "--model-size",
+        model_size,
+        "--language",
+        raw_lang,
+    )
     success, msg = pm.start_process(cmd)
     if success:
-        return {"status": "ok", "message": "Geração de legendas IA iniciada com sucesso."}
+        return {"status": "ok", "message": "AI subtitle generation started successfully."}
     return {"status": "error", "message": msg}
+
+
+def _handle_detect_whisper_language(params: Mapping[str, object]) -> Dict[str, Any]:
+    from vhs_studio.ai.whisper_engine import detect_first_speech_and_language
+
+    input_file, model_size = _resolve_safe_input_and_model_size(params)
+    if not input_file:
+        return {"status": "error", "message": "Invalid or insecure file path."}
+
+    res = detect_first_speech_and_language(input_file, model_size=model_size)
+    return {"status": "ok", **res}
 
 
 def _handle_pause_process(pm):
@@ -148,8 +174,8 @@ def _handle_resume_process(pm):
 
 def _handle_abort_process(pm):
     if pm.terminate():
-        return {"status": "ok", "message": "Processo e sinal interrompidos com sucesso (Abort)."}
-    return {"status": "error", "message": "Nenhum processo em execução para interromper."}
+        return {"status": "ok", "message": "Process and signal successfully aborted."}
+    return {"status": "error", "message": "No process currently running."}
 
 
 def _handle_stop_process(pm):
@@ -163,6 +189,10 @@ async def perform_action(request: Request):
     action = data.get("action", "")
     params: Dict[str, object] = data.get("params", {})
     pm = _resolve_pm()
+
+    if action == "detect_whisper_language":
+        import asyncio
+        return await asyncio.to_thread(_handle_detect_whisper_language, params)
 
     dispatch_table = {
         "start_restore": lambda: _handle_start_restore(params, pm),
@@ -179,7 +209,7 @@ async def perform_action(request: Request):
     if handler:
         return handler()
 
-    return {"status": "error", "message": "Ação desconhecida solicitada."}
+    return {"status": "error", "message": "Unknown action."}
 
 
 @restoration_router.get("/restoration/status")
@@ -327,16 +357,16 @@ async def run_pipeline(request: Request):
     pm = _resolve_pm()
 
     if pm.is_running():
-        return JSONResponse(status_code=400, content={"status": "error", "message": "Já existe um processo em execução. Aguarde a finalização."})
+        return JSONResponse(status_code=400, content={"status": "error", "message": "A process is already running. Wait for completion."})
 
     input_file = resolve_media_input_path(params.get("input"))
     if not is_safe_media_path(input_file):
-        return JSONResponse(status_code=400, content={"status": "error", "message": "Caminho de arquivo inválido ou não seguro."})
+        return JSONResponse(status_code=400, content={"status": "error", "message": "Invalid or insecure file path."})
 
     cmd = _build_cli_cmd("pipeline", input_file, "--params-json", json.dumps(params))
     success, msg = pm.start_process(cmd)
     if success:
-        return {"status": "ok", "message": "Pipeline de restauração iniciada com sucesso."}
+        return {"status": "ok", "message": "Restoration pipeline started successfully."}
     return JSONResponse(status_code=500, content={"status": "error", "message": msg})
 
 
@@ -345,11 +375,11 @@ def install_qtgmc():
     """Launch background installer for VapourSynth and QTGMC."""
     pm = _resolve_pm()
     if pm.is_running():
-        return {"status": "error", "message": "Já existe um processo em execução. Aguarde a finalização."}
+        return {"status": "error", "message": "A process is already running. Wait for completion."}
     cmd = _build_cli_cmd("setup-qtgmc")
     success, msg = pm.start_process(cmd)
     if success:
-        return {"status": "started", "message": "Instalação do VapourSynth + QTGMC iniciada em segundo plano."}
+        return {"status": "started", "message": "VapourSynth + QTGMC installer started in the background."}
     return {"status": "error", "message": msg}
 
 
@@ -424,46 +454,64 @@ def _kill_stream_process_tree(proc: subprocess.Popen) -> None:
             pass
 
 
+def _get_black_leader_offset(raw_path: str, restored_path: Optional[str] = None) -> float:
+    """Retrieve black leader offset in seconds from QC reports or checkpoint."""
+    candidates = []
+    if raw_path:
+        candidates.append(f"{raw_path}_qc_report.json")
+    if restored_path:
+        candidates.append(f"{restored_path}_qc_report.json")
+        candidates.append(f"{restored_path}.checkpoint.json")
+    for cp in candidates:
+        if os.path.exists(cp):
+            try:
+                with open(cp, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                val = float(data.get("black_leader_sec", 0.0) or 0.0)
+                if val > 0.0:
+                    return val
+            except Exception:
+                pass
+    return 0.0
+
+
 def _find_existing_restored_master(raw_path: str) -> Optional[str]:
     """Locate an existing completed or partial restored master video file in media/restored."""
     if not raw_path or not os.path.exists(raw_path):
         return None
     stem = os.path.splitext(os.path.basename(raw_path))[0]
-    candidates = []
+
     sub_dir = os.path.join(RESTORED_MEDIA_DIR, stem)
-    if os.path.isdir(sub_dir):
-        try:
-            for fname in os.listdir(sub_dir):
-                if (
-                    fname.lower().endswith((".mp4", ".mkv", ".mov"))
-                    and not fname.endswith(".tmp")
-                    and not fname.endswith(".part")
-                ):
-                    candidates.append(os.path.join(sub_dir, fname))
-        except Exception:
-            pass
+    primary_candidates = [
+        os.path.join(sub_dir, f"{stem}_restored_1080p.mp4"),
+        os.path.join(sub_dir, f"{stem}_restored.mp4"),
+        os.path.join(sub_dir, f"{stem}.mp4"),
+        os.path.join(RESTORED_MEDIA_DIR, f"{stem}_restored_1080p.mp4"),
+        os.path.join(RESTORED_MEDIA_DIR, f"{stem}_restored.mp4"),
+        os.path.join(RESTORED_MEDIA_DIR, f"{stem}.mp4"),
+    ]
+    for cand in primary_candidates:
+        if os.path.isfile(cand) and os.path.getsize(cand) > 100 * 1024:
+            return cand
 
-    if os.path.isdir(RESTORED_MEDIA_DIR):
-        try:
-            for fname in os.listdir(RESTORED_MEDIA_DIR):
-                if (
-                    stem.lower() in fname.lower()
-                    and fname.lower().endswith((".mp4", ".mkv", ".mov"))
-                    and not fname.endswith(".tmp")
-                    and not fname.endswith(".part")
-                ):
-                    candidates.append(os.path.join(RESTORED_MEDIA_DIR, fname))
-        except Exception:
-            pass
+    candidates = []
+    for search_dir in (sub_dir, RESTORED_MEDIA_DIR):
+        if os.path.isdir(search_dir):
+            try:
+                for fname in os.listdir(search_dir):
+                    lower = fname.lower()
+                    if (
+                        lower.endswith((".mp4", ".mkv", ".mov"))
+                        and not any(x in lower for x in ("scene", "part", "tmp", "temp", "checkpoint"))
+                        and stem.lower() in lower
+                    ):
+                        candidates.append(os.path.join(search_dir, fname))
+            except Exception:
+                pass
 
-    valid_candidates = []
-    for c in candidates:
-        try:
-            if os.path.isfile(c) and os.path.getsize(c) > 100 * 1024:
-                valid_candidates.append(c)
-        except Exception:
-            pass
-
+    valid_candidates = [
+        c for c in candidates if os.path.isfile(c) and os.path.getsize(c) > 100 * 1024
+    ]
     if valid_candidates:
         valid_candidates.sort(key=lambda p: os.path.getmtime(p), reverse=True)
         return valid_candidates[0]
@@ -492,7 +540,7 @@ def _build_proxy_filters_base(
 def get_comparison_frame(
     source: str = "",
     timestamp: float = 5.0,
-    deinterlacer: str = "bwdif",
+    deinterlacer: str = "qtgmc",
     denoise: bool = True,
     chroma_fix: bool = True,
 ):
@@ -509,20 +557,26 @@ def get_comparison_frame(
     total_duration = 3600.0
 
     if is_valid_source:
+        restored_master = _find_existing_restored_master(target_path)
+        black_offset = _get_black_leader_offset(target_path, restored_master)
+
         try:
             from vhs_studio.core.vhs_common import probe_media
 
-            meta = probe_media(target_path)
+            probe_target = restored_master if restored_master else target_path
+            meta = probe_media(probe_target)
             total_duration = float(meta.get("duration", 3600.0))
             if total_duration <= 0.0:
                 total_duration = 3600.0
         except Exception:
             total_duration = 3600.0
+
+        raw_seek_time = safe_time + black_offset if restored_master else safe_time
         cmd_raw = [
             ffmpeg_bin,
             "-hide_banner",
             "-loglevel", "error",
-            "-ss", f"{safe_time:.3f}",
+            "-ss", f"{raw_seek_time:.3f}",
             "-i", target_path,
             "-frames:v", "1",
             "-vf", scale_filter,
@@ -531,7 +585,6 @@ def get_comparison_frame(
             "pipe:1",
         ]
 
-        restored_master = _find_existing_restored_master(target_path)
         if restored_master:
             cmd_proc = [
                 ffmpeg_bin,
@@ -563,6 +616,8 @@ def get_comparison_frame(
                 "pipe:1",
             ]
     else:
+        black_offset = 0.0
+        restored_master = None
         cmd_raw = [
             ffmpeg_bin,
             "-hide_banner",
@@ -603,6 +658,8 @@ def get_comparison_frame(
             "status": "ok",
             "timestamp": safe_time,
             "duration": round(total_duration, 2),
+            "black_leader_sec": round(black_offset, 3),
+            "has_restored_master": bool(restored_master),
             "raw_image": raw_b64,
             "processed_image": proc_b64,
             "width": 640,
@@ -629,7 +686,7 @@ def _build_proxy_processed_filters(
 async def get_stream_proxy(
     source: str = "",
     mode: str = "raw",
-    deinterlacer: str = "bwdif",
+    deinterlacer: str = "qtgmc",
     denoise: bool = True,
     chroma_fix: bool = True,
     fps: int = 15,
@@ -639,7 +696,7 @@ async def get_stream_proxy(
     if source and not is_safe_media_path(target_path):
         return JSONResponse(
             status_code=400,
-            content={"status": "error", "message": "Caminho de arquivo inválido ou não seguro."},
+            content={"status": "error", "message": "Invalid or insecure file path."},
         )
 
     is_valid_source = bool(target_path and os.path.exists(target_path) and is_safe_media_path(target_path))
@@ -658,8 +715,8 @@ async def get_stream_proxy(
                 ffmpeg_bin,
                 "-hide_banner",
                 "-loglevel", "error",
-                "-re",
                 *ss_args,
+                "-re",
                 "-stream_loop", "-1",
                 "-i", target_path,
                 "-vf", f"{scale_filter},fps={fps_val}",
@@ -672,6 +729,11 @@ async def get_stream_proxy(
         elif mode == "split":
             restored_master = _find_existing_restored_master(target_path)
             if restored_master:
+                black_offset = _get_black_leader_offset(target_path, restored_master)
+                raw_time = safe_time + black_offset
+                raw_ss_args = ["-ss", f"{raw_time:.3f}"] if raw_time > 0 else []
+                proc_ss_args = ["-ss", f"{safe_time:.3f}"] if safe_time > 0 else []
+
                 filter_complex = (
                     f"[0:v]{scale_filter},fps={fps_val}[raw_out];"
                     f"[1:v]{scale_filter},fps={fps_val}[proc_out];"
@@ -681,12 +743,12 @@ async def get_stream_proxy(
                     ffmpeg_bin,
                     "-hide_banner",
                     "-loglevel", "error",
+                    *raw_ss_args,
                     "-re",
-                    *ss_args,
                     "-stream_loop", "-1",
                     "-i", target_path,
+                    *proc_ss_args,
                     "-re",
-                    *ss_args,
                     "-stream_loop", "-1",
                     "-i", restored_master,
                     "-filter_complex", filter_complex,
@@ -712,8 +774,8 @@ async def get_stream_proxy(
                     ffmpeg_bin,
                     "-hide_banner",
                     "-loglevel", "error",
-                    "-re",
                     *ss_args,
+                    "-re",
                     "-stream_loop", "-1",
                     "-i", target_path,
                     "-filter_complex", filter_complex,

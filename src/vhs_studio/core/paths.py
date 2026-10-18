@@ -2,6 +2,7 @@ import sys
 import os
 import platform
 import shutil
+from typing import Optional
 
 # Detect PyInstaller frozen execution environment
 IS_FROZEN = getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS")
@@ -32,7 +33,7 @@ GFPGAN_DIR = os.path.join(TOOLS_DIR, "gfpgan")
 
 # Config Files
 USER_HOME = os.path.expanduser("~")
-VHS_STUDIO_DIR = os.path.join(USER_HOME, ".vhs_studio")
+VHS_STUDIO_DIR = os.environ.get("VHS_STUDIO_DIR", os.path.join(USER_HOME, ".vhs_studio"))
 STORAGE_CONFIG_PATH = os.path.join(VHS_STUDIO_DIR, "storage.json")
 PREFERENCES_CONFIG_PATH = os.path.join(VHS_STUDIO_DIR, "preferences.json")
 ADVANCED_CONFIG_PATH = os.path.join(BUNDLE_ROOT, "vhs_advanced_config.toml") if os.path.exists(os.path.join(BUNDLE_ROOT, "vhs_advanced_config.toml")) else os.path.join(PROJECT_ROOT, "vhs_advanced_config.toml")
@@ -72,13 +73,17 @@ def get_obs_cwd():
     return None
 
 
-def get_ffmpeg_executable_path(binary_name="ffmpeg"):
+def get_ffmpeg_executable_path(binary_name="ffmpeg") -> Optional[str]:
     """Return path to FFmpeg binary if portable or available in system PATH."""
     sys_name = platform.system()
-    if sys_name == "Windows":
-        portable_path = os.path.join(FFMPEG_DIR, "bin", f"{binary_name}.exe")
-        if os.path.exists(portable_path):
-            return portable_path
+    bin_name = f"{binary_name}.exe" if sys_name == "Windows" else binary_name
+    portable_path = os.path.join(FFMPEG_DIR, "bin", bin_name)
+    if os.path.exists(portable_path):
+        return portable_path
+
+    which_path = shutil.which(bin_name) or shutil.which(binary_name)
+    if which_path:
+        return which_path
 
     return None
 

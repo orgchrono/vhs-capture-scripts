@@ -10,6 +10,7 @@ Monitoramento em tempo real de ÁUDIO e VÍDEO da Blackmagic Intensity Shuttle:
 import json
 import base64
 import os
+import platform
 import time
 from vhs_studio.core.logger import log
 import math
@@ -54,18 +55,28 @@ def mul_to_db(mul):
     return 20.0 * math.log10(mul)
 
 
-def is_obs_running():
-    """Documentation for is_obs_running."""
+def is_obs_running() -> bool:
+    """Check if OBS Studio process is running across Windows, Linux, and macOS."""
+    sys_name = platform.system()
     try:
-        r = run_silent(
-            ["tasklist", "/fi", "imagename eq obs64.exe"],
-            capture_output=True,
-            text=True,
-            errors="replace",
-        )
-        return "obs64.exe" in r.stdout.lower()
+        if sys_name == "Windows":
+            r = run_silent(
+                ["tasklist", "/fi", "imagename eq obs64.exe"],
+                capture_output=True,
+                text=True,
+                errors="replace",
+            )
+            return "obs64.exe" in r.stdout.lower()
+        else:
+            r = run_silent(
+                ["pgrep", "-i", "obs"],
+                capture_output=True,
+                text=True,
+                errors="replace",
+            )
+            return r.returncode == 0
     except Exception:
-        return True
+        return False
 
 
 def analyze_visual_frame(img_b64, prev_pixels=None):
@@ -139,22 +150,22 @@ def run_watcher():
     log.info(
         "=============================================================================="
     )
-    log.info("       📼 VHS STUDIO - SERVIÇO DE CAPTURA INTELIGENTE (ÁUDIO + VÍDEO) 📼")
+    log.info("       📼 VHS STUDIO - INTELLIGENT CAPTURE SERVICE (AUDIO + VIDEO) 📼")
     log.info(
         "=============================================================================="
     )
-    log.info(f"Limiar de Áudio    : {THRESHOLD_DB:.1f} dB")
+    log.info(f"Audio Threshold    : {THRESHOLD_DB:.1f} dB")
     log.info(
-        f"Gatilho de Início  : IMEDIATO (< {START_CONFIRM_SEC*1000:.0f}ms de áudio ou vídeo ativo)"
+        f"Start Trigger      : IMMEDIATE (< {START_CONFIRM_SEC*1000:.0f}ms active audio or video)"
     )
     log.info(
-        f"Gatilho de Parada  : {STOP_BLANK_CONFIRM_SEC:.1f}s (Silêncio + Tela de Parada Azul/Preta)"
+        f"Stop Trigger       : {STOP_BLANK_CONFIRM_SEC:.1f}s (Silence + Blue/Black Stop Screen)"
     )
     log.info(
-        "Proteção de Cena   : Cenas silenciosas com vídeo ativo mantêm gravação ativa!"
+        "Scene Protection   : Silent scenes with active video keep recording active!"
     )
     log.info(
-        f"Análise Visual     : {'Ativa (Pillow 16x12)' if HAS_PIL else 'Básica (Apenas Áudio)'}"
+        f"Visual Analysis    : {'Active (Pillow 16x12)' if HAS_PIL else 'Basic (Audio Only)'}"
     )
     log.info(
         "------------------------------------------------------------------------------"
@@ -197,16 +208,16 @@ def run_watcher():
                 )
             )
 
-            # 3. Recebe Identified (OpCode 2)
+            # 3. Receive Identified (OpCode 2)
             ws.recv()
-            log.info("[Pronto] Monitoramento inteligente ativo de áudio e vídeo.")
+            log.info("[Ready] Smart audio and video capture monitoring active.")
 
             is_recording = False
             signal_start_time = None
             blank_silence_start_time = None
             quiet_scene_start_time = None
-            last_feedback_time = 0
-            last_shot_request_time = 0
+            last_feedback_time: float = 0.0
+            last_shot_request_time: float = 0.0
             target_input_name = None
 
             latest_visual_info = None
@@ -329,27 +340,27 @@ def run_watcher():
                                 )
                             )
 
-                        # Interpretação do estado visual
+                        # Visual state evaluation
                         is_visual_active = False
                         is_visual_blank = True
-                        visual_label = "DESCONHECIDO"
+                        visual_label = "UNKNOWN"
 
                         if latest_visual_info:
                             if latest_visual_info.get("is_blue"):
-                                visual_label = "TELA AZUL (Standby)"
+                                visual_label = "BLUE SCREEN (Standby)"
                                 is_visual_blank = True
                             elif latest_visual_info.get("is_black"):
-                                visual_label = "TELA PRETA"
+                                visual_label = "BLACK SCREEN"
                                 is_visual_blank = True
                             elif latest_visual_info.get("is_active"):
-                                visual_label = "VÍDEO ATIVO"
+                                visual_label = "ACTIVE VIDEO"
                                 is_visual_active = True
                                 is_visual_blank = False
                             else:
-                                visual_label = "ESTÁTICO"
+                                visual_label = "STATIC NOISE"
                                 is_visual_blank = True
 
-                        # Feedback no console a cada 3 segundos
+                        # Console telemetry feedback every 3 seconds
                         if now - last_feedback_time > 3.0:
                             last_feedback_time = now
 

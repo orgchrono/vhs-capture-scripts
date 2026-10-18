@@ -8,7 +8,7 @@ import { useStorageViewModel } from "../viewmodels/useStorageViewModel";
 
 // ============================================================================
 // VIEW: Strict MVVM (Dumb Component)
-// Harmonizado com a paleta Pro Dark Studio & Glassmorphism (SoC + SSOT).
+// Harmonized with Pro Dark Studio & Glassmorphism palette (SoC + SSOT).
 // ============================================================================
 
 export function StorageSettings() {
@@ -20,7 +20,7 @@ export function StorageSettings() {
     setSaveFeedback(null);
     vm.handleSave(
       () => {
-        const msg = t("toast.storage_saved", { defaultValue: "Configuração salva com sucesso!" });
+        const msg = t("storage.saved_success", { defaultValue: "Storage configuration saved successfully!" });
         setSaveFeedback({ type: 'success', message: msg });
         toast.success(msg);
         setTimeout(() => setSaveFeedback(null), 4000);
@@ -34,12 +34,12 @@ export function StorageSettings() {
   };
 
   const providers = [
-    { id: "local_nas_usb", name: t("Local / NAS / USB"), icon: HardDrive },
-    { id: "supabase", name: t("Supabase Storage"), icon: Database },
-    { id: "s3_generic", name: t("AWS S3 Compatível"), icon: Globe },
-    { id: "gdrive", name: t("Google Drive"), icon: Cloud },
-    { id: "dropbox", name: t("Dropbox"), icon: Box },
-    { id: "onedrive", name: t("OneDrive / SharePoint"), icon: Server },
+    { id: "local_nas_usb", name: t("storage.provider_local"), icon: HardDrive },
+    { id: "supabase", name: t("storage.provider_supabase"), icon: Database },
+    { id: "s3_generic", name: t("storage.provider_s3"), icon: Globe },
+    { id: "gdrive", name: t("storage.provider_gdrive"), icon: Cloud },
+    { id: "dropbox", name: t("storage.provider_dropbox"), icon: Box },
+    { id: "onedrive", name: t("storage.provider_onedrive"), icon: Server },
   ];
 
   return (
@@ -47,12 +47,12 @@ export function StorageSettings() {
       <div className="flex items-center justify-between border-b border-studio-border/60 pb-3">
         <h2 className="text-xs font-semibold text-slate-200 uppercase tracking-wider flex items-center gap-2 font-mono">
           <Cloud className="w-4 h-4 text-emerald-400" />
-          {t("Destino de Armazenamento & Nuvem")}
+          {t("storage.title")}
         </h2>
         {vm.status.ready && (
           <span className="text-[11px] font-mono text-emerald-400 bg-studio-panel border border-emerald-500/30 px-2 py-0.5 rounded-sm flex items-center gap-1.5">
             <span className="led-lamp led-live shrink-0" aria-hidden="true" />
-            {t("Conectado")}
+            {t("storage.connected")}
           </span>
         )}
       </div>
@@ -85,7 +85,7 @@ export function StorageSettings() {
         {vm.provider === "local_nas_usb" && (
           <div className="space-y-1.5">
             <label className="text-[11px] font-mono font-medium text-slate-400 block">
-              {t("Caminho do Destino (ex: Z:\\Archive ou /mnt/usb)")}
+              {t("storage.destination_path_label")}
             </label>
             <Input
               type="text"
@@ -96,7 +96,7 @@ export function StorageSettings() {
             />
             {vm.status.ready && (
               <p className="text-xs text-emerald-400 flex items-center gap-1 pt-1 font-mono">
-                <CheckCircle2 className="w-3.5 h-3.5" /> {t("Pronto! Espaço livre:")} {vm.status.free_space_gb} GB
+                <CheckCircle2 className="w-3.5 h-3.5" /> {t("storage.ready_free_space")} {vm.status.free_space_gb} GB
               </p>
             )}
           </div>
@@ -105,7 +105,7 @@ export function StorageSettings() {
         {vm.provider === "supabase" && (
           <div className="space-y-3">
             <div className="space-y-1">
-              <label className="text-[11px] font-mono font-medium text-slate-400 block">{t("Supabase Project URL")}</label>
+              <label className="text-[11px] font-mono font-medium text-slate-400 block">{t("storage.supabase_url_label")}</label>
               <Input
                 type="text"
                 value={vm.config.SUPABASE_URL || ""}
@@ -115,7 +115,7 @@ export function StorageSettings() {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-[11px] font-mono font-medium text-slate-400 block">{t("Anon / Service Role Key")}</label>
+              <label className="text-[11px] font-mono font-medium text-slate-400 block">{t("storage.supabase_key_label")}</label>
               <Input
                 type="password"
                 value={vm.config.SUPABASE_KEY || ""}
@@ -124,7 +124,7 @@ export function StorageSettings() {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-[11px] font-mono font-medium text-slate-400 block">{t("Nome do Bucket")}</label>
+              <label className="text-[11px] font-mono font-medium text-slate-400 block">{t("storage.bucket_name_label")}</label>
               <Input
                 type="text"
                 value={vm.config.SUPABASE_BUCKET || ""}
@@ -139,7 +139,7 @@ export function StorageSettings() {
         {vm.provider === "s3_generic" && (
           <div className="space-y-3">
             <div className="space-y-1">
-              <label className="text-[11px] font-mono font-medium text-slate-400 block">{t("S3 Endpoint URL (Opcional)")}</label>
+              <label className="text-[11px] font-mono font-medium text-slate-400 block">{t("storage.s3_endpoint_label")}</label>
               <Input
                 type="text"
                 value={vm.config.S3_ENDPOINT_URL || ""}
@@ -150,7 +150,7 @@ export function StorageSettings() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-[11px] font-mono font-medium text-slate-400 block">{t("S3 Access Key ID")}</label>
+                <label className="text-[11px] font-mono font-medium text-slate-400 block">{t("storage.s3_access_key_label")}</label>
                 <Input
                   type="text"
                   value={vm.config.S3_ACCESS_KEY || ""}
@@ -159,7 +159,7 @@ export function StorageSettings() {
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[11px] font-mono font-medium text-slate-400 block">{t("S3 Secret Access Key")}</label>
+                <label className="text-[11px] font-mono font-medium text-slate-400 block">{t("storage.s3_secret_key_label")}</label>
                 <Input
                   type="password"
                   value={vm.config.S3_SECRET_KEY || ""}
@@ -170,7 +170,7 @@ export function StorageSettings() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-[11px] font-mono font-medium text-slate-400 block">{t("Nome do Bucket")}</label>
+                <label className="text-[11px] font-mono font-medium text-slate-400 block">{t("storage.bucket_name_label")}</label>
                 <Input
                   type="text"
                   value={vm.config.S3_BUCKET || ""}
@@ -180,7 +180,7 @@ export function StorageSettings() {
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[11px] font-mono font-medium text-slate-400 block">{t("S3 Region")}</label>
+                <label className="text-[11px] font-mono font-medium text-slate-400 block">{t("storage.s3_region_label")}</label>
                 <Input
                   type="text"
                   value={vm.config.S3_REGION || "us-east-1"}
@@ -195,10 +195,10 @@ export function StorageSettings() {
         {vm.provider === "gdrive" && (
           <div className="space-y-3">
             <p className="text-xs text-slate-400 font-mono">
-              {t("A integração com Google Drive usa as credenciais armazenadas no cofre do sistema.")}
+              {t("storage.gdrive_info")}
             </p>
             <div className="space-y-1">
-              <label className="text-[11px] font-mono font-medium text-slate-400 block">{t("Google Client ID")}</label>
+              <label className="text-[11px] font-mono font-medium text-slate-400 block">{t("storage.gdrive_client_id_label")}</label>
               <Input
                 type="text"
                 value={vm.config.GDRIVE_CLIENT_ID || ""}
@@ -207,7 +207,7 @@ export function StorageSettings() {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-[11px] font-mono font-medium text-slate-400 block">{t("Google Client Secret")}</label>
+              <label className="text-[11px] font-mono font-medium text-slate-400 block">{t("storage.gdrive_client_secret_label")}</label>
               <Input
                 type="password"
                 value={vm.config.GDRIVE_CLIENT_SECRET || ""}
@@ -221,7 +221,7 @@ export function StorageSettings() {
                 onClick={() => vm.initiateOAuth("gdrive")}
                 className="w-full mt-2 bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-sky-400 font-mono text-xs rounded-sm h-8 cursor-pointer"
               >
-                {t("Conectar via Google OAuth")}
+                {t("storage.gdrive_connect_btn")}
               </Button>
             )}
           </div>
@@ -230,7 +230,7 @@ export function StorageSettings() {
         {vm.provider === "dropbox" && (
           <div className="space-y-3">
             <div className="space-y-1">
-              <label className="text-[11px] font-mono font-medium text-slate-400 block">{t("Dropbox App Key")}</label>
+              <label className="text-[11px] font-mono font-medium text-slate-400 block">{t("storage.dropbox_key_label")}</label>
               <Input
                 type="text"
                 value={vm.config.DROPBOX_APP_KEY || ""}
@@ -239,7 +239,7 @@ export function StorageSettings() {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-[11px] font-mono font-medium text-slate-400 block">{t("Dropbox App Secret")}</label>
+              <label className="text-[11px] font-mono font-medium text-slate-400 block">{t("storage.dropbox_secret_label")}</label>
               <Input
                 type="password"
                 value={vm.config.DROPBOX_APP_SECRET || ""}
@@ -253,7 +253,7 @@ export function StorageSettings() {
                 onClick={() => vm.initiateOAuth("dropbox")}
                 className="w-full mt-2 bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-sky-400 font-mono text-xs rounded-sm h-8 cursor-pointer"
               >
-                {t("Autorizar Dropbox no Navegador")}
+                {t("storage.dropbox_auth_btn")}
               </Button>
             )}
           </div>
@@ -262,7 +262,7 @@ export function StorageSettings() {
         {vm.provider === "onedrive" && (
           <div className="space-y-3">
             <div className="space-y-1">
-              <label className="text-[11px] font-mono font-medium text-slate-400 block">{t("OneDrive Client ID")}</label>
+              <label className="text-[11px] font-mono font-medium text-slate-400 block">{t("storage.onedrive_id_label")}</label>
               <Input
                 type="text"
                 value={vm.config.ONEDRIVE_CLIENT_ID || ""}
@@ -271,7 +271,7 @@ export function StorageSettings() {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-[11px] font-mono font-medium text-slate-400 block">{t("OneDrive Client Secret")}</label>
+              <label className="text-[11px] font-mono font-medium text-slate-400 block">{t("storage.onedrive_secret_label")}</label>
               <Input
                 type="password"
                 value={vm.config.ONEDRIVE_CLIENT_SECRET || ""}
@@ -285,7 +285,7 @@ export function StorageSettings() {
                 onClick={() => vm.initiateOAuth("onedrive")}
                 className="w-full mt-2 bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-sky-400 font-mono text-xs rounded-sm h-8 cursor-pointer"
               >
-                {t("Autorizar Conta Microsoft")}
+                {t("storage.onedrive_auth_btn")}
               </Button>
             )}
           </div>
@@ -316,7 +316,7 @@ export function StorageSettings() {
         disabled={vm.loading}
         className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-mono font-semibold text-xs py-2 rounded-sm border border-emerald-500/50 shadow-xs transition cursor-pointer"
       >
-        {vm.loading ? t("Validando...") : t("Salvar Configuração de Armazenamento")}
+        {vm.loading ? t("storage.validating") : t("storage.save_btn")}
       </Button>
     </div>
   );

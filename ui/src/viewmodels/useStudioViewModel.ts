@@ -164,6 +164,9 @@ export function useStudioViewModel() {
         ai_upscaler: store.aiUpscaler,
         ai_upscaler_model: store.aiUpscalerModel,
         output_codec: store.outputCodec,
+        ai_whisper: store.aiWhisper,
+        whisper_model: store.whisperModel,
+        language: store.whisperLanguage || 'pt',
         ...overrideParams,
       }).unwrap();
 

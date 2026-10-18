@@ -36,10 +36,10 @@ class RifeInterpolator:
     def interpolate_video(self, input_video: str, output_video: str) -> bool:
         """Execute RIFE interpolation on video file."""
         if not self.rife_bin:
-            log.warning("[RIFE] Binário rife-ncnn-vulkan não encontrado no sistema.")
+            log.warning("[RIFE] rife-ncnn-vulkan binary not found on system.")
             return False
 
-        log.info(f"[RIFE] Iniciando interpolação de movimento para {self.target_fps:.0f} fps...")
+        log.info(f"[RIFE] Starting motion interpolation to {self.target_fps:.0f} fps...")
         cmd = [
             self.rife_bin,
             "-i", input_video,
@@ -51,5 +51,5 @@ class RifeInterpolator:
             res = run_silent(cmd, capture_output=True, text=True, errors="replace", check=True)
             return res.returncode == 0
         except Exception as e:
-            log.error(f"[RIFE] Falha na interpolação RIFE: {e}")
+            log.error(f"[RIFE] Motion interpolation failed: {e}")
             return False

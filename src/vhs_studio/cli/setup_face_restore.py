@@ -11,14 +11,14 @@ from vhs_studio.core.paths import CODEFORMER_DIR, TOOLS_DIR, get_python_interpre
 
 def setup_face_restorer() -> bool:
     """Check, auto-install, or prepare neural face restoration engine."""
-    print_step("Iniciando setup automático do motor neural de restauração facial...")
+    print_step("Starting automated neural face restoration engine setup...")
 
     restorer = FaceRestorer()
     if restorer.is_available():
-        print_success("Motor de restauração facial (CodeFormer/GFPGAN) já está pronto e disponível.")
+        print_success("Face restoration engine (CodeFormer/GFPGAN) is already installed and available.")
         return True
 
-    print_step("Dependências neurais não detectadas. Iniciando auto-instalação via pip...")
+    print_step("Neural dependencies not detected. Initiating automated pip installation...")
     os.makedirs(TOOLS_DIR, exist_ok=True)
     os.makedirs(CODEFORMER_DIR, exist_ok=True)
 
@@ -33,15 +33,15 @@ def setup_face_restorer() -> bool:
             timeout=180,
         )
         if res.returncode == 0:
-            print_success("Pacotes facexlib e torchvision instalados com sucesso!")
+            print_success("Packages facexlib and torchvision installed successfully!")
             return True
         else:
-            print_error(f"Auto-instalação via pip retornou código de erro: {res.stderr.strip()[:200]}")
+            print_error(f"Pip installation returned an error code: {res.stderr.strip()[:200]}")
     except Exception as exc:
-        print_error(f"Falha ao executar auto-instalação de pacotes: {exc}")
+        print_error(f"Failed to execute automated package installation: {exc}")
 
     # Fallback status
-    print_step("Fallback inteligente: o sistema utilizará nitidez facial adaptativa FFmpeg CAS sem interrupção.")
+    print_step("Intelligent fallback: system will use adaptive FFmpeg CAS facial sharpening without interruption.")
     return False
 
 

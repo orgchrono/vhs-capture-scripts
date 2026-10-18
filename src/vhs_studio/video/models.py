@@ -1,18 +1,19 @@
-"""Module documentation pending."""
+"""Immutable configuration and result data structures for video restoration."""
 
 from dataclasses import dataclass
 from typing import Optional
+from vhs_studio.core.constants import DEFAULT_CRF
 
 
 @dataclass(frozen=True)
 class RestoreOptions:
-    """Documentation for RestoreOptions."""
+    """Immutable parameter specification for primary analog video restoration."""
 
     input_path: str
     output_path: str
     start_sec: float = 0.0
     target_1080p: bool = True
-    crf: int = 20
+    crf: int = DEFAULT_CRF
     mode: str = "freeze"
     audio_offset: float = 0.0
     duration: Optional[float] = None
@@ -29,7 +30,7 @@ class RestoreOptions:
 
 @dataclass
 class RestoreResult:
-    """Documentation for RestoreResult."""
+    """Structured execution outcome of a video restoration session."""
 
     success: bool
     final_path: Optional[str] = None

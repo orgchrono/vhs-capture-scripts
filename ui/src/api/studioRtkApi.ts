@@ -144,11 +144,34 @@ export const studioRtkApi = createApi({
       }),
     }),
 
-    generateSubtitles: builder.mutation<{ status: string; message?: string }, { input: string; model_size: string }>({
+    generateSubtitles: builder.mutation<
+      { status: string; message?: string },
+      { input: string; model_size: string; language?: string }
+    >({
       query: (params) => ({
         url: 'api/action',
         method: 'POST',
         body: { action: 'generate_subtitles', params },
+      }),
+    }),
+
+    detectWhisperLanguage: builder.mutation<
+      {
+        status: string;
+        message?: string;
+        has_speech?: boolean;
+        first_speech_time?: number;
+        detected_language?: string;
+        probability?: number;
+        is_ambiguous?: boolean;
+        candidates?: { language: string; probability: number }[];
+      },
+      { input: string; model_size?: string }
+    >({
+      query: (params) => ({
+        url: 'api/action',
+        method: 'POST',
+        body: { action: 'detect_whisper_language', params },
       }),
     }),
 
@@ -295,7 +318,7 @@ export const studioRtkApi = createApi({
         params: {
           source: params.source || '',
           timestamp: params.timestamp ?? 5.0,
-          deinterlacer: params.deinterlacer || 'bwdif',
+          deinterlacer: params.deinterlacer || 'qtgmc',
           denoise: params.denoise ?? true,
           chroma_fix: params.chroma_fix ?? true,
         },
@@ -336,6 +359,7 @@ export const {
   useInstallQtgmcMutation,
   useInstallObsMutation,
   useGenerateSubtitlesMutation,
+  useDetectWhisperLanguageMutation,
   useUpdateStorageConfigMutation,
   useEnqueueJobMutation,
   useCancelJobMutation,

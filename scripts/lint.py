@@ -40,10 +40,10 @@ def run_step(step: LintStep):
 
 
 def main():
-    print("[Git Hook] Iniciando validação automática de código (Lint & Types)...\n")
+    print("[Git Hook] Starting automated code validation (Lint & Types)...\n")
 
     steps = [
-        LintStep("Anti-Plágio/Duplicação (JSCPD)", ["npx", "jscpd", "src", "ui/src", "--threshold", "0"]),
+        LintStep("Anti-Duplication (JSCPD)", ["npx", "jscpd", "src", "ui/src", "--threshold", "0"]),
         LintStep("UI Linter (Oxlint / ESLint)", ["npm", "run", "lint"], cwd="ui"),
         LintStep("Mypy (Python Types)", ["python", "-m", "mypy", "src", "--ignore-missing-imports"]),
         LintStep(
@@ -57,7 +57,7 @@ def main():
         LintStep("i18n Parity (10 Locales)", ["python", "scripts/validate_i18n.py"]),
     ]
 
-    print("[*] Rodando Linter e Type Checking (Paralelizado)...")
+    print("[*] Running Linters and Quality Gates (Parallelized)...")
     
     all_passed = True
     failed_steps = []
@@ -75,10 +75,10 @@ def main():
             step, passed, output = future.result()
             
             if passed:
-                print(f"[{step.name}] PASSOU")
+                print(f"[{step.name}] PASSED")
                 report_lines.append(f"- **{step.name}**: :white_check_mark: PASSED")
             else:
-                print(f"[{step.name}] FALHOU")
+                print(f"[{step.name}] FAILED")
                 report_lines.append(f"- **{step.name}**: :x: FAILED")
                 failed_steps.append((step, output))
                 if not step.allow_failure:
@@ -88,7 +88,7 @@ def main():
     if failed_steps:
         for step, output in failed_steps:
             report_lines.append(f"### {step.name}")
-            report_lines.append("`	ext\n" + output + "\n`\n")
+            report_lines.append("`\text\n" + output + "\n`\n")
     else:
         report_lines.append("All quality checks passed perfectly. Zero regressions detected.\n")
 
@@ -97,12 +97,12 @@ def main():
         f.write("\n".join(report_lines))
 
     if not all_passed:
-        print("\n=== REPROVADO. CORRIJA OS ERROS ANTES DE CONTINUAR. ===")
-        print(f"Veja o relatório detalhado em: {os.path.abspath('logs/build_report.md')}")
+        print("\n=== REJECTED. FIX QUALITY GATE FAILURES BEFORE COMMITTING. ===")
+        print(f"See detailed report at: {os.path.abspath('logs/build_report.md')}")
         sys.exit(1)
     else:
-        print("\n=== TODOS OS TESTES PASSARAM. O CODIGO ESTA LIMPO! ===")
-        print(f"Relatório de build gerado em: {os.path.abspath('logs/build_report.md')}")
+        print("\n=== ALL GATES PASSED. CODEBASE IS CLEAN! ===")
+        print(f"Build report generated at: {os.path.abspath('logs/build_report.md')}")
         sys.exit(0)
 
 

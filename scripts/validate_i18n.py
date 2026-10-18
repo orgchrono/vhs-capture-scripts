@@ -7,7 +7,7 @@ from scripts.i18n.validator import validate_locale_parity
 
 def main() -> int:
     print("[*] Verifying translation key parity across all 10 locales...")
-    discrepancies = validate_locale_parity("pt-BR")
+    discrepancies = validate_locale_parity("en-US")
 
     if not discrepancies:
         print("[+] 100% parity verified: all 10 locales contain identical key structures.")

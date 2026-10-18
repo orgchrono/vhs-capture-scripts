@@ -17,7 +17,7 @@ class StorageManager:
         """Documentation for register_provider."""
         provider_id = provider_class().get_id()
         cls._providers[provider_id] = provider_class
-        log.debug(f"[Storage] Provedor registrado: {provider_id}")
+        log.debug(f"[Storage] Provider registered: {provider_id}")
 
     @classmethod
     def get_provider(cls, provider_id: str) -> Optional[StorageProvider]:

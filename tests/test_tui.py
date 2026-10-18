@@ -13,7 +13,8 @@ class TestTuiWorkstation(unittest.TestCase):
 
     def test_initial_state(self):
         self.assertEqual(self.state.preset, "gold")
-        self.assertEqual(self.state.params["deinterlacer"], "bwdif")
+        self.assertEqual(self.state.params["deinterlacer"], "qtgmc")
+        self.assertEqual(self.state.params["crf"], 18)
         self.assertFalse(self.state.is_running)
         self.assertEqual(self.state.progress_pct, 0)
         self.assertIn("tier", self.state.hardware)
@@ -22,7 +23,9 @@ class TestTuiWorkstation(unittest.TestCase):
         # Speed
         self.state.apply_preset("speed")
         self.assertEqual(self.state.preset, "speed")
+        self.assertEqual(self.state.params["deinterlacer"], "bwdif")
         self.assertEqual(self.state.params["mode"], "passthrough")
+        self.assertEqual(self.state.params["crf"], 22)
         self.assertFalse(self.state.params["chroma_fix"])
 
         # TBC Hold
@@ -30,11 +33,13 @@ class TestTuiWorkstation(unittest.TestCase):
         self.assertEqual(self.state.preset, "tbc_hold")
         self.assertEqual(self.state.params["deinterlacer"], "znedi3")
         self.assertEqual(self.state.params["mode"], "freeze")
+        self.assertEqual(self.state.params["crf"], 20)
         self.assertTrue(self.state.params["dropout_clean"])
 
         # AI Master
         self.state.apply_preset("ai_master")
         self.assertEqual(self.state.preset, "ai_master")
+        self.assertEqual(self.state.params["crf"], 16)
         self.assertTrue(self.state.params["ai_whisper"])
         self.assertTrue(self.state.params["ai_face_restore"])
         self.assertTrue(self.state.params["ai_rife_60fps"])
@@ -72,7 +77,9 @@ class TestTuiWorkstation(unittest.TestCase):
 
         self.assertFalse(self.state.is_running)
         self.assertEqual(self.state.progress_pct, 100)
-        self.assertIn("Concluído", self.state.current_stage)
+        self.assertTrue(
+            "Concluído" in self.state.current_stage or "Completed" in self.state.current_stage
+        )
         mock_orch.start.assert_called_once()
 
     @patch("vhs_studio.pipeline.PipelineOrchestrator")
@@ -84,8 +91,12 @@ class TestTuiWorkstation(unittest.TestCase):
         _run_pipeline_worker(self.state, "input.mkv", "output.mp4", self.state.params)
 
         self.assertFalse(self.state.is_running)
-        self.assertIn("Erro", self.state.current_stage)
-        self.assertTrue(any("Falha no pipeline" in log for log in self.state.recent_logs))
+        self.assertTrue(
+            "Erro" in self.state.current_stage or "Error" in self.state.current_stage
+        )
+        self.assertTrue(
+            any("Falha no pipeline" in log or "Pipeline failure" in log for log in self.state.recent_logs)
+        )
 
 
 if __name__ == "__main__":

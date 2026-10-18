@@ -64,7 +64,7 @@ def is_obs_process_active() -> bool:
             return is_active
         else:
             r = run_silent(
-                ["pgrep", "-x", "obs"],
+                ["pgrep", "-i", "obs"],
                 capture_output=True,
                 text=True,
                 errors="replace",

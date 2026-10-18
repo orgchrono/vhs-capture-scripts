@@ -1,0 +1,24 @@
+[package]
+name = "vhs-studio-core"
+version = "2.1.0"
+description = "VHS Studio Pro - Native Rust Functional Core & Tauri v2 Engine"
+authors = ["VHS Studio Pro Engineering"]
+license = "MIT"
+edition = "2021"
+rust-version = "1.77"
+
+[lib]
+name = "vhs_studio_core"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = 3
+strip = true

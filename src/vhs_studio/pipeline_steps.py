@@ -39,8 +39,8 @@ class BaseRestorationStep:
                         chk = json.load(f)
                     if chk.get("status") == "completed":
                         log.info(
-                            f"[RESTORATION STEP] Checkpoint concluído encontrado para {output_path}. "
-                            "Pulando etapa primária e retomando."
+                            f"[RESTORATION STEP] Completed checkpoint found for {output_path}. "
+                            "Skipping primary step and resuming."
                         )
                         return output_path
                 except Exception:
@@ -58,7 +58,12 @@ class WhisperStep:
     """Extracts speech and generates synchronized WebVTT subtitles."""
 
     @staticmethod
-    def execute(raw_file: str, output_path: str) -> Optional[str]:
+    def execute(
+        raw_file: str,
+        output_path: str,
+        model_size: str = "tiny",
+        language: Optional[str] = "pt",
+    ) -> Optional[str]:
         try:
             base_dir = os.path.dirname(output_path)
             os.makedirs(base_dir, exist_ok=True)
@@ -67,13 +72,17 @@ class WhisperStep:
 
             if os.path.exists(target_vtt) and os.path.getsize(target_vtt) > 10:
                 log.info(
-                    f"[WHISPER] Checkpoint: Legendas já existentes ({target_vtt}). Pulando transcrição."
+                    f"[WHISPER] Checkpoint: Subtitles already exist ({target_vtt}). Skipping transcription."
                 )
                 return target_vtt
 
             from vhs_studio.ai.whisper_engine import transcribe_and_generate_vtt
 
-            vtt = transcribe_and_generate_vtt(raw_file, model_size="tiny")
+            vtt = transcribe_and_generate_vtt(
+                raw_file,
+                model_size=model_size,
+                language=language,
+            )
 
             vtt_name = os.path.basename(vtt)
             new_vtt = os.path.join(base_dir, vtt_name)
@@ -95,7 +104,7 @@ class FaceRestorationStep:
 
     @staticmethod
     def execute(output_path: str, params: Mapping[str, object]) -> Optional[str]:
-        log.info("[FACE RESTORER] Inicializando restauração facial CodeFormer...")
+        log.info("[FACE RESTORER] Initializing CodeFormer facial restoration...")
         from vhs_studio.ai.face_restorer import FaceRestorer
 
         fidelity = float(params.get("ai_face_fidelity", DEFAULT_CODEFORMER_FIDELITY))  # type: ignore[arg-type]
@@ -106,7 +115,7 @@ class FaceRestorationStep:
             faced_path = os.path.join(base_dir, f"{name}_codeformer{ext}")
             if os.path.exists(faced_path) and os.path.getsize(faced_path) > 1024:
                 log.info(
-                    f"[FACE RESTORER] Checkpoint: Restauração facial já existente ({faced_path})."
+                    f"[FACE RESTORER] Checkpoint: Facial restoration already exists ({faced_path})."
                 )
                 return faced_path
             if restorer.process_video(output_path, faced_path):

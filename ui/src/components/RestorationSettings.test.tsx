@@ -94,7 +94,7 @@ describe('RestorationSettings UX/UI & Layout Tests ("Feng Shui" & Coerência Vis
 
     // Should auto-switch to AI tab and display RIFE module
     expect(await screen.findByText(/Interpolação RIFE/i)).toBeInTheDocument();
-    expect(screen.getByRole('switch', { name: /RIFE 60fps Interpolation/i })).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: /Interpolação RIFE|RIFE 60fps/i })).toBeInTheDocument();
   });
 
   it('automatically routes to storage tab when searching storage keywords', async () => {

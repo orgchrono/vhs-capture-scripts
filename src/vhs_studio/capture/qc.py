@@ -72,7 +72,7 @@ def sec_to_timecode(seconds: float) -> str:
 
 def build_pipeline_tools_registry(
     params: Optional[Mapping[str, Any]] = None,
-    resolved_deint: str = "bwdif",
+    resolved_deint: str = "qtgmc",
     audio_mode: str = "stereo",
     start_sec: float = 0.0,
     target_1080p: bool = True,
@@ -753,7 +753,7 @@ def make_archival_report_session(
     luma_threshold: float = DEFAULT_LUMA_THRESHOLD,
     initial_report: Optional[Mapping[str, Any]] = None,
     pipeline_params: Optional[Mapping[str, Any]] = None,
-    resolved_deint: str = "bwdif",
+    resolved_deint: str = "qtgmc",
     audio_mode: str = "stereo",
     target_1080p: bool = True,
     encoder: str = "libx264",
@@ -1236,7 +1236,7 @@ class QualityControl:
         defects = cls._catalog_defects(meta, first_good_sec, interlace, audio, signal)
         tools_registry = build_pipeline_tools_registry(
             params=pipeline_params,
-            resolved_deint="bwdif" if interlace.get("is_interlaced", True) else "none",
+            resolved_deint="qtgmc" if interlace.get("is_interlaced", True) else "none",
             audio_mode=str(audio.get("layout", "stereo")),
             start_sec=first_good_sec,
         )

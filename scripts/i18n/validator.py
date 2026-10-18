@@ -16,7 +16,7 @@ def flatten_keys(data: Dict[str, Any], prefix: str = "") -> Set[str]:
     return keys
 
 
-def validate_locale_parity(reference_locale: str = "pt-BR") -> Dict[str, List[str]]:
+def validate_locale_parity(reference_locale: str = "en-US") -> Dict[str, List[str]]:
     """Verify that all supported locales define exactly the same keys as the reference locale.
 
     Returns:

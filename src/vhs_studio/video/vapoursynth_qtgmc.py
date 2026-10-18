@@ -9,9 +9,7 @@ from vhs_studio.core.logger import log
 
 
 class VapourSynthQTGMC:
-    """
-    Gerencia a execucao e geracao de scripts VapourSynth com QTGMC.
-    """
+    """Manages the generation and execution of VapourSynth scripts with QTGMC deinterlacing."""
 
     @staticmethod
     def _ensure_in_path(directory: str) -> None:
@@ -56,7 +54,7 @@ class VapourSynthQTGMC:
                         except (FileNotFoundError, OSError):
                             pass
             except Exception as e:
-                log.debug(f"[QTGMC] Erro consultando registro do Windows: {e}")
+                log.debug(f"[QTGMC] Error querying Windows registry: {e}")
 
         # 3. Standard and project directories
         candidates = []
@@ -143,15 +141,15 @@ class VapourSynthQTGMC:
             else ""
         )
 
-        script_content = f"""# Script VapourSynth QTGMC gerado automaticamente pela Pipeline VHS Studio
+        script_content = f"""# Auto-generated VapourSynth QTGMC script for VHS Studio Pipeline
 import vapoursynth as vs
 from vapoursynth import core
 import havsfunc as haf
 import multiprocessing
 
-# OTIMIZACAO DE PERFORMANCE: MAXIMO PARALELISMO
+# PERFORMANCE OPTIMIZATION: MAXIMUM PARALLELISM
 core.num_threads = multiprocessing.cpu_count()
-core.max_cache_size = 4000 # 4GB de cache agressivo para evitar engasgos de disco
+core.max_cache_size = 4000  # 4GB cache allocation to prevent disk IO bottlenecks
 
 try:
     clip = core.ffms2.Source(source=r"{escaped_input}")
@@ -171,7 +169,7 @@ clip = haf.QTGMC(
     EdiMode="NNEDI3"
 )
 
-# OTIMIZACAO: Prefetch de frames em background
+# OPTIMIZATION: Frame prefetch in background
 clip = clip.std.Prefetch(frames=core.num_threads * 2)
 
 clip.set_output()
@@ -181,14 +179,20 @@ clip.set_output()
         return output_vpy_path
 
     @classmethod
+    def install_dependencies(cls, interactive: bool = False) -> bool:
+        """Install VapourSynth dependencies using cross-platform package manager."""
+        from vhs_studio.core.package_manager import install_vapoursynth_crossplatform
+        return install_vapoursynth_crossplatform()
+
+    @classmethod
     def run_vspipe_ffmpeg(cls, vpy_path, ffmpeg_output_args):
-        """Documentation for run_vspipe_ffmpeg."""
+        """Execute vspipe streaming y4m into ffmpeg subprocess."""
         vspipe_bin = cls.get_vspipe_path()
         if not vspipe_bin:
-            raise RuntimeError("vspipe nao encontrado.")
+            raise RuntimeError("vspipe executable not found.")
 
         cmd_vspipe = [vspipe_bin, "-c", "y4m", vpy_path, "-"]
-        log.info(f"[QTGMC] Executando VapourSynth: {' '.join(cmd_vspipe)}")
+        log.info(f"[QTGMC] Executing VapourSynth: {' '.join(cmd_vspipe)}")
 
         p_vs = popen_silent(
             cmd_vspipe, stdout=subprocess.PIPE, stderr=subprocess.PIPE
@@ -196,7 +200,8 @@ clip.set_output()
         p_ff = popen_silent(
             ffmpeg_output_args, stdin=p_vs.stdout, stderr=subprocess.PIPE
         )
-        p_vs.stdout.close()
+        if p_vs.stdout:
+            p_vs.stdout.close()
 
         stdout, stderr = p_ff.communicate()
         return p_ff.returncode == 0

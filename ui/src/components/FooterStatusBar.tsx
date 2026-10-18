@@ -14,7 +14,7 @@ import {
 import { useStudioStore } from '../store/useStudioStore';
 import { useGetSystemMetricsQuery } from '../api/studioRtkApi';
 import { TIMING } from '../lib/constants';
-import { createTelemetryParser, getPresetStages } from './BroadcastProgress';
+import { createTelemetryParser, getPresetStages, getPresetLabels } from '../lib/telemetry';
 import { SystemTelemetryCard } from './SystemTelemetryCard';
 
 const telemetryParser = createTelemetryParser();
@@ -51,13 +51,7 @@ export const FooterStatusBar: React.FC = () => {
     return parts[parts.length - 1];
   }, [selectedFile]);
 
-  const presetLabels: Record<string, string> = {
-    gold: t('presets.gold_name', 'Ouro Master'),
-    speed: t('presets.speed_name', 'Velocidade'),
-    tbc_hold: t('presets.tbc_hold_name', 'TBC Signal Hold'),
-    ai_master: t('presets.ai_master_name', 'Restauração IA'),
-    custom: t('settings.custom', 'Personalizado'),
-  };
+  const presetLabels = useMemo(() => getPresetLabels(t), [t]);
 
   return (
     <footer

@@ -49,5 +49,25 @@ describe('LiveMonitor Component', () => {
     fireEvent.click(toggleBtn);
     expect(screen.getByTestId('split-comparison-monitor')).toBeInTheDocument();
   });
+
+  it('renders transport controls and scrubber when tape is loaded', () => {
+    store.dispatch({ type: 'studio/setSelectedFile', payload: 'tape_family_1994.mkv' });
+    render(<LiveMonitor />, { wrapper });
+
+    const playBtn = screen.getByTestId('live-play-toggle-btn');
+    const seekNextBtn = screen.getByTestId('live-seek-next-btn');
+    const seekPrevBtn = screen.getByTestId('live-seek-prev-btn');
+    const scrubber = screen.getByTestId('live-timeline-scrubber');
+
+    expect(playBtn).toBeInTheDocument();
+    expect(seekNextBtn).toBeInTheDocument();
+    expect(seekPrevBtn).toBeInTheDocument();
+    expect(scrubber).toBeInTheDocument();
+
+    fireEvent.click(playBtn);
+    fireEvent.click(seekNextBtn);
+    fireEvent.click(seekPrevBtn);
+    fireEvent.change(scrubber, { target: { value: '45' } });
+  });
 });
 

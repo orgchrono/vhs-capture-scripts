@@ -10,6 +10,7 @@ import json
 import os
 import shutil
 import subprocess
+import time
 from vhs_studio.core.system_process import run_silent
 from dataclasses import dataclass, asdict
 from typing import Any, Dict, List, Optional, Set
@@ -90,8 +91,20 @@ def scan_incomplete_jobs() -> List[Dict[str, Any]]:
                 seen_checkpoints.add(chk_path)
 
                 try:
-                    with open(chk_path, "r", encoding="utf-8") as f:
-                        data = json.load(f)
+                    data = None
+                    for attempt in range(3):
+                        try:
+                            with open(chk_path, "r", encoding="utf-8") as f:
+                                data = json.load(f)
+                            break
+                        except (PermissionError, json.JSONDecodeError):
+                            if attempt < 2:
+                                time.sleep(0.05)
+                                continue
+                            raise
+
+                    if not isinstance(data, dict):
+                        continue
 
                     status = str(data.get("status", "in_progress")).lower()
                     if status == "completed":
@@ -162,6 +175,11 @@ def scan_incomplete_jobs() -> List[Dict[str, Any]]:
                             source_exists=source_exists,
                         )
                     )
+                except (PermissionError, OSError) as oe:
+                    if getattr(oe, "errno", None) == 13 or isinstance(oe, PermissionError):
+                        log.debug(f"[JOB RECOVERY] Checkpoint {chk_path} locked by active writer: {oe}")
+                    else:
+                        log.warning(f"[JOB RECOVERY] Could not parse checkpoint {chk_path}: {oe}")
                 except Exception as e:
                     log.warning(f"[JOB RECOVERY] Could not parse checkpoint {chk_path}: {e}")
 

@@ -1,4 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { CRF_CONFIG, FACE_FIDELITY_CONFIG, LOG_LIMITS } from '../lib/constants';
 import type {
   RestorationPreset,
   VideoMode,
@@ -7,6 +8,9 @@ import type {
   OutputCodec,
   ResolutionMode,
 } from '../types';
+
+const ANSI_OSC_ESCAPE_REGEX = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*[a-zA-Z]`, 'g');
+const BARE_COLOR_ESCAPE_REGEX = /\[\d{1,3}m/g;
 
 export type WorkspacePreset = 'default' | 'capture' | 'restore';
 
@@ -32,6 +36,9 @@ export interface StudioState {
   aiRife60fps: boolean;
   aiUpscaler: boolean;
   aiUpscalerModel: string;
+  aiWhisper: boolean;
+  whisperModel: string;
+  whisperLanguage: string;
   isRestoring: boolean;
   isPaused: boolean;
   isCapturing: boolean;
@@ -49,11 +56,11 @@ export const initialStudioState: StudioState = {
   selectedFile: '',
   preset: 'gold',
   mode: 'passthrough',
-  deinterlacer: 'bwdif',
+  deinterlacer: 'qtgmc',
   audioMode: 'stereo',
   outputCodec: 'h264',
   resolution: '1080p',
-  crf: 20,
+  crf: CRF_CONFIG.GOLD,
   audioOffset: 0.0,
   chromaFix: true,
   denoise: false,
@@ -63,10 +70,13 @@ export const initialStudioState: StudioState = {
   dropoutClean: false,
   aiAudioDenoise: false,
   aiFaceRestore: false,
-  aiFaceFidelity: 0.7,
+  aiFaceFidelity: FACE_FIDELITY_CONFIG.DEFAULT,
   aiRife60fps: false,
   aiUpscaler: false,
   aiUpscalerModel: 'realesrgan-x4plus',
+  aiWhisper: false,
+  whisperModel: 'tiny',
+  whisperLanguage: 'pt',
   isRestoring: false,
   isPaused: false,
   isCapturing: false,
@@ -109,7 +119,7 @@ export const studioSlice = createSlice({
         state.aiFaceRestore = false;
         state.aiRife60fps = false;
         state.aiUpscaler = false;
-        state.crf = 18;
+        state.crf = CRF_CONFIG.GOLD;
       } else if (preset === 'speed') {
         state.deinterlacer = 'bwdif';
         state.mode = 'passthrough';
@@ -126,7 +136,7 @@ export const studioSlice = createSlice({
         state.aiFaceRestore = false;
         state.aiRife60fps = false;
         state.aiUpscaler = false;
-        state.crf = 20;
+        state.crf = CRF_CONFIG.FAST;
       } else if (preset === 'tbc_hold') {
         state.deinterlacer = 'znedi3';
         state.mode = 'freeze';
@@ -143,9 +153,9 @@ export const studioSlice = createSlice({
         state.aiFaceRestore = false;
         state.aiRife60fps = false;
         state.aiUpscaler = false;
-        state.crf = 20;
+        state.crf = CRF_CONFIG.TBC_HOLD;
       } else if (preset === 'ai_master') {
-        state.deinterlacer = 'bwdif';
+        state.deinterlacer = 'qtgmc';
         state.mode = 'freeze';
         state.audioMode = 'auto';
         state.outputCodec = 'h264';
@@ -158,11 +168,11 @@ export const studioSlice = createSlice({
         state.dropoutClean = true;
         state.aiAudioDenoise = true;
         state.aiFaceRestore = true;
-        state.aiFaceFidelity = 0.7;
+        state.aiFaceFidelity = FACE_FIDELITY_CONFIG.DEFAULT;
         state.aiRife60fps = true;
         state.aiUpscaler = true;
         state.aiUpscalerModel = 'realesrgan-x4plus';
-        state.crf = 18;
+        state.crf = CRF_CONFIG.AI_MASTER;
       } else {
         state.preset = 'custom';
       }
@@ -240,6 +250,16 @@ export const studioSlice = createSlice({
       state.aiUpscalerModel = action.payload;
       state.preset = 'custom';
     },
+    setAiWhisper: (state, action: PayloadAction<boolean>) => {
+      state.aiWhisper = action.payload;
+      state.preset = 'custom';
+    },
+    setWhisperModel: (state, action: PayloadAction<string>) => {
+      state.whisperModel = action.payload;
+    },
+    setWhisperLanguage: (state, action: PayloadAction<string>) => {
+      state.whisperLanguage = action.payload;
+    },
     setIsRestoring: (state, action: PayloadAction<boolean>) => {
       state.isRestoring = action.payload;
       if (!action.payload) {
@@ -254,29 +274,15 @@ export const studioSlice = createSlice({
       state.isCapturing = action.payload;
     },
     addLog: (state, action: PayloadAction<string>) => {
-      // oxlint-disable-next-line no-control-regex
       const line = action.payload
-        .replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '')
-        .replace(/\[\d{1,3}m/g, '')
+        .replace(ANSI_OSC_ESCAPE_REGEX, '')
+        .replace(BARE_COLOR_ESCAPE_REGEX, '')
         .trim();
       if (!line) return;
       if (state.logs.length > 0 && state.logs[state.logs.length - 1] === line) {
         return;
       }
-      let limit = 500;
-      if (typeof window !== 'undefined') {
-        try {
-          const raw = window.localStorage.getItem('vhs_studio_preferences_v1');
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            if (typeof parsed.maxConsoleLines === 'number' && parsed.maxConsoleLines > 0) {
-              limit = parsed.maxConsoleLines;
-            }
-          }
-        } catch {
-          limit = 500;
-        }
-      }
+      const limit = LOG_LIMITS.MAX_LINES;
       if (state.logs.length > limit) {
         state.logs = [...state.logs.slice(-limit), line];
       } else {
@@ -349,6 +355,9 @@ export const {
   setAiRife60fps,
   setAiUpscaler,
   setAiUpscalerModel,
+  setAiWhisper,
+  setWhisperModel,
+  setWhisperLanguage,
   setIsRestoring,
   setIsPaused,
   setIsCapturing,

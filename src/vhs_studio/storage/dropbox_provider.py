@@ -55,10 +55,10 @@ class DropboxProvider(StorageProvider):
                 destination_path = "/" + destination_path
 
             log.info(
-                f"[Dropbox] Iniciando upload de {local_filepath} para {destination_path}..."
+                f"[Dropbox] Starting upload from {local_filepath} to {destination_path}..."
             )
 
-            # Para arquivos grandes, usar upload session
+            # For large files, use an upload session
             file_size = os.path.getsize(local_filepath)
             CHUNK_SIZE = 4 * 1024 * 1024
 
@@ -92,10 +92,10 @@ class DropboxProvider(StorageProvider):
                             )
                             cursor.offset = f.tell()
 
-            log.info("[Dropbox] Upload concluído com sucesso.")
+            log.info("[Dropbox] Upload completed successfully.")
             return True
         except Exception as e:
-            log.error(f"[Dropbox] Erro no upload: {e}")
+            log.error(f"[Dropbox] Upload error: {e}")
             return False
 
     def get_status(self) -> Dict[str, object]:

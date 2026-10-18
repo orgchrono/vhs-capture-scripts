@@ -1,0 +1,47 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "VHS Studio Pro",
+  "version": "2.1.0",
+  "identifier": "org.vhsstudiopro.desktop",
+  "build": {
+    "beforeDevCommand": "npm --prefix ../ui run dev",
+    "devUrl": "http://localhost:5173",
+    "beforeBuildCommand": "npm --prefix ../ui run build",
+    "frontendDist": "../ui/dist"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "title": "VHS Studio Pro - Broadcast Tape Restoration & Archival Suite",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1024,
+        "minHeight": 720,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["msi", "nsis", "deb", "appimage", "dmg", "app"],
+    "icon": [
+      "../assets/vhs_icon.ico",
+      "../assets/vhs_icon.icns",
+      "../assets/vhs_icon.png"
+    ],
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": "http://timestamp.digicert.com"
+    },
+    "macOS": {
+      "minimumSystemVersion": "11.0",
+      "signingIdentity": null
+    }
+  }
+}

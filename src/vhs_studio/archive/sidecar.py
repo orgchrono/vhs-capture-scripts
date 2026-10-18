@@ -9,8 +9,8 @@ class SidecarManager:
     """Documentation for SidecarManager."""
 
     @staticmethod
-    def generate_sidecar(video_path, metadata):
-        """Gera um arquivo sidecar .vhs.json com metadados da fita."""
+    def generate_sidecar(video_path: str, metadata: dict) -> str:
+        """Generate a .vhs.json sidecar file with tape metadata."""
         sidecar_path = f"{video_path}.vhs.json"
 
         data = {
@@ -20,7 +20,7 @@ class SidecarManager:
             "metadata": metadata,
         }
 
-        with open(sidecar_path, "w", encoding="utf-8"):
-            json.dumps(data, indent=2)
+        with open(sidecar_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
 
         return sidecar_path

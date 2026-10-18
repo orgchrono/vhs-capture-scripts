@@ -50,13 +50,13 @@ def ensure_venv() -> bool:
     if os.path.exists(VENV_DIR):
         return True
 
-    print("[*] Criando ambiente virtual isolado (.venv)...", flush=True)
+    print("[*] Creating isolated virtual environment (.venv)...", flush=True)
     uv_cmd = get_uv_command()
     if uv_cmd:
         try:
             res = subprocess.run(uv_cmd + ["venv", VENV_DIR], cwd=PROJECT_ROOT, check=True)
             if res.returncode == 0:
-                print("[+] Ambiente virtual criado instantaneamente com uv!", flush=True)
+                print("[+] Virtual environment created instantly with uv!", flush=True)
                 return True
         except Exception:
             pass
@@ -65,7 +65,7 @@ def ensure_venv() -> bool:
         res = subprocess.run([sys.executable, "-m", "venv", VENV_DIR], cwd=PROJECT_ROOT, check=True)
         return res.returncode == 0
     except Exception as e:
-        print(f"[!] Falha ao criar venv: {e}", file=sys.stderr, flush=True)
+        print(f"[!] Failed to create venv: {e}", file=sys.stderr, flush=True)
         return False
 
 
@@ -116,7 +116,7 @@ def check_ui_deps() -> Tuple[bool, str]:
 
 def install_python_deps(target_hash: str) -> bool:
     """Install Python dependencies using Rust-based uv (if available) or standard pip."""
-    print("[*] Sincronizando dependências Python...", flush=True)
+    print("[*] Synchronizing Python dependencies...", flush=True)
 
     uv_cmd = get_uv_command()
     if not uv_cmd:
@@ -142,19 +142,19 @@ def install_python_deps(target_hash: str) -> bool:
             os.makedirs(os.path.dirname(PYTHON_HASH_FILE), exist_ok=True)
             with open(PYTHON_HASH_FILE, "w", encoding="utf-8") as f:
                 f.write(target_hash)
-            print("[+] Dependências Python sincronizadas com sucesso!", flush=True)
+            print("[+] Python dependencies synchronized successfully!", flush=True)
             return True
     except Exception as e:
-        print(f"[!] Falha ao instalar dependências Python: {e}", file=sys.stderr, flush=True)
+        print(f"[!] Failed to install Python dependencies: {e}", file=sys.stderr, flush=True)
     return False
 
 
 def install_ui_deps(target_hash: str) -> bool:
     """Install UI dependencies using npm."""
-    print("[*] Sincronizando dependências da UI (npm)...", flush=True)
+    print("[*] Synchronizing UI dependencies (npm)...", flush=True)
     npm_exe = shutil.which("npm")
     if not npm_exe:
-        print("[!] npm não encontrado no PATH.", file=sys.stderr, flush=True)
+        print("[!] npm not found in PATH.", file=sys.stderr, flush=True)
         return False
 
     use_shell = os.name == 'nt' and npm_exe.lower().endswith('.cmd')
@@ -165,10 +165,10 @@ def install_ui_deps(target_hash: str) -> bool:
             os.makedirs(os.path.dirname(UI_HASH_FILE), exist_ok=True)
             with open(UI_HASH_FILE, "w", encoding="utf-8") as f:
                 f.write(target_hash)
-            print("[+] Dependências da UI sincronizadas com sucesso!", flush=True)
+            print("[+] UI dependencies synchronized successfully!", flush=True)
             return True
     except Exception as e:
-        print(f"[!] Falha ao instalar dependências da UI: {e}", file=sys.stderr, flush=True)
+        print(f"[!] Failed to install UI dependencies: {e}", file=sys.stderr, flush=True)
     return False
 
 
@@ -180,7 +180,7 @@ def main():
     ui_ok, ui_hash = check_ui_deps()
 
     if py_ok and ui_ok:
-        print("[FastDeps] Dependências Python e UI já sincronizadas e atualizadas (0.01s).", flush=True)
+        print("[FastDeps] Python and UI dependencies are already synchronized and up-to-date (0.01s).", flush=True)
         return 0
 
     tasks = []
@@ -193,7 +193,7 @@ def main():
         results = [t.result() for t in tasks]
 
     if all(results):
-        print("[FastDeps] Todas as dependências sincronizadas com sucesso!", flush=True)
+        print("[FastDeps] All dependencies synchronized successfully!", flush=True)
         return 0
     return 1
 

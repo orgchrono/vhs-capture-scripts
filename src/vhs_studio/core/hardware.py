@@ -43,8 +43,10 @@ class HardwareProfile(TypedDict):
     """Semantic typed structure for hardware capability tiering."""
     tier: int
     tier_name: str
+    tier_key: str
     tier_color: str
     recommendation: str
+    recommendation_key: str
     cpu: CpuInfo
     ram: RamInfo
     gpu: GpuInfo
@@ -99,7 +101,7 @@ def get_ram_info() -> RamInfo:
 def detect_gpu_info() -> GpuInfo:
     """Inspect GPU hardware via Vulkan, NVIDIA-SMI, and system probes."""
     gpu_type = "cpu_only"
-    gpu_name = "Nenhum (Renderização via CPU)"
+    gpu_name = "None (CPU Software Rendering)"
     vulkan_ok = False
     vram_gb = 0.0
 
@@ -176,100 +178,109 @@ def get_hardware_profile() -> HardwareProfile:
     # Tier 1: Dual/Quad-core CPU with <= 8GB RAM, no GPU
     if gpu_info["type"] == "dedicated" and gpu_info["vram_gb"] >= TIER_4_MIN_VRAM_GB:
         tier = 4
-        tier_name = "Workstation IA (GPU Dedicada Alta)"
+        tier_name = "AI Workstation (Dedicated High-End GPU)"
+        tier_key = "hardware.tier_4"
         tier_color = "emerald"
+        recommendation_key = "hardware.tier_4_rec"
         recommendation = (
-            "Seu computador possui GPU dedicada potente com aceleração acelerada. "
-            "Todos os recursos de IA (CodeFormer, Real-ESRGAN e RIFE 60fps) funcionarão com alta velocidade."
+            "High-performance dedicated GPU detected. "
+            "All neural AI features (CodeFormer, Real-ESRGAN, and RIFE 60fps) will run at maximum speed."
         )
     elif gpu_info["type"] in ["dedicated", "apple_silicon"]:
         tier = 3
-        tier_name = "PC Moderno (GPU Dedicada / Apple Silicon)"
+        tier_name = "Modern PC (Dedicated GPU / Apple Silicon)"
+        tier_key = "hardware.tier_3"
         tier_color = "sky"
+        recommendation_key = "hardware.tier_3_rec"
         recommendation = (
-            "GPU com boa capacidade de aceleração detectada. RIFE e Real-ESRGAN funcionarão com fluidez "
-            "satisfatória. CodeFormer viável para restaurações pontuais."
+            "Accelerated GPU detected. RIFE and Real-ESRGAN will run smoothly. "
+            "CodeFormer is viable for targeted restoration."
         )
     elif cpu_cores >= TIER_2_MIN_CPU_CORES or gpu_info["type"] == "integrated":
         tier = 2
-        tier_name = "Multi-Core CPU + iGPU Vulkan"
+        tier_name = "Multi-Core CPU + Vulkan iGPU"
+        tier_key = "hardware.tier_2"
         tier_color = "amber"
+        recommendation_key = "hardware.tier_2_rec"
         recommendation = (
-            f"Excelente CPU com {cpu_cores} núcleos lógicos e {ram_info['total_gb']}GB de RAM. "
-            "Ideal para restauração com BWDIF/Lanczos (~60-120 fps), DeepFilterNet (áudio em tempo real) e Whisper. "
-            "Aviso honesto: Modelos neurais pesados (CodeFormer / Real-ESRGAN) rodarão via CPU/iGPU a ~1-2 fps "
-            "(cerca de 1h30min a 2h para uma fita de 1 hora). Recomendamos BWDIF para velocidade máxima."
+            f"Multi-core CPU with {cpu_cores} cores and {ram_info['total_gb']}GB RAM. "
+            "Ideal for BWDIF/Lanczos restoration (~60-120 fps), real-time DeepFilterNet, and Whisper. "
+            "Honest notice: Heavy neural models (CodeFormer / Real-ESRGAN) will run via CPU/iGPU at ~1-2 fps."
         )
     else:
         tier = 1
-        tier_name = "Básico (CPU Limitada)"
+        tier_name = "Basic (Limited CPU)"
+        tier_key = "hardware.tier_1"
         tier_color = "slate"
+        recommendation_key = "hardware.tier_1_rec"
         recommendation = (
-            "Hardware modesto detectado. Recomendamos desentrelaçamento rápido (BWDIF) e filtros DSP clássicos. "
-            "Evite ativar upscalers neurais para não sobrecarregar a máquina."
+            "Modest hardware detected. We recommend fast deinterlacing (BWDIF) and classic DSP filters. "
+            "Avoid enabling heavy neural upscalers to prevent machine overload."
         )
 
     ai_capabilities: Dict[str, AiCapability] = {
         "audio_deepfilter": {
-            "name": "Restauração de Áudio Neural (DeepFilter)",
+            "name": "Neural Audio Restoration (DeepFilterNet)",
             "supported": True,
-            "badge": "⚡ Tempo Real (CPU)",
+            "badge": "⚡ Real-Time (CPU)",
             "cost": "low",
-            "desc": "Remove chiado de fita magnética e zumbido elétrico sem distorcer vozes.",
+            "desc": "Eliminates analog tape hiss and electrical hum without vocal distortion.",
         },
         "whisper": {
-            "name": "Transcrição e Legendas (Faster-Whisper)",
+            "name": "Transcription & Subtitles (Faster-Whisper)",
             "supported": True,
-            "badge": "⚡ Rápido no Tiny/Base",
+            "badge": "⚡ Fast on Tiny/Base",
             "cost": "low",
-            "desc": "Geração offline de legendas sincronizadas por IA.",
+            "desc": "Offline AI-synchronized subtitle generation.",
         },
         "bwdif_deinterlace": {
-            "name": "Desentrelaçamento BWDIF / Yadif",
+            "name": "BWDIF / Yadif Deinterlacing",
             "supported": True,
-            "badge": "⚡ Instantâneo (~120 fps)",
+            "badge": "⚡ Instant (~120 fps)",
             "cost": "low",
-            "desc": "Elimina serrilhado de campos entrelaçados sem perda de fluidez.",
+            "desc": "Eliminates interlaced comb artifacts without motion loss.",
         },
         "dropout_clean": {
-            "name": "Eliminação de Dropouts de Fita",
+            "name": "Tape Dropout Mitigation",
             "supported": True,
-            "badge": "🟡 Moderado (CPU)",
+            "badge": "🟡 Moderate (CPU)",
             "cost": "medium",
-            "desc": "Remove linhas brancas de perda de óxido magnético através de análise temporal.",
+            "desc": "Removes white oxide-loss dropouts via temporal analysis.",
         },
         "rife_60fps": {
-            "name": "Interpolação de Movimento RIFE (60fps)",
+            "name": "RIFE Motion Interpolation (60fps)",
             "supported": gpu_info["vulkan_available"],
-            "badge": "🟡 Moderado (Vulkan)" if gpu_info["vulkan_available"] else "🔴 Lento na CPU",
+            "badge": "🟡 Moderate (Vulkan)" if gpu_info["vulkan_available"] else "🔴 Slow on CPU",
             "cost": "medium",
-            "desc": "Dobra a taxa de quadros para fluidez orgânica cinematográfica.",
+            "desc": "Doubles frame rate for smooth cinematic motion.",
         },
         "ai_face_restore": {
-            "name": "Restauração Facial CodeFormer",
+            "name": "CodeFormer Face Restoration",
             "supported": True,
-            "badge": "🔴 Intensivo (~1-2 fps)" if tier <= 2 else "🟡 Moderado",
+            "badge": "🔴 Intensive (~1-2 fps)" if tier <= 2 else "🟡 Moderate",
             "cost": "high",
-            "desc": "Reconstrói detalhes e feições de rostos distantes em filmagens de família.",
+            "desc": "Reconstructs facial details in distant VHS family footage.",
         },
         "ai_upscaler": {
-            "name": "Super-Resolução Real-ESRGAN / Real-CUGAN",
+            "name": "Real-ESRGAN / Real-CUGAN Super-Resolution",
             "supported": gpu_info["vulkan_available"] or tier >= 2,
-            "badge": "🔴 Intensivo (~1-2 fps)" if tier <= 2 else "🟡 Moderado (GPU)",
+            "badge": "🔴 Intensive (~1-2 fps)" if tier <= 2 else "🟡 Moderate (GPU)",
             "cost": "high",
-            "desc": "Upscale neural preservando texturas naturais.",
+            "desc": "Neural upscaler preserving natural video textures.",
         },
     }
 
     return {
         "tier": tier,
         "tier_name": tier_name,
+        "tier_key": tier_key,
         "tier_color": tier_color,
         "recommendation": recommendation,
+        "recommendation_key": recommendation_key,
         "cpu": {
             "cores": cpu_cores,
             "arch": cpu_arch,
-            "model": platform.processor() or "Processador x86_64",
+            "model": platform.processor() or "x86_64 Processor",
         },
         "ram": ram_info,
         "gpu": gpu_info,

@@ -26,8 +26,11 @@ from vhs_studio.api.routers import (
     SESSION_TOKEN,
 )
 
+from vhs_studio.core.queue_manager import queue_worker
+
 # Process manager instance orchestrating child CLI operations
 pm = ProcessManager()
+queue_worker.set_process_runner(pm)
 
 # Default alias for checking and starting OBS daemon
 ensure_obs_running = check_and_launch_obs

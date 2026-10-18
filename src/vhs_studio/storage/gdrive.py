@@ -51,23 +51,23 @@ class GoogleDriveProvider(StorageProvider):
     def upload_video(self, local_filepath: str, destination_path: str) -> bool:
         """Documentation for upload_video."""
         if not self.service:
-            log.error("[GDrive] Serviço não inicializado.")
+            log.error("[GDrive] Service not initialized.")
             return False
         try:
             file_metadata: dict = {"name": os.path.basename(destination_path)}
             if getattr(self, "folder_id", None):
                 file_metadata["parents"] = [self.folder_id]
             media = MediaFileUpload(local_filepath, resumable=True)
-            log.info(f"[GDrive] Iniciando upload: {local_filepath} ...")
+            log.info(f"[GDrive] Starting upload: {local_filepath} ...")
             file = (
                 self.service.files()
                 .create(body=file_metadata, media_body=media, fields="id")
                 .execute()
             )
-            log.info(f"[GDrive] Upload concluído. File ID: {file.get('id')}")
+            log.info(f"[GDrive] Upload completed. File ID: {file.get('id')}")
             return True
         except Exception as e:
-            log.error(f"[GDrive] Erro no upload: {e}")
+            log.error(f"[GDrive] Upload error: {e}")
             return False
 
     def get_status(self) -> Dict[str, object]:

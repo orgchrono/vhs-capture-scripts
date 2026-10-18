@@ -85,6 +85,41 @@ def test_queue_worker_lifecycle():
         assert worker._running is False
 
 
+def test_queue_worker_injected_runner():
+    class FakeRunner:
+        def __init__(self) -> None:
+            self.commands: list[list[str]] = []
+
+        def is_running(self) -> bool:
+            return False
+
+        def start_process(self, cmd: list[str]) -> tuple[bool, str]:
+            self.commands.append(cmd)
+            return True, "ok"
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = os.path.join(tmpdir, "test_queue_di.db")
+        qm = PersistentQueueManager(db_path=db_path)
+        job_id = qm.enqueue("media/di_tape.mkv", {"preset": "gold"})
+        runner = FakeRunner()
+        worker = QueueWorker(manager=qm, process_runner=runner)
+        worker._running = True
+        # Execute single iteration manually via stop_event trigger
+        orig_complete = qm.complete_job
+
+        def stop_after_complete(jid: int) -> None:
+            orig_complete(jid)
+            worker._stop_event.set()
+
+        qm.complete_job = stop_after_complete  # type: ignore[method-assign]
+        worker._run_loop()
+        assert len(runner.commands) == 1
+        assert "media/di_tape.mkv" in runner.commands[0]
+        completed = qm.list_jobs(status="completed")
+        assert len(completed) == 1
+        assert completed[0]["id"] == job_id
+
+
 def test_top_level_queue_helpers():
     # Test top-level functions delegate without raising
     job_id = enqueue_job("media/synthetic_test.mkv", {"test": True})

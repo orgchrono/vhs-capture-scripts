@@ -311,7 +311,12 @@ class PipelineOrchestrator:
 
     def _task_whisper(self) -> Optional[str]:
         """Delegate whisper transcription step."""
-        return WhisperStep.execute(self.raw_file, self.output_path)
+        return WhisperStep.execute(
+            self.raw_file,
+            self.output_path,
+            model_size=str(self.params.get("whisper_model", "tiny")),
+            language=str(self.params.get("language", "pt")),
+        )
 
     def _task_face_restore(self, input_video: Optional[str] = None) -> Optional[str]:
         """Delegate CodeFormer face restoration step."""

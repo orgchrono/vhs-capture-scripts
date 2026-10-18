@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Video, AlertTriangle, Activity, Layers } from 'lucide-react';
+import {
+  Video,
+  AlertTriangle,
+  Activity,
+  Layers,
+  Play,
+  Pause,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useLiveMonitor } from '../viewmodels/useLiveMonitor';
 import { useStudioStore } from '../store/useStudioStore';
@@ -7,11 +18,18 @@ import { usePreferencesStore } from '../store/usePreferencesStore';
 import { SplitComparisonMonitor } from './SplitComparisonMonitor';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import type { SystemHealth } from '../types';
-import { formatBitrate } from '../lib/formatters';
+import { formatBitrate, formatDuration } from '../lib/formatters';
+import { useGetComparisonFrameQuery } from '../api/studioRtkApi';
 
 export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => {
   const { t } = useTranslation();
-  const { selectedFile, isRestoring } = useStudioStore();
+  const {
+    selectedFile,
+    isRestoring,
+    deinterlacer,
+    previewTimestamp,
+    setPreviewTimestamp,
+  } = useStudioStore();
   const { livePreviewEnabled } = usePreferencesStore();
   const [isSplitMode, setIsSplitMode] = useState(false);
   const [erroredFile, setErroredFile] = useState<string | null>(null);
@@ -20,12 +38,60 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
   const { videoRef, isActive, error, obsStats, isCapturing } = useLiveMonitor();
   const shouldReduceMotion = useReducedMotion();
 
+  const currentTimestamp = previewTimestamp ?? 5.0;
+  const [streamAnchor, setStreamAnchor] = useState<number>(currentTimestamp);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [streamKey, setStreamKey] = useState<number>(0);
+
+  const { data: frameData } = useGetComparisonFrameQuery(
+    {
+      source: selectedFile || '',
+      timestamp: currentTimestamp,
+      deinterlacer: deinterlacer || 'qtgmc',
+      denoise: true,
+      chroma_fix: true,
+    },
+    { skip: !selectedFile || isActive || isRestoring || isPlaying }
+  );
+
+  const totalDuration = frameData?.duration && frameData.duration > 0 ? frameData.duration : 3600;
+  const progressPct = totalDuration > 0
+    ? Math.min(100, Math.max(0, (currentTimestamp / totalDuration) * 100)).toFixed(1)
+    : '0.0';
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | undefined;
+    if (isPlaying && selectedFile && !isActive && !isRestoring) {
+      interval = setInterval(() => {
+        setPreviewTimestamp(
+          currentTimestamp >= totalDuration ? 0 : Math.round((currentTimestamp + 1) * 10) / 10
+        );
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isPlaying, selectedFile, isActive, isRestoring, currentTimestamp, totalDuration, setPreviewTimestamp]);
+
+  const handleSeek = (delta: number) => {
+    const nextTime = Math.max(0, Math.min(totalDuration, currentTimestamp + delta));
+    setPreviewTimestamp(nextTime);
+    setStreamAnchor(nextTime);
+    setStreamKey((k) => k + 1);
+  };
+
+  const handleTimelineInput = (newTime: number) => {
+    const safeTime = Math.max(0, Math.min(totalDuration, newTime));
+    setPreviewTimestamp(safeTime);
+  };
+
+  const handleTimelineCommit = () => {
+    setStreamAnchor(currentTimestamp);
+    setStreamKey((k) => k + 1);
+  };
+
   useEffect(() => {
     if (!isRestoring) {
-      setLiveFrameSrc((prev) => {
-        if (prev) URL.revokeObjectURL(prev);
-        return null;
-      });
       return;
     }
 
@@ -185,14 +251,29 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
       {/* Live Rendering Miniature or Loaded Tape Preview */}
       {!isActive && selectedFile && !thumbError && (
         <div className="absolute inset-0 z-0 flex items-center justify-center bg-black overflow-hidden">
-          <img
-            src={liveFrameSrc || thumbnailUrl}
-            alt={t('monitor.rendering_preview')}
-            onError={() => setErroredFile(selectedFile)}
-            className={`w-full h-full object-contain transition-all duration-300 ${
-              isRestoring ? 'brightness-105 contrast-105' : 'opacity-90'
-            }`}
-          />
+          {isRestoring ? (
+            <img
+              src={liveFrameSrc || thumbnailUrl}
+              alt={t('monitor.rendering_preview')}
+              onError={() => setErroredFile(selectedFile)}
+              className="w-full h-full object-contain brightness-105 contrast-105 transition-all duration-300"
+            />
+          ) : isPlaying ? (
+            <img
+              key={`live-stream-${streamKey}`}
+              src={`/api/monitor/stream-proxy?mode=processed&source=${encodeURIComponent(selectedFile)}&fps=15&timestamp=${streamAnchor}&k=${streamKey}`}
+              alt={t('monitor.rendering_preview')}
+              className="w-full h-full object-contain"
+            />
+          ) : (
+            <img
+              key={`live-frame-${currentTimestamp}`}
+              src={frameData?.processed_image || frameData?.raw_image || thumbnailUrl}
+              alt={t('monitor.rendering_preview')}
+              onError={() => setErroredFile(selectedFile)}
+              className="w-full h-full object-contain opacity-90 transition-all duration-300"
+            />
+          )}
           {isRestoring && (
             <div
               aria-hidden="true"
@@ -241,12 +322,105 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
         <div className="absolute bottom-0 right-0 w-2.5 h-2.5 border-b-2 border-r-2 border-white/20" />
       </div>
 
-      {/* Bottom Right Format Badge */}
-      <div className="absolute bottom-2.5 right-2.5 z-20 flex items-center pointer-events-auto">
-        <span className="bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-sm text-[9px] font-mono text-slate-400 border border-white/10 shadow-sm">
-          {t('monitor.smpte_format')}
-        </span>
-      </div>
+      {/* Bottom Transport Controls when tape is loaded */}
+      {!isActive && selectedFile && !isRestoring ? (
+        <div className="absolute bottom-0 left-0 right-0 z-30 bg-studio-panel/95 border-t border-studio-border px-2.5 py-1.5 flex items-center justify-between gap-2.5 text-xs font-mono select-none flex-nowrap min-w-0">
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={() => handleSeek(-30)}
+              className="w-6 h-6 flex items-center justify-center rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-slate-300 hover:text-white transition cursor-pointer"
+              title={t('monitor.split_seek_backward_30s')}
+              aria-label={t('monitor.split_seek_backward_30s')}
+              data-testid="live-seek-prev-30-btn"
+            >
+              <ChevronsLeft className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSeek(-5)}
+              className="w-6 h-6 flex items-center justify-center rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-slate-300 hover:text-white transition cursor-pointer"
+              title={t('monitor.split_seek_backward')}
+              aria-label={t('monitor.split_seek_backward')}
+              data-testid="live-seek-prev-btn"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const next = !isPlaying;
+                setIsPlaying(next);
+                setStreamAnchor(currentTimestamp);
+                if (next) setStreamKey((k) => k + 1);
+              }}
+              className={`w-6 h-6 flex items-center justify-center rounded-sm border transition cursor-pointer shrink-0 ${
+                isPlaying
+                  ? 'bg-amber-600/30 text-amber-300 border-amber-500/50 hover:bg-amber-600/40'
+                  : 'bg-studio-surface hover:bg-studio-surface-hover border-studio-border text-slate-300 hover:text-white'
+              }`}
+              title={isPlaying ? t('monitor.split_pause') : t('monitor.split_play')}
+              aria-label={isPlaying ? t('monitor.split_pause') : t('monitor.split_play')}
+              data-testid="live-play-toggle-btn"
+            >
+              {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSeek(5)}
+              className="w-6 h-6 flex items-center justify-center rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-slate-300 hover:text-white transition cursor-pointer"
+              title={t('monitor.split_seek_forward')}
+              aria-label={t('monitor.split_seek_forward')}
+              data-testid="live-seek-next-btn"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSeek(30)}
+              className="w-6 h-6 flex items-center justify-center rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-slate-300 hover:text-white transition cursor-pointer"
+              title={t('monitor.split_seek_forward_30s')}
+              aria-label={t('monitor.split_seek_forward_30s')}
+              data-testid="live-seek-next-30-btn"
+            >
+              <ChevronsRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="flex-1 min-w-0 flex items-center gap-2.5">
+            <input
+              type="range"
+              min={0}
+              max={totalDuration}
+              step={1}
+              value={currentTimestamp}
+              onChange={(e) => handleTimelineInput(Number(e.target.value))}
+              onMouseUp={handleTimelineCommit}
+              onTouchEnd={handleTimelineCommit}
+              className="w-full h-1.5 bg-studio-surface rounded-lg appearance-none cursor-pointer accent-amber-400"
+              aria-label={t('monitor.timeline_scrubber')}
+              title={t('monitor.timeline_scrubber')}
+              data-testid="live-timeline-scrubber"
+            />
+            <span
+              className="text-[10px] text-slate-300 font-mono tabular-nums shrink-0 bg-studio-surface/90 px-2 py-0.5 rounded-xs border border-studio-border whitespace-nowrap"
+              data-testid="live-timeline-info"
+            >
+              {t('monitor.split_timeline_info', {
+                current: formatDuration(currentTimestamp),
+                total: formatDuration(totalDuration),
+                percent: progressPct,
+              })}
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div className="absolute bottom-2.5 right-2.5 z-20 flex items-center pointer-events-auto">
+          <span className="bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-sm text-[9px] font-mono text-slate-400 border border-white/10 shadow-sm">
+            {t('monitor.smpte_format')}
+          </span>
+        </div>
+      )}
 
       {/* Zero-Latency Native HTML5 Video Element */}
       <video 

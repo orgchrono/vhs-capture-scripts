@@ -10,6 +10,7 @@ import time
 import threading
 from typing import List, Dict, Any, Optional
 
+from vhs_studio.core.constants import CANONICAL_PRESETS
 from vhs_studio.core.paths import RAW_MEDIA_DIR, RESTORED_MEDIA_DIR
 from vhs_studio.core.hardware import get_hardware_profile
 from vhs_studio.pipeline_planner import resolve_output_spec
@@ -33,48 +34,11 @@ BG_DARK = "\033[40m"
 BG_BLUE = "\033[44m"
 
 
-DEFAULT_TUI_PARAMS: Dict[str, Any] = {
-    "deinterlacer": "bwdif",
-    "mode": "double",
-    "output_codec": "h264",
-    "resolution": "1080p",
-    "chroma_fix": True,
-    "denoise": False,
-    "comb_filter": True,
-    "overscan_blanking": True,
-    "audio_treatment": True,
-    "dropout_clean": False,
-    "ai_whisper": False,
-    "ai_face_restore": False,
-    "ai_rife_60fps": False,
-    "ai_upscaler": False,
-}
+DEFAULT_TUI_PARAMS: Dict[str, Any] = dict(CANONICAL_PRESETS["gold"])
 
 PRESET_CONFIGS: Dict[str, Dict[str, Any]] = {
-    "gold": {
-        **DEFAULT_TUI_PARAMS,
-    },
-    "speed": {
-        **DEFAULT_TUI_PARAMS,
-        "mode": "passthrough",
-        "chroma_fix": False,
-        "comb_filter": False,
-        "audio_treatment": False,
-    },
-    "tbc_hold": {
-        **DEFAULT_TUI_PARAMS,
-        "deinterlacer": "znedi3",
-        "mode": "freeze",
-        "denoise": True,
-        "dropout_clean": True,
-    },
-    "ai_master": {
-        **DEFAULT_TUI_PARAMS,
-        "ai_whisper": True,
-        "ai_face_restore": True,
-        "ai_rife_60fps": True,
-        "ai_upscaler": True,
-    },
+    preset_id: dict(preset_vals)
+    for preset_id, preset_vals in CANONICAL_PRESETS.items()
 }
 
 
@@ -331,25 +295,25 @@ def _run_pipeline_worker(state: TuiState, input_file: str, output_path: str, par
 
         state.is_running = True
         state.progress_pct = 10
-        state.current_stage = "Inicializando DAG Multi-Engine"
-        state.add_log(f"[TUI] Iniciando restauração de: {input_file}")
+        state.current_stage = "Initializing Multi-Engine DAG"
+        state.add_log(f"[TUI] Starting restoration for: {input_file}")
 
         dummy_args = argparse.Namespace(input=input_file, params_json="{}")
         orch = PipelineOrchestrator(input_file, output_path, dummy_args, params)
 
         state.progress_pct = 30
-        state.current_stage = "Processando desentrelaçamento QTGMC / BWDIF"
-        state.add_log("[TUI] Executando desentrelaçamento e correção de base de tempo")
+        state.current_stage = "Processing QTGMC deinterlacing & TBC"
+        state.add_log("[TUI] Executing deinterlacing and time-base correction")
 
         orch.start()
 
         state.progress_pct = 100
-        state.current_stage = "Concluído com Sucesso!"
-        state.add_log(f"[TUI] Restauração concluída! Salvo em: {output_path}")
-        state.status_message = "Processo finalizado com sucesso."
+        state.current_stage = "Completed successfully!"
+        state.add_log(f"[TUI] Restoration completed! Saved to: {output_path}")
+        state.status_message = "Process finished successfully."
     except Exception as exc:
-        state.current_stage = f"Erro: {str(exc)[:50]}"
-        state.add_log(f"[TUI ERRO] Falha no pipeline: {exc}")
+        state.current_stage = f"Error: {str(exc)[:50]}"
+        state.add_log(f"[TUI ERROR] Pipeline failure: {exc}")
         log.error(f"[TUI ERROR] Pipeline execution failed: {exc}")
     finally:
         state.is_running = False

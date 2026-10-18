@@ -8,7 +8,13 @@ from external mutation and side-effects.
 import threading
 import time
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
-from vhs_studio.core.constants import DEFAULT_LUMA_THRESHOLD, DEFAULT_NTSC_FPS
+from vhs_studio.core.constants import (
+    DEFAULT_LUMA_THRESHOLD,
+    DEFAULT_NTSC_FPS,
+    LUMA_STRIDE_STEP,
+    PREVIEW_HEIGHT,
+    PREVIEW_WIDTH,
+)
 from vhs_studio.core.logger import log
 
 
@@ -111,7 +117,7 @@ def make_stream_accumulator_closure(
         state["total_frames"] += 1
         current_idx = int(state["total_frames"])
 
-        y_sample = memoryview(buf)[:y_bytes:64]
+        y_sample = memoryview(buf)[:y_bytes:LUMA_STRIDE_STEP]
         mean_luma = (sum(y_sample) / len(y_sample)) if y_sample else 0.0
         is_bad = mean_luma <= luma_threshold
 
@@ -147,7 +153,7 @@ def make_stream_accumulator_closure(
                 scene_sec = current_idx / safe_fps
                 state["chapters"].append(scene_sec)
                 log.info(
-                    f"[SCENE DETECT] Nova cena detectada em {scene_sec:.2f}s (após corte de câmera)"
+                    f"[SCENE DETECT] New scene detected at {scene_sec:.2f}s (camera cut)"
                 )
             state["bad_streak"] = 0
 
@@ -229,7 +235,7 @@ class StreamRunner:
         last_window_frames = int(init_stats["total_frames"])
         RestorationFrameBuffer.get_instance().clear()
 
-        log.info("[RESTAURAÇÃO] Iniciando processamento streaming frame-by-frame...")
+        log.info("[RESTORATION] Starting frame-by-frame streaming processing...")
 
         try:
             while True:
@@ -243,7 +249,7 @@ class StreamRunner:
                     try:
                         p_out.stdin.write(frame_to_write)
                     except (BrokenPipeError, OSError) as e:
-                        log.error(f"[ERRO] Falha de escrita no processo de saída: {e}")
+                        log.error(f"[ERROR] Output process write failure: {e}")
                         acc["mark_broken"]()
                         break
 
@@ -258,7 +264,9 @@ class StreamRunner:
                             (self.height * 3 // 2, self.width)
                         )
                         bgr = cv2.cvtColor(yuv, cv2.COLOR_YUV2BGR_I420)
-                        resized = cv2.resize(bgr, (640, 360), interpolation=cv2.INTER_NEAREST)
+                        resized = cv2.resize(
+                            bgr, (PREVIEW_WIDTH, PREVIEW_HEIGHT), interpolation=cv2.INTER_NEAREST
+                        )
                         success, jpg = cv2.imencode(
                             ".jpg", resized, [cv2.IMWRITE_JPEG_QUALITY, 70]
                         )
@@ -318,7 +326,7 @@ class StreamRunner:
 
                     telemetry_suffix = (
                         f" | FPS: {fps_proc:.1f} | ETA: {eta_str} | "
-                        f"Speed: {speed_x:.2f}x | Velocidade: {fps_proc:.0f} fps"
+                        f"Speed: {speed_x:.2f}x | Rate: {fps_proc:.0f} fps"
                     )
                     if self.total_expected_frames > 0:
                         frame_str = f"Frames: {cur_total:,}/{self.total_expected_frames:,}"
@@ -327,8 +335,8 @@ class StreamRunner:
 
                     if self.mode == "passthrough":
                         log.debug(
-                            f"  -> {prog_prefix}{frame_str} | Mantidos: {cur_kept:,} "
-                            f"(Passthrough Puro 100%){telemetry_suffix}"
+                            f"  -> {prog_prefix}{frame_str} | Kept: {cur_kept:,} "
+                            f"(100% Pure Passthrough){telemetry_suffix}"
                         )
                     elif self.mode == "freeze":
                         pct_elim = (
@@ -337,8 +345,8 @@ class StreamRunner:
                             else 0.0
                         )
                         log.debug(
-                            f"  -> {prog_prefix}{frame_str} | Válidos: {cur_kept:,} | "
-                            f"Congelados TBC: {cur_frozen:,} | Pretos neutralizados: "
+                            f"  -> {prog_prefix}{frame_str} | Valid: {cur_kept:,} | "
+                            f"TBC Frozen: {cur_frozen:,} | Blacks neutralized: "
                             f"{cur_frozen + cur_dropped:,} ({pct_elim:.1f}%){telemetry_suffix}"
                         )
                     else:
@@ -346,8 +354,8 @@ class StreamRunner:
                             (cur_dropped / cur_total) * 100.0 if cur_total > 0 else 0.0
                         )
                         log.debug(
-                            f"  -> {prog_prefix}{frame_str} | Mantidos: {cur_kept:,} | "
-                            f"Pretos descartados: {cur_dropped:,} ({pct_dropped:.1f}%){telemetry_suffix}"
+                            f"  -> {prog_prefix}{frame_str} | Kept: {cur_kept:,} | "
+                            f"Blacks dropped: {cur_dropped:,} ({pct_dropped:.1f}%){telemetry_suffix}"
                         )
         finally:
             final_stats = acc["get_stats"](time.time() - t0)

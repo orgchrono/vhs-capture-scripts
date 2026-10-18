@@ -19,14 +19,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 import { Switch } from './ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 import { Input } from './ui/input'
-
-export const getPresetLabels = (t: (key: string) => string): Record<string, string> => ({
-  gold: t('presets.gold_name'),
-  speed: t('presets.speed_name'),
-  tbc_hold: t('presets.tbc_hold_name'),
-  ai_master: t('presets.ai_master_name'),
-  custom: t('settings.custom'),
-})
 import { useTranslation } from 'react-i18next'
 import {
   DEINTERLACER_OPTIONS,
@@ -36,6 +28,7 @@ import {
   RESOLUTION_OPTIONS,
   AI_UPSCALER_OPTIONS,
   WHISPER_MODEL_OPTIONS,
+  WHISPER_LANGUAGE_OPTIONS,
   FACE_FIDELITY_CONFIG,
   TIER_CONFIG,
   CRF_CONFIG,
@@ -95,6 +88,8 @@ export const RestorationSettings: React.FC = () => {
     isLoadingHardware,
     whisperModel,
     setWhisperModel,
+    whisperLanguage,
+    setWhisperLanguage,
     isGeneratingSubtitles,
     handleGenerateSubtitles,
   } = useRestorationViewModel();
@@ -196,7 +191,7 @@ export const RestorationSettings: React.FC = () => {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 min-h-0 flex flex-col" aria-label="Settings Tabs">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 min-h-0 flex flex-col" aria-label={t('settings.tabs_aria_label')}>
         <TabsList className="grid w-full grid-cols-4 sm:grid-cols-7 gap-1 mb-2.5 bg-studio-surface p-1 border border-studio-border rounded-sm shrink-0">
           <TabsTrigger value="presets" data-testid="tab-presets" className={`flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium font-mono rounded-sm ${isTabMatching('presets') ? 'text-amber-400' : ''}`}><Sparkles className="w-3.5 h-3.5 text-amber-400"/>{t('settings.tab_presets', 'Modo')}</TabsTrigger>
           <TabsTrigger value="video" data-testid="tab-video" className={`flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium font-mono rounded-sm ${isTabMatching('video') ? 'text-amber-400' : ''}`}><Video className="w-3.5 h-3.5 text-slate-300"/>{t('settings.tab_video')}</TabsTrigger>
@@ -292,7 +287,7 @@ export const RestorationSettings: React.FC = () => {
                     <label className="text-xs font-medium text-slate-200 font-mono">{t('settings.audio_treatment_label')}</label>
                     <p className="text-[11px] text-slate-400 font-mono">{t('settings.audio_treatment_desc')}</p>
                   </div>
-                  <Switch aria-label="Audio Treatment" checked={audioTreatment} onCheckedChange={setAudioTreatment} disabled={isLocked} />
+                  <Switch aria-label={t('settings.audio_treatment_label')} checked={audioTreatment} onCheckedChange={setAudioTreatment} disabled={isLocked} />
                 </div>
               )}
             </div>
@@ -308,7 +303,7 @@ export const RestorationSettings: React.FC = () => {
                     <label className="text-xs font-medium text-slate-200 font-mono">{t('settings.chroma_fix_label')}</label>
                     <p className="text-[11px] text-slate-400 font-mono">{t('settings.chroma_fix_desc')}</p>
                   </div>
-                  <Switch aria-label="Chroma Fix" checked={chromaFix} onCheckedChange={setChromaFix} disabled={isLocked} />
+                  <Switch aria-label={t('settings.chroma_fix_label')} checked={chromaFix} onCheckedChange={setChromaFix} disabled={isLocked} />
                 </div>
               )}
 
@@ -318,7 +313,7 @@ export const RestorationSettings: React.FC = () => {
                     <label className="text-xs font-medium text-slate-200 font-mono">{t('settings.denoise_label')}</label>
                     <p className="text-[11px] text-slate-400 font-mono">{t('settings.denoise_desc')}</p>
                   </div>
-                  <Switch aria-label="Denoise" checked={denoise} onCheckedChange={setDenoise} disabled={isLocked} />
+                  <Switch aria-label={t('settings.denoise_label')} checked={denoise} onCheckedChange={setDenoise} disabled={isLocked} />
                 </div>
               )}
 
@@ -328,7 +323,7 @@ export const RestorationSettings: React.FC = () => {
                     <label className="text-xs font-medium text-slate-200 font-mono">{t('settings.comb_filter_label')}</label>
                     <p className="text-[11px] text-slate-400 font-mono">{t('settings.comb_filter_desc')}</p>
                   </div>
-                  <Switch aria-label="Comb Filter" checked={combFilter} onCheckedChange={setCombFilter} disabled={isLocked} />
+                  <Switch aria-label={t('settings.comb_filter_label')} checked={combFilter} onCheckedChange={setCombFilter} disabled={isLocked} />
                 </div>
               )}
 
@@ -338,7 +333,7 @@ export const RestorationSettings: React.FC = () => {
                     <label className="text-xs font-medium text-slate-200 font-mono">{t('settings.overscan_label')}</label>
                     <p className="text-[11px] text-slate-400 font-mono">{t('settings.overscan_desc')}</p>
                   </div>
-                  <Switch aria-label="Overscan Blanking" checked={overscanBlanking} onCheckedChange={setOverscanBlanking} disabled={isLocked} />
+                  <Switch aria-label={t('settings.overscan_label')} checked={overscanBlanking} onCheckedChange={setOverscanBlanking} disabled={isLocked} />
                 </div>
               )}
             </div>
@@ -494,7 +489,7 @@ export const RestorationSettings: React.FC = () => {
                       </p>
                     </div>
                     <Switch
-                      aria-label="Audio Neural DeepFilterNet"
+                      aria-label={t('ai.deepfilter_label')}
                       checked={aiAudioDenoise}
                       onCheckedChange={setAiAudioDenoise}
                       disabled={isLocked}
@@ -517,7 +512,7 @@ export const RestorationSettings: React.FC = () => {
                       </p>
                     </div>
                     <Switch
-                      aria-label="Tape Dropout Cleaner"
+                      aria-label={t('ai.dropout_label')}
                       checked={dropoutClean}
                       onCheckedChange={setDropoutClean}
                       disabled={isLocked}
@@ -540,7 +535,7 @@ export const RestorationSettings: React.FC = () => {
                       </p>
                     </div>
                     <Switch
-                      aria-label="RIFE 60fps Interpolation"
+                      aria-label={t('ai.rife_label')}
                       checked={aiRife60fps}
                       onCheckedChange={setAiRife60fps}
                       disabled={isLocked}
@@ -564,7 +559,7 @@ export const RestorationSettings: React.FC = () => {
                         </p>
                       </div>
                       <Switch
-                        aria-label="Neural Super Resolution"
+                        aria-label={t('ai.upscaler_label')}
                         checked={aiUpscaler}
                         onCheckedChange={setAiUpscaler}
                         disabled={isLocked}
@@ -608,7 +603,7 @@ export const RestorationSettings: React.FC = () => {
                       </p>
                     </div>
                     <Switch
-                      aria-label="CodeFormer Face Restoration"
+                      aria-label={t('ai.face_restore_label')}
                       checked={aiFaceRestore}
                       onCheckedChange={setAiFaceRestore}
                       disabled={isLocked}
@@ -684,7 +679,7 @@ export const RestorationSettings: React.FC = () => {
               <p className="text-[11px] text-slate-400 mb-3 leading-relaxed font-mono">
                 {t('ai.whisper_description')}
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
                 <div className="space-y-1">
                   <label className="text-[11px] font-medium text-slate-400 block font-mono">{t('ai.whisper_model_size')}</label>
                   <Select value={whisperModel} onValueChange={setWhisperModel} disabled={isLocked || isGeneratingSubtitles}>
@@ -694,6 +689,19 @@ export const RestorationSettings: React.FC = () => {
                     <SelectContent className="bg-studio-panel border-studio-border text-slate-200">
                       {WHISPER_MODEL_OPTIONS.map(opt => (
                         <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-medium text-slate-400 block font-mono">{t('ai.whisper_language_label')}</label>
+                  <Select value={whisperLanguage} onValueChange={setWhisperLanguage} disabled={isLocked || isGeneratingSubtitles}>
+                    <SelectTrigger className="w-full h-9 bg-studio-panel border-studio-border text-white text-xs rounded-sm font-mono">
+                      <SelectValue placeholder={t('ai.whisper_lang_placeholder')} />
+                    </SelectTrigger>
+                    <SelectContent className="bg-studio-panel border-studio-border text-slate-200">
+                      {WHISPER_LANGUAGE_OPTIONS.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>{t(opt.labelKey)}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

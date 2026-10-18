@@ -4,7 +4,7 @@ import hashlib
 import time
 import socket
 import threading
-from typing import Callable, Optional, List
+from typing import Callable, Optional, List, Dict, Any
 from vhs_studio.core.logger import log
 from vhs_studio.core.constants import OBS_WEBSOCKET_HOST, OBS_WEBSOCKET_PORT
 
@@ -86,7 +86,7 @@ class OBSClient:
                     hello = json.loads(self.ws.recv())
                     auth_info = hello.get("d", {}).get("authentication")
 
-                    identify_payload = {
+                    identify_payload: Dict[str, Any] = {
                         "op": 1,
                         "d": {"rpcVersion": 1, "eventSubscriptions": 33},
                     }
@@ -139,7 +139,7 @@ class OBSClient:
     def send_request(self, request_type, request_data=None):
         """Send RPC command payload to OBS WebSocket and await response frame."""
         if not self._connected or not self.ws:
-            if not self.connect(max_retries=1, silent=True):
+            if not self.connect(max_retries=1, silent=True) or not self.ws:
                 return None
 
         try:

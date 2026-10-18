@@ -53,7 +53,7 @@ class SupabaseStorageProvider(StorageProvider):
             return False
         try:
             log.info(
-                f"[Supabase] Fazendo upload de {local_filepath} para o bucket {self.bucket_name}..."
+                f"[Supabase] Uploading {local_filepath} to bucket {self.bucket_name}..."
             )
             with open(local_filepath, "rb") as f:
                 self.client.storage.from_(self.bucket_name).upload(
@@ -61,10 +61,10 @@ class SupabaseStorageProvider(StorageProvider):
                     path=destination_path,
                     file_options={"content-type": "video/mp4"},
                 )
-            log.info("[Supabase] Upload concluído com sucesso.")
+            log.info("[Supabase] Upload completed successfully.")
             return True
         except Exception as e:
-            log.error(f"[Supabase] Falha no upload: {e}")
+            log.error(f"[Supabase] Upload failed: {e}")
             return False
 
     def get_status(self) -> Dict[str, object]:

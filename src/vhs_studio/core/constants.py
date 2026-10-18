@@ -3,7 +3,7 @@ Application-wide constants and configuration defaults.
 Provides a Single Source of Truth (SSOT) to eliminate magic numbers and strings.
 """
 
-from typing import Final, Set, Tuple
+from typing import Dict, Final, Set, Tuple
 
 # File encoding default
 DEFAULT_FILE_ENCODING: Final[str] = "utf-8"
@@ -26,7 +26,11 @@ PAL_WIDTH: Final[int] = 720
 PAL_HEIGHT: Final[int] = 576
 HD_1080P_WIDTH: Final[int] = 1920
 HD_1080P_HEIGHT: Final[int] = 1080
+PREVIEW_WIDTH: Final[int] = 640
+PREVIEW_HEIGHT: Final[int] = 360
+PREVIEW_SD_WIDTH: Final[int] = 480
 OVERSCAN_BLANKING_HEIGHT_PX: Final[int] = 12
+LUMA_STRIDE_STEP: Final[int] = 64
 
 # Framerate and audio constants
 DEFAULT_NTSC_FPS: Final[float] = 29.97
@@ -39,14 +43,104 @@ AUDIO_NOTCH_ATTENUATION_DB: Final[int] = -30
 DEFAULT_AUDIO_DENOISE_NR_DB: Final[float] = 18.0
 DEFAULT_AUDIO_DENOISE_NF_DB: Final[float] = -45.0
 
-# Encoding and restoration defaults
+# Encoding and restoration defaults (SSOT synchronized with vhs_advanced_config.toml and UI)
 DEFAULT_CRF: Final[int] = 18
+CRF_GOLD: Final[int] = 18
+CRF_SPEED: Final[int] = 22
+CRF_TBC_HOLD: Final[int] = 20
+CRF_AI_MASTER: Final[int] = 16
 DEFAULT_SCENE_THRESHOLD: Final[float] = 27.0
 DEFAULT_ENCODER_TEST_TIMEOUT_SEC: Final[int] = 3
 DEFAULT_LUMA_THRESHOLD: Final[float] = 18.0
 DEFAULT_LUMA_DETECT_MARGIN: Final[float] = 4.0
 DEFAULT_CONSECUTIVE_GOOD_FRAMES: Final[int] = 5
 MAX_SCAN_SECONDS: Final[int] = 120
+
+# Panasonic DVR Ingest & Filesystem Constants
+PANASONIC_PROBE_CHUNK_SIZE: Final[int] = 4 * 1024 * 1024
+PANASONIC_FIRMWARE_SIZE_BYTES: Final[int] = 104857600
+PANASONIC_CHAPTER_INTERVAL_SEC: Final[float] = 900.0
+PANASONIC_DEFAULT_TITLE_DURATION_SEC: Final[float] = 3600.0
+
+# Canonical Restoration Presets (SSOT across UI, TUI, and Backend)
+CANONICAL_PRESETS: Final[Dict[str, Dict[str, object]]] = {
+    "gold": {
+        "deinterlacer": "qtgmc",
+        "mode": "passthrough",
+        "audio_mode": "auto",
+        "output_codec": "h264",
+        "resolution": "1080p",
+        "crf": CRF_GOLD,
+        "chroma_fix": True,
+        "denoise": False,
+        "comb_filter": True,
+        "overscan_blanking": True,
+        "audio_treatment": True,
+        "dropout_clean": False,
+        "ai_whisper": False,
+        "ai_audio_denoise": False,
+        "ai_face_restore": False,
+        "ai_rife_60fps": False,
+        "ai_upscaler": False,
+    },
+    "speed": {
+        "deinterlacer": "bwdif",
+        "mode": "passthrough",
+        "audio_mode": "auto",
+        "output_codec": "h264",
+        "resolution": "1080p",
+        "crf": CRF_SPEED,
+        "chroma_fix": False,
+        "denoise": False,
+        "comb_filter": False,
+        "overscan_blanking": True,
+        "audio_treatment": False,
+        "dropout_clean": False,
+        "ai_whisper": False,
+        "ai_audio_denoise": False,
+        "ai_face_restore": False,
+        "ai_rife_60fps": False,
+        "ai_upscaler": False,
+    },
+    "tbc_hold": {
+        "deinterlacer": "znedi3",
+        "mode": "freeze",
+        "audio_mode": "mono_l",
+        "output_codec": "h264",
+        "resolution": "1080p",
+        "crf": CRF_TBC_HOLD,
+        "chroma_fix": True,
+        "denoise": True,
+        "comb_filter": True,
+        "overscan_blanking": True,
+        "audio_treatment": True,
+        "dropout_clean": True,
+        "ai_whisper": False,
+        "ai_audio_denoise": False,
+        "ai_face_restore": False,
+        "ai_rife_60fps": False,
+        "ai_upscaler": False,
+    },
+    "ai_master": {
+        "deinterlacer": "qtgmc",
+        "mode": "freeze",
+        "audio_mode": "auto",
+        "output_codec": "h264",
+        "resolution": "1080p",
+        "crf": CRF_AI_MASTER,
+        "chroma_fix": True,
+        "denoise": True,
+        "comb_filter": False,
+        "overscan_blanking": True,
+        "audio_treatment": True,
+        "dropout_clean": True,
+        "ai_whisper": True,
+        "ai_audio_denoise": True,
+        "ai_face_restore": True,
+        "ai_rife_60fps": True,
+        "ai_upscaler": True,
+    },
+}
 
 # Dropout cleaner constants
 DEFAULT_DROPOUT_LUMA_THRESHOLD: Final[int] = 235

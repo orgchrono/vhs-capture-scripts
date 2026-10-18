@@ -5,16 +5,17 @@ from vhs_studio.core.jobs import JobManager
 
 #!/usr/bin/env python3
 """
-direct_restore.py - Restauração Direta Frame-Accurate para VHS
-Mecanismo de Alta Performance e Sincronia A/V Perfeita:
-  1. Identifica o ponto inicial exato da fita (término do líder preto inicial).
-  2. Inicia áudio e vídeo juntos no primeiro frame gravado da fita.
-  3. ÁUDIO INTACTO: Não corta o áudio em nenhum ponto! A trilha sonora corre contínua.
-  4. VÍDEO SEM PRETO: Neutraliza frames pretos causados por perda de sinal (Y <= 18).
-     Modo 'freeze' (TBC frame-hold): congela o último frame bom durante perdas de sinal,
-     mantendo alinhamento temporal perfeito e 100% de sincronia labial.
-  5. Desentrelaçamento broadcast (BWDIF) + Upscale 1080p Lanczos com aceleração por hardware (QuickSync / NVENC / x264).
-  6. Processamento streaming ultra-rápido direto para media/output/ (SEM arquivos temporários intermediários gigantes no SSD!).
+direct_restore.py - Direct Frame-Accurate Restoration Engine for VHS
+
+High-Performance Architecture & A/V Sync Preservation:
+  1. Identifies exact tape program start (end of introductory black leader).
+  2. Synchronizes audio and video at the first recorded program frame.
+  3. AUDIO INTEGRITY: Never clips or truncates audio mid-stream. Audio timeline runs continuous.
+  4. ZERO BLACK FRAMES: Neutralizes dropouts and signal loss black screens (Y <= 18).
+     'freeze' mode (TBC frame-hold): freezes the last valid frame during signal loss,
+     preserving perfect temporal alignment and 100% lip sync.
+  5. Broadcast deinterlacing (QTGMC / BWDIF) + 1080p Lanczos pillarbox upscale with hardware acceleration.
+  6. Ultra-fast direct streaming to media/restored/ without intermediate temporary disk bloat.
 """
 
 import sys
@@ -23,6 +24,7 @@ import subprocess
 from vhs_studio.core.system_process import run_silent, popen_silent
 import argparse
 import json
+import time
 
 from vhs_studio.core.logger import log
 from vhs_studio.core import vhs_common
@@ -47,7 +49,10 @@ def get_stream_info(input_file):
             float(info.get("duration", 0.0)),
             str(info.get("audio_codec", "aac")),
         )
-    except Exception:
+    except Exception as exc:
+        log.warning(
+            f"[RESTORE] Failed to probe stream info for '{input_file}': {exc}. Using default parameters."
+        )
         return (
             VideoConfig.DEFAULT_WIDTH,
             VideoConfig.DEFAULT_HEIGHT,
@@ -90,6 +95,9 @@ def find_first_video_frame(input_file, max_scan_sec=VideoConfig.MAX_SCAN_SECONDS
     first_good_frame = 0
     consecutive_good = 0
 
+    if not p.stdout:
+        return 0.0
+
     while True:
         buf = p.stdout.read(frame_bytes)
         if not buf or len(buf) < frame_bytes:
@@ -109,12 +117,13 @@ def find_first_video_frame(input_file, max_scan_sec=VideoConfig.MAX_SCAN_SECONDS
             consecutive_good = 0
         frame_idx += 1
 
-    p.stdout.close()
+    if p.stdout:
+        p.stdout.close()
     p.wait()
 
     start_sec = max(0.0, first_good_frame / fps)
     log.info(
-        f"[RESTAURAÇÃO] Gravação útil identificada a partir de {start_sec:.3f}s (frame {first_good_frame} a {fps:.2f} fps)."
+        f"[RESTORATION] Active video content identified starting at {start_sec:.3f}s (frame {first_good_frame} @ {fps:.2f} fps)."
     )
     return start_sec
 
@@ -172,8 +181,8 @@ def restore_stream(args):
                     and os.path.getsize(args.output_path) > 1024
                 ):
                     log.info(
-                        f"[RESTAURAÇÃO] Checkpoint concluído encontrado para {args.output_path}. "
-                        "Processamento já realizado com sucesso. Pulando."
+                        f"[RESTORATION] Completed checkpoint found for {args.output_path}. "
+                        "Job already completed successfully. Skipping."
                     )
                     return
                 if int(chk.get("total_frames", 0)) > 0:
@@ -235,31 +244,31 @@ def restore_stream(args):
     )
 
     effective_start_sec = base_start_sec
-    if resume_state and int(resume_state["total_frames"]) > 0:
-        synced_f = int(resume_state["total_frames"])
+    if resume_state and int(float(str(resume_state["total_frames"]))) > 0:
+        synced_f = int(float(str(resume_state["total_frames"])))
         report_session["truncate_to_frame"](synced_f, reason="checkpoint_resume")
         effective_start_sec = base_start_sec + (synced_f / detected_fps)
         log.info(
-            f"[RESTAURAÇÃO] Retomando processamento e relatório forense sincronizados a partir do "
+            f"[RESTORATION] Resuming processing and synchronized forensic report starting from "
             f"frame {synced_f} ({sec_to_timecode(effective_start_sec)})."
         )
 
-    log.info(f"[RESTAURAÇÃO] Resolução de entrada: {w}x{h} @ {fps:.2f} fps")
-    log.info(f"[RESTAURAÇÃO] Modo de desentrelaçamento: {args.deinterlacer}")
-    log.info(f"[RESTAURAÇÃO] Política de canais de áudio: {args.audio_mode}")
-    log.info(f"[RESTAURAÇÃO] Aceleração de hardware/Encoder: {builder.encoder}")
+    log.info(f"[RESTORATION] Input resolution: {w}x{h} @ {fps:.2f} fps")
+    log.info(f"[RESTORATION] Deinterlacing mode: {args.deinterlacer}")
+    log.info(f"[RESTORATION] Audio channel policy: {args.audio_mode}")
+    log.info(f"[RESTORATION] Hardware acceleration / Encoder: {builder.encoder}")
     mode_desc = {
-        "freeze": "TBC Frame-Hold (Congela último frame bom para manter sincronia constante)",
-        "drop": "Descarte direto (Acelera vídeo)",
-        "passthrough": "Passthrough Puro (Sem alteração de frames, bit-perfect para uso com TBC Hardware)",
+        "freeze": "TBC Frame-Hold (Freezes last known good frame to preserve constant sync)",
+        "drop": "Direct discard (Speeds up video)",
+        "passthrough": "Pure Passthrough (No frame alteration, bit-perfect for hardware TBC use)",
     }.get(args.mode, args.mode)
-    log.info(f"[RESTAURAÇÃO] Modo de remoção de pretos: {mode_desc}")
+    log.info(f"[RESTORATION] Black removal mode: {mode_desc}")
     if apply_comb:
-        log.info("[RESTAURAÇÃO] Filtro 3D Comb ativado")
+        log.info("[RESTORATION] 3D Comb filter enabled")
     if abs(args.audio_offset) > 0.001:
         log.info(
-            f"[RESTAURAÇÃO] Ajuste de sincronia de áudio: {args.audio_offset:+.3f}s "
-            f"({'adiantando' if args.audio_offset > 0 else 'atrasando'} áudio)"
+            f"[RESTORATION] Audio sync offset: {args.audio_offset:+.3f}s "
+            f"({'advancing' if args.audio_offset > 0 else 'delaying'} audio)"
         )
 
     log_path = f"{args.output_path}.log"
@@ -387,7 +396,12 @@ def restore_stream(args):
                     f,
                     indent=2,
                 )
-            os.replace(tmp_chk, checkpoint_path)
+            for _ in range(5):
+                try:
+                    os.replace(tmp_chk, checkpoint_path)
+                    break
+                except (PermissionError, OSError):
+                    time.sleep(0.02)
         except Exception:
             pass
         try:
@@ -411,7 +425,8 @@ def restore_stream(args):
         initial_state=resume_state,
     )
 
-    p_in.stdout.close()
+    if p_in.stdout:
+        p_in.stdout.close()
     rc_in = p_in.wait()
 
     if p_out.stdin:
@@ -447,8 +462,21 @@ def restore_stream(args):
         import shutil
         try:
             shutil.copy2(args.output_path, final_output_path)
-        except Exception:
-            pass
+        except Exception as copy_err:
+            log.error(
+                f"[RESTORE] Failed to copy master output to '{final_output_path}': {copy_err}"
+            )
+            _persist_checkpoint_and_report(
+                stats["total_frames"],
+                stats["kept_frames"],
+                stats["frozen_frames"],
+                stats["dropped_frames"],
+                stats["elapsed"],
+                chk_status="failed",
+            )
+            raise RuntimeError(
+                f"Failed to copy restored output to target destination '{final_output_path}': {copy_err}"
+            ) from copy_err
 
     # Save completed checkpoint and synchronized archival report
     _persist_checkpoint_and_report(
@@ -547,149 +575,149 @@ def restore_stream(args):
             run_silent(mux_cmd, check=True)
             os.replace(muxed_path, args.output_path)
             os.remove(chap_path)
-            log.info(f"  Metadados/Capítulos injetados com sucesso!")
+            log.info("  Metadata/chapters injected successfully!")
         except Exception as e:
-            log.warning(f"  Aviso: Falha ao embutir capítulos ({e})")
+            log.warning(f"  Warning: Failed to mux chapters ({e})")
             if os.path.exists(muxed_path):
                 os.remove(muxed_path)
 
-    log.info(f"============================================================")
+    log.info("============================================================")
 
 
 def main(argv=None):
-    """Documentation for main."""
+    """Main CLI entrypoint for direct VHS restoration."""
     JobManager.acquire_lock()
     parser = argparse.ArgumentParser(
-        description="Restauração direta ultra-rápida sem perda de sincronia A/V para VHS"
+        description="Ultra-fast direct VHS restoration engine with lossless A/V synchronization"
     )
-    parser.add_argument("input", help="Arquivo raw de entrada")
-    parser.add_argument("--output", default=None, help="Arquivo final de saída")
+    parser.add_argument("input", help="Raw input video path")
+    parser.add_argument("--output", default=None, help="Final output file destination")
     parser.add_argument(
-        "--crf", type=int, default=20, help="Qualidade args.crf / ICQ (padrão: 20)"
+        "--crf", type=int, default=20, help="Output CRF / ICQ quality level (default: 20)"
     )
     parser.add_argument(
         "--mode",
         choices=["freeze", "drop", "passthrough"],
         default="freeze",
-        help="Modo: 'freeze' (TBC frame-hold, zero pretos, sync perfeito), 'drop' (descarta pretos) ou 'passthrough' (preservação pura bit-perfect com TBC EH55)",
+        help="Mode: 'freeze' (TBC frame-hold, zero blackouts, lip-sync), 'drop' (discards dropouts), or 'passthrough' (bit-perfect with hardware TBC)",
     )
     parser.add_argument(
         "--no-1080p",
         action="store_true",
-        help="Mantém resolução original 480p/576p em vez de upscale 1080p",
+        help="Preserve native 480p/576p resolution instead of 1080p Lanczos upscale",
     )
     parser.add_argument(
         "--deinterlacer",
         choices=["auto", "bwdif", "bwdif_single", "znedi3", "nnedi", "qtgmc", "none"],
         default="auto",
-        help="Desentrelaçamento: auto (pula se já progressivo ~60p), bwdif (60p dobro), bwdif_single, znedi3/nnedi (redes neurais), qtgmc (VapourSynth), none",
+        help="Deinterlacer: auto (skips if ~60p progressive), qtgmc (VapourSynth SSOT), znedi3/nnedi (neural), bwdif (motion-adaptive draft), none",
     )
     parser.add_argument(
         "--fps",
         type=float,
         default=None,
-        help="Forçar taxa de quadros (ex: 29.97, 59.94, 60.0)",
+        help="Override output frame rate (e.g. 29.97, 59.94, 60.0)",
     )
     parser.add_argument(
         "--audio-mode",
         choices=["auto", "stereo", "mono_l", "mono_r"],
         default="auto",
-        help="Tratamento de áudio: auto (detecta canal mudo/duplicação), stereo, mono_l (L->R), mono_r",
+        help="Audio mode: auto (mute/duplication check), stereo, mono_l (L->R duplicate), mono_r",
     )
     parser.add_argument(
         "--device",
         choices=["jvc_gr_ax410", "jvc_hr_d227m", "dmr_eh55", "blackmagic", "auto"],
         default="auto",
-        help="Perfil do hardware",
+        help="Hardware deck profile",
     )
     parser.add_argument(
         "--interactive",
         action="store_true",
-        help="Solicita confirmação interativa se houver ambiguidade técnica",
+        help="Request interactive confirmation if ambiguity is detected",
     )
     parser.add_argument(
         "--denoise",
         action="store_true",
-        help="Aplica redução de ruído temporal/espacial (hqdn3d)",
+        help="Apply spatial/temporal denoising (hqdn3d)",
     )
     parser.add_argument(
         "--chroma-fix",
         action="store_true",
-        help="Aplica correção de alinhamento de croma (chromashift)",
+        help="Apply chroma alignment correction (chromashift)",
     )
     parser.add_argument(
         "--comb-filter",
         action="store_true",
-        help="Aplica TComb 3D Comb Filter (apenas via VapourSynth)",
+        help="Apply TComb 3D Comb Filter (VapourSynth pipeline)",
     )
     parser.add_argument(
         "--overscan-blanking",
         action="store_true",
-        help="Aplica uma máscara preta (blanking) nos 12px inferiores para ocultar Head Switching Noise",
+        help="Apply black blanking on bottom 12 lines to conceal head switching noise",
     )
     parser.add_argument(
         "--audio-treatment",
         action="store_true",
-        help="Remove DC Offset, Hum Elétrico (60Hz notch) e reduz chiado de fundo do áudio analógico",
+        help="Remove DC Offset, 60Hz hum notch, and tape hiss filtering",
     )
     parser.add_argument(
         "--dropout-clean",
         action="store_true",
-        help="Detecta e atenua riscos/dropouts brancos transitórios na imagem",
+        help="Detect and attenuate oxide dropouts and white streaks",
     )
     parser.add_argument(
         "--ai-audio-denoise",
         action="store_true",
-        help="Aplica redução profunda de ruído e hiss de fita analógica",
+        help="Apply deep neural audio noise and hiss reduction",
     )
     parser.add_argument(
         "--output-codec",
         type=str,
         choices=["h264", "hevc", "prores", "ffv1"],
         default="h264",
-        help="Formato de exportação (Delivery vs Archival)",
+        help="Export codec format (Delivery vs Archival)",
     )
     parser.add_argument(
         "--resume",
         action="store_true",
-        help="Retoma restauração a partir do último checkpoint disponível",
+        help="Resume restoration from last saved checkpoint",
     )
     parser.add_argument(
         "--start-sec",
         type=float,
         default=None,
-        help="Segundo inicial forçado (ignora detecção automática)",
+        help="Forced start second (overrides automatic black leader detection)",
     )
     parser.add_argument(
         "--audio-offset",
         type=float,
         default=0.0,
-        help="Ajuste fino de áudio em segundos (ex: +1.0 para adiantar o áudio, -1.0 para atrasar)",
+        help="Fine audio offset in seconds (e.g. +1.0 advance, -1.0 delay)",
     )
     parser.add_argument(
         "--duration",
         "-t",
         type=float,
         default=None,
-        help="Duração máxima a processar em segundos (para testes)",
+        help="Maximum duration to process in seconds (for testing)",
     )
     parser.add_argument(
         "--install-qtgmc",
         action="store_true",
-        help="Executa o instalador multiplataforma de VapourSynth + QTGMC para o sistema operacional",
+        help="Run cross-platform VapourSynth + QTGMC automated installer",
     )
     args = parser.parse_args(argv)
 
     if getattr(args, "install_qtgmc", False):
         log.info(
-            "[INSTALADOR] Iniciando instalador automático do VapourSynth + QTGMC..."
+            "[INSTALLER] Starting automated VapourSynth + QTGMC installer..."
         )
         ok = VapourSynthQTGMC.install_dependencies(interactive=True)
         sys.exit(0 if ok else 1)
 
     args.input_path = os.path.abspath(args.input)
     if not os.path.exists(args.input_path):
-        log.error(f"[ERRO] Arquivo não encontrado: {args.input_path}")
+        log.error(f"[ERROR] File not found: {args.input_path}")
         try:
             JobManager.release_lock()
         except Exception:
@@ -755,19 +783,20 @@ def main(argv=None):
 
     resolved_deint = "none"
     if strat["need_deinterlace"]:
-        resolved_deint = (
-            "bwdif" if args.deinterlacer in ("auto", "bwdif") else args.deinterlacer
-        )
+        if args.deinterlacer == "auto":
+            resolved_deint = "qtgmc" if VapourSynthQTGMC.is_available() else "bwdif"
+        else:
+            resolved_deint = args.deinterlacer
     elif args.deinterlacer in ("bwdif", "bwdif_single", "znedi3", "nnedi", "qtgmc"):
         resolved_deint = args.deinterlacer
 
     if resolved_deint == "qtgmc":
         if VapourSynthQTGMC.is_available():
-            log.info("[QTGMC] VapourSynth/vspipe detectado para desentrelaçamento de alta fidelidade.")
+            log.info("[QTGMC] VapourSynth/vspipe detected for high-fidelity deinterlacing.")
         else:
             log.warning(
-                "[QTGMC] VapourSynth/vspipe não detectado para streaming direto. "
-                "Aplicando fallback automático para desentrelaçador broadcast 'bwdif'."
+                "[QTGMC] VapourSynth/vspipe not detected for direct streaming. "
+                "Applying automatic fallback to broadcast 'bwdif'."
             )
             resolved_deint = "bwdif"
             args.deinterlacer = "bwdif"

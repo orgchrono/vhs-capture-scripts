@@ -26,18 +26,18 @@ def run_cmd(cmd, shell=False):
 
 
 def setup_vapoursynth_windows():
-    """Documentation for setup_vapoursynth_windows."""
-    print_step("Iniciando setup automático do VapourSynth + QTGMC para Windows...")
+    """Automated VapourSynth and QTGMC setup for Windows."""
+    print_step("Starting automated VapourSynth + QTGMC setup for Windows...")
 
     # 1. Check vspipe
-    print_step("Verificando instalação do vspipe...")
+    print_step("Checking vspipe installation...")
     existing_vspipe = VapourSynthQTGMC.get_vspipe_path()
     if existing_vspipe:
         print_success(
-            f"VapourSynth já está instalado: {existing_vspipe}"
+            f"VapourSynth is already installed: {existing_vspipe}"
         )
     else:
-        print_step("vspipe não encontrado. Tentando instalar via WinGet...")
+        print_step("vspipe not found. Attempting installation via WinGet...")
         winget_res = run_cmd(
             [
                 "winget",
@@ -49,7 +49,7 @@ def setup_vapoursynth_windows():
             ]
         )
         if winget_res.returncode == 0:
-            print_success("VapourSynth instalado com sucesso via WinGet!")
+            print_success("VapourSynth installed successfully via WinGet!")
         else:
             installer_url = (
                 "https://github.com/vapoursynth/vapoursynth/releases/latest/download/VapourSynth65-Setup.exe"
@@ -60,27 +60,27 @@ def setup_vapoursynth_windows():
             try:
                 urllib.request.urlretrieve(installer_url, installer_path)  # nosec
                 print_step(
-                    "Executando instalador (isso pode exigir permissão de Administrador)..."
+                    "Running installer (Administrator permissions may be required)..."
                 )
                 run_silent([installer_path, "/S"])
-                print_success("Instalador oficial executado.")
+                print_success("Official installer executed.")
             except Exception as e:
-                print_error(f"Falha ao baixar/instalar: {e}")
+                print_error(f"Download/install failed: {e}")
                 return False
 
     # 2. Install python deps
-    print_step("Instalando bibliotecas Python para QTGMC (havsfunc)...")
+    print_step("Installing Python libraries for QTGMC (havsfunc)...")
     py_bin = get_python_interpreter()
     pip_res = run_cmd(
         [py_bin, "-m", "pip", "install", "vapoursynth", "havsfunc"]
     )
     if pip_res.returncode == 0:
-        print_success("Bibliotecas instaladas com sucesso!")
+        print_success("Libraries installed successfully!")
     else:
-        print_error(f"Aviso: Erro no pip: {pip_res.stderr}")
+        print_error(f"Warning: pip error: {pip_res.stderr}")
 
     # 3. Test
-    print_step("Validando instalação...")
+    print_step("Validating installation...")
     time.sleep(2)  # Wait for paths to settle
     test_res = run_cmd(
         [
@@ -91,10 +91,10 @@ def setup_vapoursynth_windows():
     )
     if test_res.returncode == 0:
         print_success(test_res.stdout.strip())
-        print_success("QTGMC e VapourSynth estão 100% prontos para uso no VHS Studio!")
+        print_success("QTGMC and VapourSynth are 100% ready for VHS Studio!")
     else:
         print_error(
-            "VapourSynth instalado, mas não carregou no Python. Reinicie o terminal/aplicativo para atualizar o PATH do sistema."  # noqa: E501
+            "VapourSynth installed but failed to import in Python. Restart the terminal or application to refresh system PATH."
         )
 
     return True
@@ -102,21 +102,21 @@ def setup_vapoursynth_windows():
 
 def setup_vapoursynth_unix():
     """Install VapourSynth and havsfunc on Linux or macOS."""
-    print_step("Iniciando setup automático do VapourSynth + QTGMC para Linux/macOS...")
+    print_step("Starting automated VapourSynth + QTGMC setup for Linux/macOS...")
     from vhs_studio.core.package_manager import install_vapoursynth_crossplatform
 
     if install_vapoursynth_crossplatform():
-        print_success("VapourSynth instalado com sucesso pelo gerenciador de pacotes do sistema!")
+        print_success("VapourSynth installed successfully via system package manager!")
     else:
-        print_step("Gerenciador de pacotes automático indisponível ou VapourSynth já existente.")
+        print_step("System package manager unavailable or VapourSynth already installed.")
 
-    print_step("Instalando bibliotecas Python para QTGMC (havsfunc)...")
+    print_step("Installing Python libraries for QTGMC (havsfunc)...")
     py_bin = get_python_interpreter()
     pip_res = run_cmd([py_bin, "-m", "pip", "install", "vapoursynth", "havsfunc"])
     if pip_res.returncode == 0:
-        print_success("Bibliotecas Python havsfunc instaladas!")
+        print_success("Python libraries installed successfully!")
     else:
-        print_error(f"Aviso no pip: {pip_res.stderr}")
+        print_error(f"Pip error: {pip_res.stderr}")
 
     test_res = run_cmd(
         [
@@ -127,11 +127,11 @@ def setup_vapoursynth_unix():
     )
     if test_res.returncode == 0:
         print_success(test_res.stdout.strip())
-        print_success("QTGMC e VapourSynth estão 100% prontos para uso no VHS Studio!")
+        print_success("QTGMC and VapourSynth are 100% ready for VHS Studio!")
         return True
     else:
         print_error(
-            "VapourSynth instalado, mas não carregou no Python. Verifique o ambiente virtual."
+            "VapourSynth installed but failed to import in Python. Please check the virtual environment."
         )
         return False
 

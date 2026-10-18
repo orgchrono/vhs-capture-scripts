@@ -105,17 +105,22 @@ describe('SplitComparisonMonitor Component', () => {
   });
 
   it('toggles playback with play/pause button', () => {
-    renderComponent();
+    renderComponent({ initialMode: 'stream' });
 
     const playBtn = screen.getByTestId('split-play-toggle-btn');
     expect(playBtn).toBeInTheDocument();
     expect(playBtn).not.toBeDisabled();
 
-    fireEvent.click(playBtn);
-    expect(screen.getByTestId('split-play-toggle-btn')).toBeInTheDocument();
+    // In stream mode, stream is playing initially
+    expect(screen.getByTestId('split-raw-stream')).toBeInTheDocument();
 
+    // Click to pause -> stream is stopped
     fireEvent.click(playBtn);
-    expect(screen.getByTestId('split-play-toggle-btn')).toBeInTheDocument();
+    expect(screen.queryByTestId('split-raw-stream')).not.toBeInTheDocument();
+
+    // Click to resume -> stream is playing again
+    fireEvent.click(playBtn);
+    expect(screen.getByTestId('split-raw-stream')).toBeInTheDocument();
   });
 
   it('disables play, seek, and scrubber controls when no media source is loaded', () => {

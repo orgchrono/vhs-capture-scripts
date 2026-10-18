@@ -61,11 +61,11 @@ def run_system_install(cmd: List[str]) -> bool:
         is_root = getattr(os, "geteuid", lambda: -1)() == 0
         if platform.system() != "Windows" and not is_root and shutil.which("sudo"):
             cmd = ["sudo"] + cmd
-        log.info(f"[PackageManager] Executando: {' '.join(cmd)}")
+        log.info(f"[PackageManager] Executing: {' '.join(cmd)}")
         res = run_silent(cmd, check=True)  # nosec
         return res.returncode == 0
     except (subprocess.CalledProcessError, FileNotFoundError, PermissionError) as e:
-        log.error(f"[PackageManager] Falha na execucao de comando ({' '.join(cmd)}): {e}")
+        log.error(f"[PackageManager] Command execution failed ({' '.join(cmd)}): {e}")
         return False
 
 
@@ -77,7 +77,7 @@ def install_ffmpeg_crossplatform() -> bool:
     if sys_name == "Darwin":
         if mgr == "brew":
             return run_system_install(["brew", "install", "ffmpeg"])
-        log.error("[PackageManager] Homebrew ausente no macOS. Instale brew ou ffmpeg manualmente.")
+        log.error("[PackageManager] Homebrew missing on macOS. Install brew or ffmpeg manually.")
         return False
 
     if sys_name == "Linux":
@@ -95,7 +95,7 @@ def install_ffmpeg_crossplatform() -> bool:
         elif mgr == "brew":
             return run_system_install(["brew", "install", "ffmpeg"])
         log.error(
-            f"[PackageManager] Nenhum gerenciador de pacotes suportado encontrado no Linux "
+            f"[PackageManager] No supported package manager found on Linux "
             f"(Distro: {get_linux_distro_id()})."
         )
         return False
@@ -111,7 +111,7 @@ def install_obs_crossplatform() -> bool:
     if sys_name == "Darwin":
         if mgr == "brew":
             return run_system_install(["brew", "install", "--cask", "obs"])
-        log.error("[PackageManager] Homebrew ausente no macOS para instalar OBS Studio.")
+        log.error("[PackageManager] Homebrew missing on macOS to install OBS Studio.")
         return False
 
     if sys_name == "Linux":
@@ -127,10 +127,10 @@ def install_obs_crossplatform() -> bool:
 
         # Fallback to Flatpak if available
         if shutil.which("flatpak"):
-            log.info("[PackageManager] Tentando instalar OBS Studio via Flatpak...")
+            log.info("[PackageManager] Attempting to install OBS Studio via Flatpak...")
             return run_system_install(["flatpak", "install", "-y", "flathub", "com.obsproject.Studio"])
 
-        log.error(f"[PackageManager] Nao foi possivel instalar OBS Studio no Linux (Distro: {get_linux_distro_id()}).")
+        log.error(f"[PackageManager] Could not install OBS Studio on Linux (Distro: {get_linux_distro_id()}).")
         return False
 
     return False

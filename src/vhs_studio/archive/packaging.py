@@ -1,17 +1,20 @@
-"""Module documentation pending."""
+"""
+packaging.py - Archival packaging and digital preservation standards module.
+Generates BagIt structures and PREMIS v3 XML preservation metadata with canonical fixity.
+"""
 
 import os
-import hashlib
 import xml.etree.ElementTree as ET
 import shutil
+from vhs_studio.core.media_utils import compute_sha256
 
 
 class Packaging:
-    """Documentation for Packaging."""
+    """Archival packaging utilities for BagIt and PREMIS digital preservation."""
 
     @staticmethod
     def create_bagit(directory: str) -> bool:
-        """Estrutura a pasta no padrao BagIt."""
+        """Structure target directory following the BagIt specification (RFC 8493)."""
         if not os.path.exists(directory):
             return False
 
@@ -33,25 +36,18 @@ class Packaging:
                 for file in files:
                     filepath = os.path.join(root, file)
                     rel_path = os.path.relpath(filepath, directory).replace("\\", "/")
-                    sha256_hash = hashlib.sha256()
-                    with open(filepath, "rb") as bf:
-                        for chunk in iter(lambda: bf.read(65536), b""):
-                            sha256_hash.update(chunk)
-                    f.write(f"{sha256_hash.hexdigest()} {rel_path}\n")
+                    digest = compute_sha256(filepath)
+                    f.write(f"{digest} {rel_path}\n")
         return True
 
     @staticmethod
     def generate_premis(filepath: str) -> str:
-        """Gera metadados PREMIS para preservacao digital."""
+        """Generate PREMIS v3 preservation metadata for archival masters."""
         if not os.path.exists(filepath):
             return ""
 
         size = os.path.getsize(filepath)
-        sha256_hash = hashlib.sha256()
-        with open(filepath, "rb") as bf:
-            for chunk in iter(lambda: bf.read(65536), b""):
-                sha256_hash.update(chunk)
-        hexdigest = sha256_hash.hexdigest()
+        hexdigest = compute_sha256(filepath)
 
         premis = ET.Element(
             "premis", xmlns="http://www.loc.gov/premis/v3", version="3.0"

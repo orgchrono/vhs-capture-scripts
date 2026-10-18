@@ -1,48 +1,34 @@
 #!/usr/bin/env python3
 """
-desktop.py - Lançador Desktop Nativo do VHS Studio via PyWebView (WebView2 no Windows)
-Inicia o servidor de API local e abre uma janela de aplicativo dedicada com a interface React.
+desktop.py - Native Desktop Launcher for VHS Studio via PyWebView (WebView2 on Windows).
+Launches local backend API server and opens a dedicated application window with the React interface.
 """
 
 import sys
 import os
-import hashlib
 import threading
-import subprocess
 import multiprocessing
+import tempfile
+from typing import Optional
 from vhs_studio.core.system_process import run_silent
 from vhs_studio.core.logger import log
 from vhs_studio.core.constants import DEFAULT_API_HOST, DEFAULT_API_PORT
+from vhs_studio.core.media_utils import compute_directory_hash, compute_sha256
 from vhs_studio.api.server import run_server
 
 
-def get_base_path():
-    """Documentation for get_base_path."""
+def get_base_path() -> str:
+    """Return base directory for application bundle or source tree."""
     if hasattr(sys, "_MEIPASS"):
         return sys._MEIPASS
     return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
 
-def get_directory_hash(directory):
-    """Documentation for get_directory_hash."""
-    sha1 = hashlib.sha256()
-    for root, dirs, files in os.walk(directory):
-        for name in sorted(files):
-            filepath = os.path.join(root, name)
-            try:
-                with open(filepath, "rb") as f:
-                    while chunk := f.read(8192):
-                        sha1.update(chunk)
-            except Exception:
-                pass
-    return sha1.hexdigest()
-
-
-def ensure_ui_build():
-    """Documentation for ensure_ui_build."""
+def ensure_ui_build() -> str:
+    """Verify that the frontend UI build artifact exists and matches source hash."""
     if hasattr(sys, "_MEIPASS"):
         log.info(
-            "[DESKTOP] Executável empacotado detectado. Pulando checagem de build do Vite."
+            "[DESKTOP] Packaged executable detected. Skipping Vite build verification."
         )
         return get_base_path()
 
@@ -54,12 +40,11 @@ def ensure_ui_build():
     if not os.path.exists(ui_src_dir):
         return project_root
 
-    current_hash = get_directory_hash(ui_src_dir)
-    # Include package.json in hash
+    current_hash = compute_directory_hash(ui_src_dir)
+    # Include package.json in integrity hash
     pkg_json = os.path.join(project_root, "ui", "package.json")
     if os.path.exists(pkg_json):
-        with open(pkg_json, "rb") as f:
-            current_hash += hashlib.sha256(f.read()).hexdigest()
+        current_hash += compute_sha256(pkg_json)
 
     rebuild_needed = True
     if os.path.exists(hash_file) and os.path.exists(
@@ -75,15 +60,15 @@ def ensure_ui_build():
 
         if is_interactive:
             log.warning(
-                "[SEGURANÇA] Mudanças detectadas nos arquivos da Interface (UI) ou Hash Mismatch."
+                "[SECURITY] Changes detected in UI source files or hash mismatch."
             )
             print("")
-            print("=== AVISO DE SEGURANÇA / INTEGRIDADE ===")
+            print("=== SECURITY / INTEGRITY NOTICE ===")
             print(
-                "Deseja autorizar a compilação do novo código e atualizar a interface local?"
+                "Do you want to authorize compiling the updated UI code and refreshing the local interface?"
             )
             try:
-                ans = input("Autorizar build da UI? (Y/n): ").strip().lower()
+                ans = input("Authorize UI build? (Y/n): ").strip().lower()
                 authorized = ans in ("", "y", "yes")
             except (EOFError, OSError):
                 authorized = True
@@ -91,7 +76,7 @@ def ensure_ui_build():
             authorized = True
 
         if authorized:
-            log.info("[DESKTOP] Compilando interface gráfica via Vite...")
+            log.info("[DESKTOP] Compiling graphic interface via Vite...")
             ui_dir = os.path.join(project_root, "ui")
             try:
                 npm_cmd = "npm.cmd" if os.name == "nt" else "npm"
@@ -100,24 +85,24 @@ def ensure_ui_build():
                 with open(hash_file, "w", encoding="utf-8") as f:
                     f.write(current_hash)
                 log.info(
-                    "[DESKTOP] Build da UI concluída com sucesso e Cache atualizado!"
+                    "[DESKTOP] UI build completed successfully and cache updated!"
                 )
             except Exception as e:
-                log.error(f"[DESKTOP ERRO] Falha ao compilar a UI: {e}")
+                log.error(f"[DESKTOP ERROR] Failed to compile UI: {e}")
                 if index_exists:
-                    log.warning("[DESKTOP] Reutilizando versão compilada pré-existente.")
+                    log.warning("[DESKTOP] Reusing pre-existing compiled version.")
         else:
             log.warning(
-                "[DESKTOP] Build rejeitada pelo usuário. Usando cache anterior."
+                "[DESKTOP] Build declined by user. Using pre-existing UI cache."
             )
     else:
-        log.info("[DESKTOP] UI Verificada (Security Hash Match).")
+        log.info("[DESKTOP] UI Verified (Security Hash Match).")
 
     return project_root
 
 
 def setup_windows_native_icon(window_title: str, icon_path: str) -> None:
-    """Aplica o ícone oficial da marca na janela nativa e barra de tarefas do Windows."""
+    """Apply official brand icon to native window and Windows taskbar."""
     if sys.platform != "win32" or not os.path.exists(icon_path):
         return
 
@@ -130,7 +115,7 @@ def setup_windows_native_icon(window_title: str, icon_path: str) -> None:
                 "vhs_studio.pro.desktop"
             )
         except Exception as e:
-            log.debug(f"[DESKTOP] AppUserModelID falhou: {e}")
+            log.debug(f"[DESKTOP] AppUserModelID registration failed: {e}")
 
         IMAGE_ICON = 1
         LR_LOADFROMFILE = 0x00000010
@@ -146,7 +131,7 @@ def setup_windows_native_icon(window_title: str, icon_path: str) -> None:
                 None, icon_path, IMAGE_ICON, 16, 16, LR_LOADFROMFILE
             )
 
-            # Localiza o HWND da janela criada e injeta os ícones nativos
+            # Locate HWND of the created window and inject native icons
             for _ in range(30):
                 hwnd = ctypes.windll.user32.FindWindowW(None, window_title)
                 if hwnd:
@@ -159,23 +144,23 @@ def setup_windows_native_icon(window_title: str, icon_path: str) -> None:
                             hwnd, WM_SETICON, ICON_SMALL, hicon_small
                         )
                     log.info(
-                        "[DESKTOP] Ícone oficial do VHS Studio aplicado à janela nativa."
+                        "[DESKTOP] Official VHS Studio icon applied to native window."
                     )
                     break
                 time.sleep(0.1)
         except Exception as e:
-            log.warning(f"[DESKTOP] Não foi possível injetar o ícone na janela: {e}")
+            log.warning(f"[DESKTOP] Could not inject icon into native window: {e}")
 
     threading.Thread(target=_apply_icon, daemon=True).start()
 
 
 def run_desktop():
-    """Documentation for run_desktop."""
+    """Main desktop launcher entrypoint."""
     try:
         import webview
     except ImportError:
         log.error(
-            "[DESKTOP] pywebview não encontrado. Por favor, execute: pip install pywebview fastapi uvicorn"
+            "[DESKTOP] pywebview not found. Please install dependencies: pip install pywebview fastapi uvicorn"
         )
         sys.exit(1)
 
@@ -204,12 +189,12 @@ def run_desktop():
 
     port = DEFAULT_API_PORT
     if is_vhs_server_active(DEFAULT_API_HOST, port):
-        log.info(f"[DESKTOP] Instância ativa do VHS Studio detectada na porta {port}. Reutilizando servidor.")
+        log.info(f"[DESKTOP] Active VHS Studio instance detected on port {port}. Reusing existing server.")
     else:
         if is_port_in_use(DEFAULT_API_HOST, port):
             old_port = port
             port = find_open_port(DEFAULT_API_HOST, port + 1)
-            log.warning(f"[DESKTOP] Porta {old_port} ocupada por outro processo. Alocando porta livre: {port}")
+            log.warning(f"[DESKTOP] Port {old_port} occupied by another process. Allocating available port: {port}")
         t = threading.Thread(target=run_server, args=(port,), daemon=True)
         t.start()
 
@@ -222,7 +207,7 @@ def run_desktop():
         setup_windows_native_icon(window_title, chosen_icon)
 
     log.info(
-        f"[DESKTOP] Iniciando janela nativa Desktop Pro em http://{DEFAULT_API_HOST}:{port}"
+        f"[DESKTOP] Launching native Desktop Pro window at http://{DEFAULT_API_HOST}:{port}"
     )
     webview.create_window(
         title=window_title,
@@ -233,7 +218,23 @@ def run_desktop():
         min_size=(1024, 700),
         background_color="#080c14",
     )
-    webview.start(debug=False, icon=chosen_icon)
+    storage_cand = os.path.join(
+        os.environ.get("LOCALAPPDATA", tempfile.gettempdir()),
+        "vhs_studio",
+        "webview_data",
+    )
+    storage_path: Optional[str] = None
+    try:
+        os.makedirs(storage_cand, exist_ok=True)
+        storage_path = storage_cand
+    except OSError:
+        storage_path = None
+    webview.start(
+        debug=False,
+        icon=chosen_icon,
+        private_mode=False,
+        storage_path=storage_path,
+    )
 
 
 if __name__ == "__main__":

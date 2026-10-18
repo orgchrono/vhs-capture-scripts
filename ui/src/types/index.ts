@@ -109,6 +109,9 @@ export interface RestorationPayload {
   auto_upload?: boolean;
   resume?: boolean;
   output?: string;
+  ai_whisper?: boolean;
+  whisper_model?: string;
+  language?: string;
 }
 
 export interface ObsStats {

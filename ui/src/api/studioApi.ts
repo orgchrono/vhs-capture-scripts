@@ -3,13 +3,13 @@ import type { SystemStatus, RestorationPayload, ObsStats, QueueJob, QueueStats }
 export const studioApi = {
   async getStatus(): Promise<SystemStatus> {
     const res = await fetch('/api/status')
-    if (!res.ok) throw new Error('Falha ao obter status do sistema')
+    if (!res.ok) throw new Error('Failed to obtain system status')
     return res.json()
   },
 
   async getLogs(): Promise<{ active: boolean; logs: string[] }> {
     const res = await fetch('/api/logs')
-    if (!res.ok) throw new Error('Falha ao obter logs')
+    if (!res.ok) throw new Error('Failed to obtain logs')
     return res.json()
   },
 
@@ -47,24 +47,24 @@ export const studioApi = {
   },
 
 
-  async generateSubtitles(input: string, model_size: string): Promise<{ status: string; message?: string }> {
+  async generateSubtitles(input: string, model_size: string, language?: string): Promise<{ status: string; message?: string }> {
     const res = await fetch('/api/action', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'generate_subtitles', params: { input, model_size } })
+      body: JSON.stringify({ action: 'generate_subtitles', params: { input, model_size, language } })
     })
     return res.json()
   },
 
   async getObsStats(): Promise<ObsStats> {
     const res = await fetch('/api/obs/stats')
-    if (!res.ok) throw new Error('Falha ao obter telemetria do OBS')
+    if (!res.ok) throw new Error('Failed to obtain OBS telemetry')
     return res.json()
   },
 
   async getQueue(): Promise<{ jobs: QueueJob[]; stats: QueueStats; worker_running: boolean }> {
     const res = await fetch('/api/queue')
-    if (!res.ok) throw new Error('Falha ao obter fila de processamento')
+    if (!res.ok) throw new Error('Failed to obtain processing queue')
     return res.json()
   },
 
