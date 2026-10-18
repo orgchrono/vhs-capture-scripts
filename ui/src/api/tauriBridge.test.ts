@@ -150,6 +150,11 @@ describe('Tauri v2 IPC Bridge & Fallback (tauriBridge)', () => {
     const xml = await tauriBridge.generatePremisXml('tape.mkv', 1024, 'abc123');
     expect(xml).toContain('<objectIdentifierValue>tape.mkv</objectIdentifierValue>');
     expect(xml).toContain('<messageDigest>abc123</messageDigest>');
+
+    expect(await tauriBridge.evaluate321Compliance(3, 2, true)).toBe(true);
+    expect(await tauriBridge.evaluate321Compliance(2, 2, true)).toBe(false);
+    expect(await tauriBridge.evaluate321Compliance(3, 1, true)).toBe(false);
+    expect(await tauriBridge.evaluate321Compliance(3, 2, false)).toBe(false);
   });
 
   it('builds VapourSynth QTGMC script and vspipe args', async () => {

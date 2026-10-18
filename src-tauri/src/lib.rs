@@ -253,8 +253,8 @@ pub fn ipc_verify_storage_capacity(available_bytes: u64, required_bytes: u64) ->
 }
 
 use archive::{
-    generate_bagit_declaration, generate_bagit_manifest, generate_premis_v3_xml,
-    generate_tape_sidecar_json, ArchivalFileEntry,
+    evaluate_321_compliance, generate_bagit_declaration, generate_bagit_manifest,
+    generate_premis_v3_xml, generate_tape_sidecar_json, ArchivalFileEntry,
 };
 use qtgmc::{build_qtgmc_script_content, build_vspipe_cli_args, QtgmcScriptParams};
 use stream::{
@@ -293,6 +293,16 @@ pub fn ipc_generate_tape_sidecar_json(
     metadata: &serde_json::Value,
 ) -> String {
     generate_tape_sidecar_json(filename, timestamp, metadata)
+}
+
+/// Typed IPC ViewModel command evaluating 3-2-1 archival backup compliance.
+#[must_use]
+pub fn ipc_evaluate_321_compliance(
+    total_copies: usize,
+    distinct_media_locations: usize,
+    has_remote_or_cloud_copy: bool,
+) -> bool {
+    evaluate_321_compliance(total_copies, distinct_media_locations, has_remote_or_cloud_copy)
 }
 
 /// Typed IPC ViewModel command building VapourSynth QTGMC script content.

@@ -221,9 +221,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 _ => RestorationPreset::Gold,
             };
 
+            let output_dir = args.get(4).cloned().unwrap_or_else(|| "media/restored".to_string());
+
             let req = vhs_studio_core::executor::RestorationJobRequest {
                 input_path: input_path.clone(),
-                output_dir: "media/restored".to_string(),
+                output_dir,
                 preset,
                 target_1080p: true,
                 output_codec: None,
@@ -310,9 +312,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let vspipe_bin = vhs_studio_core::toolchain::resolve_executable_path("vspipe", cwd.as_deref(), home)
                 .map(|p| p.to_string_lossy().to_string());
 
+            let output_dir = args.get(4).cloned().unwrap_or_else(|| "media/restored".to_string());
+
             let req = vhs_studio_core::executor::RestorationJobRequest {
                 input_path: input_path.clone(),
-                output_dir: "media/restored".to_string(),
+                output_dir,
                 preset,
                 target_1080p: true,
                 output_codec: None,

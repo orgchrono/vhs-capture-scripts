@@ -437,6 +437,22 @@ export const tauriBridge = {
     return `<?xml version="1.0" encoding="UTF-8"?>\n<premis xmlns="http://www.loc.gov/premis/v3" version="3.0">\n  <object xsi:type="file">\n    <objectIdentifier><objectIdentifierType>local</objectIdentifierType><objectIdentifierValue>${filename}</objectIdentifierValue></objectIdentifier>\n    <objectCharacteristics><size>${sizeBytes}</size><fixity><messageDigestAlgorithm>SHA-256</messageDigestAlgorithm><messageDigest>${sha256Hex}</messageDigest></fixity></objectCharacteristics>\n    <originalName>${filename}</originalName>\n  </object>\n</premis>\n`;
   },
 
+  async evaluate321Compliance(
+    totalCopies: number,
+    distinctMediaLocations: number,
+    hasRemoteOrCloudCopy: boolean
+  ): Promise<boolean> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<boolean>('ipc_evaluate_321_compliance', {
+        totalCopies,
+        distinctMediaLocations,
+        hasRemoteOrCloudCopy,
+      });
+    }
+    return totalCopies >= 3 && distinctMediaLocations >= 2 && hasRemoteOrCloudCopy;
+  },
+
   async buildQtgmcScript(params: TauriQtgmcParams): Promise<string> {
     const tauri = getTauriInternals();
     if (tauri) {

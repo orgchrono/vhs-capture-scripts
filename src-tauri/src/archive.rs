@@ -82,6 +82,25 @@ pub fn generate_tape_sidecar_json(
     serde_json::to_string_pretty(&payload).unwrap_or_else(|_| "{}".to_string())
 }
 
+/// Sets read-only permissions on an archival master file to prevent accidental deletion or modification.
+pub fn set_file_readonly(path: &std::path::Path) -> std::io::Result<()> {
+    let mut perms = std::fs::metadata(path)?.permissions();
+    perms.set_readonly(true);
+    std::fs::set_permissions(path, perms)
+}
+
+/// Evaluates whether an archival backup plan satisfies the 3-2-1 digital preservation rule:
+/// At least 3 copies, on 2 different media formats/locations, with at least 1 offsite/cloud copy.
+#[must_use]
+pub fn evaluate_321_compliance(
+    total_copies: usize,
+    distinct_media_locations: usize,
+    has_remote_or_cloud_copy: bool,
+) -> bool {
+    total_copies >= 3 && distinct_media_locations >= 2 && has_remote_or_cloud_copy
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -134,4 +153,17 @@ mod tests {
         assert!(sidecar.contains("\"original_file\": \"capture.avi\""));
         assert!(sidecar.contains("\"Panasonic AG-7750\""));
     }
+
+    #[test]
+    fn test_evaluate_321_compliance() {
+        assert!(evaluate_321_compliance(3, 2, true));
+        assert!(evaluate_321_compliance(4, 3, true));
+        // Missing cloud copy
+        assert!(!evaluate_321_compliance(3, 2, false));
+        // Not enough total copies
+        assert!(!evaluate_321_compliance(2, 2, true));
+        // Not enough media diversity
+        assert!(!evaluate_321_compliance(3, 1, true));
+    }
 }
+
