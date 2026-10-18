@@ -193,5 +193,45 @@ describe('Tauri v2 IPC Bridge & Fallback (tauriBridge)', () => {
     const thumbArgs = await tauriBridge.buildThumbnailExtractArgs('in.mp4', 10.5, 'out.jpg');
     expect(thumbArgs).toEqual(['ffmpeg', '-y', '-ss', '10.500', '-i', 'in.mp4', '-frames:v', '1', '-q:v', '2', 'out.jpg']);
   });
+
+  it('probes media and parses ffprobe JSON in fallback mode', async () => {
+    const sampleJson = JSON.stringify({
+      streams: [
+        { codec_type: 'video', codec_name: 'ffv1', width: 720, height: 480, r_frame_rate: '30000/1001', field_order: 'tt' },
+        { codec_type: 'audio', codec_name: 'pcm_s16le', channels: 2, sample_rate: '48000' }
+      ],
+      format: { format_name: 'matroska', duration: '120.0' }
+    });
+    const probe = await tauriBridge.parseFfprobeJson(sampleJson, 'tape.mkv');
+    expect(probe.width).toBe(720);
+    expect(probe.height).toBe(480);
+    expect(probe.video_codec).toBe('ffv1');
+    expect(probe.audio_codec).toBe('pcm_s16le');
+    expect(probe.audio_channels).toBe(2);
+    expect(probe.is_interlaced).toBe(true);
+    expect(probe.standard).toBe('NTSC');
+  });
+
+  it('formats broadcast timecodes, part paths, and validates extensions', async () => {
+    const tcMs = await tauriBridge.secondsToTimecode(90.5, true);
+    expect(tcMs).toBe('00:01:30.500');
+
+    const tcNoMs = await tauriBridge.secondsToTimecode(90.5, false);
+    expect(tcNoMs).toBe('00:01:30');
+
+    const part = await tauriBridge.getPartPath('C:/media/tape.mkv');
+    expect(part).toBe('C:/media/tape.mkv.part');
+
+    expect(await tauriBridge.isMediaExtensionValid('.mkv')).toBe(true);
+    expect(await tauriBridge.isMediaExtensionValid('mp4')).toBe(true);
+    expect(await tauriBridge.isMediaExtensionValid('.txt')).toBe(false);
+
+    const wingetCmd = await tauriBridge.getFfmpegInstallCommand('winget');
+    expect(wingetCmd).toContain('winget');
+    expect(wingetCmd).toContain('Gyan.FFmpeg');
+
+    const brewCmd = await tauriBridge.getFfmpegInstallCommand('brew');
+    expect(brewCmd).toEqual(['brew', 'install', 'ffmpeg']);
+  });
 });
 

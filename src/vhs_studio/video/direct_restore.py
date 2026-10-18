@@ -63,10 +63,8 @@ def get_stream_info(input_file):
 
 
 def find_first_video_frame(input_file, max_scan_sec=VideoConfig.MAX_SCAN_SECONDS):
-    """
-    Identifica o segundo exato onde a gravação real começa na fita (fim do líder inicial).
-    """
-    log.info("[RESTAURAÇÃO] Localizando o início da gravação real na fita...")
+    """Identify the exact second where active recording starts on tape (end of introductory leader)."""
+    log.info("[RESTORATION] Locating active recording start on tape...")
     w, h, fps, _, _ = get_stream_info(input_file)
     if fps <= 0:
         fps = VideoConfig.DEFAULT_FPS
@@ -136,7 +134,7 @@ def print_log_tail(log_path, lines=20):
         with open(log_path, "r", encoding="utf-8", errors="replace") as f:
             content = f.readlines()
             tail = content[-lines:] if len(content) > lines else content
-            log.error("\n--- Últimas linhas do log do FFmpeg ---")
+            log.error("\n--- Tail of FFmpeg log ---")
             for l in tail:
                 log.error(l.rstrip())
             log.error("----------------------------------------\n")
@@ -332,17 +330,17 @@ def restore_stream(args):
     final_output_path = f"{base}_{phash}{ext}"
     part_path = AtomicIO.get_part_path(final_output_path)
 
-    # Limpa arquivo parcial residual se existente para garantir inicialização limpa
+    # Remove residual partial file if present to guarantee clean restart
     if os.path.exists(part_path):
         try:
             os.remove(part_path)
-            log.info(f"[RESTAURAÇÃO] Arquivo parcial prévio removido para reinício limpo: {part_path}")
+            log.info(f"[RESTORATION] Removed previous partial file for clean restart: {part_path}")
         except Exception as e:
             log.warning(
-                f"[RESTAURAÇÃO] Não foi possível remover arquivo residual '{part_path}': {e}"
+                f"[RESTORATION] Could not remove residual file '{part_path}': {e}"
             )
 
-    # IMPORTANTE (T-1.11): Passamos detected_fps (input_rate) em vez de args.target_fps
+    # IMPORTANT (T-1.11): We pass detected_fps (input_rate) instead of args.target_fps
     cmd_out = builder.build_ffmpeg_output_args(
         args.input_path,
         part_path,
@@ -447,7 +445,7 @@ def restore_stream(args):
             chk_status="interrupted",
         )
         log.error(
-            f"\n[ERRO] O processo de restauração falhou! (in rc={rc_in}, out rc={rc_out})"
+            f"\n[ERROR] Restoration process failed! (in rc={rc_in}, out rc={rc_out})"
         )
         print_log_tail(log_path, lines=25)
         try:
@@ -751,16 +749,16 @@ def main(argv=None):
         os.remove(test_file)
     except PermissionError:
         log.error(
-            f"[WINDOWS DEFENDER / PERMISSÃO] Acesso de escrita negado na pasta: {target_dir}\n"
-            "O recurso 'Acesso a Pastas Controladas' (Controlled Folder Access) do Windows Defender ou uma restrição de permissão está bloqueando gravações.\n"
-            "Solução: Permita o executável do Python no Windows Defender ou altere o diretório de destino."
+            f"[WINDOWS DEFENDER / PERMISSION] Write access denied to directory: {target_dir}\n"
+            "Windows Defender 'Controlled Folder Access' or permission restriction is blocking file writes.\n"
+            "Resolution: Allow the executable in Windows Defender or choose a different destination directory."
         )
         JobManager.release_lock()
         sys.exit(1)
 
-    log.info(f"\n[RESTAURAÇÃO] Arquivo de Entrada: {args.input_path}")
+    log.info(f"\n[RESTORATION] Input File: {args.input_path}")
 
-    # Análise técnica prévia e resolução de estratégia
+    # Technical pre-analysis and strategy resolution
     meta = vhs_common.probe_media(args.input_path)
     interlace_info = vhs_common.detect_interlace_status(args.input_path)
     audio_info = vhs_common.detect_audio_layout(args.input_path)

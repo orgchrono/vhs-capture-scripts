@@ -31,6 +31,10 @@ pub mod stream;
 pub mod tbc;
 pub mod preflight;
 pub mod thumbnail;
+pub mod probe;
+pub mod runner;
+pub mod media;
+pub mod package;
 
 use ai::{
     build_codeformer_command, build_realesrgan_command, build_rife_command,
@@ -391,6 +395,77 @@ pub fn ipc_build_thumbnail_extract_args(
     ffmpeg_binary: &str,
 ) -> Vec<String> {
     build_thumbnail_extract_args(video_path, timestamp_sec, output_jpg_path, ffmpeg_binary)
+}
+
+use probe::{build_ffprobe_args, parse_ffprobe_json, MediaProbeResult};
+use runner::{format_eta_duration, parse_progress_key_value};
+use media::{generate_param_hash, get_part_path, is_valid_media_extension, seconds_to_timecode};
+use package::{get_ffmpeg_install_command, has_ffmpeg_encoder, has_ffmpeg_filter, PackageManager};
+
+/// Typed IPC ViewModel command parsing FFprobe JSON string.
+pub fn ipc_parse_ffprobe_json(json_content: &str, file_path: &str) -> Result<MediaProbeResult, String> {
+    parse_ffprobe_json(json_content, file_path)
+}
+
+/// Typed IPC ViewModel command generating FFprobe CLI arguments.
+#[must_use]
+pub fn ipc_build_ffprobe_args(file_path: &str) -> Vec<String> {
+    build_ffprobe_args(file_path)
+}
+
+/// Typed IPC ViewModel command parsing single FFmpeg progress line into key-value.
+#[must_use]
+pub fn ipc_parse_progress_line(line: &str) -> Option<(String, String)> {
+    parse_progress_key_value(line).map(|(k, v)| (k.to_string(), v.to_string()))
+}
+
+/// Typed IPC ViewModel command formatting ETA duration into HH:MM:SS.
+#[must_use]
+pub fn ipc_format_eta_duration(seconds: f64) -> String {
+    format_eta_duration(seconds)
+}
+
+/// Typed IPC ViewModel command formatting broadcast timecode HH:MM:SS[.mmm].
+#[must_use]
+pub fn ipc_seconds_to_timecode(seconds: f64, include_ms: bool) -> String {
+    seconds_to_timecode(seconds, include_ms)
+}
+
+/// Typed IPC ViewModel command resolving atomic intermediate path.
+#[must_use]
+pub fn ipc_get_part_path(final_path: &str) -> String {
+    get_part_path(final_path)
+}
+
+/// Typed IPC ViewModel command generating 8-character parameter configuration hash.
+#[must_use]
+pub fn ipc_generate_param_hash(content: &[u8]) -> String {
+    generate_param_hash(content)
+}
+
+/// Typed IPC ViewModel command checking if media extension is supported.
+#[must_use]
+pub fn ipc_is_valid_media_extension(ext: &str) -> bool {
+    is_valid_media_extension(ext)
+}
+
+/// Typed IPC ViewModel command resolving FFmpeg install command for package manager.
+#[must_use]
+pub fn ipc_get_ffmpeg_install_command(mgr_name: &str) -> Option<Vec<String>> {
+    let mgr = PackageManager::from_name(mgr_name);
+    get_ffmpeg_install_command(&mgr)
+}
+
+/// Typed IPC ViewModel command verifying encoder presence in FFmpeg.
+#[must_use]
+pub fn ipc_has_ffmpeg_encoder(encoders_output: &str, encoder_name: &str) -> bool {
+    has_ffmpeg_encoder(encoders_output, encoder_name)
+}
+
+/// Typed IPC ViewModel command verifying filter presence in FFmpeg.
+#[must_use]
+pub fn ipc_has_ffmpeg_filter(filters_output: &str, filter_name: &str) -> bool {
+    has_ffmpeg_filter(filters_output, filter_name)
 }
 
 

@@ -23,6 +23,8 @@ fn print_usage() {
     println!("  probe-panasonic <PATH>    Inspect Panasonic DVR / MEIHDFS / DVD-VR header");
     println!("  qtgmc-script <INPUT>      Generate high-performance VapourSynth QTGMC script");
     println!("  bagit-manifest <DIR>      Generate RFC 8493 BagIt manifest for target directory");
+    println!("  timecode <SECONDS>        Format seconds as broadcast timecode HH:MM:SS.mmm");
+    println!("  install-ffmpeg <MGR>      Display package manager installation command for FFmpeg");
     println!("  version                   Print version information");
     println!("  help                      Print this help message");
 }
@@ -135,6 +137,28 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             collect_entries(dir, dir, &mut entries)?;
             let manifest = generate_bagit_manifest(&entries);
             println!("{manifest}");
+        }
+        "timecode" => {
+            let sec_str = match args.get(2) {
+                Some(s) => s,
+                None => {
+                    eprintln!("Error: Missing seconds argument. Usage: vhs-studio timecode <SECONDS>");
+                    std::process::exit(1);
+                }
+            };
+            let sec: f64 = sec_str.parse().unwrap_or(0.0);
+            println!("{}", vhs_studio_core::media::seconds_to_timecode(sec, true));
+        }
+        "install-ffmpeg" => {
+            let mgr_name = args.get(2).map(String::as_str).unwrap_or("winget");
+            let mgr = vhs_studio_core::package::PackageManager::from_name(mgr_name);
+            match vhs_studio_core::package::get_ffmpeg_install_command(&mgr) {
+                Some(cmd) => println!("{}", cmd.join(" ")),
+                None => {
+                    eprintln!("Unsupported package manager: '{mgr_name}'");
+                    std::process::exit(1);
+                }
+            }
         }
         unknown => {
             eprintln!("Unknown command: '{unknown}'");
