@@ -3,6 +3,14 @@ echo ========================================================
 echo   VHS Studio Pro - Build Pipeline (Windows)
 echo ========================================================
 
+if "%1"=="--native" (
+    echo [*] Building Native Rust Desktop Binary (Release)...
+    cargo build --release --manifest-path src-tauri\Cargo.toml
+    if %errorlevel% neq 0 exit /b %errorlevel%
+    echo [OK] Native build completed! Binary located in src-tauri\target\release
+    exit /b 0
+)
+
 echo [1/3] Building React Interface (UI)...
 cd ui
 call npm ci

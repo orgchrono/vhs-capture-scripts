@@ -22,7 +22,7 @@ export const BroadcastProgress: React.FC = () => {
   return (
     <div
       role="region"
-      aria-label={t('telemetry.title', 'Telemetria de Masterização')}
+      aria-label={t('telemetry.title')}
       className="bg-studio-panel border border-studio-border rounded-md p-2.5 flex flex-col justify-between gap-2 text-slate-200 select-none h-full"
     >
       {/* Top Header: Title, Active Stage and Tally LED */}
@@ -39,12 +39,12 @@ export const BroadcastProgress: React.FC = () => {
             aria-hidden="true"
           />
           <span className="text-[11px] font-bold uppercase tracking-wider font-mono text-slate-200">
-            {t('telemetry.title', 'Telemetria de Masterização')}
+            {t('telemetry.title')}
           </span>
           <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-studio-surface border border-studio-border text-slate-300">
             {isRestoring
               ? isPaused
-                ? t('telemetry.status_paused', 'PAUSADO')
+                ? t('telemetry.status_paused')
                 : t(telemetry.stageNameKey)
               : t('telemetry.stage_idle')}
           </span>
@@ -58,7 +58,7 @@ export const BroadcastProgress: React.FC = () => {
           <span className="text-slate-400 text-[10px] font-normal uppercase">
             {isRestoring
               ? isPaused
-                ? t('telemetry.status_paused', 'PAUSADO')
+                ? t('telemetry.status_paused')
                 : t('telemetry.status_running')
               : t('telemetry.status_idle')}
           </span>
@@ -79,7 +79,7 @@ export const BroadcastProgress: React.FC = () => {
         aria-valuetext={`${telemetry.progressPercent}% - ${
           isRestoring
             ? isPaused
-              ? t('telemetry.status_paused', 'PAUSADO')
+              ? t('telemetry.status_paused')
               : t(telemetry.stageNameKey)
             : t('telemetry.stage_idle')
         }`}
@@ -128,7 +128,7 @@ export const BroadcastProgress: React.FC = () => {
             {telemetry.totalFrames > 0
               ? `${telemetry.currentFrames}/${telemetry.totalFrames}`
               : isRestoring
-              ? t('telemetry.streaming', 'STREAMING')
+              ? t('telemetry.streaming')
               : '0'}
           </span>
         </div>
@@ -183,7 +183,7 @@ export const BroadcastProgressRibbon: React.FC = () => {
         {isRestoring && (
           <span className="text-[11px] font-bold text-slate-200 truncate max-w-[200px]">
             {isPaused
-              ? t('telemetry.status_paused', 'PAUSADO')
+              ? t('telemetry.status_paused')
               : `${telemetry.stage}/${stages.length} ${t(telemetry.stageNameKey)}`}
           </span>
         )}
@@ -224,7 +224,7 @@ export const BroadcastProgressRibbon: React.FC = () => {
             {telemetry.totalFrames > 0
               ? `${telemetry.currentFrames}/${telemetry.totalFrames}`
               : isRestoring
-              ? t('telemetry.streaming', 'STREAMING')
+              ? t('telemetry.streaming')
               : '0'}
           </span>
         </span>

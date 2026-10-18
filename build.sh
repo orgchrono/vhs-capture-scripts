@@ -5,6 +5,13 @@ echo "========================================================"
 echo "  VHS Studio Pro - Build Pipeline (macOS/Linux)"
 echo "========================================================"
 
+if [ "$1" = "--native" ]; then
+    echo "[*] Building Native Rust Desktop Binary (Release)..."
+    cargo build --release --manifest-path src-tauri/Cargo.toml
+    echo "[OK] Native build completed! Binary located in src-tauri/target/release"
+    exit 0
+fi
+
 echo "[1/3] Building React Interface (UI)..."
 cd ui
 npm ci

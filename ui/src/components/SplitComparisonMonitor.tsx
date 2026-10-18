@@ -228,18 +228,24 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
     setStreamKey((prev) => prev + 1);
   };
 
-  const lastRawImgRef = useRef<string | undefined>(undefined);
-  const lastProcImgRef = useRef<string | undefined>(undefined);
+  const [prevFrameData, setPrevFrameData] = useState(frameData);
+  const [cachedImages, setCachedImages] = useState<{ raw?: string; processed?: string }>({
+    raw: frameData?.raw_image,
+    processed: frameData?.processed_image,
+  });
 
-  if (frameData?.raw_image) {
-    lastRawImgRef.current = frameData.raw_image;
-  }
-  if (frameData?.processed_image) {
-    lastProcImgRef.current = frameData.processed_image;
+  if (frameData !== prevFrameData) {
+    setPrevFrameData(frameData);
+    if (frameData?.raw_image || frameData?.processed_image) {
+      setCachedImages({
+        raw: frameData.raw_image || cachedImages.raw,
+        processed: frameData.processed_image || cachedImages.processed,
+      });
+    }
   }
 
-  const rawImg = frameData?.raw_image || lastRawImgRef.current;
-  const procImg = frameData?.processed_image || lastProcImgRef.current;
+  const rawImg = frameData?.raw_image || cachedImages.raw;
+  const procImg = frameData?.processed_image || cachedImages.processed;
 
   const splitStreamUrl = `/api/monitor/stream-proxy?mode=split&source=${encodeURIComponent(source)}&fps=15&timestamp=${streamAnchor}&k=${streamKey}`;
 

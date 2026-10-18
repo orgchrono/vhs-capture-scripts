@@ -294,8 +294,8 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('console.search_placeholder', 'Buscar logs...')}
-              aria-label={t('console.search_placeholder', 'Buscar logs')}
+              placeholder={t('console.search_placeholder')}
+              aria-label={t('console.search_placeholder')}
               className="bg-studio-panel border border-studio-border rounded-sm pl-6 pr-6 h-6 text-[10px] text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-studio-border-focus focus:ring-1 focus:ring-studio-border-focus w-full transition font-mono leading-none"
             />
             {searchQuery && (
@@ -303,7 +303,7 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
                 type="button"
                 onClick={() => setSearchQuery('')}
                 className="absolute right-1 text-slate-400 hover:text-white p-0.5 cursor-pointer"
-                title={t('console.clear_search', 'Limpar busca')}
+                title={t('console.clear_search')}
               >
                 <X className="w-2.5 h-2.5" />
               </button>
