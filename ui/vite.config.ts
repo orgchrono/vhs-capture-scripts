@@ -46,10 +46,11 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: './vitest.setup.ts',
-    css: true,
-    exclude: ['node_modules', 'dist', '.idea', '.git', '.cache', 'tests/*'], // Exclude Playwright E2E tests folder
-    fileParallelism: false,
-    maxWorkers: 1,
+    css: false, // Desativa processamento de CSS nos testes (ganho expressivo de performance)
+    exclude: ['node_modules', 'dist', '.idea', '.git', '.cache', 'tests/*'],
+    // fileParallelism: false,
+    // maxWorkers: 1,
+    pool: 'vmThreads', // Reutiliza a instância do jsdom mantendo o isolamento seguro entre arquivos
     testTimeout: 25000,
     hookTimeout: 25000,
     teardownTimeout: 25000,
