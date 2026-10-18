@@ -19,12 +19,6 @@ import { formatDuration } from '../lib/formatters';
 
 const SPLIT_PRESETS = [0, 25, 50, 75, 100] as const;
 
-const snapToNearestPreset = (val: number): number => {
-  return SPLIT_PRESETS.reduce((prev, curr) =>
-    Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev
-  );
-};
-
 export interface SplitComparisonMonitorProps {
   source?: string;
   onClose?: () => void;
@@ -183,12 +177,6 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
     setSplitPosition(safe);
   };
 
-  const handleSliderChange = (val: number) => {
-    const snapped = snapToNearestPreset(val);
-    setSplitPos(snapped);
-    setSplitPosition(snapped);
-  };
-
   const handlePresetSelect = (presetVal: number) => {
     setSplitPos(presetVal);
     setSplitPosition(presetVal);
@@ -253,9 +241,9 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
       data-testid="split-comparison-monitor"
     >
       {/* Top Header Bar (SSOT with LiveMonitor) */}
-      <div className="absolute top-2.5 left-2.5 right-2.5 z-20 flex items-center justify-between pointer-events-auto gap-2">
-        {/* Left: Monitor Title & Split Percentage Badge */}
-        <div className="flex items-center gap-2">
+      <div className="absolute top-2.5 left-2.5 right-2.5 z-30 flex items-center justify-between pointer-events-auto gap-2">
+        {/* Left: Monitor Title & Split Presets */}
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="bg-black/85 backdrop-blur-md px-2.5 py-1 rounded-sm text-[10px] font-mono text-slate-300 border border-studio-border shadow-sm flex items-center gap-1.5 shrink-0">
             <Layers className="w-3.5 h-3.5 text-amber-400 shrink-0" />
             <span className="font-bold text-slate-200">{t('monitor.split_title')}</span>
@@ -263,6 +251,27 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
               {splitPos}%
             </span>
           </span>
+
+          {/* Quick Split Presets */}
+          <div className="flex items-center gap-0.5 bg-black/85 backdrop-blur-md p-0.5 rounded-sm border border-studio-border text-[9px] font-mono shadow-sm">
+            {SPLIT_PRESETS.map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => handlePresetSelect(p)}
+                className={`w-7 h-5 flex items-center justify-center rounded-xs transition-colors cursor-pointer border ${
+                  splitPos === p
+                    ? 'bg-amber-500/25 text-amber-300 font-semibold border-amber-400/50'
+                    : 'text-slate-400 hover:text-slate-200 border-transparent'
+                }`}
+                title={t('monitor.split_preset', { percent: p })}
+                aria-label={t('monitor.split_preset', { percent: p })}
+                data-testid={`split-preset-${p}-btn`}
+              >
+                {p}%
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Right: Controls & Actions (Sub-screen / Scrubber Mode, Refresh & Close) */}
@@ -427,7 +436,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
       </div>
 
       {/* Bottom Timeline / Seek Bar */}
-      <div className="w-full bg-studio-panel/95 border-t border-studio-border px-2.5 py-1.5 z-20 flex items-center justify-between gap-2.5 text-xs font-mono select-none flex-nowrap min-w-0">
+      <div className="w-full bg-studio-panel/95 border-t border-studio-border px-2.5 py-1.5 z-30 flex items-center justify-between gap-2.5 text-xs font-mono select-none flex-nowrap min-w-0">
         {/* Left: Media Transport Controls (all buttons grouped together without text in between) */}
         <div className="flex items-center gap-1 shrink-0">
           <button
@@ -486,8 +495,8 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           </button>
         </div>
 
-        {/* Center: Timeline Scrubber with Time & Progress Information */}
-        <div className="flex-1 min-w-[140px] flex items-center gap-2">
+        {/* Center/Right: Full Timeline Scrubber with Time & Progress Information */}
+        <div className="flex-1 min-w-0 flex items-center gap-2.5">
           <input
             type="range"
             min={0}
@@ -512,42 +521,6 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
               percent: progressPct,
             })}
           </span>
-        </div>
-
-        {/* Right: Split Divider Presets and Slider (Fixed dimensions, no layout shift) */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          <div className="hidden sm:flex items-center gap-0.5 bg-studio-surface/90 p-0.5 rounded-sm border border-studio-border text-[9px] font-mono">
-            {SPLIT_PRESETS.map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => handlePresetSelect(p)}
-                className={`w-7 h-5 flex items-center justify-center rounded-xs transition-colors cursor-pointer border ${
-                  splitPos === p
-                    ? 'bg-amber-500/25 text-amber-300 font-semibold border-amber-400/50'
-                    : 'text-slate-400 hover:text-slate-200 border-transparent'
-                }`}
-                title={t('monitor.split_preset', { percent: p })}
-                aria-label={t('monitor.split_preset', { percent: p })}
-                data-testid={`split-preset-${p}-btn`}
-              >
-                {p}%
-              </button>
-            ))}
-          </div>
-
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={1}
-            value={splitPos}
-            onChange={(e) => handleSliderChange(Number(e.target.value))}
-            className="w-14 sm:w-16 h-1.5 bg-studio-surface rounded-lg appearance-none cursor-pointer accent-amber-400 shrink-0"
-            aria-label={t('monitor.split_position', { percent: splitPos })}
-            title={t('monitor.split_position', { percent: splitPos })}
-            data-testid="split-slider-input"
-          />
         </div>
       </div>
     </div>

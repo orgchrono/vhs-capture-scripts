@@ -169,9 +169,7 @@ test.describe('VHS Studio Pipeline, Settings & Real-time Console E2E', () => {
 
     const preset25 = page.getByTestId('split-preset-25-btn');
     await preset25.click();
-
-    const slider = page.getByTestId('split-slider-input');
-    await expect(slider).toHaveValue('25');
+    await expect(dividerLine).toHaveAttribute('aria-valuenow', '25');
 
     const timelineInfo = page.getByTestId('split-timeline-info');
     await expect(timelineInfo).toBeVisible();

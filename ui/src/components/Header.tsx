@@ -67,18 +67,18 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="border-b border-studio-border bg-studio-panel px-4 sm:px-6 flex items-center justify-between shrink-0 h-14 sm:h-15 z-20 select-none">
       <div className="flex items-center gap-3">
-        <div className="bg-studio-surface border border-studio-border text-slate-100 text-xs px-2.5 py-1.5 rounded-sm tracking-wider uppercase font-mono font-bold flex items-center gap-2 select-none shadow-sm">
-          <Film className="w-3.5 h-3.5 text-amber-500" />
-          <span>VHS STUDIO</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <h1 className="text-sm sm:text-base font-bold tracking-tight text-white flex items-center gap-2 font-mono">
-            <span>VHS Studio Pro</span>
-            <span className="text-[9px] bg-studio-surface text-slate-300 border border-studio-border px-2 py-0.5 rounded-sm font-mono font-semibold">
-              NEXTGEN
-            </span>
-          </h1>
-        </div>
+        <h1
+          className="bg-studio-surface border border-studio-border text-slate-100 text-xs px-3 py-1.5 rounded-sm tracking-wider font-mono font-bold flex items-center gap-2 select-none shadow-sm cursor-default"
+          title="VHS Studio Pro"
+          aria-label="VHS Studio Pro"
+        >
+          <span className="sr-only">VHS Studio Pro</span>
+          <Film className="w-3.5 h-3.5 text-amber-500 shrink-0" aria-hidden="true" />
+          <span className="text-white tracking-wider">VHS STUDIO</span>
+          <span className="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] px-1.5 py-0.5 rounded font-bold font-mono">
+            PRO
+          </span>
+        </h1>
       </div>
 
       <div className="flex items-center gap-2">

@@ -14,27 +14,32 @@ const renderComponent = (props: { source?: string; onClose?: () => void; initial
 };
 
 describe('SplitComparisonMonitor Component', () => {
-  it('renders split container, header title, slider input, mode buttons and refresh button', () => {
+  it('renders split container, header title, presets, mode buttons and refresh button', () => {
     const handleClose = vi.fn();
     renderComponent({ onClose: handleClose });
 
     expect(screen.getByTestId('split-comparison-monitor')).toBeInTheDocument();
     expect(screen.getByTestId('split-refresh-btn')).toBeInTheDocument();
     expect(screen.getByTestId('split-slider-container')).toBeInTheDocument();
-    expect(screen.getByTestId('split-slider-input')).toBeInTheDocument();
+    expect(screen.getByTestId('split-preset-50-btn')).toBeInTheDocument();
     expect(screen.getByTestId('split-close-btn')).toBeInTheDocument();
     expect(screen.getByTestId('mode-stream-btn')).toBeInTheDocument();
     expect(screen.getByTestId('mode-freeze-btn')).toBeInTheDocument();
   });
 
-  it('allows adjusting split percentage via slider range input', () => {
+  it('allows selecting split presets and updates divider position', () => {
     renderComponent();
 
-    const slider = screen.getByTestId('split-slider-input') as HTMLInputElement;
-    expect(slider.value).toBe('50');
+    const divider = screen.getByTestId('split-divider-line');
+    expect(divider).toHaveAttribute('aria-valuenow', '50');
 
-    fireEvent.change(slider, { target: { value: '75' } });
-    expect(slider.value).toBe('75');
+    const preset25Btn = screen.getByTestId('split-preset-25-btn');
+    fireEvent.click(preset25Btn);
+    expect(divider).toHaveAttribute('aria-valuenow', '25');
+
+    const preset75Btn = screen.getByTestId('split-preset-75-btn');
+    fireEvent.click(preset75Btn);
+    expect(divider).toHaveAttribute('aria-valuenow', '75');
   });
 
   it('renders live sub-stream proxy elements in stream mode', () => {
@@ -114,26 +119,18 @@ describe('SplitComparisonMonitor Component', () => {
     expect(screen.getByTestId('split-play-toggle-btn')).toBeInTheDocument();
   });
 
-  it('selects split presets and snaps slider correctly', () => {
+  it('selects 0% and 100% split presets', () => {
     renderComponent();
 
-    const preset25Btn = screen.getByTestId('split-preset-25-btn');
-    fireEvent.click(preset25Btn);
+    const divider = screen.getByTestId('split-divider-line');
 
-    const slider = screen.getByTestId('split-slider-input') as HTMLInputElement;
-    expect(slider.value).toBe('25');
+    const preset0Btn = screen.getByTestId('split-preset-0-btn');
+    fireEvent.click(preset0Btn);
+    expect(divider).toHaveAttribute('aria-valuenow', '0');
 
-    const preset75Btn = screen.getByTestId('split-preset-75-btn');
-    fireEvent.click(preset75Btn);
-    expect(slider.value).toBe('75');
-
-    // Slider snapping: changing to 22 snaps to nearest preset 25
-    fireEvent.change(slider, { target: { value: '22' } });
-    expect(slider.value).toBe('25');
-
-    // Changing to 95 snaps to 100
-    fireEvent.change(slider, { target: { value: '95' } });
-    expect(slider.value).toBe('100');
+    const preset100Btn = screen.getByTestId('split-preset-100-btn');
+    fireEvent.click(preset100Btn);
+    expect(divider).toHaveAttribute('aria-valuenow', '100');
   });
 
   it('renders timeline info badge with current time, total time and percentage', () => {

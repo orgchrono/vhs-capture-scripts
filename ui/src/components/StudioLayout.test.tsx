@@ -34,8 +34,8 @@ describe('Studio Pro Workspace Layout & UX Cohesion ("Feng Shui")', () => {
       { wrapper }
     )
 
-    expect(screen.getByText(/VHS Studio Pro/i)).toBeInTheDocument()
-    expect(screen.getByText('NEXTGEN')).toBeInTheDocument()
+    expect(screen.getByText('VHS STUDIO')).toBeInTheDocument()
+    expect(screen.getByText('PRO')).toBeInTheDocument()
     expect(screen.getByTitle(/Change Language/i)).toBeInTheDocument()
     expect(screen.getByTitle(/Acessibilidade: Alto Contraste/i)).toBeInTheDocument()
   })
