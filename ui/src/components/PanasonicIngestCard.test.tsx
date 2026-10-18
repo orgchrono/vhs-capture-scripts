@@ -1,5 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
+import { render, screen, fireEvent, act } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { PanasonicIngestCard } from './PanasonicIngestCard';
 import { store } from '../store';
@@ -39,5 +39,45 @@ describe('PanasonicIngestCard Component', () => {
     // Collapse again
     fireEvent.click(toggle);
     expect(screen.queryByTestId('panasonic-path-input')).not.toBeInTheDocument();
+  });
+
+  it('detects connected drives via Tauri native bridge when running inside Tauri', async () => {
+    const mockInvoke = vi.fn().mockImplementation((cmd: string) => {
+      if (cmd === 'ipc_detect_connected_drives') {
+        return Promise.resolve([
+          {
+            device_id: '\\\\.\\PHYSICALDRIVE1',
+            name: 'MATSHITA DVD-RAM (160.0 GB)',
+            model: 'MATSHITA DVD-RAM',
+            size_gb: 160.0,
+            is_panasonic: true,
+            format: 'MEIHDFS-V2.0',
+            needs_elevation: false,
+            is_usb: true,
+            is_jmicron: false,
+            is_asmedia: false,
+            bus_type: 'USB',
+          },
+        ]);
+      }
+      return Promise.resolve([]);
+    });
+
+    (window as unknown as { __TAURI_INTERNALS__: { invoke: typeof mockInvoke } }).__TAURI_INTERNALS__ = {
+      invoke: mockInvoke,
+    };
+
+    await act(async () => {
+      renderComponent();
+    });
+
+    const toggle = screen.getByTestId('toggle-panasonic-ingest-btn');
+    await act(async () => {
+      fireEvent.click(toggle);
+    });
+
+    expect(screen.getByTestId('panasonic-path-input')).toBeInTheDocument();
+
+    delete (window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;
   });
 });

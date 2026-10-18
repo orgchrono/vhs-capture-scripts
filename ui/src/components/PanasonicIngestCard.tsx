@@ -28,6 +28,7 @@ import {
   useLazyGetPanasonicTreeQuery,
   useExtractPanasonicTitlesMutation,
 } from '../api/studioRtkApi';
+import { tauriBridge, isTauriEnvironment } from '../api/tauriBridge';
 import type {
   PanasonicInspection,
   PanasonicDisk,
@@ -61,21 +62,58 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
   const [selectedTitleIds, setSelectedTitleIds] = useState<Set<number>>(new Set());
   const [expandedChapterTitles, setExpandedChapterTitles] = useState<Set<number>>(new Set());
 
+  const [nativeDisks, setNativeDisks] = useState<PanasonicDisk[]>([]);
+
   // Hotplug Polling: Configurable via Preferences (Hardware tab)
   const {
     data: disksData,
     isFetching: isScanningDisks,
     refetch: refetchDisks,
   } = useGetPanasonicDisksQuery(undefined, {
-    pollingInterval: panasonicHotplugEnabled ? panasonicPollIntervalMs : 0,
+    pollingInterval: panasonicHotplugEnabled && !isTauriEnvironment() ? panasonicPollIntervalMs : 0,
+    skip: isTauriEnvironment(),
   });
+
+  useEffect(() => {
+    if (!isTauriEnvironment()) return;
+
+    let isMounted = true;
+    const scanDrives = async () => {
+      try {
+        const drives = await tauriBridge.detectConnectedDrives();
+        if (isMounted) {
+          setNativeDisks(drives);
+        }
+      } catch {
+        // Silently handle polling errors
+      }
+    };
+
+    scanDrives();
+
+    if (panasonicHotplugEnabled) {
+      const interval = setInterval(scanDrives, Math.max(1000, panasonicPollIntervalMs));
+      return () => {
+        isMounted = false;
+        clearInterval(interval);
+      };
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [panasonicHotplugEnabled, panasonicPollIntervalMs]);
 
   const [triggerInspect, { isFetching: isInspecting }] = useLazyInspectPanasonicQuery();
   const [triggerGetTree, { isFetching: isLoadingTree }] = useLazyGetPanasonicTreeQuery();
   const [extractMutation, { isLoading: isExtracting }] = useExtractPanasonicMutation();
   const [extractTitlesMutation, { isLoading: isExtractingTitles }] = useExtractPanasonicTitlesMutation();
 
-  const connectedDisks: PanasonicDisk[] = useMemo(() => disksData?.disks ?? [], [disksData]);
+  const connectedDisks: PanasonicDisk[] = useMemo(() => {
+    if (isTauriEnvironment()) {
+      return nativeDisks;
+    }
+    return disksData?.disks ?? [];
+  }, [nativeDisks, disksData]);
 
   const getErrorMessage = (err: unknown, fallback: string): string => {
     if (err && typeof err === 'object' && 'data' in err) {
