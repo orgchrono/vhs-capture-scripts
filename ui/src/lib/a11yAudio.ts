@@ -3,6 +3,8 @@
  * Fornece feedback sonoro acessível para estágios da pipeline e erros críticos.
  */
 
+import { logger } from './logger';
+
 interface WindowWithWebkitAudio extends Window {
   webkitAudioContext?: typeof AudioContext;
 }
@@ -49,7 +51,7 @@ class A11yAudio {
       osc.start();
       osc.stop(this.ctx.currentTime + duration);
     } catch {
-      console.warn("A11yAudio disabled or blocked by browser policy");
+      logger.warn('A11yAudio disabled or blocked by browser policy');
     }
   }
 

@@ -5,26 +5,29 @@ echo ========================================================
 echo   VHS Studio Pro - Production and Studio Environment
 echo ========================================================
 
-if not exist ".venv" (
-    echo [*] Creating isolated virtual environment .venv...
-    python -m uv venv .venv 2>nul || python -m venv .venv
+if not exist "ui\node_modules" (
+    echo [*] Installing UI dependencies...
+    call npm --prefix ui ci
+    if !ERRORLEVEL! NEQ 0 (
+        echo [ERROR] Failed to install UI dependencies.
+        pause
+        exit /b !ERRORLEVEL!
+    )
 )
 
-echo [*] Activating virtual environment...
-call .venv\Scripts\activate.bat
-
-echo [*] Verifying Python and UI dependencies via FastDeps...
-python scripts\fast_deps.py
-if %ERRORLEVEL% NEQ 0 (
-    echo.
-    echo [ERROR] Failed to synchronize dependencies.
-    pause
-    exit /b %ERRORLEVEL%
+if not exist "ui\dist" (
+    echo [*] Building UI bundle...
+    call npm --prefix ui run build
+    if !ERRORLEVEL! NEQ 0 (
+        echo [ERROR] Failed to build UI bundle.
+        pause
+        exit /b !ERRORLEVEL!
+    )
 )
 
 if "%1"=="--lint" (
     echo [*] Running Linters and Quality Gates...
-    python scripts\lint.py
+    node scripts\lint.mts
     if !ERRORLEVEL! NEQ 0 (
         echo.
         echo [ERROR] Code quality checks failed!
@@ -35,7 +38,7 @@ if "%1"=="--lint" (
 )
 
 echo [*] Starting VHS Studio Pro (Native Rust Engine)...
-cargo run --manifest-path src-tauri\Cargo.toml -- serve %*
+cargo run -- serve %*
 if %ERRORLEVEL% NEQ 0 (
     echo.
     echo [WARNING] Process exited with code %ERRORLEVEL%.

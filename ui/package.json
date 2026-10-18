@@ -11,7 +11,7 @@
         "build": "tsc -b && vite build",
         "lint": "oxlint",
         "preview": "vite preview",
-        "jscpd": "jscpd ../src ./src --threshold 0 --reporters console",
+        "jscpd": "jscpd ./src --config ../.jscpd.json",
         "test": "vitest run",
         "test:unit": "vitest run"
     },

@@ -8,5 +8,5 @@ Consult the authoritative guidelines in [AGENTS.md](file:///c:/Users/danie/Docum
 
 ## Quick Execution Directives:
 1. **100% Internationalized Interface:** All text rendered in JSX/TSX must invoke `t('namespace.key')`.
-2. **Zero Hardcoded Paths & Magic Numbers:** No absolute paths or magic strings in code files. Use `paths.py` and `constants.py`.
-3. **9 Quality Gates Enforced:** Run and validate `python scripts/lint.py` before finalization.
+2. **Zero Hardcoded Paths & Magic Numbers:** No absolute paths or magic strings in code files. Use `src/models/constants.rs` and `src/infrastructure/`.
+3. **9 Quality Gates Enforced:** Run and validate `node scripts/lint.mts` before finalization.

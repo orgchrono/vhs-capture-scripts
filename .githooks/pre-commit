@@ -1,15 +1,14 @@
 #!/bin/sh
-# Hook de Pre-Commit automático do VHS Studio Pro
-echo "[Git Hook] Iniciando validação automática de código (Lint & Types)..."
+# VHS Studio Pro - Automated Pre-Commit Hook
+echo "[Git Hook] Starting automated code validation (Lint & Types)..."
 
-# No Windows (Git Bash) ou Mac/Linux, isso aciona o nosso script unificado
-python scripts/lint.py
+node scripts/lint.mts
 
 if [ $? -ne 0 ]; then
-    echo "[Git Hook] ❌ BLOQUEADO: O commit falhou porque erros foram encontrados."
-    echo "Corrija os problemas apontados acima e tente commitar novamente."
+    echo "[Git Hook] ❌ BLOCKED: Commit rejected due to quality gate failures."
+    echo "Check logs/build_report.md for details and resolve issues before committing."
     exit 1
 fi
 
-echo "[Git Hook] ✅ APROVADO: Código limpo. Prosseguindo com o commit..."
+echo "[Git Hook] ✅ APPROVED: Codebase is clean. Proceeding with commit..."
 exit 0

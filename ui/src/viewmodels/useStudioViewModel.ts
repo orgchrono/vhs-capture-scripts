@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useStudioStore } from '../store/useStudioStore';
 import { TIMING } from '../lib/constants';
 import { getErrorMessage } from '../lib/errors';
+import { logger } from '../lib/logger';
 import {
   useGetStatusQuery,
   useStartRestorationMutation,
@@ -243,7 +244,7 @@ export function useStudioViewModel() {
       addLog(t('logs.obs_installer_started'));
       refetchStatus();
     } catch (e: unknown) {
-      console.error(getErrorMessage(e));
+      logger.error('Failed to install OBS:', getErrorMessage(e));
     } finally {
       setTimeout(() => setIsInstallingObs(false), TIMING.INSTALL_RESET_DELAY_MS);
     }

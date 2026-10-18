@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStudioStore } from '../store/useStudioStore';
 import { useGetObsStatsQuery, useToggleVirtualCamMutation } from '../api/studioRtkApi';
+import { logger } from '../lib';
 import type { ObsStats } from '../types';
 
 export interface UseLiveMonitorResult {
@@ -67,7 +68,7 @@ export function useLiveMonitor(): UseLiveMonitorResult {
           setError(null);
         }
       } catch (err: unknown) {
-        console.error('Failed to start Live Monitor:', err);
+        logger.error('Failed to start Live Monitor:', err);
         setError(t('monitor.camera_not_detected'));
         setIsActive(false);
       }
@@ -79,7 +80,9 @@ export function useLiveMonitor(): UseLiveMonitorResult {
       if (activeStream) {
         activeStream.getTracks().forEach((track) => track.stop());
       }
-      toggleVirtualCam({ enable: false }).unwrap().catch(console.error);
+      toggleVirtualCam({ enable: false })
+        .unwrap()
+        .catch((err) => logger.error('Failed to stop virtual camera:', err));
     };
   }, [toggleVirtualCam, t]);
 

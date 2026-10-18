@@ -10,28 +10,12 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  windows-quality-gates:
-    name: Windows Full Quality Gates & E2E
+  quality-gates:
+    name: Full 9 Quality Gates & E2E (Windows)
     runs-on: windows-latest
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-          cache-dependency-glob: "pyproject.toml"
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install Python dependencies
-        run: |
-          uv pip install --system -e ".[dev,ai,cloud]"
-          choco install ffmpeg --no-progress -y
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
@@ -51,14 +35,14 @@ jobs:
           npm ci
           npx playwright install chromium
 
-      - name: Build Native Panasonic C Tools
-        run: python scripts/build_panasonic_tools.py
+      - name: Build & Verify Native Panasonic C Tools
+        run: node scripts/build_panasonic_tools.mts --verify
 
       - name: Run 9 Quality Gates Suite
-        run: python scripts/lint.py
+        run: node scripts/lint.mts
 
       - name: Run Swarm Auditors
-        run: python scripts/swarm_auditors.py
+        run: node scripts/swarm_auditors.mts
 
   cross-platform:
     name: Platform Tests on ${{ matrix.os }}
@@ -78,16 +62,10 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y ffmpeg libgl1
 
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v5
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
-          enable-cache: true
-          cache-dependency-glob: "pyproject.toml"
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
+          components: clippy
 
       - name: Set up Node.js 24
         uses: actions/setup-node@v4
@@ -96,19 +74,17 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'ui/package-lock.json'
 
-      - name: Install Python dependencies
-        run: uv pip install --system -e ".[dev,ai,cloud]"
+      - name: Build & Verify Native Panasonic C Tools
+        run: node scripts/build_panasonic_tools.mts
 
-      - name: Build Native Panasonic C Tools
-        run: python scripts/build_panasonic_tools.py
+      - name: Run Cargo Check
+        run: cargo check
 
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
+      - name: Run Cargo Clippy
+        run: cargo clippy -- -D warnings
 
       - name: Run Native Rust Tests
-        run: cargo test --manifest-path src-tauri/Cargo.toml
+        run: cargo test
 
       - name: Install UI Dependencies
         working-directory: ./ui

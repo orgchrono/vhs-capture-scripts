@@ -25,69 +25,53 @@ jobs:
           - os: windows-latest
             artifact_name: VHS_Studio_Pro-Windows
             archive_name: VHS_Studio_Pro-Windows.zip
-            sep: ";"
-            icon: "assets/vhs_icon.ico"
+            binary_name: vhs-studio.exe
+            target_binary: VHS_Studio_Pro.exe
           - os: ubuntu-latest
             artifact_name: VHS_Studio_Pro-Linux
             archive_name: VHS_Studio_Pro-Linux.tar.gz
-            sep: ":"
-            icon: "assets/vhs_icon.png"
+            binary_name: vhs-studio
+            target_binary: VHS_Studio_Pro
           - os: macos-latest
             artifact_name: VHS_Studio_Pro-macOS
             archive_name: VHS_Studio_Pro-macOS.zip
-            sep: ":"
-            icon: "assets/vhs_icon.icns"
+            binary_name: vhs-studio
+            target_binary: VHS_Studio_Pro
 
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
+
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: clippy
 
     - name: Set up Node.js 24
       uses: actions/setup-node@v4
       with:
         node-version: 24
 
-    - name: Set up uv
-      uses: astral-sh/setup-uv@v5
-      with:
-        enable-cache: true
-        cache-dependency-glob: "pyproject.toml"
-
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.11"
-
-    - name: Install dependencies
-      run: |
-        uv pip install --system -e .[ai,cloud] pyinstaller
-
     - name: Build & Verify Native Panasonic C Tools
       run: |
-        python scripts/build_panasonic_tools.py
-        python scripts/build_panasonic_tools.py --verify
+        node scripts/build_panasonic_tools.mts
+        node scripts/build_panasonic_tools.mts --verify
 
     - name: Build UI
       run: |
         cd ui
         npm ci
         npm run build
+        cd ..
 
-    - name: Package with PyInstaller (Zero-UPX AV-Safe Bundle)
+    - name: Compile Native Rust Release Binary
+      run: cargo build --release
+
+    - name: Stage Release Binary
       shell: bash
       run: |
-        pyinstaller --noconfirm --clean --noupx \
-          --name "${{ matrix.artifact_name }}" \
-          --onefile \
-          --windowed \
-          --collect-all uvicorn \
-          --collect-all webview \
-          --add-data "ui/dist${{ matrix.sep }}ui/dist" \
-          --add-data "vhs_advanced_config.toml${{ matrix.sep }}." \
-          --add-data "assets${{ matrix.sep }}assets" \
-          --add-data "tools/panasonic_rec${{ matrix.sep }}tools/panasonic_rec" \
-          --icon "${{ matrix.icon }}" \
-          src/vhs_studio/cli/desktop.py
+        mkdir -p dist
+        cp -f target/release/${{ matrix.binary_name }} dist/${{ matrix.target_binary }}
 
     - name: Authenticode Sign Executable (Windows)
       if: runner.os == 'Windows' && env.WINDOWS_CERT_PFX_BASE64 != ''
@@ -99,35 +83,34 @@ jobs:
         $certBytes = [Convert]::FromBase64String($env:WINDOWS_CERT_PFX_BASE64)
         $certPath = Join-Path $env:RUNNER_TEMP "codesign.pfx"
         [IO.File]::WriteAllBytes($certPath, $certBytes)
-        signtool sign /f $certPath /p $env:WINDOWS_CERT_PASSWORD /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 "dist/${{ matrix.artifact_name }}.exe"
+        signtool sign /f $certPath /p $env:WINDOWS_CERT_PASSWORD /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 "dist/${{ matrix.target_binary }}"
         Remove-Item $certPath -Force
 
-    - name: Codesign Bundle (macOS)
+    - name: Codesign Binary (macOS)
       if: runner.os == 'macOS' && env.MACOS_CODESIGN_IDENTITY != ''
       env:
         MACOS_CODESIGN_IDENTITY: ${{ secrets.MACOS_CODESIGN_IDENTITY }}
       run: |
-        codesign --force --deep --options runtime --timestamp --sign "$MACOS_CODESIGN_IDENTITY" "dist/${{ matrix.artifact_name }}.app" || \
-        codesign --force --options runtime --timestamp --sign "$MACOS_CODESIGN_IDENTITY" "dist/${{ matrix.artifact_name }}"
+        codesign --force --options runtime --timestamp --sign "$MACOS_CODESIGN_IDENTITY" "dist/${{ matrix.target_binary }}"
 
     - name: Compress Archive (Windows)
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        Compress-Archive -Path "dist/${{ matrix.artifact_name }}.exe" -DestinationPath "dist/${{ matrix.archive_name }}" -Force
+        Compress-Archive -Path "dist/${{ matrix.target_binary }}" -DestinationPath "dist/${{ matrix.archive_name }}" -Force
 
     - name: Compress Archive (Linux)
       if: runner.os == 'Linux'
       run: |
         cd dist
-        tar -czvf "${{ matrix.archive_name }}" "${{ matrix.artifact_name }}"
+        tar -czvf "${{ matrix.archive_name }}" "${{ matrix.target_binary }}"
         cd ..
 
     - name: Compress Archive (macOS)
       if: runner.os == 'macOS'
       run: |
         cd dist
-        zip -r "${{ matrix.archive_name }}" "${{ matrix.artifact_name }}"*
+        zip -r "${{ matrix.archive_name }}" "${{ matrix.target_binary }}"
         cd ..
 
     - name: Upload Artifact

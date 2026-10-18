@@ -5,20 +5,19 @@ echo "========================================================"
 echo "  VHS Studio Pro - Production and Studio Environment"
 echo "========================================================"
 
-if [ ! -d ".venv" ]; then
-    echo "[*] Creating isolated virtual environment .venv..."
-    python3 -m uv venv .venv 2>/dev/null || python3 -m venv .venv
+if [ ! -d "ui/node_modules" ]; then
+    echo "[*] Installing UI dependencies..."
+    npm --prefix ui ci
 fi
 
-echo "[*] Activating virtual environment..."
-source .venv/bin/activate
-
-echo "[*] Verifying Python and UI dependencies via FastDeps..."
-python scripts/fast_deps.py
+if [ ! -d "ui/dist" ]; then
+    echo "[*] Building UI bundle..."
+    npm --prefix ui run build
+fi
 
 if [ "$1" == "--lint" ]; then
     echo "[*] Running Linters and Quality Gates..."
-    if ! python scripts/lint.py; then
+    if ! node scripts/lint.mts; then
         echo ""
         echo "[ERROR] Code quality checks failed!"
         exit 1
@@ -27,4 +26,4 @@ if [ "$1" == "--lint" ]; then
 fi
 
 echo "[*] Starting VHS Studio Pro (Native Rust Engine)..."
-exec cargo run --manifest-path src-tauri/Cargo.toml -- serve "$@"
+exec cargo run -- serve "$@"

@@ -70,6 +70,5 @@ ui/node_modules/
 ui/dist/
 ui/screenshots/
 
-# Rust / Tauri
+# Rust
 target/
-src-tauri/target/

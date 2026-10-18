@@ -1,15 +1,9 @@
 @echo off
-echo ========================================================
-echo   VHS Studio Pro - Build Pipeline (Windows)
-echo ========================================================
+setlocal enabledelayedexpansion
 
-if "%1"=="--native" (
-    echo [*] Building Native Rust Desktop Binary (Release)...
-    cargo build --release --manifest-path src-tauri\Cargo.toml
-    if %errorlevel% neq 0 exit /b %errorlevel%
-    echo [OK] Native build completed! Binary located in src-tauri\target\release
-    exit /b 0
-)
+echo ========================================================
+echo   VHS Studio Pro - Native Build Pipeline (Windows)
+echo ========================================================
 
 echo [1/3] Building React Interface (UI)...
 cd ui
@@ -19,28 +13,23 @@ call npm run build
 if %errorlevel% neq 0 exit /b %errorlevel%
 cd ..
 
-echo [2/4] Verifying / Compiling Native Panasonic C Tools...
-python scripts/build_panasonic_tools.py
+echo [2/3] Verifying Native Panasonic C Tools...
+node scripts\build_panasonic_tools.mts --verify
+if %errorlevel% neq 0 (
+    echo [*] Compiling Panasonic C Tools from source...
+    node scripts\build_panasonic_tools.mts
+    if %errorlevel% neq 0 exit /b %errorlevel%
+)
+
+echo [3/3] Compiling Native Rust Release Binary...
+cargo build --release
 if %errorlevel% neq 0 exit /b %errorlevel%
 
-echo [3/4] Installing Build and Project Dependencies...
-python -m pip install --upgrade pip pyinstaller
-if %errorlevel% neq 0 exit /b %errorlevel%
-python -m pip install -e .[ai,cloud]
-if %errorlevel% neq 0 exit /b %errorlevel%
-
-echo [4/4] Packaging Native Executable...
-pyinstaller --noconfirm --clean --noupx ^
-  --name "VHS_Studio_Pro" ^
-  --windowed ^
-  --add-data "ui/dist;ui/dist" ^
-  --add-data "vhs_advanced_config.toml;." ^
-  --add-data "assets;assets" ^
-  --add-data "tools/panasonic_rec;tools/panasonic_rec" ^
-  --icon "assets/vhs_icon.ico" ^
-  src/vhs_studio/cli/desktop.py
+if not exist "dist" mkdir dist
+copy /y "target\release\vhs-studio.exe" "dist\VHS_Studio_Pro.exe" >nul
 
 echo ========================================================
-echo [OK] Build completed! Executable is located in the "dist" directory.
+echo [OK] Build completed! Binary is located at:
+echo      dist\VHS_Studio_Pro.exe
 echo ========================================================
 if not defined CI pause

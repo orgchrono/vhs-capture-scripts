@@ -2,6 +2,7 @@ export { cn } from './utils';
 export { formatBytes, formatBitrate, formatDuration } from './formatters';
 export { getErrorMessage } from './errors';
 export { a11yAudio } from './a11yAudio';
+export { logger, LogLevel } from './logger';
 export {
   TIMING,
   DEFAULTS,

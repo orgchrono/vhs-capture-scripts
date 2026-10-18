@@ -4,10 +4,10 @@
   "version": "2.1.0",
   "identifier": "org.vhsstudiopro.desktop",
   "build": {
-    "beforeDevCommand": "npm --prefix ../ui run dev",
+    "beforeDevCommand": "npm --prefix ui run dev",
     "devUrl": "http://localhost:5173",
-    "beforeBuildCommand": "npm --prefix ../ui run build",
-    "frontendDist": "../ui/dist"
+    "beforeBuildCommand": "npm --prefix ui run build",
+    "frontendDist": "ui/dist"
   },
   "app": {
     "withGlobalTauri": false,
@@ -30,9 +30,9 @@
     "active": true,
     "targets": ["msi", "nsis", "deb", "appimage", "dmg", "app"],
     "icon": [
-      "../assets/vhs_icon.ico",
-      "../assets/vhs_icon.icns",
-      "../assets/vhs_icon.png"
+      "assets/vhs_icon.ico",
+      "assets/vhs_icon.icns",
+      "assets/vhs_icon.png"
     ],
     "windows": {
       "certificateThumbprint": null,
