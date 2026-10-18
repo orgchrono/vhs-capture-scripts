@@ -29,6 +29,22 @@ pub enum PanasonicFilesystemFormat {
     Unknown,
 }
 
+impl PanasonicFilesystemFormat {
+    #[must_use]
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::MeihdfsV2 => "MEIHDFS-V2.0",
+            Self::MeihdfsV1 => "MEIHDFS-V1.0",
+            Self::MeihdfsGeneric => "MEIHDFS",
+            Self::DvdVr => "DVD-VR",
+            Self::Mpeg2PsStream => "MPEG2-PS-STREAM",
+            Self::PanasonicFirmwareServiceImage => "PANASONIC_FIRMWARE_SERVICE_IMAGE",
+            Self::Unknown => "UNKNOWN",
+        }
+    }
+}
+
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PanasonicInspection {
     pub is_panasonic: bool,
@@ -282,6 +298,134 @@ pub fn evaluate_panasonic_drive(
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PanasonicDiskInfo {
+    pub device_id: String,
+    pub name: String,
+    pub model: String,
+    pub size_gb: f64,
+    pub is_panasonic: bool,
+    pub format: String,
+    pub needs_elevation: bool,
+    pub is_usb: bool,
+    pub is_jmicron: bool,
+    pub is_asmedia: bool,
+    pub bus_type: String,
+}
+
+/// Pure parser decoding drive list JSON (such as PowerShell or lsblk JSON output).
+#[must_use]
+pub fn parse_drive_entries_from_json(json_content: &str) -> Vec<PanasonicDiskInfo> {
+    let parsed: Result<serde_json::Value, _> = serde_json::from_str(json_content);
+    let Ok(val) = parsed else {
+        return Vec::new();
+    };
+
+    let items = match val {
+        serde_json::Value::Array(arr) => arr,
+        obj @ serde_json::Value::Object(_) => vec![obj],
+        _ => return Vec::new(),
+    };
+
+    items
+        .into_iter()
+        .filter_map(|item| {
+            let dev_id = item.get("DeviceID").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let model = item.get("Model").and_then(|v| v.as_str()).unwrap_or("Hard Disk Drive").to_string();
+            let size_b = item.get("Size").and_then(|v| v.as_u64()).unwrap_or(0);
+            let size_gb = ((size_b as f64) / (1024.0 * 1024.0 * 1024.0) * 10.0).round() / 10.0;
+            let iface = item.get("InterfaceType").and_then(|v| v.as_str()).unwrap_or("");
+            let pnp = item.get("PNPDeviceID").and_then(|v| v.as_str()).unwrap_or("");
+
+            let h = evaluate_panasonic_drive(&model, iface, pnp);
+            let name = format!("{model} ({size_gb:.1} GB)");
+
+            Some(PanasonicDiskInfo {
+                device_id: dev_id,
+                name,
+                model,
+                size_gb,
+                is_panasonic: h.is_panasonic,
+                format: h.probable_format.as_str().to_string(),
+                needs_elevation: false,
+                is_usb: h.is_usb,
+                is_jmicron: h.is_jmicron_bridge,
+                is_asmedia: h.is_asmedia_bridge,
+                bus_type: h.bus_type,
+            })
+        })
+        .collect()
+}
+
+/// Scan connected physical disks and return structured hardware diagnostics without window flashing.
+#[must_use]
+pub fn detect_connected_drives() -> Vec<PanasonicDiskInfo> {
+    #[cfg(windows)]
+    {
+        use std::process::Command;
+        use std::os::windows::process::CommandExt;
+
+        let mut cmd = Command::new("powershell");
+        cmd.args([
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "Get-CimInstance Win32_DiskDrive | Select-Object DeviceID, Model, Size, InterfaceType, PNPDeviceID | ConvertTo-Json",
+        ]);
+        cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+        let output = cmd.output().ok();
+        if let Some(out) = output {
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            return parse_drive_entries_from_json(&stdout);
+        }
+        Vec::new()
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        use std::process::Command;
+        let mut cmd = Command::new("lsblk");
+        cmd.args(["-J", "-b", "-o", "NAME,PATH,MODEL,SIZE,TYPE,TRAN"]);
+        let output = cmd.output().ok();
+        if let Some(out) = output {
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            if let Ok(val) = serde_json::from_str::<serde_json::Value>(&stdout) {
+                if let Some(devices) = val.get("blockdevices").and_then(|d| d.as_array()) {
+                    return devices.iter().filter_map(|dev| {
+                        let path = dev.get("path").and_then(|p| p.as_str()).or_else(|| {
+                            dev.get("name").and_then(|n| n.as_str()).map(|n| format!("/dev/{n}"))
+                        }).unwrap_or_default();
+                        let model = dev.get("model").and_then(|m| m.as_str()).unwrap_or("Block Device").trim().to_string();
+                        let size_b = dev.get("size").and_then(|s| s.as_u64()).unwrap_or(0);
+                        let size_gb = ((size_b as f64) / (1024.0 * 1024.0 * 1024.0) * 10.0).round() / 10.0;
+                        let tran = dev.get("tran").and_then(|t| t.as_str()).unwrap_or("");
+                        let h = evaluate_panasonic_drive(&model, tran, "");
+                        Some(PanasonicDiskInfo {
+                            device_id: path,
+                            name: format!("{model} ({size_gb:.1} GB)"),
+                            model,
+                            size_gb,
+                            is_panasonic: h.is_panasonic,
+                            format: h.probable_format.as_str().to_string(),
+                            needs_elevation: false,
+                            is_usb: h.is_usb,
+                            is_jmicron: h.is_jmicron_bridge,
+                            is_asmedia: h.is_asmedia_bridge,
+                            bus_type: h.bus_type,
+                        })
+                    }).collect();
+                }
+            }
+        }
+        Vec::new()
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        Vec::new()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -343,5 +487,40 @@ mod tests {
         assert!(h.is_usb);
         assert_eq!(h.bus_type, "USB");
         assert_eq!(h.probable_format, PanasonicFilesystemFormat::MeihdfsV2);
+    }
+
+    #[test]
+    fn test_parse_drive_entries_from_json() {
+        let json_sample = r#"[
+            {
+                "DeviceID": "\\\\.\\PHYSICALDRIVE1",
+                "Model": "MATSHITA DVD-RAM SW-9585",
+                "Size": 160041885696,
+                "InterfaceType": "USB",
+                "PNPDeviceID": "USBSTOR\\DISK&VEN_MATSHITA&PROD_DVD-RAM"
+            },
+            {
+                "DeviceID": "\\\\.\\PHYSICALDRIVE0",
+                "Model": "Samsung SSD 980 PRO 1TB",
+                "Size": 1000204886016,
+                "InterfaceType": "SCSI",
+                "PNPDeviceID": "SCSI\\DISK&VEN_NVME&PROD_SAMSUNG_SSD_980"
+            }
+        ]"#;
+
+        let drives = parse_drive_entries_from_json(json_sample);
+        assert_eq!(drives.len(), 2);
+
+        // Panasonic DVD drive
+        assert_eq!(drives[0].device_id, "\\\\.\\PHYSICALDRIVE1");
+        assert!(drives[0].is_panasonic);
+        assert_eq!(drives[0].bus_type, "USB");
+        assert_eq!(drives[0].format, "MEIHDFS-V2.0");
+
+        // Non-panasonic NVMe SSD
+        assert_eq!(drives[1].device_id, "\\\\.\\PHYSICALDRIVE0");
+        assert!(!drives[1].is_panasonic);
+        assert_eq!(drives[1].bus_type, "NVMe");
+        assert_eq!(drives[1].format, "UNKNOWN");
     }
 }

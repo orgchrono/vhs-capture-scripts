@@ -9,7 +9,7 @@
  */
 
 import { studioApi } from './studioApi';
-import type { SystemStatus, RestorationPayload, QueueJob } from '../types';
+import type { SystemStatus, RestorationPayload, QueueJob, PanasonicDisk } from '../types';
 
 interface TauriInternals {
   invoke: <T = unknown>(cmd: string, args?: Record<string, unknown>) => Promise<T>;
@@ -1108,5 +1108,28 @@ export const tauriBridge = {
     }
     return 'HoldRecording';
   },
+
+  async detectConnectedDrives(): Promise<PanasonicDisk[]> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<PanasonicDisk[]>('ipc_detect_connected_drives');
+    }
+    return [
+      {
+        device_id: '\\\\.\\PHYSICALDRIVE0',
+        name: 'System Drive (500.0 GB)',
+        model: 'Generic System Drive',
+        size_gb: 500.0,
+        is_panasonic: false,
+        format: 'UNKNOWN',
+        needs_elevation: false,
+        is_usb: false,
+        is_jmicron: false,
+        is_asmedia: false,
+        bus_type: 'NVMe',
+      },
+    ];
+  },
 };
+
 

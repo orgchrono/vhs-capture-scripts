@@ -403,6 +403,12 @@ describe('Tauri v2 IPC Bridge & Fallback (tauriBridge)', () => {
       25.0
     );
     expect(holdDecision).toBe('HoldRecording');
+
+    const drives = await tauriBridge.detectConnectedDrives();
+    expect(Array.isArray(drives)).toBe(true);
+    expect(drives.length).toBeGreaterThan(0);
+    expect(drives[0].device_id).toBeDefined();
+    expect(drives[0].bus_type).toBeDefined();
   });
 });
 

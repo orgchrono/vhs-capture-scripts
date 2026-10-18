@@ -39,6 +39,7 @@ fn print_usage() {
     println!("  ai-interpolate <IN> <OUT> Generate RIFE 60fps frame interpolation CLI command");
     println!("  watch-ingest <DIR>        Scan directory for finalized VHS capture video files");
     println!("  obs-eval-trigger <ARGS..> Evaluate intelligent capture start/stop trigger state");
+    println!("  detect-drives             Scan connected physical disks and Panasonic DVR units");
     println!("  version                   Print version information");
     println!("  help                      Print this help message");
 }
@@ -692,6 +693,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             );
 
             println!("{}", serde_json::to_string_pretty(&decision)?);
+        }
+        "detect-drives" => {
+            let drives = vhs_studio_core::panasonic::detect_connected_drives();
+            println!("{}", serde_json::to_string_pretty(&drives)?);
         }
         unknown => {
             eprintln!("Unknown command: '{unknown}'");

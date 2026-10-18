@@ -742,5 +742,14 @@ pub fn ipc_evaluate_capture_trigger(
     )
 }
 
+use panasonic::{detect_connected_drives, PanasonicDiskInfo};
+
+/// Typed IPC ViewModel command detecting connected physical drives and Panasonic DVR devices.
+#[must_use]
+pub fn ipc_detect_connected_drives() -> Vec<PanasonicDiskInfo> {
+    detect_connected_drives()
+}
+
+
 
 
