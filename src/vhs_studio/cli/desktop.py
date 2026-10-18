@@ -234,5 +234,5 @@ def run_desktop():
     webview.start(debug=False, icon=chosen_icon)
 
 
-if __name__ == "main":
+if __name__ == "__main__":
     run_desktop()

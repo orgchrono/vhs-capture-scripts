@@ -74,7 +74,10 @@ jobs:
       run: |
         pyinstaller --noconfirm --clean \
           --name "${{ matrix.artifact_name }}" \
+          --onefile \
           --windowed \
+          --collect-all uvicorn \
+          --collect-all webview \
           --add-data "ui/dist${{ matrix.sep }}ui/dist" \
           --add-data "vhs_advanced_config.toml${{ matrix.sep }}." \
           --add-data "assets${{ matrix.sep }}assets" \
@@ -82,11 +85,19 @@ jobs:
           --icon "${{ matrix.icon }}" \
           src/vhs_studio/cli/desktop.py
 
+    - name: Sign Executable & Export Certificate (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=VHS Studio Pro, O=VHS Studio Project" -CertStoreLocation "Cert:\CurrentUser\My" -HashAlgorithm SHA256
+        Set-AuthenticodeSignature -Certificate $cert -FilePath "dist/${{ matrix.artifact_name }}.exe" -TimestampServer "http://timestamp.digicert.com"
+        Export-Certificate -Cert $cert -FilePath "dist/VHS_Studio_Pro.cer"
+
     - name: Compress Archive (Windows)
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        Compress-Archive -Path "dist/${{ matrix.artifact_name }}" -DestinationPath "dist/${{ matrix.archive_name }}" -Force
+        Compress-Archive -Path "dist/${{ matrix.artifact_name }}.exe", "dist/VHS_Studio_Pro.cer" -DestinationPath "dist/${{ matrix.archive_name }}" -Force
 
     - name: Compress Archive (Linux)
       if: runner.os == 'Linux'

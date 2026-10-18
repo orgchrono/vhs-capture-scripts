@@ -73,6 +73,14 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const hasMedia = Boolean(source && source.trim().length > 0);
+
+  useEffect(() => {
+    if (!hasMedia && isPlaying) {
+      setIsPlaying(false);
+    }
+  }, [hasMedia, isPlaying]);
+
   const {
     data: frameData,
     isFetching,
@@ -421,7 +429,8 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           <button
             type="button"
             onClick={() => handleSeek(-30)}
-            className="w-6 h-6 flex items-center justify-center rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-slate-300 hover:text-white transition cursor-pointer"
+            disabled={!hasMedia}
+            className="w-6 h-6 flex items-center justify-center rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-slate-300 hover:text-white transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             title={t('monitor.split_seek_backward_30s')}
             aria-label={t('monitor.split_seek_backward_30s')}
             data-testid="split-seek-prev-30-btn"
@@ -431,7 +440,8 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           <button
             type="button"
             onClick={() => handleSeek(-5)}
-            className="w-6 h-6 flex items-center justify-center rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-slate-300 hover:text-white transition cursor-pointer"
+            disabled={!hasMedia}
+            className="w-6 h-6 flex items-center justify-center rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-slate-300 hover:text-white transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             title={t('monitor.split_seek_backward')}
             aria-label={t('monitor.split_seek_backward')}
             data-testid="split-seek-prev-btn"
@@ -440,8 +450,13 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => setIsPlaying(!isPlaying)}
-            className={`w-6 h-6 flex items-center justify-center rounded-sm border transition cursor-pointer shrink-0 ${
+            onClick={() => {
+              if (hasMedia) {
+                setIsPlaying(!isPlaying);
+              }
+            }}
+            disabled={!hasMedia}
+            className={`w-6 h-6 flex items-center justify-center rounded-sm border transition cursor-pointer shrink-0 disabled:opacity-40 disabled:cursor-not-allowed ${
               isPlaying
                 ? 'bg-amber-600/30 text-amber-300 border-amber-500/50 hover:bg-amber-600/40'
                 : 'bg-studio-surface hover:bg-studio-surface-hover border-studio-border text-slate-300 hover:text-white'
@@ -455,7 +470,8 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           <button
             type="button"
             onClick={() => handleSeek(5)}
-            className="w-6 h-6 flex items-center justify-center rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-slate-300 hover:text-white transition cursor-pointer"
+            disabled={!hasMedia}
+            className="w-6 h-6 flex items-center justify-center rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-slate-300 hover:text-white transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             title={t('monitor.split_seek_forward')}
             aria-label={t('monitor.split_seek_forward')}
             data-testid="split-seek-next-btn"
@@ -465,7 +481,8 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           <button
             type="button"
             onClick={() => handleSeek(30)}
-            className="w-6 h-6 flex items-center justify-center rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-slate-300 hover:text-white transition cursor-pointer"
+            disabled={!hasMedia}
+            className="w-6 h-6 flex items-center justify-center rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-slate-300 hover:text-white transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             title={t('monitor.split_seek_forward_30s')}
             aria-label={t('monitor.split_seek_forward_30s')}
             data-testid="split-seek-next-30-btn"
@@ -482,10 +499,11 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
             max={totalDuration}
             step={1}
             value={timestamp}
+            disabled={!hasMedia}
             onChange={(e) => handleTimelineInput(Number(e.target.value))}
             onMouseUp={handleTimelineCommit}
             onTouchEnd={handleTimelineCommit}
-            className="w-full h-1.5 bg-studio-surface rounded-lg appearance-none cursor-pointer accent-amber-400"
+            className="w-full h-1.5 bg-studio-surface rounded-lg appearance-none cursor-pointer accent-amber-400 disabled:opacity-40 disabled:cursor-not-allowed"
             aria-label={t('monitor.timeline_scrubber')}
             title={t('monitor.timeline_scrubber')}
             data-testid="timeline-scrubber-input"

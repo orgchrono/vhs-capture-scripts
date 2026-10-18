@@ -6,9 +6,10 @@ import { store } from '../store';
 import { Provider } from 'react-redux';
 
 const renderComponent = (props: { source?: string; onClose?: () => void; initialMode?: 'stream' | 'freeze' } = {}) => {
+  const mergedProps = { source: 'tape01.mkv', ...props };
   return render(
     <Provider store={store}>
-      <SplitComparisonMonitor {...props} />
+      <SplitComparisonMonitor {...mergedProps} />
     </Provider>
   );
 };
@@ -108,13 +109,24 @@ describe('SplitComparisonMonitor Component', () => {
 
     const playBtn = screen.getByTestId('split-play-toggle-btn');
     expect(playBtn).toBeInTheDocument();
-
-    fireEvent.click(playBtn);
-    // After click, it is in pause mode
-    expect(screen.getByTestId('split-play-toggle-btn')).toBeInTheDocument();
+    expect(playBtn).not.toBeDisabled();
 
     fireEvent.click(playBtn);
     expect(screen.getByTestId('split-play-toggle-btn')).toBeInTheDocument();
+
+    fireEvent.click(playBtn);
+    expect(screen.getByTestId('split-play-toggle-btn')).toBeInTheDocument();
+  });
+
+  it('disables play, seek, and scrubber controls when no media source is loaded', () => {
+    renderComponent({ source: '' });
+
+    expect(screen.getByTestId('split-play-toggle-btn')).toBeDisabled();
+    expect(screen.getByTestId('split-seek-prev-btn')).toBeDisabled();
+    expect(screen.getByTestId('split-seek-next-btn')).toBeDisabled();
+    expect(screen.getByTestId('split-seek-prev-30-btn')).toBeDisabled();
+    expect(screen.getByTestId('split-seek-next-30-btn')).toBeDisabled();
+    expect(screen.getByTestId('timeline-scrubber-input')).toBeDisabled();
   });
 
   it('selects 0% and 100% split presets', () => {

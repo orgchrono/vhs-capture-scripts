@@ -1,21 +1,27 @@
-"""Module documentation pending."""
-
+import sys
 import os
 import platform
 import shutil
 
-# Root of the vhs-capture-scripts repository
-PROJECT_ROOT = os.path.abspath(
+# Detect PyInstaller frozen execution environment
+IS_FROZEN = getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS")
+BUNDLE_ROOT: str = str(getattr(sys, "_MEIPASS", "")) if IS_FROZEN else os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "..", "..")
 )
 
-# Directories
-TOOLS_DIR = os.path.join(PROJECT_ROOT, "tools")
+# Root of the project workspace (directory containing the executable if frozen, or repo root)
+if IS_FROZEN:
+    PROJECT_ROOT = os.path.dirname(sys.executable)
+else:
+    PROJECT_ROOT = BUNDLE_ROOT
+
+# Directories: assets/UI served from bundle if frozen, media stored in workspace
+TOOLS_DIR = os.path.join(BUNDLE_ROOT, "tools") if os.path.isdir(os.path.join(BUNDLE_ROOT, "tools")) else os.path.join(PROJECT_ROOT, "tools")
 MEDIA_DIR = os.path.join(PROJECT_ROOT, "media")
 RAW_MEDIA_DIR = os.path.join(MEDIA_DIR, "raw")
 WORK_MEDIA_DIR = os.path.join(MEDIA_DIR, "work")
 RESTORED_MEDIA_DIR = os.path.join(MEDIA_DIR, "restored")
-UI_DIST_DIR = os.path.join(PROJECT_ROOT, "ui", "dist")
+UI_DIST_DIR = os.path.join(BUNDLE_ROOT, "ui", "dist") if os.path.isdir(os.path.join(BUNDLE_ROOT, "ui", "dist")) else os.path.join(PROJECT_ROOT, "ui", "dist")
 
 # Tool paths
 FFMPEG_DIR = os.path.join(TOOLS_DIR, "ffmpeg")
@@ -29,7 +35,7 @@ USER_HOME = os.path.expanduser("~")
 VHS_STUDIO_DIR = os.path.join(USER_HOME, ".vhs_studio")
 STORAGE_CONFIG_PATH = os.path.join(VHS_STUDIO_DIR, "storage.json")
 PREFERENCES_CONFIG_PATH = os.path.join(VHS_STUDIO_DIR, "preferences.json")
-ADVANCED_CONFIG_PATH = os.path.join(PROJECT_ROOT, "vhs_advanced_config.toml")
+ADVANCED_CONFIG_PATH = os.path.join(BUNDLE_ROOT, "vhs_advanced_config.toml") if os.path.exists(os.path.join(BUNDLE_ROOT, "vhs_advanced_config.toml")) else os.path.join(PROJECT_ROOT, "vhs_advanced_config.toml")
 
 
 def get_obs_executable_paths():
