@@ -44,6 +44,8 @@ fn print_usage() {
     println!("  storage-save <P> <JSON>   Save storage configuration atomically and return status");
     println!("  storage-chunk-plan <S> <C> Evaluate chunk upload plan for large files");
     println!("  storage-copy <SRC> <DST>  Copy file to destination and verify integrity");
+    println!("  validate-i18n [DIR]       Verify 100% translation key parity across all 10 locales");
+    println!("  serve [PORT]              Start native Rust HTTP/IPC server for UI on 127.0.0.1");
     println!("  version                   Print version information");
     println!("  help                      Print this help message");
 }
@@ -756,6 +758,40 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     eprintln!("Error: {err}");
                     std::process::exit(1);
                 }
+            }
+        }
+        "validate-i18n" => {
+            let dir = args
+                .get(2)
+                .map(String::as_str)
+                .unwrap_or(vhs_studio_core::constants::UI_LOCALES_REL_PATH);
+            println!("[*] Verifying translation key parity across all 10 locales...");
+            match vhs_studio_core::ipc_validate_i18n_locales(dir) {
+                Ok(summary) if summary.all_passed => {
+                    println!("[+] 100% parity verified: all 10 locales contain identical key structures.");
+                }
+                Ok(summary) => {
+                    eprintln!("[-] i18n parity failure detected:");
+                    eprintln!("{}", serde_json::to_string_pretty(&summary)?);
+                    std::process::exit(1);
+                }
+                Err(err) => {
+                    eprintln!("Error: {err}");
+                    std::process::exit(1);
+                }
+            }
+        }
+        "serve" => {
+            let port: u16 = args
+                .get(2)
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(vhs_studio_core::constants::DEFAULT_API_PORT);
+            if let Err(err) = vhs_studio_core::http_server::run_native_http_server(
+                vhs_studio_core::constants::DEFAULT_API_HOST,
+                port,
+            ) {
+                eprintln!("Error: {err}");
+                std::process::exit(1);
             }
         }
         unknown => {

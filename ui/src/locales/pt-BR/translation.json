@@ -189,6 +189,7 @@
     "deinterlacing_label": "Desentrelaçamento:",
     "qtgmc_hint": "O QTGMC é o padrão ouro, mas requer VapourSynth instalado.",
     "resolution_label": "Resolução / Upscale:",
+    "output_codec": "Codec de Saída:",
     "output_codec_label": "Codec de Saída:",
     "audio_mode_label": "Modo de Áudio:",
     "audio_delay_label": "Sincronização de Áudio (Atraso em ms):",
