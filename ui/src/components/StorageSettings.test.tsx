@@ -39,4 +39,36 @@ describe('StorageSettings Component', () => {
       expect(globalThis.fetch).toHaveBeenCalled();
     });
   });
+
+  it('loads storage configuration directly through Tauri bridge when running natively', async () => {
+    const mockInvoke = vi.fn().mockImplementation((cmd: string) => {
+      if (cmd === 'ipc_get_storage_config') {
+        return Promise.resolve({
+          provider: 's3_generic',
+          config: { S3_BUCKET: 'vhs-vault' },
+          status: { ready: true, free_space_gb: 100.0 },
+          available_providers: ['local_nas_usb', 's3_generic'],
+        });
+      }
+      return Promise.resolve(null);
+    });
+
+    (window as unknown as { __TAURI_INTERNALS__: { invoke: typeof mockInvoke } }).__TAURI_INTERNALS__ = {
+      invoke: mockInvoke,
+    };
+
+    try {
+      render(
+        <Provider store={store}>
+          <StorageSettings />
+        </Provider>
+      );
+
+      await waitFor(() => {
+        expect(mockInvoke).toHaveBeenCalledWith('ipc_get_storage_config');
+      });
+    } finally {
+      delete (window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;
+    }
+  });
 });

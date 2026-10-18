@@ -750,6 +750,40 @@ pub fn ipc_detect_connected_drives() -> Vec<PanasonicDiskInfo> {
     detect_connected_drives()
 }
 
+use storage::{
+    calculate_chunk_plan, copy_and_verify_file,
+    load_storage_config_envelope, resolve_storage_config_path, save_storage_config_envelope,
+    ChunkUploadPart, StorageConfigEnvelope, StorageStatus,
+};
+
+/// Typed IPC ViewModel command returning the persistent storage configuration and status.
+#[must_use]
+pub fn ipc_get_storage_config() -> StorageConfigEnvelope {
+    let path = resolve_storage_config_path();
+    load_storage_config_envelope(&path)
+}
+
+/// Typed IPC ViewModel command updating and saving storage configuration atomically.
+pub fn ipc_save_storage_config(
+    provider: &str,
+    config: &serde_json::Value,
+) -> Result<StorageStatus, String> {
+    let path = resolve_storage_config_path();
+    save_storage_config_envelope(&path, provider, config)
+}
+
+/// Typed IPC ViewModel command evaluating chunk upload plan for large files.
+#[must_use]
+pub fn ipc_plan_chunk_upload(file_size_bytes: u64, chunk_size_bytes: u64) -> Vec<ChunkUploadPart> {
+    calculate_chunk_plan(file_size_bytes, chunk_size_bytes)
+}
+
+/// Typed IPC ViewModel command safely copying and verifying archival file transfer.
+pub fn ipc_copy_storage_file(source: &str, destination: &str) -> Result<u64, String> {
+    copy_and_verify_file(std::path::Path::new(source), std::path::Path::new(destination))
+}
+
+
 
 
 

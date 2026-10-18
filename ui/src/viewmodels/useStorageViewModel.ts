@@ -1,12 +1,17 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   useGetStorageConfigQuery,
   useUpdateStorageConfigMutation,
 } from "../api/studioRtkApi";
+import {
+  tauriBridge,
+  isTauriEnvironment,
+  type TauriStorageEnvelope,
+} from "../api/tauriBridge";
 import { getErrorMessage } from "../lib/errors";
 
 // ============================================================================
-// VIEWMODEL: Strict MVVM, SoC & Functional Purity (RTK Query Powered)
+// VIEWMODEL: Strict MVVM, SoC & Functional Purity (RTK Query / Tauri Dual Bridge)
 // Pure state derivation without cascading effect loops.
 // ============================================================================
 
@@ -51,21 +56,40 @@ const DEFAULT_CONFIG: StorageConfigModel = {
 };
 
 export function useStorageViewModel() {
-  const { data: storageData, isLoading } = useGetStorageConfigQuery();
+  const isTauri = isTauriEnvironment();
+  const { data: storageData, isLoading } = useGetStorageConfigQuery(undefined, {
+    skip: isTauri,
+  });
   const [updateStorageTrigger, { isLoading: isSaving }] = useUpdateStorageConfigMutation();
 
+  const [nativeData, setNativeData] = useState<TauriStorageEnvelope | null>(null);
+  const [isNativeSaving, setIsNativeSaving] = useState(false);
   const [userSelectedProvider, setUserSelectedProvider] = useState<string | null>(null);
   const [userConfigOverrides, setUserConfigOverrides] = useState<Partial<StorageConfigModel>>({});
 
-  const provider = userSelectedProvider ?? storageData?.provider ?? "local_nas_usb";
+  useEffect(() => {
+    if (!isTauri) return;
+    let isMounted = true;
+    tauriBridge.getStorageConfig().then((envelope) => {
+      if (isMounted) {
+        setNativeData(envelope);
+      }
+    }).catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, [isTauri]);
+
+  const effectiveData = isTauri ? nativeData : storageData;
+  const provider = userSelectedProvider ?? effectiveData?.provider ?? "local_nas_usb";
 
   const config = useMemo<StorageConfigModel>(() => {
     return {
       ...DEFAULT_CONFIG,
-      ...(storageData?.config as Partial<StorageConfigModel> | undefined),
+      ...(effectiveData?.config as Partial<StorageConfigModel> | undefined),
       ...userConfigOverrides,
     };
-  }, [storageData?.config, userConfigOverrides]);
+  }, [effectiveData?.config, userConfigOverrides]);
 
   const setProvider = (newProvider: string) => {
     setUserSelectedProvider(newProvider);
@@ -77,6 +101,17 @@ export function useStorageViewModel() {
 
   const handleSave = async (onSuccess?: () => void, onError?: (msg: string) => void) => {
     try {
+      if (isTauri) {
+        setIsNativeSaving(true);
+        const updatedStatus = await tauriBridge.saveStorageConfig(provider, config as Record<string, unknown>);
+        setNativeData((prev) =>
+          prev ? { ...prev, provider, config: config as Record<string, unknown>, status: updatedStatus } : null
+        );
+        setIsNativeSaving(false);
+        if (onSuccess) onSuccess();
+        return;
+      }
+
       const res = await updateStorageTrigger({
         provider,
         config: config as Record<string, unknown>,
@@ -88,7 +123,8 @@ export function useStorageViewModel() {
         if (onError) onError(res.message || "Erro ao salvar");
       }
     } catch (e: unknown) {
-      if (onError) onError(getErrorMessage(e, "Erro de rede ao salvar configurações."));
+      setIsNativeSaving(false);
+      if (onError) onError(getErrorMessage(e, "Erro ao salvar configurações."));
     }
   };
 
@@ -96,13 +132,15 @@ export function useStorageViewModel() {
     window.open(`/api/oauth/login/${providerId}`, '_blank');
   };
 
+  const status = isTauri ? (nativeData?.status ?? {}) : (storageData?.status ?? {});
+
   return {
     provider,
     setProvider,
     config,
     updateConfig,
-    status: storageData?.status || {},
-    loading: isLoading || isSaving,
+    status,
+    loading: isTauri ? isNativeSaving : (isLoading || isSaving),
     handleSave,
     initiateOAuth,
   };

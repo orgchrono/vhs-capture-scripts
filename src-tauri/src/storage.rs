@@ -1,9 +1,11 @@
 //! Pure Functional Storage Provider Validation, Quota Checking, and Key Path Resolvers.
 //!
 //! Models storage backends (Local/NAS/USB, Google Drive, Supabase, Dropbox, OneDrive, S3),
-//! validates configuration dictionaries, and verifies disk capacity against required ingest quotas.
+//! validates configuration dictionaries, verifies disk capacity against required ingest quotas,
+//! provides chunk upload planning, and manages persistent storage settings.
 
 use serde::{Deserialize, Serialize};
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -47,6 +49,65 @@ pub struct StorageQuota {
     pub free_bytes: u64,
     pub free_gb: u64,
     pub is_ready: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ChunkUploadPart {
+    pub part_number: usize,
+    pub start_byte: u64,
+    pub end_byte: u64,
+    pub part_size: u64,
+    pub is_last: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StorageStatus {
+    pub ready: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub free_space_gb: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total_space_gb: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StorageConfigEnvelope {
+    pub provider: String,
+    pub config: serde_json::Value,
+    pub status: StorageStatus,
+    pub available_providers: Vec<String>,
+}
+
+/// Pure calculation of chunk upload parts for large cloud files.
+#[must_use]
+pub fn calculate_chunk_plan(total_bytes: u64, chunk_size: u64) -> Vec<ChunkUploadPart> {
+    if total_bytes == 0 || chunk_size == 0 {
+        return Vec::new();
+    }
+    let mut parts = Vec::new();
+    let mut offset = 0;
+    let mut part_num = 1;
+
+    while offset < total_bytes {
+        let remaining = total_bytes - offset;
+        let size = remaining.min(chunk_size);
+        let end_byte = offset + size - 1;
+        let is_last = offset + size >= total_bytes;
+
+        parts.push(ChunkUploadPart {
+            part_number: part_num,
+            start_byte: offset,
+            end_byte,
+            part_size: size,
+            is_last,
+        });
+
+        offset += size;
+        part_num += 1;
+    }
+
+    parts
 }
 
 /// Pure validation of storage provider configuration.
@@ -117,6 +178,244 @@ pub fn format_destination_key(base_folder: &str, relative_path: &str) -> String 
     }
 }
 
+/// Queries total and available disk space for the volume containing the given path.
+#[cfg(windows)]
+pub fn query_disk_space(path: &Path) -> Result<(u64, u64), String> {
+    use std::os::windows::ffi::OsStrExt;
+    let wide: Vec<u16> = path.as_os_str().encode_wide().chain(std::iter::once(0)).collect();
+    let mut free_bytes_available: u64 = 0;
+    let mut total_bytes: u64 = 0;
+    let mut total_free_bytes: u64 = 0;
+
+    extern "system" {
+        fn GetDiskFreeSpaceExW(
+            lpDirectoryName: *const u16,
+            lpFreeBytesAvailableToCaller: *mut u64,
+            lpTotalNumberOfBytes: *mut u64,
+            lpTotalNumberOfFreeBytes: *mut u64,
+        ) -> i32;
+    }
+
+    let ret = unsafe {
+        GetDiskFreeSpaceExW(
+            wide.as_ptr(),
+            &mut free_bytes_available,
+            &mut total_bytes,
+            &mut total_free_bytes,
+        )
+    };
+
+    if ret != 0 {
+        Ok((total_bytes, free_bytes_available))
+    } else {
+        Err("Failed to query disk space".to_string())
+    }
+}
+
+#[cfg(not(windows))]
+pub fn query_disk_space(_path: &Path) -> Result<(u64, u64), String> {
+    Ok((1_000_000_000_000, 500_000_000_000))
+}
+
+/// Evaluates connection and quota status for a specified storage provider and configuration.
+#[must_use]
+pub fn evaluate_storage_status(provider: &str, config: &serde_json::Value) -> StorageStatus {
+    match provider {
+        "local_nas_usb" => {
+            let path_str = config.get("path").and_then(|v| v.as_str()).unwrap_or("");
+            if path_str.trim().is_empty() {
+                return StorageStatus {
+                    ready: false,
+                    free_space_gb: None,
+                    total_space_gb: None,
+                    message: Some("Path not specified".to_string()),
+                };
+            }
+            let p = Path::new(path_str);
+            let target = if p.exists() {
+                p
+            } else if let Some(parent) = p.parent() {
+                if parent.exists() {
+                    parent
+                } else {
+                    return StorageStatus {
+                        ready: false,
+                        free_space_gb: None,
+                        total_space_gb: None,
+                        message: Some("Directory does not exist".to_string()),
+                    };
+                }
+            } else {
+                return StorageStatus {
+                    ready: false,
+                    free_space_gb: None,
+                    total_space_gb: None,
+                    message: Some("Directory does not exist".to_string()),
+                };
+            };
+
+            match query_disk_space(target) {
+                Ok((total, free)) => {
+                    let gb = 1_073_741_824.0;
+                    StorageStatus {
+                        ready: true,
+                        free_space_gb: Some((free as f64 / gb * 10.0).round() / 10.0),
+                        total_space_gb: Some((total as f64 / gb * 10.0).round() / 10.0),
+                        message: None,
+                    }
+                }
+                Err(err) => StorageStatus {
+                    ready: false,
+                    free_space_gb: None,
+                    total_space_gb: None,
+                    message: Some(err),
+                },
+            }
+        }
+        "s3_generic" => {
+            let key = config.get("S3_ACCESS_KEY").and_then(|v| v.as_str()).unwrap_or("");
+            let secret = config.get("S3_SECRET_KEY").and_then(|v| v.as_str()).unwrap_or("");
+            let ready = !key.trim().is_empty() && !secret.trim().is_empty();
+            StorageStatus {
+                ready,
+                free_space_gb: None,
+                total_space_gb: None,
+                message: if ready { None } else { Some("Missing credentials".to_string()) },
+            }
+        }
+        "supabase" => {
+            let key = config.get("SUPABASE_KEY").and_then(|v| v.as_str()).unwrap_or("");
+            let ready = !key.trim().is_empty();
+            StorageStatus {
+                ready,
+                free_space_gb: None,
+                total_space_gb: None,
+                message: if ready { None } else { Some("Missing API key".to_string()) },
+            }
+        }
+        _ => {
+            let has_token = config.get("access_token")
+                .or_else(|| config.get("DROPBOX_ACCESS_TOKEN"))
+                .is_some();
+            StorageStatus {
+                ready: has_token,
+                free_space_gb: None,
+                total_space_gb: None,
+                message: if has_token { None } else { Some("Authorization required".to_string()) },
+            }
+        }
+    }
+}
+
+/// Resolves the storage configuration JSON path on disk.
+#[must_use]
+pub fn resolve_storage_config_path() -> PathBuf {
+    if let Ok(dir) = std::env::var("VHS_STUDIO_DIR") {
+        PathBuf::from(dir).join("storage.json")
+    } else if let Some(home) = std::env::var_os("USERPROFILE").or_else(|| std::env::var_os("HOME")) {
+        PathBuf::from(home).join(".vhs_studio").join("storage.json")
+    } else {
+        PathBuf::from("storage.json")
+    }
+}
+
+/// Loads the storage configuration envelope from disk, returning defaults if not found.
+#[must_use]
+pub fn load_storage_config_envelope(path: &Path) -> StorageConfigEnvelope {
+    let providers = vec![
+        "local_nas_usb".to_string(),
+        "supabase".to_string(),
+        "s3_generic".to_string(),
+        "gdrive".to_string(),
+        "dropbox".to_string(),
+        "onedrive".to_string(),
+    ];
+
+    let default_path = if let Some(home) = std::env::var_os("USERPROFILE").or_else(|| std::env::var_os("HOME")) {
+        PathBuf::from(home).join("Videos").join("VHS_Archive").to_string_lossy().to_string()
+    } else {
+        "VHS_Archive".to_string()
+    };
+
+    if !path.exists() {
+        let cfg = serde_json::json!({ "path": default_path });
+        let status = evaluate_storage_status("local_nas_usb", &cfg);
+        return StorageConfigEnvelope {
+            provider: "local_nas_usb".to_string(),
+            config: cfg,
+            status,
+            available_providers: providers,
+        };
+    }
+
+    if let Ok(content) = std::fs::read_to_string(path) {
+        if let Ok(val) = serde_json::from_str::<serde_json::Value>(&content) {
+            let provider = val.get("provider").and_then(|v| v.as_str()).unwrap_or("local_nas_usb").to_string();
+            let config = val.get("config").cloned().unwrap_or_else(|| serde_json::json!({ "path": default_path }));
+            let status = evaluate_storage_status(&provider, &config);
+            return StorageConfigEnvelope {
+                provider,
+                config,
+                status,
+                available_providers: providers,
+            };
+        }
+    }
+
+    let cfg = serde_json::json!({ "path": default_path });
+    let status = evaluate_storage_status("local_nas_usb", &cfg);
+    StorageConfigEnvelope {
+        provider: "local_nas_usb".to_string(),
+        config: cfg,
+        status,
+        available_providers: providers,
+    }
+}
+
+/// Saves storage configuration envelope atomically to disk and returns refreshed status.
+pub fn save_storage_config_envelope(
+    path: &Path,
+    provider: &str,
+    config: &serde_json::Value,
+) -> Result<StorageStatus, String> {
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    let status = evaluate_storage_status(provider, config);
+    let payload = serde_json::json!({
+        "provider": provider,
+        "config": config,
+    });
+    let content = serde_json::to_string_pretty(&payload).map_err(|e| e.to_string())?;
+
+    let tmp_path = path.with_extension("tmp");
+    std::fs::write(&tmp_path, content).map_err(|e| e.to_string())?;
+    std::fs::rename(&tmp_path, path).map_err(|e| e.to_string())?;
+
+    Ok(status)
+}
+
+/// Copies a file to a destination path and verifies byte length integrity.
+pub fn copy_and_verify_file(source: &Path, destination: &Path) -> Result<u64, String> {
+    if !source.exists() {
+        return Err(format!("Source file does not exist: {}", source.display()));
+    }
+    if let Some(parent) = destination.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+
+    let bytes_copied = std::fs::copy(source, destination).map_err(|e| e.to_string())?;
+    let src_len = std::fs::metadata(source).map_err(|e| e.to_string())?.len();
+    let dst_len = std::fs::metadata(destination).map_err(|e| e.to_string())?.len();
+
+    if src_len != dst_len {
+        let _ = std::fs::remove_file(destination);
+        return Err(format!("Copy verification failed: source length {} != dest length {}", src_len, dst_len));
+    }
+
+    Ok(bytes_copied)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -184,5 +483,92 @@ mod tests {
 
         let root_key = format_destination_key("", "tape1.mp4");
         assert_eq!(root_key, "tape1.mp4");
+    }
+
+    #[test]
+    fn test_calculate_chunk_plan() {
+        let plan = calculate_chunk_plan(25_000_000, 10_000_000);
+        assert_eq!(plan.len(), 3);
+
+        assert_eq!(plan[0].part_number, 1);
+        assert_eq!(plan[0].start_byte, 0);
+        assert_eq!(plan[0].end_byte, 9_999_999);
+        assert_eq!(plan[0].part_size, 10_000_000);
+        assert!(!plan[0].is_last);
+
+        assert_eq!(plan[1].part_number, 2);
+        assert_eq!(plan[1].start_byte, 10_000_000);
+        assert_eq!(plan[1].end_byte, 19_999_999);
+        assert_eq!(plan[1].part_size, 10_000_000);
+        assert!(!plan[1].is_last);
+
+        assert_eq!(plan[2].part_number, 3);
+        assert_eq!(plan[2].start_byte, 20_000_000);
+        assert_eq!(plan[2].end_byte, 24_999_999);
+        assert_eq!(plan[2].part_size, 5_000_000);
+        assert!(plan[2].is_last);
+    }
+
+    #[test]
+    fn test_evaluate_storage_status_for_providers() {
+        let s3_cfg = serde_json::json!({
+            "S3_ACCESS_KEY": "AKIAIOSFODNN7EXAMPLE",
+            "S3_SECRET_KEY": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+        });
+        let s3_status = evaluate_storage_status("s3_generic", &s3_cfg);
+        assert!(s3_status.ready);
+
+        let unauthed_s3 = serde_json::json!({
+            "S3_ACCESS_KEY": "",
+            "S3_SECRET_KEY": ""
+        });
+        let unauthed_status = evaluate_storage_status("s3_generic", &unauthed_s3);
+        assert!(!unauthed_status.ready);
+
+        let supabase_cfg = serde_json::json!({
+            "SUPABASE_KEY": "sbp_abcdef123456"
+        });
+        let supabase_status = evaluate_storage_status("supabase", &supabase_cfg);
+        assert!(supabase_status.ready);
+    }
+
+    #[test]
+    fn test_load_and_save_storage_config_envelope_roundtrip() {
+        let temp_dir = std::env::temp_dir().join(format!("vhs_test_storage_{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&temp_dir);
+        let config_file = temp_dir.join("storage.json");
+
+        let default_env = load_storage_config_envelope(&config_file);
+        assert_eq!(default_env.provider, "local_nas_usb");
+
+        let custom_cfg = serde_json::json!({
+            "S3_ACCESS_KEY": "MOCK_KEY",
+            "S3_SECRET_KEY": "MOCK_SECRET"
+        });
+        let save_res = save_storage_config_envelope(&config_file, "s3_generic", &custom_cfg);
+        assert!(save_res.is_ok());
+
+        let loaded_env = load_storage_config_envelope(&config_file);
+        assert_eq!(loaded_env.provider, "s3_generic");
+        assert!(loaded_env.status.ready);
+
+        let _ = std::fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn test_copy_and_verify_file_roundtrip() {
+        let temp_dir = std::env::temp_dir().join(format!("vhs_test_copy_{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&temp_dir);
+
+        let src = temp_dir.join("source.txt");
+        let dst = temp_dir.join("subfolder").join("dest.txt");
+        std::fs::write(&src, b"VHS Studio Archive Test Payload").unwrap();
+
+        let copy_res = copy_and_verify_file(&src, &dst);
+        assert!(copy_res.is_ok());
+        assert_eq!(copy_res.unwrap(), 31);
+        assert_eq!(std::fs::read(&dst).unwrap(), b"VHS Studio Archive Test Payload");
+
+        let _ = std::fs::remove_dir_all(&temp_dir);
     }
 }

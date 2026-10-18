@@ -122,6 +122,29 @@ export interface TauriStorageConfig {
   has_credentials: boolean;
 }
 
+export interface TauriStorageStatus {
+  ready: boolean;
+  free_space_gb?: number;
+  total_space_gb?: number;
+  message?: string;
+}
+
+export interface TauriStorageEnvelope {
+  provider: string;
+  config: Record<string, unknown>;
+  status: TauriStorageStatus;
+  available_providers: string[];
+}
+
+export interface TauriChunkUploadPart {
+  part_number: number;
+  start_byte: number;
+  end_byte: number;
+  part_size: number;
+  is_last: boolean;
+}
+
+
 export interface TauriArchivalFileEntry {
   relative_path: string;
   sha256_hex: string;
@@ -1130,6 +1153,92 @@ export const tauriBridge = {
       },
     ];
   },
+
+  async getStorageConfig(): Promise<TauriStorageEnvelope> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<TauriStorageEnvelope>('ipc_get_storage_config');
+    }
+    return {
+      provider: 'local_nas_usb',
+      config: {
+        path: 'C:\\Users\\MockUser\\Videos\\VHS_Archive',
+      },
+      status: {
+        ready: true,
+        free_space_gb: 128.5,
+        total_space_gb: 512.0,
+      },
+      available_providers: [
+        'local_nas_usb',
+        'supabase',
+        's3_generic',
+        'gdrive',
+        'dropbox',
+        'onedrive',
+      ],
+    };
+  },
+
+  async saveStorageConfig(
+    provider: string,
+    config: Record<string, unknown>
+  ): Promise<TauriStorageStatus> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<TauriStorageStatus>('ipc_save_storage_config', {
+        provider,
+        config,
+      });
+    }
+    return {
+      ready: true,
+      free_space_gb: 128.5,
+      total_space_gb: 512.0,
+    };
+  },
+
+  async planChunkUpload(
+    fileSizeBytes: number,
+    chunkSizeBytes: number
+  ): Promise<TauriChunkUploadPart[]> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<TauriChunkUploadPart[]>('ipc_plan_chunk_upload', {
+        fileSizeBytes,
+        chunkSizeBytes,
+      });
+    }
+    const parts: TauriChunkUploadPart[] = [];
+    let offset = 0;
+    let partNum = 1;
+    while (offset < fileSizeBytes) {
+      const remaining = fileSizeBytes - offset;
+      const size = Math.min(remaining, chunkSizeBytes);
+      parts.push({
+        part_number: partNum,
+        start_byte: offset,
+        end_byte: offset + size - 1,
+        part_size: size,
+        is_last: offset + size >= fileSizeBytes,
+      });
+      offset += size;
+      partNum += 1;
+    }
+    return parts;
+  },
+
+  async copyStorageFile(source: string, destination: string): Promise<number> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<number>('ipc_copy_storage_file', {
+        source,
+        destination,
+      });
+    }
+    return 1024;
+  },
 };
+
 
 

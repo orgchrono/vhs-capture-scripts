@@ -40,6 +40,10 @@ fn print_usage() {
     println!("  watch-ingest <DIR>        Scan directory for finalized VHS capture video files");
     println!("  obs-eval-trigger <ARGS..> Evaluate intelligent capture start/stop trigger state");
     println!("  detect-drives             Scan connected physical disks and Panasonic DVR units");
+    println!("  storage-config            Print storage configuration and quota status JSON");
+    println!("  storage-save <P> <JSON>   Save storage configuration atomically and return status");
+    println!("  storage-chunk-plan <S> <C> Evaluate chunk upload plan for large files");
+    println!("  storage-copy <SRC> <DST>  Copy file to destination and verify integrity");
     println!("  version                   Print version information");
     println!("  help                      Print this help message");
 }
@@ -697,6 +701,62 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "detect-drives" => {
             let drives = vhs_studio_core::panasonic::detect_connected_drives();
             println!("{}", serde_json::to_string_pretty(&drives)?);
+        }
+        "storage-config" => {
+            let path = vhs_studio_core::storage::resolve_storage_config_path();
+            let envelope = vhs_studio_core::storage::load_storage_config_envelope(&path);
+            println!("{}", serde_json::to_string_pretty(&envelope)?);
+        }
+        "storage-save" => {
+            let provider = match args.get(2) {
+                Some(p) => p.as_str(),
+                None => {
+                    eprintln!("Error: Missing provider argument. Usage: vhs-studio storage-save <PROVIDER> <CONFIG_JSON>");
+                    std::process::exit(1);
+                }
+            };
+            let config_json = match args.get(3) {
+                Some(c) => c.as_str(),
+                None => "{}",
+            };
+            let config_val: serde_json::Value = serde_json::from_str(config_json)?;
+            let path = vhs_studio_core::storage::resolve_storage_config_path();
+            match vhs_studio_core::storage::save_storage_config_envelope(&path, provider, &config_val) {
+                Ok(status) => println!("{}", serde_json::to_string_pretty(&status)?),
+                Err(err) => {
+                    eprintln!("Error saving storage config: {err}");
+                    std::process::exit(1);
+                }
+            }
+        }
+        "storage-chunk-plan" => {
+            let file_size: u64 = args.get(2).and_then(|s| s.parse().ok()).unwrap_or(0);
+            let chunk_size: u64 = args.get(3).and_then(|s| s.parse().ok()).unwrap_or(8 * 1024 * 1024);
+            let plan = vhs_studio_core::storage::calculate_chunk_plan(file_size, chunk_size);
+            println!("{}", serde_json::to_string_pretty(&plan)?);
+        }
+        "storage-copy" => {
+            let src = match args.get(2) {
+                Some(s) => s.as_str(),
+                None => {
+                    eprintln!("Error: Missing source path. Usage: vhs-studio storage-copy <SRC> <DST>");
+                    std::process::exit(1);
+                }
+            };
+            let dst = match args.get(3) {
+                Some(d) => d.as_str(),
+                None => {
+                    eprintln!("Error: Missing destination path. Usage: vhs-studio storage-copy <SRC> <DST>");
+                    std::process::exit(1);
+                }
+            };
+            match vhs_studio_core::storage::copy_and_verify_file(Path::new(src), Path::new(dst)) {
+                Ok(bytes) => println!("{{\"status\":\"ok\",\"bytes_copied\":{bytes}}}"),
+                Err(err) => {
+                    eprintln!("Error: {err}");
+                    std::process::exit(1);
+                }
+            }
         }
         unknown => {
             eprintln!("Unknown command: '{unknown}'");

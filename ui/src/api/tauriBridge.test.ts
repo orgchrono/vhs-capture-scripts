@@ -410,6 +410,73 @@ describe('Tauri v2 IPC Bridge & Fallback (tauriBridge)', () => {
     expect(drives[0].device_id).toBeDefined();
     expect(drives[0].bus_type).toBeDefined();
   });
+
+  it('manages storage configuration and chunk upload plans via tauri bridge', async () => {
+    const mockStorageEnvelope = {
+      provider: 'local_nas_usb',
+      config: { path: '/media/archive' },
+      status: { ready: true, free_space_gb: 250.0 },
+      available_providers: ['local_nas_usb', 's3_generic'],
+    };
+
+    const mockInvoke = vi.fn().mockImplementation((cmd: string) => {
+      if (cmd === 'ipc_get_storage_config') {
+        return Promise.resolve(mockStorageEnvelope);
+      }
+      if (cmd === 'ipc_save_storage_config') {
+        return Promise.resolve({ ready: true, free_space_gb: 250.0 });
+      }
+      if (cmd === 'ipc_plan_chunk_upload') {
+        return Promise.resolve([
+          { part_number: 1, start_byte: 0, end_byte: 99, part_size: 100, is_last: true },
+        ]);
+      }
+      if (cmd === 'ipc_copy_storage_file') {
+        return Promise.resolve(2048);
+      }
+      return Promise.resolve(null);
+    });
+
+    (window as unknown as { __TAURI_INTERNALS__: { invoke: typeof mockInvoke } }).__TAURI_INTERNALS__ = {
+      invoke: mockInvoke,
+    };
+
+    try {
+      const config = await tauriBridge.getStorageConfig();
+      expect(mockInvoke).toHaveBeenCalledWith('ipc_get_storage_config');
+      expect(config.provider).toBe('local_nas_usb');
+
+      const saveStatus = await tauriBridge.saveStorageConfig('s3_generic', { S3_BUCKET: 'vhs' });
+      expect(mockInvoke).toHaveBeenCalledWith('ipc_save_storage_config', {
+        provider: 's3_generic',
+        config: { S3_BUCKET: 'vhs' },
+      });
+      expect(saveStatus.ready).toBe(true);
+
+      const plan = await tauriBridge.planChunkUpload(100, 100);
+      expect(mockInvoke).toHaveBeenCalledWith('ipc_plan_chunk_upload', {
+        fileSizeBytes: 100,
+        chunkSizeBytes: 100,
+      });
+      expect(plan).toHaveLength(1);
+
+      const bytesCopied = await tauriBridge.copyStorageFile('src.mkv', 'dst.mkv');
+      expect(mockInvoke).toHaveBeenCalledWith('ipc_copy_storage_file', {
+        source: 'src.mkv',
+        destination: 'dst.mkv',
+      });
+      expect(bytesCopied).toBe(2048);
+    } finally {
+      delete (window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;
+    }
+
+    // Verify fallback chunk planning in web mode
+    const fallbackPlan = await tauriBridge.planChunkUpload(250, 100);
+    expect(fallbackPlan).toHaveLength(3);
+    expect(fallbackPlan[0].part_size).toBe(100);
+    expect(fallbackPlan[2].part_size).toBe(50);
+    expect(fallbackPlan[2].is_last).toBe(true);
+  });
 });
 
 
