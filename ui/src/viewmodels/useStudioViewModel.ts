@@ -18,7 +18,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import type { RestorationPayload } from '../types';
-
+import { tauriBridge, isTauriEnvironment } from '../api/tauriBridge';
 
 export function useStudioViewModel() {
   const { t } = useTranslation();
@@ -88,7 +88,7 @@ export function useStudioViewModel() {
           const hasFailed = data.success === false || (typeof data.exit_code === 'number' && data.exit_code !== 0);
           if (hasFailed) {
             a11yAudio.playError();
-            addLogRef.current(tRef.current('logs.restore_failed', { code: data.exit_code ?? 'erro' }));
+            addLogRef.current(tRef.current('logs.restore_failed', { code: data.exit_code ?? 'error' }));
           } else {
             a11yAudio.playSuccess();
             addLogRef.current(tRef.current('logs.restore_success'));
@@ -122,7 +122,7 @@ export function useStudioViewModel() {
         const hasFailed = logsData.success === false || (typeof logsData.exit_code === 'number' && logsData.exit_code !== 0);
         if (hasFailed) {
           a11yAudio.playError();
-          addLogRef.current(tRef.current('logs.restore_failed', { code: logsData.exit_code ?? 'erro' }));
+          addLogRef.current(tRef.current('logs.restore_failed', { code: logsData.exit_code ?? 'error' }));
         } else {
           a11yAudio.playSuccess();
           addLogRef.current(tRef.current('logs.restore_success'));
@@ -142,6 +142,52 @@ export function useStudioViewModel() {
     } else {
       addLog(t('logs.preparing_restore', { file: store.selectedFile }));
     }
+
+    if (isTauriEnvironment()) {
+      try {
+        const probed = await tauriBridge.probeMediaFile(store.selectedFile);
+        const planned = await tauriBridge.planRestorationJob(
+          {
+            input_path: store.selectedFile,
+            output_dir: 'restored',
+            preset: store.mode,
+            codec: store.outputCodec,
+            target_1080p: store.resolution !== 'original',
+            crf: store.crf,
+            ...overrideParams,
+          },
+          probed
+        );
+        a11yAudio.playStageStart();
+        setIsRestoring(true);
+        addLog(overrideParams?.resume ? t('logs.restore_resumed') : t('logs.restore_started'));
+
+        tauriBridge
+          .executeRestorationJob(planned)
+          .then((res) => {
+            setIsRestoring(false);
+            if (res.success) {
+              a11yAudio.playSuccess();
+              addLog(t('logs.restore_success'));
+            } else {
+              a11yAudio.playError();
+              addLog(t('logs.restore_failed', { code: res.error_message || 'error' }));
+            }
+          })
+          .catch((e: unknown) => {
+            setIsRestoring(false);
+            a11yAudio.playError();
+            addLog(t('logs.restore_failed', { code: getErrorMessage(e) }));
+          });
+        return true;
+      } catch (err: unknown) {
+        a11yAudio.playError();
+        const msg = getErrorMessage(err, t('toast.restore_error'));
+        toast.error(msg);
+        return false;
+      }
+    }
+
     try {
       const data = await startRestorationTrigger({
         input: store.selectedFile,
@@ -177,12 +223,12 @@ export function useStudioViewModel() {
         return true;
       } else {
         a11yAudio.playError();
-        toast.error(data.message || t('toast.restore_error', 'Falha ao iniciar restauração'));
+        toast.error(data.message || t('toast.restore_error'));
         return false;
       }
     } catch (err: unknown) {
       a11yAudio.playError();
-      const msg = getErrorMessage(err, t('toast.network_error', 'Falha de comunicação'));
+      const msg = getErrorMessage(err, t('toast.network_error'));
       toast.error(msg);
       return false;
     }
@@ -312,6 +358,7 @@ export function useStudioViewModel() {
     handleInstallObs,
     isRestoring: store.isRestoring || restoreResult.isLoading,
     isPaused: store.isPaused,
+    isBusy,
     handleStartRestoration,
     handlePauseRestore,
     handleResumeRestore,
