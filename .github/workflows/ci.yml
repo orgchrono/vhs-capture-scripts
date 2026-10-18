@@ -6,79 +6,105 @@ on:
   pull_request:
     branches: [ "main" ]
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
-  lint-and-test:
-    name: CI on ${{ matrix.os }}
+  windows-quality-gates:
+    name: Windows Full Quality Gates & E2E
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: |
+          uv pip install --system -e ".[dev,ai,cloud]"
+          choco install ffmpeg --no-progress -y
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: 'ui/package-lock.json'
+
+      - name: Install UI Dependencies & Playwright Browsers
+        working-directory: ./ui
+        run: |
+          npm ci
+          npx playwright install chromium
+
+      - name: Build Native Panasonic C Tools
+        run: python scripts/build_panasonic_tools.py
+
+      - name: Run 9 Quality Gates Suite
+        run: python scripts/lint.py
+
+      - name: Run Swarm Auditors
+        run: python scripts/swarm_auditors.py
+
+  cross-platform:
+    name: Platform Tests on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest]
 
     steps:
-    - name: Check out repository
-      uses: actions/checkout@v5
+      - name: Check out repository
+        uses: actions/checkout@v4
 
-    - name: Install System Dependencies (Ubuntu)
-      if: runner.os == 'Linux'
-      run: |
-        sudo apt-get update -y
-        sudo apt-get install -y ffmpeg libgl1
+      - name: Install System Dependencies (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y ffmpeg libgl1
 
-    - name: Set up uv
-      uses: astral-sh/setup-uv@v5
-      with:
-        enable-cache: true
-        cache-dependency-glob: "pyproject.toml"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
 
-    - name: Set up Python
-      uses: actions/setup-python@v6
-      with:
-        python-version: "3.11"
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v5
-      with:
-        node-version: 24
-        cache: 'npm'
-        cache-dependency-path: 'ui/package-lock.json'
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: 'ui/package-lock.json'
 
-    - name: Install Python dependencies
-      run: |
-        uv pip install --system -e .[dev,ai,cloud]
+      - name: Install Python dependencies
+        run: uv pip install --system -e ".[dev,ai,cloud]"
 
-    - name: Build Native Panasonic C Tools
-      run: |
-        python scripts/build_panasonic_tools.py
+      - name: Build Native Panasonic C Tools
+        run: python scripts/build_panasonic_tools.py
 
-    - name: Lint Python with flake8 (Strict)
-      if: runner.os == 'Linux'
-      run: |
-        flake8 src/vhs_studio --count --select=E9,F63,F7,F82 --show-source --statistics
+      - name: Run Python Pytest
+        run: python -m pytest tests/ -v
 
-    - name: Type check Python with mypy
-      if: runner.os == 'Linux'
-      run: |
-        mypy src/vhs_studio --ignore-missing-imports
+      - name: Install UI Dependencies
+        working-directory: ./ui
+        run: npm ci
 
-    - name: Run Python Pytest
-      run: |
-        python -m pytest tests/ -v
+      - name: Type check and Build UI
+        working-directory: ./ui
+        run: npm run build
 
-    - name: Install UI Dependencies
-      working-directory: ./ui
-      run: |
-        npm ci
-
-    - name: Type check and Build UI
-      working-directory: ./ui
-      run: |
-        npm run build
-
-    - name: Run UI Unit Tests (Vitest)
-      working-directory: ./ui
-      run: |
-        npm run test:unit
+      - name: Run UI Unit Tests (Vitest)
+        working-directory: ./ui
+        run: npm run test:unit
