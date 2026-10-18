@@ -23,7 +23,7 @@ This document outlines completed architectural milestones and future research an
   - Absolute elimination of `shell=True` and Command Injection protection (CWE-78).
   - Rigorous path sanitization and Path Traversal prevention (CWE-22).
   - Forensic software compliance agreement.
-- [x] **9 Automated Quality Gates & 7 Swarm Auditors:** Continuous verification covering linters, typecheckers, JSCPD clone prevention, Vitest, Playwright, Pytest, and translation key parity.
+- [x] **9 Automated Quality Gates & 7 Swarm Auditors:** Continuous verification covering linters, typecheckers, JSCPD clone prevention, Vitest, Playwright, Cargo Test, and translation key parity.
 
 ---
 

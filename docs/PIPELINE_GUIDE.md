@@ -30,9 +30,9 @@ flowchart TD
     FaceStep -->|"current_video"| RifeStep["Phase 2B: RifeInterpolationStep\n(RIFE v4.6 60fps)"]
     RifeStep -->|"current_video"| UpscaleStep["Phase 2C: AIUpscalerStep\n(Real-ESRGAN / Real-CUGAN)"]
     
-    UpscaleStep -->|"final_master"| CommitStep["Atomic Master Commit (os.replace)\n& Intermediate File Purging"]
+    UpscaleStep -->|"final_master"| CommitStep["Atomic Master Commit (std::fs::rename)\n& Intermediate File Purging"]
     
-    CommitStep --> SceneStep["Phase 3: SceneSegmentationStep\n(PySceneDetect on Final Master)"]
+    CommitStep --> SceneStep["Phase 3: SceneSegmentationStep\n(FFmpeg Scene Detection on Final Master)"]
     SceneStep --> CloudStep["Phase 4: CloudOffloadStep\n(Sync S3 / Drive / Dropbox)"]
     Whisper --> CloudStep
     CloudStep --> Output["Master Archive Complete\n(restored/tape_name/)"]

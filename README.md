@@ -61,13 +61,13 @@ flowchart TD
     UI["NLE Broadcast Studio Workspace (React 19 + Tailwind CSS)"] --> VM["ViewModels (Pure useMemo Derivation)"]
     VM --> RTK["RTK Query (Redux Toolkit Cache & Mutex)"]
   
-    RTK --> Server["FastAPI Modular Server (:8088 / server.py)"]
-    Server --> Security["Security Guard (CWE-22 Safe Path & CSRF Token)"]
+    RTK --> Server["Native Rust HTTP Server & Tauri v2 IPC (:8088)"]
+    Server --> Security["Security Guard (CWE-22 Safe Path & Path Traversal Blocks)"]
   
     Security --> SSE["Server-Sent Events (Live Telemetry Stream)"]
-    Security --> Queue["SQLite Batch Queue Manager (FIFO Engine)"]
+    Security --> Queue["In-Memory & Storage Batch Queue (domain::queue)"]
   
-    Queue --> DAG["DAG Pipeline Orchestrator (pipeline.py)"]
+    Queue --> DAG["DAG Pipeline Orchestrator (domain::pipeline)"]
     DAG --> ProcMgr["Subprocess Safe Executor (CWE-78 Sanitized)"]
   
     ProcMgr --> Engines{"Specialized Engine Dispatch"}
@@ -309,7 +309,7 @@ For complete guides and architectural deep-dives across all subsystems, explore 
 - 🔌 [**REST & SSE API Reference (`docs/API_REFERENCE.md`)**](docs/API_REFERENCE.md): Endpoint contracts, payloads, and schemas.
 - 📀 [**Panasonic DVR Ingest Manual (`docs/PANASONIC_DVR_GUIDE.md`)**](docs/PANASONIC_DVR_GUIDE.md): MEIHDFS-V1/V2, DVD-VR, native C binaries, and hotplug.
 - 🎞️ [**Restoration Pipeline Guide (`docs/PIPELINE_GUIDE.md`)**](docs/PIPELINE_GUIDE.md): QTGMC, Whisper AI, denoisers, UMA/GPU optimization, and presets.
-- 📦 [**Release & CI/CD Pipeline (`docs/RELEASE_AND_CI.md`)**](docs/RELEASE_AND_CI.md): Cross-compilation, PyInstaller, and SHA-256 fixity.
+- 📦 [**Release & CI/CD Pipeline (`docs/RELEASE_AND_CI.md`)**](docs/RELEASE_AND_CI.md): Cross-compilation, Tauri v2 packaging, and SHA-256 fixity.
 - 🔒 [**Security & Threat Model (`docs/SECURITY.md`)**](docs/SECURITY.md): CWE mitigations, policies, and audits.
 - ⚖️ [**Compliance & License Terms (`docs/COMPLIANCE_LICENSE.md`)**](docs/COMPLIANCE_LICENSE.md): Legal usage agreement and liability disclaimers.
 - ♿ [**Design System, A11y & i18n (`docs/UI_UX_ACCESSIBILITY.md`)**](docs/UI_UX_ACCESSIBILITY.md): WCAG 2.1 AAA accessibility and 10-locale architecture.

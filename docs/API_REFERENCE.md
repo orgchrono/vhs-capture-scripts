@@ -28,7 +28,7 @@ Every endpoint accepting filesystem paths for media processing or queueing (`/ap
 
 ---
 
-## 2. System Endpoints (`src/infrastructure/http_server.rs` & `src/viewmodels/system.rs`)
+## 2. System Endpoints (`src/infrastructure/http_server.rs` & `src/viewmodels/system_vm.rs`)
 
 ### `GET /api/token`
 Returns the active CSRF session token required for mutating requests.
