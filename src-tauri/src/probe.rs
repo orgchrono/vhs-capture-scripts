@@ -4,7 +4,10 @@
 //! broadcast standards (NTSC vs PAL), interlacing field order, frame rate rationales,
 //! and duration metrics from `ffprobe` JSON output.
 
+use std::path::Path;
 use serde::{Deserialize, Serialize};
+
+use crate::toolchain::create_silent_command;
 
 pub const DEFAULT_NTSC_FPS: f64 = 29.97002997002997;
 pub const DEFAULT_PAL_FPS: f64 = 25.0;
@@ -269,6 +272,29 @@ pub fn parse_ffprobe_json(json_content: &str, file_path: &str) -> Result<MediaPr
     })
 }
 
+/// Executes FFprobe silently on the target media file and parses its JSON stream report.
+pub fn probe_media_file(file_path: &str, ffprobe_binary: &str) -> Result<MediaProbeResult, String> {
+    let path = Path::new(file_path);
+    if !path.exists() {
+        return Err(format!("Media file not found: '{file_path}'"));
+    }
+
+    let args = build_ffprobe_args(file_path);
+    let mut cmd = create_silent_command(Path::new(ffprobe_binary));
+    cmd.args(&args);
+
+    let output = cmd.output().map_err(|e| format!("Failed to spawn ffprobe '{ffprobe_binary}': {e}"))?;
+    if !output.status.success() {
+        let err = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("FFprobe failed with status {}: {err}", output.status));
+    }
+
+    let json_text = String::from_utf8(output.stdout)
+        .map_err(|e| format!("FFprobe output is not valid UTF-8: {e}"))?;
+
+    parse_ffprobe_json(&json_text, file_path)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -347,5 +373,12 @@ mod tests {
         assert!(res.is_interlaced);
         assert_eq!(res.standard, "NTSC");
         assert_eq!(res.total_frames, 1798);
+    }
+
+    #[test]
+    fn test_probe_media_file_missing_file_fails() {
+        let res = probe_media_file("nonexistent_tape_file_9876.avi", "ffprobe");
+        assert!(res.is_err());
+        assert!(res.unwrap_err().contains("Media file not found"));
     }
 }

@@ -405,7 +405,7 @@ pub fn ipc_build_thumbnail_extract_args(
     build_thumbnail_extract_args(video_path, timestamp_sec, output_jpg_path, ffmpeg_binary)
 }
 
-use probe::{build_ffprobe_args, parse_ffprobe_json, MediaProbeResult};
+use probe::{build_ffprobe_args, parse_ffprobe_json, probe_media_file, MediaProbeResult};
 use runner::{format_eta_duration, parse_progress_key_value};
 use media::{generate_param_hash, get_part_path, is_valid_media_extension, seconds_to_timecode};
 use package::{get_ffmpeg_install_command, has_ffmpeg_encoder, has_ffmpeg_filter, PackageManager};
@@ -413,6 +413,11 @@ use package::{get_ffmpeg_install_command, has_ffmpeg_encoder, has_ffmpeg_filter,
 /// Typed IPC ViewModel command parsing FFprobe JSON string.
 pub fn ipc_parse_ffprobe_json(json_content: &str, file_path: &str) -> Result<MediaProbeResult, String> {
     parse_ffprobe_json(json_content, file_path)
+}
+
+/// Typed IPC ViewModel command directly probing a media file via FFprobe on disk.
+pub fn ipc_probe_media_file(file_path: &str, ffprobe_binary: &str) -> Result<MediaProbeResult, String> {
+    probe_media_file(file_path, ffprobe_binary)
 }
 
 /// Typed IPC ViewModel command generating FFprobe CLI arguments.

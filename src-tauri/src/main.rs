@@ -229,31 +229,49 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 duration_sec: None,
             };
 
-            // Synthetic probe for planning preview if file isn't probed via ffprobe CLI
-            let probe = vhs_studio_core::probe::MediaProbeResult {
-                file_path: input_path.clone(),
-                width: 720,
-                height: 480,
-                fps: 29.97,
-                fps_rational: "30000/1001".to_string(),
-                duration: 3600.0,
-                total_frames: 107892,
-                video_codec: "h264".to_string(),
-                audio_codec: "pcm_s16le".to_string(),
-                audio_channels: 2,
-                audio_sample_rate: 48000,
-                field_order: "tff".to_string(),
-                is_interlaced: true,
-                pix_fmt: "yuv420p".to_string(),
-                color_space: "smpte170m".to_string(),
-                color_primaries: "smpte170m".to_string(),
-                color_transfer: "smpte170m".to_string(),
-                format_name: "avi".to_string(),
-                standard: "NTSC".to_string(),
-            };
+            let cwd = env::current_dir().ok();
+            let home_str = env::var("USERPROFILE").or_else(|_| env::var("HOME")).ok();
+            let home = home_str.as_ref().map(Path::new);
 
-            let planned = vhs_studio_core::executor::plan_restoration_job(&req, &probe, Some("vspipe"), "ffmpeg")
-                .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+            let ffprobe_bin = vhs_studio_core::toolchain::resolve_executable_path("ffprobe", cwd.as_deref(), home)
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_else(|| "ffprobe".to_string());
+            let ffmpeg_bin = vhs_studio_core::toolchain::resolve_executable_path("ffmpeg", cwd.as_deref(), home)
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_else(|| "ffmpeg".to_string());
+            let vspipe_bin = vhs_studio_core::toolchain::resolve_executable_path("vspipe", cwd.as_deref(), home)
+                .map(|p| p.to_string_lossy().to_string());
+
+            let probe = vhs_studio_core::probe::probe_media_file(&input_path, &ffprobe_bin).unwrap_or_else(|_| {
+                vhs_studio_core::probe::MediaProbeResult {
+                    file_path: input_path.clone(),
+                    width: 720,
+                    height: 480,
+                    fps: 29.97,
+                    fps_rational: "30000/1001".to_string(),
+                    duration: 3600.0,
+                    total_frames: 107892,
+                    video_codec: "h264".to_string(),
+                    audio_codec: "pcm_s16le".to_string(),
+                    audio_channels: 2,
+                    audio_sample_rate: 48000,
+                    field_order: "tff".to_string(),
+                    is_interlaced: true,
+                    pix_fmt: "yuv420p".to_string(),
+                    color_space: "smpte170m".to_string(),
+                    color_primaries: "smpte170m".to_string(),
+                    color_transfer: "smpte170m".to_string(),
+                    format_name: "avi".to_string(),
+                    standard: "NTSC".to_string(),
+                }
+            });
+
+            let planned = vhs_studio_core::executor::plan_restoration_job(
+                &req,
+                &probe,
+                vspipe_bin.as_deref(),
+                &ffmpeg_bin,
+            ).map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
             println!("{}", serde_json::to_string_pretty(&planned)?);
         }
         "execute-restore" => {
@@ -277,6 +295,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let home_str = env::var("USERPROFILE").or_else(|_| env::var("HOME")).ok();
             let home = home_str.as_ref().map(Path::new);
 
+            let ffprobe_bin = vhs_studio_core::toolchain::resolve_executable_path("ffprobe", cwd.as_deref(), home)
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_else(|| "ffprobe".to_string());
             let ffmpeg_bin = vhs_studio_core::toolchain::resolve_executable_path("ffmpeg", cwd.as_deref(), home)
                 .map(|p| p.to_string_lossy().to_string())
                 .unwrap_or_else(|| "ffmpeg".to_string());
@@ -297,27 +318,29 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 duration_sec: None,
             };
 
-            let probe = vhs_studio_core::probe::MediaProbeResult {
-                file_path: input_path.clone(),
-                width: 720,
-                height: 480,
-                fps: 29.97,
-                fps_rational: "30000/1001".to_string(),
-                duration: 3600.0,
-                total_frames: 107892,
-                video_codec: "h264".to_string(),
-                audio_codec: "pcm_s16le".to_string(),
-                audio_channels: 2,
-                audio_sample_rate: 48000,
-                field_order: "tff".to_string(),
-                is_interlaced: true,
-                pix_fmt: "yuv420p".to_string(),
-                color_space: "smpte170m".to_string(),
-                color_primaries: "smpte170m".to_string(),
-                color_transfer: "smpte170m".to_string(),
-                format_name: "avi".to_string(),
-                standard: "NTSC".to_string(),
-            };
+            let probe = vhs_studio_core::probe::probe_media_file(&input_path, &ffprobe_bin).unwrap_or_else(|_| {
+                vhs_studio_core::probe::MediaProbeResult {
+                    file_path: input_path.clone(),
+                    width: 720,
+                    height: 480,
+                    fps: 29.97,
+                    fps_rational: "30000/1001".to_string(),
+                    duration: 3600.0,
+                    total_frames: 107892,
+                    video_codec: "h264".to_string(),
+                    audio_codec: "pcm_s16le".to_string(),
+                    audio_channels: 2,
+                    audio_sample_rate: 48000,
+                    field_order: "tff".to_string(),
+                    is_interlaced: true,
+                    pix_fmt: "yuv420p".to_string(),
+                    color_space: "smpte170m".to_string(),
+                    color_primaries: "smpte170m".to_string(),
+                    color_transfer: "smpte170m".to_string(),
+                    format_name: "avi".to_string(),
+                    standard: "NTSC".to_string(),
+                }
+            });
 
             let planned = vhs_studio_core::executor::plan_restoration_job(
                 &req,
