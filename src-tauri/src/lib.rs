@@ -15,6 +15,7 @@ pub mod ai;
 pub mod archive;
 pub mod audio;
 pub mod chapters;
+pub mod filter;
 pub mod fixity;
 pub mod hardware;
 pub mod meihdfs;
@@ -28,6 +29,8 @@ pub mod recovery;
 pub mod storage;
 pub mod stream;
 pub mod tbc;
+pub mod preflight;
+pub mod thumbnail;
 
 use ai::{
     build_codeformer_command, build_realesrgan_command, build_rife_command,
@@ -313,6 +316,83 @@ pub fn ipc_step_stream_frame(
 pub fn ipc_compute_mean_luma(y_plane: &[u8], stride: usize) -> f32 {
     compute_mean_luma(y_plane, stride)
 }
+
+use filter::{
+    build_audio_filtergraph, build_muxing_cli_args, build_video_filtergraph, AudioFilterSpec,
+    MuxingSpec, VideoFilterSpec,
+};
+
+/// Typed IPC ViewModel command compiling video filtergraph chains.
+#[must_use]
+pub fn ipc_build_video_filtergraph(spec: &VideoFilterSpec) -> String {
+    build_video_filtergraph(spec)
+}
+
+/// Typed IPC ViewModel command compiling audio filtergraph chains.
+#[must_use]
+pub fn ipc_build_audio_filtergraph(spec: &AudioFilterSpec) -> String {
+    build_audio_filtergraph(spec)
+}
+
+/// Typed IPC ViewModel command compiling output muxing CLI arguments.
+#[must_use]
+pub fn ipc_build_muxing_cli_args(
+    spec: &MuxingSpec,
+    video_filter: &str,
+    audio_filter: &str,
+    ffmpeg_binary: &str,
+) -> Vec<String> {
+    build_muxing_cli_args(spec, video_filter, audio_filter, ffmpeg_binary)
+}
+
+use preflight::{evaluate_preflight, PreflightDiagnostics};
+use thumbnail::{
+    build_thumbnail_extract_args, compute_thumbnail_cache_filename, score_frame_candidate,
+    FrameCandidateScore,
+};
+
+/// Typed IPC ViewModel command evaluating preflight system readiness.
+#[must_use]
+pub fn ipc_evaluate_preflight(
+    disk_free_bytes: u64,
+    min_disk_gb: f64,
+    ffmpeg_available: bool,
+    obs_available: bool,
+) -> PreflightDiagnostics {
+    evaluate_preflight(disk_free_bytes, min_disk_gb, ffmpeg_available, obs_available)
+}
+
+/// Typed IPC ViewModel command evaluating candidate frame quality for thumbnails.
+#[must_use]
+pub fn ipc_score_frame_candidate(
+    mean_luma: f32,
+    std_luma: f32,
+    sharpness: f32,
+) -> FrameCandidateScore {
+    score_frame_candidate(mean_luma, std_luma, sharpness)
+}
+
+/// Typed IPC ViewModel command computing deterministic thumbnail cache filename.
+#[must_use]
+pub fn ipc_compute_thumbnail_cache_filename(
+    video_path: &str,
+    mtime_sec: u64,
+    size_bytes: u64,
+) -> String {
+    compute_thumbnail_cache_filename(video_path, mtime_sec, size_bytes)
+}
+
+/// Typed IPC ViewModel command building FFmpeg thumbnail extraction CLI arguments.
+#[must_use]
+pub fn ipc_build_thumbnail_extract_args(
+    video_path: &str,
+    timestamp_sec: f64,
+    output_jpg_path: &str,
+    ffmpeg_binary: &str,
+) -> Vec<String> {
+    build_thumbnail_extract_args(video_path, timestamp_sec, output_jpg_path, ffmpeg_binary)
+}
+
 
 
 

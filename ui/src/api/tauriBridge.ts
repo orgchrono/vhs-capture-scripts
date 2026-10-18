@@ -138,6 +138,25 @@ export interface TauriQtgmcParams {
   cache_size_mb?: number;
 }
 
+export interface TauriPreflightDiagnostics {
+  status: 'pass' | 'fail';
+  is_ready: boolean;
+  disk_free_gb: number;
+  has_sufficient_disk: boolean;
+  ffmpeg_available: boolean;
+  obs_available: boolean;
+  issues: string[];
+}
+
+export interface TauriFrameCandidateScore {
+  score: number;
+  is_valid: boolean;
+  is_blank_or_flash: boolean;
+  mean_luma: number;
+  std_luma: number;
+  sharpness: number;
+}
+
 export const tauriBridge = {
   isNative(): boolean {
     return isTauriEnvironment();
@@ -365,6 +384,79 @@ export const tauriBridge = {
       return tauri.invoke<string[]>('ipc_build_vspipe_cli_args', { vspipeBinary, vpyPath });
     }
     return [vspipeBinary, '-c', 'y4m', vpyPath, '-'];
+  },
+
+  async evaluatePreflight(
+    diskFreeBytes: number,
+    minDiskGb = 50.0,
+    ffmpegAvailable = true,
+    obsAvailable = true
+  ): Promise<TauriPreflightDiagnostics> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<TauriPreflightDiagnostics>('ipc_evaluate_preflight', {
+        diskFreeBytes,
+        minDiskGb,
+        ffmpegAvailable,
+        obsAvailable,
+      });
+    }
+    const diskGb = Math.round((diskFreeBytes / 1073741824) * 10) / 10;
+    const issues: string[] = [];
+    if (!ffmpegAvailable) issues.push('FFmpeg executable missing or not accessible in PATH.');
+    if (!obsAvailable) issues.push('OBS Studio executable missing or not accessible.');
+    if (diskGb < minDiskGb) issues.push(`Insufficient free disk space: ${diskGb} GB available.`);
+    return {
+      status: issues.length === 0 ? 'pass' : 'fail',
+      is_ready: issues.length === 0,
+      disk_free_gb: diskGb,
+      has_sufficient_disk: diskGb >= minDiskGb,
+      ffmpeg_available: ffmpegAvailable,
+      obs_available: obsAvailable,
+      issues,
+    };
+  },
+
+  async scoreFrameCandidate(
+    meanLuma: number,
+    stdLuma: number,
+    sharpness: number
+  ): Promise<TauriFrameCandidateScore> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<TauriFrameCandidateScore>('ipc_score_frame_candidate', {
+        meanLuma,
+        stdLuma,
+        sharpness,
+      });
+    }
+    const isBlankOrFlash = meanLuma < 18.0 || meanLuma > 240.0 || stdLuma < 10.0;
+    return {
+      score: isBlankOrFlash ? -1000.0 : sharpness,
+      is_valid: !isBlankOrFlash,
+      is_blank_or_flash: isBlankOrFlash,
+      mean_luma: meanLuma,
+      std_luma: stdLuma,
+      sharpness,
+    };
+  },
+
+  async buildThumbnailExtractArgs(
+    videoPath: string,
+    timestampSec: number,
+    outputJpgPath: string,
+    ffmpegBinary = 'ffmpeg'
+  ): Promise<string[]> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<string[]>('ipc_build_thumbnail_extract_args', {
+        videoPath,
+        timestampSec,
+        outputJpgPath,
+        ffmpegBinary,
+      });
+    }
+    return [ffmpegBinary, '-y', '-ss', timestampSec.toFixed(3), '-i', videoPath, '-frames:v', '1', '-q:v', '2', outputJpgPath];
   },
 
   async startRestoration(payload: RestorationPayload): Promise<{ status: string; message?: string }> {

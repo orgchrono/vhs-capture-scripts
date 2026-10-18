@@ -167,5 +167,31 @@ describe('Tauri v2 IPC Bridge & Fallback (tauriBridge)', () => {
     const vspipeArgs = await tauriBridge.buildVspipeArgs('vspipe', 'test.vpy');
     expect(vspipeArgs).toEqual(['vspipe', '-c', 'y4m', 'test.vpy', '-']);
   });
+
+  it('evaluates preflight readiness and disk thresholds', async () => {
+    const ready = await tauriBridge.evaluatePreflight(100 * 1073741824, 50.0, true, true);
+    expect(ready.status).toBe('pass');
+    expect(ready.is_ready).toBe(true);
+    expect(ready.has_sufficient_disk).toBe(true);
+
+    const failed = await tauriBridge.evaluatePreflight(10 * 1073741824, 50.0, false, true);
+    expect(failed.status).toBe('fail');
+    expect(failed.is_ready).toBe(false);
+    expect(failed.issues).toHaveLength(2);
+  });
+
+  it('scores frame candidates rejecting blanks and flashes', async () => {
+    const black = await tauriBridge.scoreFrameCandidate(10.0, 5.0, 50.0);
+    expect(black.is_valid).toBe(false);
+    expect(black.is_blank_or_flash).toBe(true);
+    expect(black.score).toBe(-1000.0);
+
+    const good = await tauriBridge.scoreFrameCandidate(128.0, 40.0, 250.0);
+    expect(good.is_valid).toBe(true);
+    expect(good.score).toBe(250.0);
+
+    const thumbArgs = await tauriBridge.buildThumbnailExtractArgs('in.mp4', 10.5, 'out.jpg');
+    expect(thumbArgs).toEqual(['ffmpeg', '-y', '-ss', '10.500', '-i', 'in.mp4', '-frames:v', '1', '-q:v', '2', 'out.jpg']);
+  });
 });
 

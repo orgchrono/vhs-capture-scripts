@@ -9,7 +9,7 @@ class MasterPolicy:
 
     @staticmethod
     def make_readonly(filepath):
-        """Bloqueia modificações no arquivo master."""
+        """Lock file against accidental modifications by setting read-only permissions."""
         os.chmod(filepath, stat.S_IREAD)
 
     @staticmethod
