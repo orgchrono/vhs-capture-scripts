@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react'
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import {
   Terminal,
   Trash2,
@@ -9,11 +9,20 @@ import {
   Filter,
   Search,
   X,
+  Copy,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from './ui/button'
 import { useTranslation } from 'react-i18next'
 import { useStudioStore } from '../store/useStudioStore'
 import { usePreferencesStore } from '../store/usePreferencesStore'
+
+interface ContextMenuState {
+  x: number
+  y: number
+  line?: string
+  selectedText?: string
+}
 
 export type LogFilterLevel = 'all' | 'info' | 'warn' | 'error' | 'debug'
 
@@ -52,7 +61,55 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
 
   const [filterLevel, setFilterLevel] = useState<LogFilterLevel>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
   const endRef = useRef<HTMLDivElement>(null)
+
+  const handleCopy = useCallback(async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      toast.success(t('console.copied_to_clipboard'))
+    } catch {
+      // clipboard fallback
+    }
+    setContextMenu(null)
+  }, [t])
+
+  useEffect(() => {
+    const handleClose = () => setContextMenu(null)
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setContextMenu(null)
+    }
+    if (contextMenu) {
+      window.addEventListener('click', handleClose)
+      window.addEventListener('keydown', handleEsc)
+    }
+    return () => {
+      window.removeEventListener('click', handleClose)
+      window.removeEventListener('keydown', handleEsc)
+    }
+  }, [contextMenu])
+
+  const handleLineContextMenu = (e: React.MouseEvent, line: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const selection = window.getSelection()?.toString() || ''
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      line,
+      selectedText: selection.trim() ? selection : undefined,
+    })
+  }
+
+  const handleContainerContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault()
+    const selection = window.getSelection()?.toString() || ''
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      selectedText: selection.trim() ? selection : undefined,
+    })
+  }
 
   const filteredLogs = useMemo(() => {
     let result = logs
@@ -122,7 +179,11 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
       const escaped = searchQuery.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')
       const parts = line.split(new RegExp(`(${escaped})`, 'gi'))
       return (
-        <div key={index} className={`font-mono text-[11px] leading-relaxed py-0.5 ${colorClass}`}>
+        <div
+          key={index}
+          onContextMenu={(e) => handleLineContextMenu(e, line)}
+          className={`font-mono text-[11px] leading-relaxed py-0.5 select-text hover:bg-studio-surface/50 rounded-xs px-1 cursor-text ${colorClass}`}
+        >
           {parts.map((part, i) =>
             part.toLowerCase() === q ? (
               <mark key={i} className="bg-sky-500/40 text-white rounded px-0.5 font-bold">
@@ -137,14 +198,22 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
     }
 
     return (
-      <div key={index} className={`font-mono text-[11px] leading-relaxed py-0.5 ${colorClass}`}>
+      <div
+        key={index}
+        onContextMenu={(e) => handleLineContextMenu(e, line)}
+        className={`font-mono text-[11px] leading-relaxed py-0.5 select-text hover:bg-studio-surface/50 rounded-xs px-1 cursor-text ${colorClass}`}
+      >
         {line}
       </div>
     )
   }
 
   return (
-    <div className="bg-studio-panel border border-studio-border rounded-md flex flex-col h-full overflow-hidden select-none">
+    <div
+      onContextMenu={handleContainerContextMenu}
+      className="bg-studio-panel border border-studio-border rounded-md flex flex-col h-full overflow-hidden select-none"
+      data-testid="console-viewer-panel"
+    >
       <div className="flex items-center justify-between px-2.5 py-1.5 bg-studio-surface border-b border-studio-border gap-2 flex-nowrap min-w-0">
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <Terminal className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -363,7 +432,10 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
         </div>
       </div>
 
-      <div className="flex-1 p-3.5 overflow-y-auto font-mono text-xs select-text">
+      <div
+        onContextMenu={handleContainerContextMenu}
+        className="flex-1 p-3.5 overflow-y-auto font-mono text-xs select-text"
+      >
         {filteredLogs.length === 0 ? (
           <div className="text-slate-600 italic">
             {searchQuery ? t('console.no_matches', 'Nenhum log correspondente encontrado.') : t('console.ready_message')}
@@ -373,6 +445,50 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
         )}
         <div ref={endRef} />
       </div>
+
+      {contextMenu && (
+        <div
+          className="fixed z-50 bg-studio-surface border border-studio-border rounded-sm shadow-2xl py-1 text-xs font-mono min-w-[170px] backdrop-blur-md"
+          style={{
+            left: `${Math.min(contextMenu.x, typeof window !== 'undefined' ? window.innerWidth - 180 : 0)}px`,
+            top: `${Math.min(contextMenu.y, typeof window !== 'undefined' ? window.innerHeight - 130 : 0)}px`,
+          }}
+          data-testid="console-context-menu"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {contextMenu.selectedText && (
+            <button
+              type="button"
+              onClick={() => handleCopy(contextMenu.selectedText!)}
+              className="w-full text-left px-3 py-1.5 flex items-center gap-2 hover:bg-studio-surface-hover text-slate-200 hover:text-white cursor-pointer transition-colors"
+              data-testid="copy-selection-btn"
+            >
+              <Copy className="w-3.5 h-3.5 text-sky-400" />
+              <span>{t('console.copy_selection')}</span>
+            </button>
+          )}
+          {contextMenu.line && (
+            <button
+              type="button"
+              onClick={() => handleCopy(contextMenu.line!)}
+              className="w-full text-left px-3 py-1.5 flex items-center gap-2 hover:bg-studio-surface-hover text-slate-200 hover:text-white cursor-pointer transition-colors"
+              data-testid="copy-line-btn"
+            >
+              <Copy className="w-3.5 h-3.5 text-amber-400" />
+              <span>{t('console.copy_line')}</span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => handleCopy(logs.join('\n'))}
+            className="w-full text-left px-3 py-1.5 flex items-center gap-2 hover:bg-studio-surface-hover text-slate-200 hover:text-white cursor-pointer transition-colors"
+            data-testid="copy-all-btn"
+          >
+            <Copy className="w-3.5 h-3.5 text-emerald-400" />
+            <span>{t('console.copy_all')}</span>
+          </button>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { ConsoleViewer } from './ConsoleViewer';
@@ -139,5 +139,34 @@ describe('ConsoleViewer Component with Live Search', () => {
 
     fireEvent.click(freshStartBtn);
     expect(onFreshStart).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens context menu on right click and copies line to clipboard', async () => {
+    const writeTextMock = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: writeTextMock,
+      },
+    });
+
+    renderComponent();
+
+    const line = screen.getByText('[INFO] System initialized.');
+    fireEvent.contextMenu(line, { clientX: 200, clientY: 300 });
+
+    const menu = screen.getByTestId('console-context-menu');
+    expect(menu).toBeInTheDocument();
+
+    const copyLineBtn = screen.getByTestId('copy-line-btn');
+    expect(copyLineBtn).toBeInTheDocument();
+
+    const copyAllBtn = screen.getByTestId('copy-all-btn');
+    expect(copyAllBtn).toBeInTheDocument();
+
+    fireEvent.click(copyLineBtn);
+    expect(writeTextMock).toHaveBeenCalledWith('[INFO] System initialized.');
+    await waitFor(() => {
+      expect(screen.queryByTestId('console-context-menu')).not.toBeInTheDocument();
+    });
   });
 });

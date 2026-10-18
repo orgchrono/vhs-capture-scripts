@@ -57,7 +57,11 @@
     "resume": "Reprendre",
     "resume_tooltip": "Reprendre le processus en pause",
     "abort": "Interrompre",
-    "abort_tooltip": "Interrompre le signal et terminer le processus en toute sécurité"
+    "abort_tooltip": "Interrompre le signal et terminer le processus en toute sécurité",
+    "copy_line": "Copier la ligne",
+    "copy_all": "Copier tous les logs",
+    "copy_selection": "Copier la sélection",
+    "copied_to_clipboard": "Copié dans le presse-papiers !"
   },
   "monitor": {
     "live_preview": "LIVE PREVIEW (NATIVE)",
@@ -88,7 +92,10 @@
     "timeline_scrubber": "Curseur de Ligne Temporelle",
     "camera_not_detected": "Caméra Virtuelle non détectée ou permission refusée.",
     "rendering_preview": "Aperçu du Rendu en Direct",
-    "tape_loaded_preview": "Bande Chargée"
+    "tape_loaded_preview": "Bande Chargée",
+    "split_play": "Lire le comparateur",
+    "split_pause": "Mettre en pause le comparateur",
+    "split_preset": "Régler la séparation sur {{percent}}%"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -164,6 +171,7 @@
     "custom": "Custom",
     "select_placeholder": "Select...",
     "search_placeholder": "Search setting...",
+    "clear_search": "Effacer la recherche",
     "fps_mode": "Framerate Mode (FPS)",
     "deinterlacing": "Deinterlacing",
     "resolution": "Resolution / Upscale",

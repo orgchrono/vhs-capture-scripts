@@ -57,7 +57,11 @@
     "resume": "Resume",
     "resume_tooltip": "Resume paused process",
     "abort": "Abort",
-    "abort_tooltip": "Abort signal and terminate process safely"
+    "abort_tooltip": "Abort signal and terminate process safely",
+    "copy_line": "Copy Line",
+    "copy_all": "Copy All Logs",
+    "copy_selection": "Copy Selection",
+    "copied_to_clipboard": "Copied to clipboard!"
   },
   "monitor": {
     "live_preview": "LIVE PREVIEW (NATIVE)",
@@ -88,7 +92,10 @@
     "timeline_scrubber": "Timeline Scrubber",
     "camera_not_detected": "Virtual Camera not detected or permission denied.",
     "rendering_preview": "Real-Time Rendering Preview",
-    "tape_loaded_preview": "Tape Loaded"
+    "tape_loaded_preview": "Tape Loaded",
+    "split_play": "Play Comparison",
+    "split_pause": "Pause Comparison",
+    "split_preset": "Set split to {{percent}}%"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -164,6 +171,7 @@
     "custom": "Custom",
     "select_placeholder": "Select...",
     "search_placeholder": "Search setting...",
+    "clear_search": "Clear search",
     "fps_mode": "Framerate Mode (FPS)",
     "deinterlacing": "Deinterlacing",
     "resolution": "Resolution / Upscale",

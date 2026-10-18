@@ -57,7 +57,11 @@
     "resume": "恢复",
     "resume_tooltip": "恢复已暂停的进程",
     "abort": "中止",
-    "abort_tooltip": "中止信号并安全终止进程"
+    "abort_tooltip": "中止信号并安全终止进程",
+    "copy_line": "复制行",
+    "copy_all": "复制所有日志",
+    "copy_selection": "复制选区",
+    "copied_to_clipboard": "已复制到剪贴板！"
   },
   "monitor": {
     "live_preview": "LIVE PREVIEW (NATIVE)",
@@ -88,7 +92,10 @@
     "timeline_scrubber": "时间轴拖动滑块",
     "camera_not_detected": "未检测到虚拟摄像头或权限被拒绝。",
     "rendering_preview": "实时渲染预览",
-    "tape_loaded_preview": "磁带已载入"
+    "tape_loaded_preview": "磁带已载入",
+    "split_play": "播放对比",
+    "split_pause": "暂停对比",
+    "split_preset": "设置分割为 {{percent}}%"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -164,6 +171,7 @@
     "custom": "Custom",
     "select_placeholder": "Select...",
     "search_placeholder": "Search setting...",
+    "clear_search": "清空搜索",
     "fps_mode": "Framerate Mode (FPS)",
     "deinterlacing": "Deinterlacing",
     "resolution": "Resolution / Upscale",

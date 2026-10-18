@@ -186,7 +186,9 @@ export const RestorationSettings: React.FC = () => {
               type="button"
               onClick={() => handleSearchChange('')}
               className="absolute right-2 top-2 text-slate-400 hover:text-white cursor-pointer"
+              title={t('settings.clear_search')}
               aria-label={t('settings.clear_search')}
+              data-testid="settings-search-clear"
             >
               <X className="w-4 h-4" />
             </button>

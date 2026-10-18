@@ -57,7 +57,11 @@
     "resume": "Возобновить",
     "resume_tooltip": "Возобновить приостановленный процесс",
     "abort": "Прервать",
-    "abort_tooltip": "Прервать сигнал и безопасно завершить процесс"
+    "abort_tooltip": "Прервать сигнал и безопасно завершить процесс",
+    "copy_line": "Копировать строку",
+    "copy_all": "Копировать все логи",
+    "copy_selection": "Копировать выделение",
+    "copied_to_clipboard": "Скопировано в буфер обмена!"
   },
   "monitor": {
     "live_preview": "LIVE PREVIEW (NATIVE)",
@@ -88,7 +92,10 @@
     "timeline_scrubber": "Полоса перемотки времени",
     "camera_not_detected": "Виртуальная камера не обнаружена или нет разрешения.",
     "rendering_preview": "Предпросмотр рендеринга",
-    "tape_loaded_preview": "Кассета загружена"
+    "tape_loaded_preview": "Кассета загружена",
+    "split_play": "Воспроизвести сравнение",
+    "split_pause": "Приостановить сравнение",
+    "split_preset": "Установить разделение на {{percent}}%"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -164,6 +171,7 @@
     "custom": "Custom",
     "select_placeholder": "Select...",
     "search_placeholder": "Search setting...",
+    "clear_search": "Очистить поиск",
     "fps_mode": "Framerate Mode (FPS)",
     "deinterlacing": "Deinterlacing",
     "resolution": "Resolution / Upscale",

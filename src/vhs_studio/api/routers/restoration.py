@@ -4,13 +4,13 @@ import json
 import sys
 import base64
 import subprocess
-from typing import Dict, Mapping, Union, Optional
+from typing import Dict, Mapping, Union, Optional, List
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse, Response
 
 from vhs_studio.video.vapoursynth_qtgmc import VapourSynthQTGMC
 from vhs_studio.api.routers.security import is_safe_media_path
-from vhs_studio.core.paths import RAW_MEDIA_DIR, MEDIA_DIR
+from vhs_studio.core.paths import RAW_MEDIA_DIR, MEDIA_DIR, RESTORED_MEDIA_DIR
 from vhs_studio.core.toolchain import Toolchain
 
 restoration_router = APIRouter(prefix="/api", tags=["Restoration"])
@@ -433,6 +433,70 @@ def _kill_stream_process_tree(proc: subprocess.Popen) -> None:
             pass
 
 
+def _find_existing_restored_master(raw_path: str) -> Optional[str]:
+    """Locate an existing completed or partial restored master video file in media/restored."""
+    if not raw_path or not os.path.exists(raw_path):
+        return None
+    stem = os.path.splitext(os.path.basename(raw_path))[0]
+    candidates = []
+    sub_dir = os.path.join(RESTORED_MEDIA_DIR, stem)
+    if os.path.isdir(sub_dir):
+        try:
+            for fname in os.listdir(sub_dir):
+                if (
+                    fname.lower().endswith((".mp4", ".mkv", ".mov"))
+                    and not fname.endswith(".tmp")
+                    and not fname.endswith(".part")
+                ):
+                    candidates.append(os.path.join(sub_dir, fname))
+        except Exception:
+            pass
+
+    if os.path.isdir(RESTORED_MEDIA_DIR):
+        try:
+            for fname in os.listdir(RESTORED_MEDIA_DIR):
+                if (
+                    stem.lower() in fname.lower()
+                    and fname.lower().endswith((".mp4", ".mkv", ".mov"))
+                    and not fname.endswith(".tmp")
+                    and not fname.endswith(".part")
+                ):
+                    candidates.append(os.path.join(RESTORED_MEDIA_DIR, fname))
+        except Exception:
+            pass
+
+    valid_candidates = []
+    for c in candidates:
+        try:
+            if os.path.isfile(c) and os.path.getsize(c) > 100 * 1024:
+                valid_candidates.append(c)
+        except Exception:
+            pass
+
+    if valid_candidates:
+        valid_candidates.sort(key=lambda p: os.path.getmtime(p), reverse=True)
+        return valid_candidates[0]
+    return None
+
+
+def _build_proxy_filters_base(
+    deinterlacer: str,
+    chroma_fix: bool,
+    denoise: bool,
+    scale_filter: str,
+) -> List[str]:
+    """Construct shared base video filters for restored proxy and comparison rendering."""
+    filters = []
+    if deinterlacer in ("bwdif", "qtgmc", "yadif"):
+        filters.append("bwdif")
+    if chroma_fix:
+        filters.append("chromashift=cbh=2:cbv=1:crh=2:crv=1:edge=smear")
+    if denoise:
+        filters.append("hqdn3d=4.0:3.0:6.0:4.5")
+    filters.extend(["unsharp=5:5:0.8:3:3:0.4", scale_filter])
+    return filters
+
+
 @restoration_router.get("/monitor/comparison-frame")
 def get_comparison_frame(
     source: str = "",
@@ -465,35 +529,45 @@ def get_comparison_frame(
             "-c:v", "mjpeg",
             "pipe:1",
         ]
-        vf_filters = []
-        if deinterlacer in ("bwdif", "qtgmc", "yadif"):
-            vf_filters.append("bwdif")
-        if chroma_fix:
-            vf_filters.append("colorchannelmixer=rr=1.0:gg=1.0:bb=1.0")
-        if denoise:
-            vf_filters.append("hqdn3d=3:2:6:4")
-        vf_filters.append(scale_filter)
-        vf_str = ",".join(vf_filters)
 
-        cmd_proc = [
-            ffmpeg_bin,
-            "-hide_banner",
-            "-loglevel", "error",
-            "-ss", f"{safe_time:.3f}",
-            "-i", target_path,
-            "-frames:v", "1",
-            "-vf", vf_str,
-            "-f", "image2",
-            "-c:v", "mjpeg",
-            "pipe:1",
-        ]
+        restored_master = _find_existing_restored_master(target_path)
+        if restored_master:
+            cmd_proc = [
+                ffmpeg_bin,
+                "-hide_banner",
+                "-loglevel", "error",
+                "-ss", f"{safe_time:.3f}",
+                "-i", restored_master,
+                "-frames:v", "1",
+                "-vf", scale_filter,
+                "-f", "image2",
+                "-c:v", "mjpeg",
+                "pipe:1",
+            ]
+        else:
+            vf_str = ",".join(
+                _build_proxy_filters_base(deinterlacer, chroma_fix, denoise, scale_filter)
+            )
+
+            cmd_proc = [
+                ffmpeg_bin,
+                "-hide_banner",
+                "-loglevel", "error",
+                "-ss", f"{safe_time:.3f}",
+                "-i", target_path,
+                "-frames:v", "1",
+                "-vf", vf_str,
+                "-f", "image2",
+                "-c:v", "mjpeg",
+                "pipe:1",
+            ]
     else:
         cmd_raw = [
             ffmpeg_bin,
             "-hide_banner",
             "-loglevel", "error",
             "-f", "lavfi",
-            "-i", "smptebars=size=640x360:rate=30,noise=c0s=18:allf=t+u,tinterlace=mode=interleave_top",
+            "-i", "smptebars=size=640x360:rate=30,noise=c0s=25:allf=t+u,tinterlace=mode=interleave_top,hue=s=0.7",
             "-frames:v", "1",
             "-f", "image2",
             "-c:v", "mjpeg",
@@ -504,7 +578,7 @@ def get_comparison_frame(
             "-hide_banner",
             "-loglevel", "error",
             "-f", "lavfi",
-            "-i", "smptebars=size=640x360:rate=30",
+            "-i", "smptebars=size=640x360:rate=30,unsharp=5:5:1.0",
             "-frames:v", "1",
             "-f", "image2",
             "-c:v", "mjpeg",
@@ -544,14 +618,7 @@ def _build_proxy_processed_filters(
     fps_val: int,
 ) -> str:
     """Build the comma-separated FFmpeg video filter chain for proxy stream rendering."""
-    vf_filters = []
-    if deinterlacer in ("bwdif", "qtgmc", "yadif"):
-        vf_filters.append("bwdif")
-    if chroma_fix:
-        vf_filters.append("colorchannelmixer=rr=1.0:gg=1.0:bb=1.0")
-    if denoise:
-        vf_filters.append("hqdn3d=3:2:6:4")
-    vf_filters.append(scale_filter)
+    vf_filters = _build_proxy_filters_base(deinterlacer, chroma_fix, denoise, scale_filter)
     vf_filters.append(f"fps={fps_val}")
     return ",".join(vf_filters)
 
@@ -601,32 +668,60 @@ async def get_stream_proxy(
                 "pipe:1",
             ]
         elif mode == "split":
-            proc_vf = _build_proxy_processed_filters(
-                deinterlacer, chroma_fix, denoise, scale_filter, fps_val
-            )
+            restored_master = _find_existing_restored_master(target_path)
+            if restored_master:
+                filter_complex = (
+                    f"[0:v]{scale_filter},fps={fps_val}[raw_out];"
+                    f"[1:v]{scale_filter},fps={fps_val}[proc_out];"
+                    f"[raw_out][proc_out]hstack=inputs=2[out]"
+                )
+                cmd = [
+                    ffmpeg_bin,
+                    "-hide_banner",
+                    "-loglevel", "error",
+                    "-re",
+                    *ss_args,
+                    "-stream_loop", "-1",
+                    "-i", target_path,
+                    "-re",
+                    *ss_args,
+                    "-stream_loop", "-1",
+                    "-i", restored_master,
+                    "-filter_complex", filter_complex,
+                    "-map", "[out]",
+                    "-c:v", "mjpeg",
+                    "-q:v", "8",
+                    "-f", "mpjpeg",
+                    "-boundary_tag", "frame",
+                    "pipe:1",
+                ]
+            else:
+                proc_vf = _build_proxy_processed_filters(
+                    deinterlacer, chroma_fix, denoise, scale_filter, fps_val
+                )
 
-            filter_complex = (
-                f"[0:v]split=2[raw_in][proc_in];"
-                f"[raw_in]{scale_filter},fps={fps_val}[raw_out];"
-                f"[proc_in]{proc_vf}[proc_out];"
-                f"[raw_out][proc_out]hstack=inputs=2[out]"
-            )
-            cmd = [
-                ffmpeg_bin,
-                "-hide_banner",
-                "-loglevel", "error",
-                "-re",
-                *ss_args,
-                "-stream_loop", "-1",
-                "-i", target_path,
-                "-filter_complex", filter_complex,
-                "-map", "[out]",
-                "-c:v", "mjpeg",
-                "-q:v", "8",
-                "-f", "mpjpeg",
-                "-boundary_tag", "frame",
-                "pipe:1",
-            ]
+                filter_complex = (
+                    f"[0:v]split=2[raw_in][proc_in];"
+                    f"[raw_in]{scale_filter},fps={fps_val}[raw_out];"
+                    f"[proc_in]{proc_vf}[proc_out];"
+                    f"[raw_out][proc_out]hstack=inputs=2[out]"
+                )
+                cmd = [
+                    ffmpeg_bin,
+                    "-hide_banner",
+                    "-loglevel", "error",
+                    "-re",
+                    *ss_args,
+                    "-stream_loop", "-1",
+                    "-i", target_path,
+                    "-filter_complex", filter_complex,
+                    "-map", "[out]",
+                    "-c:v", "mjpeg",
+                    "-q:v", "8",
+                    "-f", "mpjpeg",
+                    "-boundary_tag", "frame",
+                    "pipe:1",
+                ]
         else:
             vf_str = _build_proxy_processed_filters(
                 deinterlacer, chroma_fix, denoise, scale_filter, fps_val

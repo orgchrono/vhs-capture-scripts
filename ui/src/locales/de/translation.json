@@ -57,7 +57,11 @@
     "resume": "Fortsetzen",
     "resume_tooltip": "Pausierten Prozess fortsetzen",
     "abort": "Abbrechen",
-    "abort_tooltip": "Signal abbrechen und Prozess sicher beenden"
+    "abort_tooltip": "Signal abbrechen und Prozess sicher beenden",
+    "copy_line": "Zeile kopieren",
+    "copy_all": "Alle Protokolle kopieren",
+    "copy_selection": "Auswahl kopieren",
+    "copied_to_clipboard": "In die Zwischenablage kopiert!"
   },
   "monitor": {
     "live_preview": "LIVE PREVIEW (NATIVE)",
@@ -88,7 +92,10 @@
     "timeline_scrubber": "Zeitachsen-Scrubber",
     "camera_not_detected": "Virtuelle Kamera nicht erkannt oder keine Berechtigung.",
     "rendering_preview": "Echtzeit-Rendering-Vorschau",
-    "tape_loaded_preview": "Band Geladen"
+    "tape_loaded_preview": "Band Geladen",
+    "split_play": "Vergleich abspielen",
+    "split_pause": "Vergleich pausieren",
+    "split_preset": "Teilung auf {{percent}}% setzen"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -164,6 +171,7 @@
     "custom": "Custom",
     "select_placeholder": "Select...",
     "search_placeholder": "Search setting...",
+    "clear_search": "Suche löschen",
     "fps_mode": "Framerate Mode (FPS)",
     "deinterlacing": "Deinterlacing",
     "resolution": "Resolution / Upscale",

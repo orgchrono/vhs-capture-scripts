@@ -1,7 +1,8 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   RefreshCw,
-  Sliders,
+  Play,
+  Pause,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
@@ -14,6 +15,14 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useGetComparisonFrameQuery } from '../api/studioRtkApi';
 import { useStudioStore } from '../store/useStudioStore';
+
+const SPLIT_PRESETS = [0, 25, 50, 75, 100] as const;
+
+const snapToNearestPreset = (val: number): number => {
+  return SPLIT_PRESETS.reduce((prev, curr) =>
+    Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev
+  );
+};
 
 export interface SplitComparisonMonitorProps {
   source?: string;
@@ -66,7 +75,27 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<'stream' | 'freeze'>(previewMode ?? initialMode);
   const [streamKey, setStreamKey] = useState<number>(0);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | undefined;
+    if (isPlaying) {
+      interval = setInterval(() => {
+        setTimestamp((prev) => {
+          const next = prev >= 3600 ? 0 : Math.round((prev + 1) * 10) / 10;
+          setPreviewTimestamp(next);
+          return next;
+        });
+        if (viewMode === 'stream') {
+          setStreamKey((k) => k + 1);
+        }
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isPlaying, viewMode, setPreviewTimestamp]);
 
   const {
     data: frameData,
@@ -146,6 +175,17 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
     const safe = Math.max(0, Math.min(100, val));
     setSplitPos(safe);
     setSplitPosition(safe);
+  };
+
+  const handleSliderChange = (val: number) => {
+    const snapped = snapToNearestPreset(val);
+    setSplitPos(snapped);
+    setSplitPosition(snapped);
+  };
+
+  const handlePresetSelect = (presetVal: number) => {
+    setSplitPos(presetVal);
+    setSplitPosition(presetVal);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -283,9 +323,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
       {/* Main Split Image Viewer with Interactive Sliding Curtain */}
       <div
         ref={containerRef}
-        onMouseDown={handleMouseDown}
-        onTouchStart={handleTouchStart}
-        className="relative w-full flex-1 cursor-ew-resize overflow-hidden flex items-center justify-center bg-slate-950"
+        className="relative w-full flex-1 overflow-hidden flex items-center justify-center bg-slate-950"
         data-testid="split-slider-container"
       >
         {viewMode === 'freeze' && isFetching && !rawImg && (
@@ -356,18 +394,23 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           </div>
         </div>
 
-        {/* Draggable Divider Handle Line */}
+        {/* Draggable Divider Handle Line (Confined Initiation) */}
         <div
-          className="absolute top-0 bottom-0 z-20 pointer-events-none transition-shadow"
+          className="absolute top-0 bottom-0 z-20 cursor-ew-resize flex items-center justify-center group"
           style={{ left: `${splitPos}%`, transform: 'translateX(-50%)' }}
+          onMouseDown={handleMouseDown}
+          onTouchStart={handleTouchStart}
+          role="separator"
+          aria-valuenow={splitPos}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          tabIndex={0}
+          data-testid="split-divider-line"
         >
+          {/* Invisible wider hit-box (w-6 / ±12px) for effortless grab on the line */}
+          <div className="absolute inset-y-0 -left-3 -right-3 cursor-ew-resize" />
           {/* Crisp Vertical Line */}
-          <div className="w-0.5 h-full bg-amber-400/80 shadow-[0_0_6px_rgba(251,191,36,0.5)]" />
-
-          {/* Center Grip Button */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-studio-panel border border-amber-400/90 shadow-md flex items-center justify-center text-amber-400">
-            <Sliders className="w-2.5 h-2.5" />
-          </div>
+          <div className="w-0.5 h-full bg-amber-400/80 shadow-[0_0_6px_rgba(251,191,36,0.6)] group-hover:bg-amber-300 transition-colors pointer-events-none" />
         </div>
 
         {/* CRT Scanline & Vignette Overlay */}
@@ -403,6 +446,20 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           <span className="text-[10px] text-slate-200 font-bold tabular-nums px-1.5 min-w-[55px] text-center">
             {t('monitor.split_time', { time: timestamp.toFixed(1) })}
           </span>
+          <button
+            type="button"
+            onClick={() => setIsPlaying(!isPlaying)}
+            className={`w-6 h-6 flex items-center justify-center rounded-sm border transition cursor-pointer shrink-0 ${
+              isPlaying
+                ? 'bg-amber-600/30 text-amber-300 border-amber-500/50 hover:bg-amber-600/40'
+                : 'bg-studio-surface hover:bg-studio-surface-hover border-studio-border text-slate-300 hover:text-white'
+            }`}
+            title={isPlaying ? t('monitor.split_pause') : t('monitor.split_play')}
+            aria-label={isPlaying ? t('monitor.split_pause') : t('monitor.split_play')}
+            data-testid="split-play-toggle-btn"
+          >
+            {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+          </button>
           <button
             type="button"
             onClick={() => handleSeek(5)}
@@ -443,15 +500,37 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           />
         </div>
 
-        {/* Split Divider Slider */}
-        <div className="flex items-center gap-1.5">
+        {/* Split Divider Slider & Presets */}
+        <div className="flex items-center gap-2">
+          {/* Preset Buttons */}
+          <div className="hidden sm:flex items-center gap-0.5 bg-studio-surface/80 p-0.5 rounded-sm border border-studio-border text-[9px] font-mono">
+            {SPLIT_PRESETS.map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => handlePresetSelect(p)}
+                className={`px-1.5 py-0.5 rounded-xs transition cursor-pointer ${
+                  splitPos === p
+                    ? 'bg-amber-500/30 text-amber-300 font-bold border border-amber-400/40'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+                title={t('monitor.split_preset', { percent: p })}
+                aria-label={t('monitor.split_preset', { percent: p })}
+                data-testid={`split-preset-${p}-btn`}
+              >
+                {p}%
+              </button>
+            ))}
+          </div>
+
           <input
             type="range"
             min={0}
             max={100}
+            step={1}
             value={splitPos}
-            onChange={(e) => handleSplitChange(Number(e.target.value))}
-            className="w-20 sm:w-24 h-1.5 bg-studio-surface rounded-lg appearance-none cursor-pointer accent-amber-400"
+            onChange={(e) => handleSliderChange(Number(e.target.value))}
+            className="w-16 sm:w-20 h-1.5 bg-studio-surface rounded-lg appearance-none cursor-pointer accent-amber-400"
             aria-label={t('monitor.split_position', { percent: splitPos })}
             data-testid="split-slider-input"
           />

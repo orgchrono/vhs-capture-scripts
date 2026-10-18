@@ -39,3 +39,19 @@ def test_check_python_deps_miss():
         ok, h = check_python_deps()
         assert ok is False
         assert h == "hash_new"
+
+
+def test_safe_rotating_file_handler_handles_permission_error(tmp_path):
+    """Verify SafeRotatingFileHandler handles WinError 32 PermissionError during rollover without crashing."""
+    import logging
+    from vhs_studio.core.logger import SafeRotatingFileHandler
+
+    log_file = tmp_path / "test_runtime.jsonl"
+    handler = SafeRotatingFileHandler(str(log_file), maxBytes=20, backupCount=2, encoding="utf-8")
+    record = logging.LogRecord("test", logging.INFO, "test.py", 1, "A" * 30, (), None)
+
+    with patch.object(SafeRotatingFileHandler, "rotate", side_effect=PermissionError("[WinError 32] In use")):
+        handler.emit(record)
+        handler.emit(record)
+    handler.close()
+    assert os.path.exists(log_file)

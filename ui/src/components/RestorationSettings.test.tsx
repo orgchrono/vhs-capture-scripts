@@ -85,4 +85,39 @@ describe('RestorationSettings UX/UI & Layout Tests ("Feng Shui" & Coerência Vis
 
     expect(screen.getByText(/Desentrelaçamento:/i)).toBeInTheDocument();
   });
+
+  it('automatically routes to matching tab when searching keywords (rife -> AI tab)', async () => {
+    render(<RestorationSettings />, { wrapper });
+
+    const searchInput = screen.getByTestId('settings-search-input');
+    fireEvent.change(searchInput, { target: { value: 'rife' } });
+
+    // Should auto-switch to AI tab and display RIFE module
+    expect(await screen.findByText(/Interpolação RIFE/i)).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: /RIFE 60fps Interpolation/i })).toBeInTheDocument();
+  });
+
+  it('automatically routes to storage tab when searching storage keywords', async () => {
+    render(<RestorationSettings />, { wrapper });
+
+    const searchInput = screen.getByTestId('settings-search-input');
+    fireEvent.change(searchInput, { target: { value: 'storage' } });
+
+    expect(await screen.findByText(/Destino de Armazenamento & Nuvem/i)).toBeInTheDocument();
+  });
+
+  it('clears search input and restores full view when clicking clear button', async () => {
+    render(<RestorationSettings />, { wrapper });
+
+    const searchInput = screen.getByTestId('settings-search-input') as HTMLInputElement;
+    fireEvent.change(searchInput, { target: { value: 'rife' } });
+    expect(searchInput.value).toBe('rife');
+
+    const clearBtn = screen.getByLabelText(/Limpar busca/i);
+    expect(clearBtn).toBeInTheDocument();
+    fireEvent.click(clearBtn);
+
+    expect(searchInput.value).toBe('');
+  });
 });
+

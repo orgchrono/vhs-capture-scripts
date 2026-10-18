@@ -290,6 +290,45 @@ def test_api_monitor_comparison_frame(client):
         assert "data:image/jpeg;base64," in data["processed_image"]
 
 
+def test_find_existing_restored_master_and_comparison(client, tmp_path):
+    """Verify _find_existing_restored_master locates restored master and get_comparison_frame uses it."""
+    from vhs_studio.api.routers.restoration import _find_existing_restored_master
+
+    # Non-existent or empty path
+    assert _find_existing_restored_master("") is None
+    assert _find_existing_restored_master(str(tmp_path / "nonexistent.mkv")) is None
+
+    # Simulate existing raw and restored file in media/restored/<stem>/
+    fake_raw = tmp_path / "tape123.mkv"
+    fake_raw.write_bytes(b"dummy raw content")
+
+    with patch("vhs_studio.api.routers.restoration.RESTORED_MEDIA_DIR", str(tmp_path / "restored")):
+        restored_folder = tmp_path / "restored" / "tape123"
+        restored_folder.mkdir(parents=True)
+        restored_file = restored_folder / "tape123_restored_1080p.mp4"
+        # Write > 100KB so it passes validation
+        restored_file.write_bytes(b"0" * 150000)
+
+        found = _find_existing_restored_master(str(fake_raw))
+        assert found == str(restored_file)
+
+        with patch("vhs_studio.core.toolchain.Toolchain.get_ffmpeg_path") as mock_ff, \
+             patch("subprocess.run") as mock_run:
+            mock_ff.return_value = "ffmpeg"
+            mock_res = MagicMock()
+            mock_res.returncode = 0
+            mock_res.stdout = b"\xff\xd8\xff\xe0\x00\x10JFIF"
+            mock_run.return_value = mock_res
+
+            res = client.get("/api/monitor/comparison-frame", params={"source": str(fake_raw), "timestamp": 5.0})
+            assert res.status_code == 200
+            data = res.json()
+            assert data["status"] == "ok"
+            # Ensure subprocess was called with the restored file
+            calls = mock_run.call_args_list
+            assert any(restored_file.name in str(c) for c in calls)
+
+
 def test_api_check_existing_restoration(client):
     """Verify /api/restoration/check-existing handles empty and queried requests."""
     res_empty = client.get("/api/restoration/check-existing")

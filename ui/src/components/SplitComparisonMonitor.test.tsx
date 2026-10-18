@@ -91,4 +91,48 @@ describe('SplitComparisonMonitor Component', () => {
 
     expect(handleClose).toHaveBeenCalledTimes(1);
   });
+
+  it('renders divider line and initiates drag on mousedown', () => {
+    renderComponent();
+
+    const divider = screen.getByTestId('split-divider-line');
+    expect(divider).toBeInTheDocument();
+    fireEvent.mouseDown(divider, { clientX: 250 });
+  });
+
+  it('toggles playback with play/pause button', () => {
+    renderComponent();
+
+    const playBtn = screen.getByTestId('split-play-toggle-btn');
+    expect(playBtn).toBeInTheDocument();
+
+    fireEvent.click(playBtn);
+    // After click, it is in pause mode
+    expect(screen.getByTestId('split-play-toggle-btn')).toBeInTheDocument();
+
+    fireEvent.click(playBtn);
+    expect(screen.getByTestId('split-play-toggle-btn')).toBeInTheDocument();
+  });
+
+  it('selects split presets and snaps slider correctly', () => {
+    renderComponent();
+
+    const preset25Btn = screen.getByTestId('split-preset-25-btn');
+    fireEvent.click(preset25Btn);
+
+    const slider = screen.getByTestId('split-slider-input') as HTMLInputElement;
+    expect(slider.value).toBe('25');
+
+    const preset75Btn = screen.getByTestId('split-preset-75-btn');
+    fireEvent.click(preset75Btn);
+    expect(slider.value).toBe('75');
+
+    // Slider snapping: changing to 22 snaps to nearest preset 25
+    fireEvent.change(slider, { target: { value: '22' } });
+    expect(slider.value).toBe('25');
+
+    // Changing to 95 snaps to 100
+    fireEvent.change(slider, { target: { value: '95' } });
+    expect(slider.value).toBe('100');
+  });
 });

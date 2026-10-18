@@ -50,6 +50,10 @@
     "processing": "Processando...",
     "search_placeholder": "Buscar nos logs...",
     "clear_search": "Limpar busca",
+    "copy_line": "Copiar Linha",
+    "copy_all": "Copiar Todos os Logs",
+    "copy_selection": "Copiar Seleção",
+    "copied_to_clipboard": "Copiado para a área de transferência!",
     "no_matches": "Nenhum log correspondente encontrado.",
     "ready_message": "VHS Studio Pro pronto. Selecione o arquivo e clique em \"Iniciar Restauração Direta\" para acompanhar o streaming de quadros em tempo real.",
     "pause": "Pausar",
@@ -88,7 +92,10 @@
     "timeline_scrubber": "Controle de Linha do Tempo",
     "camera_not_detected": "Câmera Virtual não detectada ou sem permissão.",
     "rendering_preview": "Renderização em Tempo Real",
-    "tape_loaded_preview": "Fita Carregada"
+    "tape_loaded_preview": "Fita Carregada",
+    "split_play": "Reproduzir Comparador",
+    "split_pause": "Pausar Comparador",
+    "split_preset": "Definir divisão para {{percent}}%"
   },
   "files": {
     "input_file_label": "Arquivo de Entrada (media/raw/)",
@@ -164,6 +171,7 @@
     "custom": "Personalizado",
     "select_placeholder": "Selecione...",
     "search_placeholder": "Buscar configuração...",
+    "clear_search": "Limpar busca",
     "fps_mode": "Modo de Taxa de Quadros (FPS)",
     "deinterlacing": "Desentrelaçamento",
     "resolution": "Resolução / Upscale",

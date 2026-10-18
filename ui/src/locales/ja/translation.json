@@ -57,7 +57,11 @@
     "resume": "再開",
     "resume_tooltip": "一時停止したプロセスを再開",
     "abort": "中断",
-    "abort_tooltip": "シグナルを中断し安全にプロセスを終了"
+    "abort_tooltip": "シグナルを中断し安全にプロセスを終了",
+    "copy_line": "行をコピー",
+    "copy_all": "すべてのログをコピー",
+    "copy_selection": "選択範囲をコピー",
+    "copied_to_clipboard": "クリップボードにコピーしました！"
   },
   "monitor": {
     "live_preview": "LIVE PREVIEW (NATIVE)",
@@ -88,7 +92,10 @@
     "timeline_scrubber": "タイムラインスクラバー",
     "camera_not_detected": "仮想カメラが検出されないか、権限が拒否されました。",
     "rendering_preview": "リアルタイムレンダリングプレビュー",
-    "tape_loaded_preview": "テープ装填済み"
+    "tape_loaded_preview": "テープ装填済み",
+    "split_play": "比較を再生",
+    "split_pause": "比較を一時停止",
+    "split_preset": "分割を{{percent}}%に設定"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -164,6 +171,7 @@
     "custom": "Custom",
     "select_placeholder": "Select...",
     "search_placeholder": "Search setting...",
+    "clear_search": "検索をクリア",
     "fps_mode": "Framerate Mode (FPS)",
     "deinterlacing": "Deinterlacing",
     "resolution": "Resolution / Upscale",

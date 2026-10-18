@@ -57,7 +57,11 @@
     "resume": "استئناف",
     "resume_tooltip": "استئناف العملية المتوقفة مؤقتًا",
     "abort": "إحباط",
-    "abort_tooltip": "إحباط الإشارة وإنهاء العملية بأمان"
+    "abort_tooltip": "إحباط الإشارة وإنهاء العملية بأمان",
+    "copy_line": "نسخ السطر",
+    "copy_all": "نسخ جميع السجلات",
+    "copy_selection": "نسخ التحديد",
+    "copied_to_clipboard": "تم النسخ إلى الحافظة!"
   },
   "monitor": {
     "live_preview": "LIVE PREVIEW (NATIVE)",
@@ -88,7 +92,10 @@
     "timeline_scrubber": "شريط التمرير الزمني",
     "camera_not_detected": "لم يتم اكتشاف الكاميرا الافتراضية أو تم رفض الإذن.",
     "rendering_preview": "معاينة التصيير في الوقت الفعلي",
-    "tape_loaded_preview": "تم تحميل الشريط"
+    "tape_loaded_preview": "تم تحميل الشريط",
+    "split_play": "تشغيل المقارنة",
+    "split_pause": "إيقاف المقارنة مؤقتاً",
+    "split_preset": "تعيين التقسيم إلى {{percent}}%"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -164,6 +171,7 @@
     "custom": "Custom",
     "select_placeholder": "Select...",
     "search_placeholder": "Search setting...",
+    "clear_search": "مسح البحث",
     "fps_mode": "Framerate Mode (FPS)",
     "deinterlacing": "Deinterlacing",
     "resolution": "Resolution / Upscale",

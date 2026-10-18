@@ -96,6 +96,31 @@ class MemoryLogHandler(logging.Handler):
         return self.logs
 
 
+class SafeRotatingFileHandler(RotatingFileHandler):
+    """Multi-process Windows-safe rotating file handler.
+
+    Prevents PermissionError [WinError 32] during log rotation on Windows when
+    another concurrent process or thread has the file descriptor open.
+    """
+
+    def doRollover(self) -> None:
+        try:
+            super().doRollover()
+        except (PermissionError, OSError):
+            # On Windows, os.rename fails if another process (e.g. API server or child) has the file open.
+            # Close and reopen the stream cleanly without failing the emit.
+            if self.stream:
+                try:
+                    self.stream.close()
+                except Exception:
+                    pass
+                self.stream = None
+            try:
+                self.stream = self._open()
+            except Exception:
+                pass
+
+
 def setup_logger() -> Tuple[logging.Logger, MemoryLogHandler]:
     os.makedirs("logs", exist_ok=True)
 
@@ -120,8 +145,8 @@ def setup_logger() -> Tuple[logging.Logger, MemoryLogHandler]:
     mh = MemoryLogHandler()
     mh.setLevel(logging.INFO)
 
-    # 3. File Handler Rotativo (JSONL Estruturado para Data Analytics)
-    fh = RotatingFileHandler(
+    # 3. File Handler Rotativo Seguro (JSONL Estruturado para Data Analytics)
+    fh = SafeRotatingFileHandler(
         "logs/runtime.jsonl", maxBytes=5 * 1024 * 1024, backupCount=5, encoding="utf-8"
     )
     fh.setLevel(logging.DEBUG)
