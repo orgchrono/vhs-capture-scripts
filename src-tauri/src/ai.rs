@@ -44,14 +44,18 @@ pub fn calculate_optimal_tile_size(vram_gb: f32) -> u32 {
     }
 }
 
-/// Construct CLI arguments for Real-ESRGAN Vulkan NCNN binary.
+/// Construct CLI arguments for Real-ESRGAN or Real-CUGAN Vulkan NCNN binary.
 pub fn build_realesrgan_command(params: &RealEsrganParams) -> Vec<String> {
+    let is_cugan = params.model_name.to_lowercase().contains("cugan")
+        || params.model_name.to_lowercase().contains("models-");
+    let model_flag = if is_cugan { "-m" } else { "-n" };
+
     let mut args = vec![
         "-i".to_string(),
         params.input_path.clone(),
         "-o".to_string(),
         params.output_path.clone(),
-        "-n".to_string(),
+        model_flag.to_string(),
         params.model_name.clone(),
         "-s".to_string(),
         params.scale.to_string(),
@@ -143,6 +147,24 @@ mod tests {
         assert_eq!(cmd[10], "-g");
         assert_eq!(cmd[11], "0");
     }
+
+    #[test]
+    fn test_build_realesrgan_command_cugan_uses_m_flag() {
+        let params = RealEsrganParams {
+            input_path: "input.png".to_string(),
+            output_path: "output.png".to_string(),
+            model_name: "models-se/cugan-pro".to_string(),
+            scale: 2,
+            tile_size: 0,
+            gpu_id: None,
+        };
+        let cmd = build_realesrgan_command(&params);
+        assert_eq!(cmd[4], "-m");
+        assert_eq!(cmd[5], "models-se/cugan-pro");
+        assert_eq!(cmd[6], "-s");
+        assert_eq!(cmd[7], "2");
+    }
+
 
     #[test]
     fn test_build_codeformer_command_clamps_fidelity() {

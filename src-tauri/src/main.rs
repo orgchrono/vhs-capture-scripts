@@ -35,6 +35,8 @@ fn print_usage() {
     println!("  audio-extract <IN> <OUT>  Extract 16kHz mono audio for AI Whisper transcription");
     println!("  hardware                  Evaluate and report host system hardware assessment");
     println!("  thumbnail <IN> [S] [OUT]  Extract crisp preview thumbnail from video frame");
+    println!("  ai-upscale <IN> <OUT>     Generate Real-ESRGAN / Real-CUGAN upscaling CLI command");
+    println!("  ai-interpolate <IN> <OUT> Generate RIFE 60fps frame interpolation CLI command");
     println!("  version                   Print version information");
     println!("  help                      Print this help message");
 }
@@ -575,6 +577,66 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     std::process::exit(1);
                 }
             }
+        }
+        "ai-upscale" => {
+            let input_path = match args.get(2) {
+                Some(p) => p,
+                None => {
+                    eprintln!("Error: Missing input path. Usage: vhs-studio ai-upscale <INPUT> <OUTPUT> [MODEL] [SCALE] [TILE]");
+                    std::process::exit(1);
+                }
+            };
+            let output_path = match args.get(3) {
+                Some(p) => p,
+                None => {
+                    eprintln!("Error: Missing output path. Usage: vhs-studio ai-upscale <INPUT> <OUTPUT> [MODEL] [SCALE] [TILE]");
+                    std::process::exit(1);
+                }
+            };
+            let model_name = args.get(4).cloned().unwrap_or_else(|| "realesrgan-x4plus".to_string());
+            let scale: u32 = args.get(5).and_then(|s| s.parse().ok()).unwrap_or(4);
+            let tile_size: u32 = args.get(6).and_then(|s| s.parse().ok()).unwrap_or(256);
+
+            let params = vhs_studio_core::ai::RealEsrganParams {
+                input_path: input_path.clone(),
+                output_path: output_path.clone(),
+                model_name,
+                scale,
+                tile_size,
+                gpu_id: Some(0),
+            };
+
+            let cmd_args = vhs_studio_core::ai::build_realesrgan_command(&params);
+            println!("{}", cmd_args.join(" "));
+        }
+        "ai-interpolate" => {
+            let input_path = match args.get(2) {
+                Some(p) => p,
+                None => {
+                    eprintln!("Error: Missing input path. Usage: vhs-studio ai-interpolate <INPUT> <OUTPUT> [TARGET_FPS] [MODEL]");
+                    std::process::exit(1);
+                }
+            };
+            let output_path = match args.get(3) {
+                Some(p) => p,
+                None => {
+                    eprintln!("Error: Missing output path. Usage: vhs-studio ai-interpolate <INPUT> <OUTPUT> [TARGET_FPS] [MODEL]");
+                    std::process::exit(1);
+                }
+            };
+            let target_fps: u32 = args.get(4).and_then(|s| s.parse().ok()).unwrap_or(60);
+            let model_name = args.get(5).cloned().unwrap_or_else(|| "rife-v4.6".to_string());
+
+            let params = vhs_studio_core::ai::RifeParams {
+                input_path: input_path.clone(),
+                output_path: output_path.clone(),
+                target_fps,
+                model_name,
+                gpu_id: Some(0),
+            };
+
+            let cmd_args = vhs_studio_core::ai::build_rife_command(&params);
+            println!("{}", cmd_args.join(" "));
         }
         unknown => {
             eprintln!("Unknown command: '{unknown}'");

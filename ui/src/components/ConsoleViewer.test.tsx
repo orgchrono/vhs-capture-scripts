@@ -21,6 +21,7 @@ describe('ConsoleViewer Component with Live Search', () => {
     store.dispatch(addLog('[QTGMC] Deinterlacing 60fps frame 100/1000.'));
     store.dispatch(addLog('[AVISO] Dropped frame detected at 00:01:23.'));
     store.dispatch(addLog('[ERRO] Frame buffer overflow.'));
+    store.dispatch(addLog('[DEBUG] Audio telemetry sample rate 48000Hz.'));
   });
 
   it('renders all log lines initially', () => {
@@ -52,19 +53,34 @@ describe('ConsoleViewer Component with Live Search', () => {
     expect(screen.getByText('[INFO] System initialized.')).toBeInTheDocument();
   });
 
-  it('filters logs by log level buttons (ERR / WARN / INFO / ALL)', () => {
+  it('filters logs by log level buttons (ERR / WARN / INFO / DEBUG / ALL)', () => {
     renderComponent();
 
     const errBtn = screen.getByRole('button', { name: 'ERR' });
     fireEvent.click(errBtn);
-
     expect(screen.getByText('[ERRO] Frame buffer overflow.')).toBeInTheDocument();
     expect(screen.queryByText('[INFO] System initialized.')).not.toBeInTheDocument();
+    expect(screen.queryByText('[DEBUG] Audio telemetry sample rate 48000Hz.')).not.toBeInTheDocument();
+
+    const warnBtn = screen.getByRole('button', { name: 'WARN' });
+    fireEvent.click(warnBtn);
+    expect(screen.getByText('[AVISO] Dropped frame detected at 00:01:23.')).toBeInTheDocument();
+    expect(screen.queryByText('[ERRO] Frame buffer overflow.')).not.toBeInTheDocument();
+
+    const debugBtn = screen.getByRole('button', { name: 'DEBUG' });
+    fireEvent.click(debugBtn);
+    expect(screen.getByText('[DEBUG] Audio telemetry sample rate 48000Hz.')).toBeInTheDocument();
+    expect(screen.queryByText('[ERRO] Frame buffer overflow.')).not.toBeInTheDocument();
+
+    const infoBtn = screen.getByRole('button', { name: 'INFO' });
+    fireEvent.click(infoBtn);
+    expect(screen.getByText('[INFO] System initialized.')).toBeInTheDocument();
+    expect(screen.queryByText('[ERRO] Frame buffer overflow.')).not.toBeInTheDocument();
 
     const allBtn = screen.getByRole('button', { name: 'ALL' });
     fireEvent.click(allBtn);
-
     expect(screen.getByText('[INFO] System initialized.')).toBeInTheDocument();
+    expect(screen.getByText('[DEBUG] Audio telemetry sample rate 48000Hz.')).toBeInTheDocument();
   });
 
   it('renders pause and abort buttons when isRestoring is true and handles clicks', () => {
