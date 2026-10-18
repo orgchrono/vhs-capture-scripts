@@ -33,6 +33,12 @@ if "%1"=="--lint" (
     )
 )
 
+if "%1"=="--native" (
+    echo [*] Starting VHS Studio Pro (Pure Native Rust Desktop Engine)...
+    cargo run --manifest-path src-tauri\Cargo.toml
+    exit /b !ERRORLEVEL!
+)
+
 echo [*] Starting VHS Studio Pro...
 python -m vhs_studio %*
 if %ERRORLEVEL% NEQ 0 (
