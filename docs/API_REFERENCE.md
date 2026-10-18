@@ -10,7 +10,7 @@ By default, the API service listens at:
 ## 1. Security & Authentication Architecture
 
 ### 1.1 Origin & Host Header Validation
-All inbound requests targeted at `/api/*` pass through the [`verify_origin`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/routers/security.py#L35-L54) security middleware:
+All inbound requests targeted at `/api/*` pass through the security middleware in [`src/infrastructure/http_server.rs`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/infrastructure/http_server.rs):
 - The `Host` header must start with `127.0.0.1`, `localhost`, or `testserver`.
 - Mutating HTTP methods (`POST`, `PUT`, `DELETE`) validate the origin against allowed loopback addresses.
 - Policy violations return `HTTP 403 Forbidden` (`{"error": "Access denied."}` or `{"error": "Invalid origin."}`).
@@ -22,13 +22,13 @@ On every backend initialization, a unique 32-character hexadecimal cryptographic
 - Mutating requests with missing or invalid tokens return `HTTP 403 Forbidden` (`{"error": "Invalid session token."}`).
 
 ### 1.3 Safe Media Path Validation (CWE-22)
-Every endpoint accepting filesystem paths for media processing or queueing (`/api/run`, `/api/action`, `/api/queue/enqueue`) invokes [`is_safe_media_path`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/routers/security.py#L16-L32):
+Every endpoint accepting filesystem paths for media processing or queueing (`/api/run`, `/api/action`, `/api/queue/enqueue`) invokes [`is_safe_media_path`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/infrastructure/http_server.rs):
 - Rejects null bytes (`\0`), path traversal sequences (`..`), and absolute paths resolving outside authorized directories (`MEDIA_DIR`).
 - Traversal attempts are rejected with `HTTP 400 Bad Request` (`{"status": "error", "message": "Invalid or insecure file path."}`).
 
 ---
 
-## 2. System Endpoints (`routers/system.py`)
+## 2. System Endpoints (`src/infrastructure/http_server.rs` & `src/viewmodels/system.rs`)
 
 ### `GET /api/token`
 Returns the active CSRF session token required for mutating requests.
@@ -152,7 +152,7 @@ Server-Sent Events (SSE) streaming endpoint with `text/event-stream` MIME type. 
 
 ---
 
-## 3. Persistent Batch Queue (`routers/queue.py`)
+## 3. Persistent Batch Queue (`src/viewmodels/queue.rs` & `src/infrastructure/database.rs`)
 
 ### `GET /api/queue`
 Retrieves all pending, processing, and completed jobs from the persistent SQLite queue.
@@ -213,7 +213,7 @@ Starts or pauses the background queue worker thread.
 
 ---
 
-## 4. OBS Studio Ingest & Telemetry (`routers/obs.py`)
+## 4. OBS Studio Ingest & Telemetry (`src/viewmodels/obs.rs` & `src/infrastructure/obs.rs`)
 
 ### `GET /api/obs/stats`
 Queries real-time telemetry from OBS Studio via WebSocket v5.
@@ -239,7 +239,7 @@ Remotely triggers recording start and stop within OBS Studio.
 
 ---
 
-## 5. Restoration & Process Actions (`routers/restoration.py`)
+## 5. Restoration & Process Actions (`src/viewmodels/restoration.rs` & `src/domain/pipeline.rs`)
 
 ### `POST /api/run`
 Initiates direct pipeline execution for a selected media file.
@@ -279,7 +279,7 @@ Extracts and returns a comparison frame pair (Raw vs Restored) at a specified ti
   - `timestamp`: Float timestamp in seconds (e.g. `12.5`).
   - `denoise`: Optional boolean (`true`/`false`) to simulate spatial-temporal noise reduction.
   - `color`: Optional boolean (`true`/`false`) to simulate color channel balancing.
-- **Aspect Ratio Handling:** Uses [`_resolve_preview_scale_filter`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/routers/restoration.py#L360) to pad 4:3 SD tapes with pillarbox bars (`480x360` inside `640x360`), preventing anamorphic stretch.
+- **Aspect Ratio Handling:** Uses resolution and scaling filters in [`src/domain/pipeline.rs`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/domain/pipeline.rs) to pad 4:3 SD tapes with pillarbox bars (`480x360` inside `640x360`), preventing anamorphic stretch.
 - **Response (HTTP 200):**
   ```json
   {
@@ -303,7 +303,7 @@ Returns a continuous, low-latency live MJPEG stream (`multipart/x-mixed-replace`
   - `color`: Boolean flag enabling live preview color matrix calibration.
 - **Aspect Ratio & Subprocess Protection:**
   - Standard 4:3 VHS tapes receive automatic pillarbox scaling to fit the 16:9 monitor viewport without distortion.
-  - On client disconnect (modal close or timeline seek), [`_kill_stream_process_tree`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/api/routers/restoration.py#L366) traverses the OS process tree with `psutil` and forcefully terminates all child FFmpeg processes, preventing background process leaks on Windows.
+  - On client disconnect (modal close or timeline seek), [`kill_process_tree`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/infrastructure/process_tree.rs) traverses the OS process tree and forcefully terminates all child FFmpeg processes, preventing background process leaks on Windows.
 
 ---
 
@@ -317,7 +317,7 @@ Performs recovery actions (`resume`, `finalize`, or `discard`) on incomplete rec
 
 ---
 
-## 6. Panasonic DVR Ingestion (`routers/ingest.py`)
+## 6. Panasonic DVR Ingestion (`src/viewmodels/ingest.rs` & `src/infrastructure/panasonic.rs`)
 
 ### `GET /api/ingest/panasonic/disks`
 Enumerates attached physical block drives and USB-SATA bridge controllers.
@@ -360,7 +360,7 @@ Extracts selected program titles via native C utilities into `media/raw/`.
 
 ---
 
-## 7. Media & Storage Endpoints (`media.py`, `storage.py`)
+## 7. Media & Storage Endpoints (`src/viewmodels/media.rs` & `src/infrastructure/storage/`)
 
 ### `GET /api/media/thumbnail`
 Generates and caches JPEG thumbnail representations for video files at specified positions.
@@ -376,9 +376,9 @@ Retrieves and updates archival destination parameters (Local Storage, AWS S3, Go
 
 ---
 
-## 8. Quality Control & Analog Defect Diagnostics (`qc.py`)
+## 8. Quality Control & Analog Defect Diagnostics (`src/domain/qc.rs`)
 
-The [`QualityControl`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/capture/qc.py) subsystem exposes Python and CLI methods to inspect any tape media file, catalog its physical artifacts, and produce structured reports:
+The [`QualityControl`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/domain/qc.rs) subsystem exposes native Rust and CLI methods to inspect any tape media file, catalog its physical artifacts, and produce structured reports:
 
 ### `GET /api/restoration/qc-report`
 Retrieves (or optionally generates on demand) the synchronized museum-grade JSON and Markdown defect & restoration report for a media file.
@@ -388,15 +388,17 @@ Retrieves (or optionally generates on demand) the synchronized museum-grade JSON
   - `generate`: Boolean (`true`/`false`) to trigger `QualityControl.run_qc` if the report does not yet exist on disk.
 
 ### Programmatic & CLI Invocation:
-```python
-from vhs_studio.capture.qc import QualityControl, make_archival_report_session
+```rust
+use vhs_studio::domain::qc::QualityControl;
 
 # Standalone inspection
-json_path = QualityControl.run_qc("media/raw/tape_01.mkv")
+let json_path = QualityControl::run_qc("media/raw/tape_01.mkv")?;
 ```
 
 ```bash
-vhs-studio qc media/raw/tape_01.mkv
+cargo run -- qc-report media/raw/tape_01.mkv
+# or with compiled binary:
+vhs-studio qc-report media/raw/tape_01.mkv
 ```
 
 ### Generated Files:

@@ -77,7 +77,7 @@ VHS Studio Pro integrates low-level extraction and demuxing tools originally aut
 | **`vro2split`** | Stream demuxer specialized in segmenting fragmented `.vro` containers into isolated MPEG-2 Program Stream files (`.mpg`, `.m2v`, `.ac3`). |
 | **`udf_dump`** | Deserializer and extractor for legacy first-generation recorders utilizing UDF 1.02/1.50 filesystems. |
 
-### 3.1 Cross-Platform Compilation Pipeline (`scripts/build_panasonic_tools.py`)
+### 3.1 Cross-Platform Compilation Pipeline (`scripts/build_panasonic_tools.mts`)
 
 To eliminate reliance on untrusted external precompiled binaries while maintaining complete platform independence:
 - **Windows:** Compiled with MinGW GCC (`gcc -O2 -s ...`) generating standalone `.exe` executables.
@@ -86,7 +86,7 @@ To eliminate reliance on untrusted external precompiled binaries while maintaini
 
 Compile locally using:
 ```bash
-python scripts/build_panasonic_tools.py
+node scripts/build_panasonic_tools.mts
 ```
 
 ### 3.2 Cryptographic Fixity & Zero-Trust Supply Chain (`checksums.json`)
@@ -99,14 +99,14 @@ Following zero-trust supply chain best practices, VHS Studio Pro enforces strict
    When running on systems utilizing pre-compiled binaries, the toolchain verifies hashes byte-for-byte. Any mismatch halts execution immediately with a fatal security exception (`[SECURITY ERROR] / [FATAL]`).
 3. **On-Demand Manifest Audit:**
    ```bash
-   python scripts/build_panasonic_tools.py --verify
+   node scripts/build_panasonic_tools.mts --verify
    ```
 4. **Maintainer Manifest Update:**
    ```bash
-   python scripts/build_panasonic_tools.py --update-manifest
+   node scripts/build_panasonic_tools.mts --update-manifest
    ```
 5. **Runtime Fixity Enforcement:**
-   [`Toolchain`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/core/toolchain.py) invokes [`FixityChecker`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/archive/fixity.py) prior to launching physical drive extraction subprocesses.
+   [`Toolchain`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/infrastructure/toolchain.rs) invokes fixity checks prior to launching physical drive extraction subprocesses.
 
 ---
 
@@ -142,6 +142,6 @@ Instead, VHS Studio Pro strictly enforces **Zero-Carving Forensic Inode Preserva
 2. **Program Stream Demuxing (`dvd-vr`):**
    Interprets `VR_MANGR.IFO` to calculate accurate title boundaries, program divisions, chapter markers, and presentation timecodes, splitting the recording container into standalone `.mpg` / `.vob` program streams.
 3. **Automated Cross-Compilation Fallback:**
-   If native binaries are not yet compiled on the host, the system prompts compilation via [`scripts/build_panasonic_tools.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/scripts/build_panasonic_tools.py) with automated SHA-256 verification via [`tools/panasonic_rec/checksums.json`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/tools/panasonic_rec/checksums.json).
+   If native binaries are not yet compiled on the host, the system prompts compilation via [`scripts/build_panasonic_tools.mts`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/scripts/build_panasonic_tools.mts) with automated SHA-256 verification via [`tools/panasonic_rec/checksums.json`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/tools/panasonic_rec/checksums.json).
 4. **Direct Lossless Container Fallback:**
    If `dvd-vr` cannot split titles due to a damaged or missing `VR_MANGR.IFO` table, the engine safely preserves and copies the intact `.VRO` container file directly to `media/raw/`, enabling lossless direct restoration or external remuxing without risking destructive sector carving.

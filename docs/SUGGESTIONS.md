@@ -13,7 +13,7 @@ This document outlines completed architectural milestones and future research an
   - Unified cache and network state management via RTK Query with live Server-Sent Events (SSE).
   - Accessible notification system with Sonner Toast and motion-sensitive Framer Motion transitions.
   - WCAG 2.1 Level AAA digital accessibility compliance and 10-locale i18n support.
-- [x] **Automated VapourSynth + QTGMC Setup:** Standalone dependency installer (`setup_qtgmc.py`) launchable via API and UI.
+- [x] **Automated Toolchain & VapourSynth Resolution:** Native toolchain verification engine (`cargo run -- toolchain-check`) resolving FFmpeg, VapourSynth, and Panasonic C forensics.
 - [x] **Deep Neural Super-Resolution:** Real-ESRGAN x4plus and Real-CUGAN models accelerated via Vulkan NCNN.
 - [x] **Automated Neural Subtitling:** Faster-Whisper engine integrated for offline multilingual `.vtt` and `.srt` subtitle creation.
 - [x] **Persistent Batch Queue:** SQLite sequential worker engine featuring job prioritization, pause/resume, and crash isolation.

@@ -99,6 +99,24 @@ pub fn format_http_response(status_code: u16, content_type: &str, body: &[u8]) -
     packet
 }
 
+/// Helper to launch the default system browser pointing to the server URL.
+pub fn launch_default_browser(url: &str) {
+    #[cfg(target_os = "windows")]
+    {
+        let _ = std::process::Command::new("cmd")
+            .args(["/c", "start", url])
+            .spawn();
+    }
+    #[cfg(target_os = "macos")]
+    {
+        let _ = std::process::Command::new("open").arg(url).spawn();
+    }
+    #[cfg(target_os = "linux")]
+    {
+        let _ = std::process::Command::new("xdg-open").arg(url).spawn();
+    }
+}
+
 /// Starts the native Rust HTTP/IPC server on `host:port`.
 pub fn run_native_http_server(host: &str, port: u16) -> Result<(), String> {
     let bind_addr = format!("{host}:{port}");
@@ -106,6 +124,8 @@ pub fn run_native_http_server(host: &str, port: u16) -> Result<(), String> {
         .map_err(|e| format!("Failed to bind native server on {bind_addr}: {e}"))?;
 
     println!("[VHS Studio Native Engine] Listening on http://{bind_addr}");
+    let app_url = format!("http://{bind_addr}");
+    launch_default_browser(&app_url);
 
     for stream_res in listener.incoming() {
         let Ok(mut stream) = stream_res else {
@@ -164,12 +184,18 @@ pub fn run_native_http_server(host: &str, port: u16) -> Result<(), String> {
                 let resp = format_http_response(200, mime, &bytes);
                 let _ = stream.write_all(&resp);
             } else {
-                let resp = format_http_response(
-                    404,
-                    "application/json; charset=utf-8",
-                    br#"{"error":"UI asset not found"}"#,
-                );
-                let _ = stream.write_all(&resp);
+                let index_path = Path::new(UI_DIST_REL_PATH).join("index.html");
+                if let Ok(index_bytes) = fs::read(&index_path) {
+                    let resp = format_http_response(200, "text/html; charset=utf-8", &index_bytes);
+                    let _ = stream.write_all(&resp);
+                } else {
+                    let resp = format_http_response(
+                        404,
+                        "application/json; charset=utf-8",
+                        br#"{"error":"UI asset not found"}"#,
+                    );
+                    let _ = stream.write_all(&resp);
+                }
             }
         }
     }

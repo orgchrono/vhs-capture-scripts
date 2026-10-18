@@ -76,7 +76,7 @@ flowchart TD
 - **Physical Root Cause:** Inherent to dual-head helical scan. The mechanical transfer of signal from Head A to Head B occurs roughly 3 to 6 scanlines before the lower vertical blanking pulse. While masked by CRT televisions' overscan bezel, modern progressive flat panels display the entire digital raster, exposing the switching transient.
 - **VHS Studio Remediation:**
   - Automated detection flags the presence of head switching noise in scanlines 464–480.
-  - [`filter_builder.py`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/core/filter_builder.py#L176) applies an exact 12px overscan mask:
+  - [`filter_builder.rs`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/domain/filter_builder.rs) applies an exact 12px overscan mask:
     ```text
     drawbox=y=ih-12:color=black:width=iw:height=12:t=fill
     ```
@@ -88,7 +88,7 @@ flowchart TD
 - **Visual Manifestation:** Thin, bright horizontal white or dark streaks lasting exactly one frame (1/60s), appearing randomly across the screen.
 - **Physical Root Cause:** Binder breakdown (*hydrolysis*) or dust particles causing localized loss of magnetic oxide. When a head passes over a void, the FM radio-frequency (RF) signal drops below threshold; the FM demodulator clips to maximum carrier frequency, displaying maximum luminance (saturated white).
 - **VHS Studio Remediation:**
-  - [`DropoutCleaner`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/video/dropout_cleaner.py) identifies scanlines where $> 85\%$ of pixels exceed saturated luma thresholds ($Y \ge 235$).
+  - [`DropoutCleaner`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/domain/dropout_cleaner.rs) identifies scanlines where $> 85\%$ of pixels exceed saturated luma thresholds ($Y \ge 235$).
   - A spatio-temporal filterchain cleans the artifact:
     ```text
     removegrain=1,tmedian=radius=1
@@ -125,7 +125,7 @@ flowchart TD
   - Ground loops between VCR and PC power supplies induce 60Hz/120Hz electrical hum.
   - Slow linear tape speed produces high thermal hiss noise from the magnetic particles.
 - **VHS Studio Remediation:**
-  - [`vhs_common.detect_audio_layout`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/core/vhs_common.py#L175) detects channel disparity (e.g. $L \ge -45\text{ dB}$, $R \le -55\text{ dB}$) and duplicates Left to both channels (`pan=stereo|c0=c0|c1=c0`).
+  - [`detect_audio_layout`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/domain/pipeline.rs) detects channel disparity (e.g. $L \ge -45\text{ dB}$, $R \le -55\text{ dB}$) and duplicates Left to both channels (`pan=stereo|c0=c0|c1=c0`).
   - DC offset is removed via `dcshift=shift=0`.
   - An adaptive notch filter cuts 60Hz hum:
     ```text
@@ -139,8 +139,8 @@ flowchart TD
 - **Visual Manifestation:** Several seconds to minutes of static, flashing blue screens, or black video at the head of the capture; black pauses between recorded scenes.
 - **Physical Root Cause:** Blank tape leader before the camera trigger; paused camcorder recordings where RF synchronization was dropped.
 - **VHS Studio Remediation:**
-  - [`find_first_video_frame`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/video/direct_restore.py#L60) scans luma averages ($\bar{Y} > 22.0$) and automatically trims the leader, starting audio and video simultaneously at the first authentic recorded frame.
-  - During mid-tape pauses, the `freeze` mode (TBC Frame-Hold in [`StreamRunner`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/video/stream_runner.py)) freezes the last known good frame during black dropouts ($\bar{Y} \le 18.0$), keeping 100% lip-sync continuity with the unbroken audio stream.
+  - [`find_first_video_frame`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/domain/qc.rs) scans luma averages ($\bar{Y} > 22.0$) and automatically trims the leader, starting audio and video simultaneously at the first authentic recorded frame.
+  - During mid-tape pauses, the `freeze` mode (TBC Frame-Hold in [`StreamRunner`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/domain/stream_runner.rs)) freezes the last known good frame during black dropouts ($\bar{Y} \le 18.0$), keeping 100% lip-sync continuity with the unbroken audio stream.
 
 ---
 
@@ -158,20 +158,20 @@ A concrete example from the project media archive illustrates how VHS Studio Pro
 
 ---
 
-## 4. Automated QC Inspection & Real-Time Archival Synchronization (`qc.py`)
+## 4. Automated QC Inspection & Real-Time Archival Synchronization (`src/domain/qc.rs`)
 
-In compliance with museum and audiovisual preservation public tenders (**IASA-TC 04, FADGI 4-Star, CONARQ, SMPTE RP 186 / ITU-R BT.601, PREMIS v3.0**), `src/vhs_studio/capture/qc.py` implements a **lexical closure architecture** (`make_frame_defect_analyzer` and `make_archival_report_session`) free of global mutable state:
+In compliance with museum and audiovisual preservation public tenders (**IASA-TC 04, FADGI 4-Star, CONARQ, SMPTE RP 186 / ITU-R BT.601, PREMIS v3.0**), [`src/domain/qc.rs`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/domain/qc.rs) implements a pure functional inspection engine free of global mutable state:
 
 - **Per-Pipeline & Per-Tool Correction Registry (`pipeline_tools_registry`):** Documents the exact configuration, stage, targeted defects, status, and frame counters for all 15 pipeline tools (Stage 0 Leader Trim & A/V Sync, Stage 1 Digital TBC Frame-Hold, Overscan Blanking, Magnetic DropoutCleaner, 3D Comb Filter, ChromaShift, HQDN3D, QTGMC/BWDIF, BT.709 Colorimetry/Geometry Standardizer, Stage 2 Audio Conditioning DSP, Stage 3 Sequential Neural DAG — CodeFormer, RIFE, Real-ESRGAN, Faster-Whisper, and Stage 4 PySceneDetect).
 - **Real-Time Frame-Accurate Defect Logging (`defect_events_log`):** Every YUV420p frame passing through `StreamRunner` is analyzed in real time for RF carrier loss (black/blue screen), magnetic oxide dropouts, top-of-frame flagging skew, horizontal time-base jitter, luminance excursions (`Y < 16` black crush / `Y > 235` clipping), blown-out colors (`Cb/Cr` outside `16–240`), high-frequency analog RF noise, and bottom head-switching noise, coalescing contiguous frame ranges with exact timecodes and applied remedies.
 - **Exact Checkpoint & Resume Synchronization (`truncate_to_frame` & `sync_to_disk`):** The archival report (`_qc_report.json` and `_defect_report.md`) is atomically persisted alongside `.checkpoint.json` on every checkpoint tick and on process interruption. When an interrupted restoration is resumed (`--resume` or `/api/restoration/incomplete/action`), `synchronize_report_with_checkpoint` rewinds the report to the exact checkpointed frame $N$ before appending frame $N+1$, guaranteeing zero data loss and zero duplicate records.
 
-To inspect any capture via CLI or Python:
+To inspect any capture via CLI:
 
 ```bash
-vhs-studio qc media/raw/tape_capture.mkv
-# or
-python -c "from vhs_studio.capture.qc import QualityControl; QualityControl.run_qc('media/raw/tape_capture.mkv')"
+cargo run -- qc-report media/raw/tape_capture.mkv
+# or with compiled binary:
+vhs-studio qc-report media/raw/tape_capture.mkv
 ```
 
 Generated deliverables:

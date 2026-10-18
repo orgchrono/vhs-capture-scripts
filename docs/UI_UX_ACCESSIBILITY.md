@@ -103,5 +103,5 @@ Localization keys are partitioned by functional domain:
 ```
 
 ### 4.3 Zero-Hardcode Quality Enforcement
-As defined in repository governance rules, any hardcoded text in TSX/JSX, placeholders, tooltips, or toasts will fail the automated `scripts/lint.py` quality gate, blocking commits.
+As defined in repository governance rules, any hardcoded text in TSX/JSX, placeholders, tooltips, or toasts will fail the automated `node scripts/lint.mts` quality gate, blocking commits.
 

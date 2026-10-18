@@ -15,7 +15,7 @@ Restoring legacy magnetic tape media (VHS, S-VHS, Betamax, Video8, Hi8) requires
 
 ---
 
-## 2. Sequential Pipelined Chain & DAG Architecture (`pipeline.py`)
+## 2. Sequential Pipelined Chain & DAG Architecture (`src/domain/pipeline.rs`)
 
 VHS Studio Pro implements a hybrid execution model: high-speed concurrent audio transcription running alongside a **Sequential Pipelined Chain** for cumulative video transformations:
 
@@ -41,24 +41,29 @@ flowchart TD
 ### 2.1 State Accumulator & Graceful Degradation
 To prevent the loss of upstream neural improvements, stages pass an accumulator variable `current_video`:
 
-```python
-# Sequential Pipelined Chain for neural post-processing:
-# BaseOutput -> FaceRestoration(current_video) -> RIFE(current_video) -> Upscaler(current_video)
-current_video: Optional[str] = restoration_result or self.output_path
-intermediate_files: list[str] = []
+```rust
+// Sequential Pipelined Chain for neural post-processing:
+// BaseOutput -> FaceRestoration(current_video) -> RIFE(current_video) -> Upscaler(current_video)
+let mut current_video = restoration_result.unwrap_or_else(|| self.output_path.clone());
+let mut intermediate_files: Vec<String> = Vec::new();
 
-for step_name, enabled, step_fn in post_step_specs:
-    if not enabled:
-        continue
-    try:
-        step_out = step_fn(current_video)
-        if step_out:
-            intermediate_files.append(current_video)
-            current_video = step_out
-        else:
-            log.warning(f"[{step_name}] Returned no output; degrading gracefully with previous video.")
-    except Exception as exc:
-        log.warning(f"[{step_name}] Step failed ({exc}); degrading gracefully with previous video.")
+for (step_name, enabled, step_fn) in post_step_specs {
+    if !enabled {
+        continue;
+    }
+    match step_fn(&current_video) {
+        Ok(Some(step_out)) => {
+            intermediate_files.push(current_video.clone());
+            current_video = step_out;
+        }
+        Ok(None) => {
+            tracing::warn!("[{step_name}] Returned no output; degrading gracefully with previous video.");
+        }
+        Err(err) => {
+            tracing::warn!("[{step_name}] Step failed ({err}); degrading gracefully with previous video.");
+        }
+    }
+}
 ```
 
 - **Fail-Safe Boundary:** If an optional model fails (e.g. GPU out-of-memory or missing weights), the pipeline gracefully preserves the preceding video without crashing the studio.
@@ -81,7 +86,7 @@ The deinterlacing engine synthesizes interlaced fields into full-rate progressiv
 
 ---
 
-## 4. Analog Noise Reduction & Declarative Filterchain (`filter_builder.py`)
+## 4. Analog Noise Reduction & Declarative Filterchain (`src/domain/filter_builder.rs`)
 
 The FFmpeg filtergraph is generated through **pure, declarative functional composition** without global mutable state:
 
@@ -89,7 +94,7 @@ The FFmpeg filtergraph is generated through **pure, declarative functional compo
    - Corrects the horizontal and vertical phase delay inherent to the VHS "Color-Under" system (~629 kHz subcarrier), pulling color bleeding back into alignment with the high-frequency luminance ($Y$) edge data.
 2. **HQDN3D (High-Quality 3D Denoise):**
    - Evaluates spatio-temporal noise variance across frames (`hqdn3d=3:2:6:4`), eliminating high-frequency analog snow without creating trailing ghosts (*ghosting*).
-3. **Temporal Dropout Cleaner ([`DropoutCleaner`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/video/dropout_cleaner.py)):**
+3. **Temporal Dropout Cleaner ([`DropoutCleaner`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/domain/dropout_cleaner.rs)):**
    - Applies `removegrain=1,tmedian=radius=1` to detect and eliminate single-frame white streaks caused by magnetic oxide flaking, replacing corrupted scanlines via temporal interpolation from adjacent fields.
 4. **Overscan Blanking (12px Mask):**
    - Applies `drawbox=y=ih-12:color=black:width=iw:height=12:t=fill` across the bottom 12 scanlines containing helical head-switching noise, preventing flashing bars on digital flat panels without altering the 4:3 picture framing.
@@ -182,13 +187,13 @@ To extract recordings directly from Panasonic DMR hard drives:
 
 ---
 
-## 11. Automated Tape Quality Control & Defect Diagnostics (`qc.py`)
+## 11. Automated Tape Quality Control & Defect Diagnostics (`src/domain/qc.rs`)
 
-Before or after restoration, operators can trigger forensic technical diagnostics on any media file in `media/raw/` or `media/restored/` using the [`QualityControl`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/vhs_studio/capture/qc.py) subsystem:
+Before or after restoration, operators can trigger forensic technical diagnostics on any media file in `media/raw/` or `media/restored/` using the [`QualityControl`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/domain/qc.rs) subsystem:
 
 ```bash
 # Execute deep QC inspection on a tape capture
-python -c "from vhs_studio.capture.qc import QualityControl; QualityControl.run_qc('media/raw/tape_01.mkv')"
+cargo run -- qc-report media/raw/tape_01.mkv
 ```
 
 ### 11.1 Diagnostic Measurements Performed

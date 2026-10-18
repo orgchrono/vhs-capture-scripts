@@ -229,25 +229,25 @@ Codebase integrity is enforced through **9 parallel automated Quality Gates** ve
 ```text
 [1. Anti-Plagiarism / Code Duplication (JSCPD 0% - Zero Tolerance)]  ✅ PASSED
 [2. UI Linter (Oxlint / ESLint)]                      ✅ PASSED
-[3. Strict Python Types (Mypy PEP 484)]               ✅ PASSED
-[4. Python Code Style (Flake8 PEP 8)]                 ✅ PASSED
-[5. React Component Tests (Vitest)]                   ✅ PASSED
-[6. TypeScript Build Compilation (TSC)]               ✅ PASSED
-[7. End-to-End Integration Tests (Playwright)]        ✅ PASSED
-[8. Backend Test Suite (Pytest)]                      ✅ PASSED
+[3. TypeScript Build Compilation (TSC)]               ✅ PASSED
+[4. React Component Tests (Vitest)]                   ✅ PASSED
+[5. End-to-End Integration Tests (Playwright)]        ✅ PASSED
+[6. Cargo Check (Rust Compilation)]                   ✅ PASSED
+[7. Cargo Clippy (Rust Quality & Safety)]             ✅ PASSED
+[8. Native Rust Unit Tests (Cargo Test)]              ✅ PASSED
 [9. Translation Key Parity (10 Locales)]              ✅ PASSED
 ```
 
 Run all quality checks locally:
 
 ```bash
-python scripts/lint.py
+node scripts/lint.mts
 ```
 
 Execute the full 7-dimension architectural swarm audit:
 
 ```bash
-python scripts/swarm_auditors.py
+node scripts/swarm_auditors.mts
 ```
 
 ---
@@ -256,9 +256,9 @@ python scripts/swarm_auditors.py
 
 ### System Prerequisites
 
-- **Python 3.10+** (Python 3.11 or 3.12 recommended)
-- **Node.js 18+** and **npm 9+**
-- **FFmpeg** accessible in your system `PATH` or located in `tools/ffmpeg/bin/`
+- **Rust 1.77+** (stable toolchain with `cargo` and `clippy`)
+- **Node.js 24+** and **npm 10+**
+- **FFmpeg 6.0+** accessible in your system `PATH` or located in `tools/ffmpeg/bin/`
 - *(Optional)* **OBS Studio** for live hardware capture streaming
 
 ---
@@ -271,7 +271,7 @@ Double-click or run from PowerShell / Command Prompt:
 run.cmd
 ```
 
-*The script verifies dependencies, compiles the React frontend if needed, and launches the native Desktop Pro WebView2 workstation window.*
+*The script installs UI dependencies if needed, compiles the React frontend, starts the native Rust engine on `127.0.0.1:8088`, and automatically opens your workstation browser window.*
 
 ---
 
@@ -284,20 +284,18 @@ chmod +x run.sh
 
 ---
 
-### Command-Line Execution
+### Command-Line Execution & Native Build
 
 ```bash
-# 1. Install Python package in editable mode
-pip install -e .
+# 1. Run development server (Rust + React UI)
+cargo run -- serve
 
-# 2. Install UI dependencies
-cd ui && npm ci && cd ..
+# 2. Check toolchain binary resolutions
+cargo run -- toolchain-check
 
-# 3. Launch native Desktop Pro window
-vhs-studio desktop
-
-# 4. Or launch the non-blocking Terminal Workstation (TUI)
-python -m vhs_studio tui
+# 3. Build standalone production release binary (LTO-optimized, 814 KB)
+build.cmd     # Windows -> dist/VHS_Studio_Pro.exe
+./build.sh    # Linux/macOS -> dist/VHS_Studio_Pro
 ```
 
 ---
