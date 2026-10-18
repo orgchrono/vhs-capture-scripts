@@ -54,7 +54,7 @@ def generate_ffmetadata_text(title: str, scenes: List[Tuple[int, int]]) -> str:
                 "TIMEBASE=1/1000",
                 f"START={start_ms}",
                 f"END={end_ms}",
-                f"title=Cena {i+1}",
+                f"title=Scene {i+1}",
                 "",
             ]
         )

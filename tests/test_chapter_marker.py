@@ -26,14 +26,14 @@ Scene Number,Frame Number (Start),Timecode (Start),Seconds (Start),Frame Number 
 
 def test_generate_ffmetadata_text():
     scenes = [(0, 1000), (1033, 2000)]
-    metadata = generate_ffmetadata_text("Minha Fita", scenes)
+    metadata = generate_ffmetadata_text("Tape Title", scenes)
     assert ";FFMETADATA1" in metadata
-    assert "title=Minha Fita" in metadata
+    assert "title=Tape Title" in metadata
     assert "[CHAPTER]" in metadata
     assert "START=0" in metadata
     assert "END=1000" in metadata
-    assert "title=Cena 1" in metadata
-    assert "title=Cena 2" in metadata
+    assert "title=Scene 1" in metadata
+    assert "title=Scene 2" in metadata
 
 
 @patch("vhs_studio.video.chapter_marker._run_ffmpeg_mux")
