@@ -7,6 +7,7 @@ error handling and toolchain binding.
 import os
 import shutil
 import subprocess
+from vhs_studio.core.system_process import run_silent
 from typing import Optional, Mapping
 from vhs_studio.core.logger import log
 from vhs_studio.core.constants import (
@@ -49,7 +50,7 @@ class BaseRestorationStep:
         cmd = build_restore_command_args(raw_file, output_path, params, python_exe)
         if is_resume:
             cmd.append("--resume")
-        subprocess.run(cmd, check=True)
+        run_silent(cmd, check=True)
         return output_path
 
 
@@ -205,7 +206,7 @@ class SceneSegmentationStep:
             end_time = scene[1].get_timecode()
             out_clip = os.path.join(base_dir, f"{base_name}_Scene_{i:03d}{ext}")
             cmd = build_scene_split_command(master_file, start_time, end_time, out_clip, ffmpeg_bin)
-            subprocess.run(cmd)
+            run_silent(cmd)
             log.info(f"  -> Generated: Scene_{i:03d}{ext} ({start_time} to {end_time})")
 
 

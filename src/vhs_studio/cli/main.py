@@ -7,12 +7,30 @@ from vhs_studio.cli.desktop import run_desktop
 
 def main(argv: Optional[List[str]] = None) -> int:
     """Parse CLI subcommands and dispatch execution without mutating global sys.argv."""
+    if argv is None:
+        import sys
+        argv = sys.argv[1:]
+
+    # Normalize invocations passing "-m <module>"
+    if argv and len(argv) >= 2 and argv[0] == "-m":
+        mod = argv[1]
+        if "setup_qtgmc" in mod:
+            argv = ["setup-qtgmc"] + argv[2:]
+        elif "setup_obs" in mod:
+            argv = ["setup-obs"] + argv[2:]
+        elif mod == "vhs_studio" and len(argv) >= 3:
+            argv = argv[2:]
+        else:
+            argv = argv[2:]
+
     parser = argparse.ArgumentParser(description="VHS Studio CLI")
     subparsers = parser.add_subparsers(dest="command", help="Comandos disponíveis")
 
     subparsers.add_parser("desktop", help="Abre a interface gráfica do VHS Studio")
     subparsers.add_parser("watcher", help="Inicia o monitor de gravação do OBS")
     subparsers.add_parser("api", help="Inicia o servidor de API FastAPI")
+    subparsers.add_parser("setup-qtgmc", help="Instalação e configuração do VapourSynth + QTGMC")
+    subparsers.add_parser("setup-obs", help="Instalação e configuração do OBS Studio")
 
     sub_parser = subparsers.add_parser(
         "subtitles", help="Gera legendas offline via IA (Whisper)"
@@ -58,6 +76,12 @@ def main(argv: Optional[List[str]] = None) -> int:
         from vhs_studio.capture.qc import QualityControl
 
         QualityControl.run_qc(args.input)
+    elif args.command == "setup-qtgmc":
+        from vhs_studio.cli.setup_qtgmc import main as qtgmc_main
+        return qtgmc_main()
+    elif args.command == "setup-obs":
+        from vhs_studio.cli.setup_obs import install_obs
+        return 0 if install_obs() else 1
     elif args.command == "restore":
         import vhs_studio.video.direct_restore
 

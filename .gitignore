@@ -19,6 +19,7 @@ profiles/*-local.env
 *.log
 *.jsonl
 logs/
+reports/
 build_report.md
 workspace/
 data/
@@ -64,6 +65,7 @@ dist/
 .pytest_cache/
 
 # UI
+node_modules/
 ui/node_modules/
 ui/dist/
 ui/screenshots/

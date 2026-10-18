@@ -3,9 +3,10 @@
 import os
 import sys
 import subprocess
+from vhs_studio.core.system_process import run_silent
 from vhs_studio.cli.utils import print_step, print_success, print_error
 from vhs_studio.ai.face_restorer import FaceRestorer
-from vhs_studio.core.paths import CODEFORMER_DIR, TOOLS_DIR
+from vhs_studio.core.paths import CODEFORMER_DIR, TOOLS_DIR, get_python_interpreter
 
 
 def setup_face_restorer() -> bool:
@@ -22,8 +23,9 @@ def setup_face_restorer() -> bool:
     os.makedirs(CODEFORMER_DIR, exist_ok=True)
 
     try:
-        cmd = [sys.executable, "-m", "pip", "install", "facexlib", "torchvision", "--quiet"]
-        res = subprocess.run(
+        py_exe = get_python_interpreter()
+        cmd = [py_exe, "-m", "pip", "install", "facexlib", "torchvision", "--quiet"]
+        res = run_silent(
             cmd,
             capture_output=True,
             text=True,

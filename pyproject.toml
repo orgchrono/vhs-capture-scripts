@@ -36,7 +36,8 @@ extend-ignore = "E203"
 
 [tool.pytest.ini_options]
 pythonpath = [
-  "src"
+  "src",
+  "."
 ]
 
 [tool.uv]

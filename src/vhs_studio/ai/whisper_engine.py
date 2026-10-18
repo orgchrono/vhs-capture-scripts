@@ -2,7 +2,7 @@
 
 from vhs_studio.core.logger import log
 import os
-import subprocess
+from vhs_studio.core.system_process import run_silent
 
 
 def extract_audio(video_path: str, output_wav: str) -> bool:
@@ -33,11 +33,11 @@ def extract_audio(video_path: str, output_wav: str) -> bool:
         output_wav,
     ]
     try:
-        subprocess.run(
-            cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        run_silent(
+            cmd, check=True, stdout=None, stderr=None
         )
         return True
-    except subprocess.CalledProcessError:
+    except Exception:
         return False
 
 

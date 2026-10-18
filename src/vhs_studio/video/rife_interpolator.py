@@ -3,6 +3,7 @@
 import os
 import shutil
 import subprocess
+from vhs_studio.core.system_process import run_silent
 from typing import Optional
 from vhs_studio.core.logger import log
 from vhs_studio.core.constants import DEFAULT_RIFE_TARGET_FPS, DEFAULT_RIFE_MODEL
@@ -47,7 +48,7 @@ class RifeInterpolator:
             "-g", "0",
         ]
         try:
-            res = subprocess.run(cmd, capture_output=True, text=True, errors="replace", check=True)
+            res = run_silent(cmd, capture_output=True, text=True, errors="replace", check=True)
             return res.returncode == 0
         except Exception as e:
             log.error(f"[RIFE] Falha na interpolação RIFE: {e}")

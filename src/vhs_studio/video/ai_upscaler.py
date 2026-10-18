@@ -2,6 +2,7 @@
 
 import os
 import subprocess
+from vhs_studio.core.system_process import run_silent
 import multiprocessing
 from vhs_studio.core.logger import log
 from vhs_studio.core.constants import DEFAULT_UPSCALER_MODEL
@@ -24,7 +25,7 @@ class AIUpscaler:
     def _detect_best_gpu(self):
         """Query vulkaninfo to automatically select the optimal dedicated or integrated GPU."""
         try:
-            res = subprocess.run(
+            res = run_silent(
                 ["vulkaninfo", "--summary"],
                 capture_output=True,
                 text=True,
@@ -113,7 +114,7 @@ class AIUpscaler:
         ]
 
         try:
-            subprocess.run(
+            run_silent(
                 cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
             )
             log.info(

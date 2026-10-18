@@ -5,6 +5,7 @@ Follows functional programming principles (pure transformations) and strict Sepa
 
 import os
 import subprocess
+from vhs_studio.core.system_process import run_silent
 import csv
 from typing import List, Tuple
 from vhs_studio.core.logger import log
@@ -68,7 +69,7 @@ def generate_ffmetadata_text(title: str, scenes: List[Tuple[int, int]]) -> str:
 def _run_scenedetect(input_video: str, threshold: float, csv_path: str) -> bool:
     """Execute PySceneDetect CLI and persist scene list to CSV."""
     try:
-        subprocess.run(
+        run_silent(
             [
                 "scenedetect",
                 "-i",
@@ -95,7 +96,7 @@ def _run_ffmpeg_mux(input_video: str, ffmeta_path: str, output_video: str) -> bo
     """Execute FFmpeg to embed chapter metadata stream without re-encoding video."""
     from vhs_studio.core.toolchain import Toolchain
     try:
-        subprocess.run(
+        run_silent(
             [
                 Toolchain.get_ffmpeg_path(),
                 "-hide_banner",

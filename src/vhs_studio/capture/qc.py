@@ -14,6 +14,7 @@ import json
 import os
 import re
 import subprocess
+from vhs_studio.core.system_process import run_silent
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
 
 from vhs_studio.core import vhs_common
@@ -1293,7 +1294,7 @@ class QualityControl:
             "null",
             "-",
         ]
-        res = subprocess.run(cmd, capture_output=True, text=True, errors="replace")
+        res = run_silent(cmd, capture_output=True, text=True, errors="replace")
         stderr = res.stderr
 
         def _extract_floats(tag: str) -> List[float]:

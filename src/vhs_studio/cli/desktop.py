@@ -9,6 +9,8 @@ import os
 import hashlib
 import threading
 import subprocess
+import multiprocessing
+from vhs_studio.core.system_process import run_silent
 from vhs_studio.core.logger import log
 from vhs_studio.core.constants import DEFAULT_API_HOST, DEFAULT_API_PORT
 from vhs_studio.api.server import run_server
@@ -93,7 +95,7 @@ def ensure_ui_build():
             ui_dir = os.path.join(project_root, "ui")
             try:
                 npm_cmd = "npm.cmd" if os.name == "nt" else "npm"
-                subprocess.run([npm_cmd, "run", "build"], cwd=ui_dir, check=True)
+                run_silent([npm_cmd, "run", "build"], cwd=ui_dir, check=True)
                 os.makedirs(ui_dist_dir, exist_ok=True)
                 with open(hash_file, "w", encoding="utf-8") as f:
                     f.write(current_hash)
@@ -235,4 +237,9 @@ def run_desktop():
 
 
 if __name__ == "__main__":
-    run_desktop()
+    multiprocessing.freeze_support()
+    if len(sys.argv) > 1:
+        from vhs_studio.cli.main import main as cli_main
+        sys.exit(cli_main(sys.argv[1:]))
+    else:
+        run_desktop()

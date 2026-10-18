@@ -2,12 +2,12 @@
 
 import os
 import shutil
-import subprocess
 import sys
 from typing import Optional
+from vhs_studio.core.system_process import run_silent
 from vhs_studio.core.logger import log
 from vhs_studio.core.constants import DEFAULT_CODEFORMER_FIDELITY
-from vhs_studio.core.paths import CODEFORMER_DIR, GFPGAN_DIR, REALESRGAN_DIR, TOOLS_DIR
+from vhs_studio.core.paths import CODEFORMER_DIR, GFPGAN_DIR, REALESRGAN_DIR, TOOLS_DIR, get_python_interpreter
 from vhs_studio.core.toolchain import Toolchain
 
 
@@ -68,8 +68,9 @@ class FaceRestorer:
         """Automatically install required neural dependencies via pip without requiring manual intervention."""
         log.info("[FACE RESTORER] Auto-instalando dependências neurais (facexlib, torchvision)...")
         try:
-            res = subprocess.run(
-                [sys.executable, "-m", "pip", "install", "facexlib", "torchvision", "--quiet"],
+            py_bin = get_python_interpreter()
+            res = run_silent(
+                [py_bin, "-m", "pip", "install", "facexlib", "torchvision", "--quiet"],
                 capture_output=True,
                 text=True,
                 errors="replace",
@@ -110,7 +111,7 @@ class FaceRestorer:
                 "-c:a", "copy",
                 output_path,
             ]
-            res = subprocess.run(cmd, capture_output=True, text=True, errors="replace", check=True)
+            res = run_silent(cmd, capture_output=True, text=True, errors="replace", check=True)
             log.info(f"[FACE RESTORER] Nitidez facial adaptativa gerada com sucesso: {output_path}")
             return res.returncode == 0
         except Exception as err:
@@ -148,7 +149,7 @@ class FaceRestorer:
                 "-s", str(self.upscale),
             ]
             try:
-                subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                run_silent(cmd, check=True, stdout=None, stderr=None)
                 log.info(f"[FACE RESTORER] Restauração facial concluída: {output_path}")
                 return True
             except Exception as bin_err:

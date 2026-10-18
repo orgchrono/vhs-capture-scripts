@@ -4,6 +4,7 @@ import json
 import sys
 import base64
 import subprocess
+from vhs_studio.core.system_process import run_silent, popen_silent
 from typing import Dict, Mapping, Union, Optional, List
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse, Response
@@ -56,13 +57,20 @@ def _resolve_pm():
     return server.pm
 
 
+def _build_cli_cmd(subcommand: str, *args: str) -> List[str]:
+    """Construct CLI execution command respecting PyInstaller frozen environment and standard Python."""
+    if getattr(sys, "frozen", False):
+        return [sys.executable, subcommand, *args]
+    return [sys.executable, "-m", "vhs_studio", subcommand, *args]
+
+
 def _handle_start_restore(params: Mapping[str, object], pm):
     if pm.is_running():
         return {"status": "error", "message": "Já existe um processo em execução. Aguarde a finalização."}
 
     deint = str(params.get("deinterlacer", ""))
     if "qtgmc" in deint and not VapourSynthQTGMC.is_available():
-        cmd = [sys.executable, "-m", "vhs_studio.cli.setup_qtgmc"]
+        cmd = _build_cli_cmd("setup-qtgmc")
         pm.start_process(cmd)
         return {
             "status": "started",
@@ -73,15 +81,12 @@ def _handle_start_restore(params: Mapping[str, object], pm):
     if not is_safe_media_path(input_file):
         return {"status": "error", "message": "Caminho de arquivo inválido ou não seguro."}
 
-    cmd = [
-        sys.executable,
-        "-m",
-        "vhs_studio",
+    cmd = _build_cli_cmd(
         "pipeline",
         input_file,
         "--params-json",
         json.dumps(dict(params)),
-    ]
+    )
     success, msg = pm.start_process(cmd)
     if success:
         return {"status": "ok", "message": "Pipeline de restauração iniciada com sucesso."}
@@ -91,7 +96,7 @@ def _handle_start_restore(params: Mapping[str, object], pm):
 def _handle_install_obs(pm):
     if pm.is_running():
         return {"status": "error", "message": "Aguarde a conclusão do processo em andamento."}
-    cmd = [sys.executable, "-m", "vhs_studio.cli.setup_obs"]
+    cmd = _build_cli_cmd("setup-obs")
     success, msg = pm.start_process(cmd)
     if success:
         return {"status": "started", "message": "Instalador do OBS Portable iniciado em segundo plano."}
@@ -101,7 +106,7 @@ def _handle_install_obs(pm):
 def _handle_install_vapoursynth(pm):
     if pm.is_running():
         return {"status": "error", "message": "Aguarde a conclusão do processo em andamento."}
-    cmd = [sys.executable, "-m", "vhs_studio.cli.setup_qtgmc"]
+    cmd = _build_cli_cmd("setup-qtgmc")
     success, msg = pm.start_process(cmd)
     if success:
         return {"status": "ok", "message": "Instalador do VapourSynth + QTGMC iniciado em segundo plano."}
@@ -120,13 +125,7 @@ def _handle_generate_subtitles(params: Mapping[str, object], pm):
     valid_models = ("tiny", "base", "small", "medium", "large")
     model_size = raw_size if raw_size in valid_models else "tiny"
 
-    cmd = [
-        sys.executable,
-        "-c",
-        "import sys; from vhs_studio.ai.whisper_engine import transcribe_and_generate_vtt; transcribe_and_generate_vtt(sys.argv[1], sys.argv[2])",
-        input_file,
-        model_size,
-    ]
+    cmd = _build_cli_cmd("subtitles", input_file, "--model-size", model_size)
     success, msg = pm.start_process(cmd)
     if success:
         return {"status": "ok", "message": "Geração de legendas IA iniciada com sucesso."}
@@ -334,15 +333,7 @@ async def run_pipeline(request: Request):
     if not is_safe_media_path(input_file):
         return JSONResponse(status_code=400, content={"status": "error", "message": "Caminho de arquivo inválido ou não seguro."})
 
-    cmd = [
-        sys.executable,
-        "-m",
-        "vhs_studio",
-        "pipeline",
-        input_file,
-        "--params-json",
-        json.dumps(params),
-    ]
+    cmd = _build_cli_cmd("pipeline", input_file, "--params-json", json.dumps(params))
     success, msg = pm.start_process(cmd)
     if success:
         return {"status": "ok", "message": "Pipeline de restauração iniciada com sucesso."}
@@ -355,7 +346,7 @@ def install_qtgmc():
     pm = _resolve_pm()
     if pm.is_running():
         return {"status": "error", "message": "Já existe um processo em execução. Aguarde a finalização."}
-    cmd = [sys.executable, "-m", "vhs_studio.cli.setup_qtgmc"]
+    cmd = _build_cli_cmd("setup-qtgmc")
     success, msg = pm.start_process(cmd)
     if success:
         return {"status": "started", "message": "Instalação do VapourSynth + QTGMC iniciada em segundo plano."}
@@ -596,8 +587,8 @@ def get_comparison_frame(
         ]
 
     try:
-        raw_res = subprocess.run(cmd_raw, capture_output=True, timeout=5)
-        proc_res = subprocess.run(cmd_proc, capture_output=True, timeout=5)
+        raw_res = run_silent(cmd_raw, capture_output=True, timeout=5)
+        proc_res = run_silent(cmd_proc, capture_output=True, timeout=5)
 
         if raw_res.returncode != 0 or proc_res.returncode != 0 or not raw_res.stdout or not proc_res.stdout:
             return JSONResponse(
@@ -807,7 +798,7 @@ async def get_stream_proxy(
             ]
 
     async def stream_generator():
-        proc = subprocess.Popen(
+        proc = popen_silent(
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,

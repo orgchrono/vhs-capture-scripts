@@ -1,6 +1,6 @@
 """Neural audio restoration engine for magnetic tape hiss and background hum removal."""
 
-import subprocess
+from vhs_studio.core.system_process import run_silent
 from vhs_studio.core.logger import log
 from vhs_studio.core.toolchain import Toolchain
 from vhs_studio.core.constants import (
@@ -68,7 +68,7 @@ class AudioDenoiser:
             output_wav
         ]
         try:
-            res = subprocess.run(cmd, capture_output=True, text=True, errors="replace", check=True)
+            res = run_silent(cmd, capture_output=True, text=True, errors="replace", check=True)
             return res.returncode == 0
         except Exception as e:
             log.error(f"[AUDIO AI] Falha no filtro de áudio: {e}")

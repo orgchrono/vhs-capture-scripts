@@ -4,6 +4,7 @@ import os
 import shutil
 import platform
 import subprocess  # nosec
+from vhs_studio.core.system_process import run_silent
 from typing import Optional, List
 from vhs_studio.core.logger import log
 
@@ -61,7 +62,7 @@ def run_system_install(cmd: List[str]) -> bool:
         if platform.system() != "Windows" and not is_root and shutil.which("sudo"):
             cmd = ["sudo"] + cmd
         log.info(f"[PackageManager] Executando: {' '.join(cmd)}")
-        res = subprocess.run(cmd, check=True)  # nosec
+        res = run_silent(cmd, check=True)  # nosec
         return res.returncode == 0
     except (subprocess.CalledProcessError, FileNotFoundError, PermissionError) as e:
         log.error(f"[PackageManager] Falha na execucao de comando ({' '.join(cmd)}): {e}")

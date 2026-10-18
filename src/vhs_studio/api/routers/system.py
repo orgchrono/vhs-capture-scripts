@@ -6,6 +6,7 @@ import json
 import asyncio
 import platform
 import subprocess
+from vhs_studio.core.system_process import run_silent, popen_silent
 import socket
 import threading
 from typing import List, Dict, Callable
@@ -40,7 +41,7 @@ def is_obs_process_active() -> bool:
     sys_name = platform.system()
     try:
         if sys_name == "Windows":
-            r = subprocess.run(
+            r = run_silent(
                 ["tasklist", "/fi", "imagename eq obs64.exe", "/fo", "csv", "/nh"],
                 capture_output=True,
                 text=True,
@@ -50,7 +51,7 @@ def is_obs_process_active() -> bool:
             if "obs64.exe" in r.stdout.lower():
                 log.debug("[HAL] Active obs64.exe detected in tasklist.")
                 return True
-            r32 = subprocess.run(
+            r32 = run_silent(
                 ["tasklist", "/fi", "imagename eq obs32.exe", "/fo", "csv", "/nh"],
                 capture_output=True,
                 text=True,
@@ -62,7 +63,7 @@ def is_obs_process_active() -> bool:
                 log.debug("[HAL] Active obs32.exe detected in tasklist.")
             return is_active
         else:
-            r = subprocess.run(
+            r = run_silent(
                 ["pgrep", "-x", "obs"],
                 capture_output=True,
                 text=True,
@@ -120,7 +121,7 @@ def make_obs_launcher() -> Callable[[], bool]:
                         else None
                     )
                     try:
-                        subprocess.Popen([obs_exe, "--minimize-to-tray"], cwd=cwd)
+                        popen_silent([obs_exe, "--minimize-to-tray"], cwd=cwd)
                         return True
                     except Exception:
                         pass

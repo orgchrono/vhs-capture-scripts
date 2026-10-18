@@ -2,6 +2,7 @@
 
 import threading
 import subprocess
+from vhs_studio.core.system_process import popen_silent
 import re
 from typing import Any, Callable, Dict, Tuple, List, Optional
 
@@ -107,7 +108,7 @@ class ProcessManager:
             self._closure["clear_logs"]()
             self.last_exit_code = None
             self.last_success = None
-            self.active_process = subprocess.Popen(
+            self.active_process = popen_silent(
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,

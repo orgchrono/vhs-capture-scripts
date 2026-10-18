@@ -8,6 +8,7 @@ to produce the most representative preview frame for the tape library.
 import hashlib
 import os
 import subprocess
+from vhs_studio.core.system_process import run_silent
 from typing import Any, List, Optional, Tuple
 import cv2  # type: ignore
 import numpy as np  # type: ignore
@@ -126,7 +127,7 @@ def _generate_via_ffmpeg_fallback(video_path: str, output_path: str) -> bool:
             "3",
             output_path,
         ]
-        res = subprocess.run(
+        res = run_silent(
             cmd,
             capture_output=True,
             text=True,

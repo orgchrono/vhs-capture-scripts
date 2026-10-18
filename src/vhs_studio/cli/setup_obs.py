@@ -7,8 +7,8 @@ import json
 import zipfile
 import shutil
 import platform
-import subprocess
-from vhs_studio.core.paths import TOOLS_DIR, OBS_DIR
+from vhs_studio.core.system_process import run_silent
+from vhs_studio.core.paths import TOOLS_DIR, OBS_DIR, get_obs_executable_paths
 from vhs_studio.core.constants import OBS_WEBSOCKET_PORT
 
 
@@ -16,10 +16,11 @@ from vhs_studio.cli.utils import print_step, print_success, print_error
 
 
 def setup_windows_portable():
-    """Documentation for setup_windows_portable."""
-    if os.path.exists(OBS_DIR):
-        print_success("OBS Studio (Portable) já está instalado no Windows.")
-        return True
+    """Check for existing OBS Studio installation across system before downloading portable version."""
+    for obs_cand in get_obs_executable_paths():
+        if os.path.exists(obs_cand):
+            print_success(f"OBS Studio já está instalado no sistema: {obs_cand}")
+            return True
 
     os.makedirs(TOOLS_DIR, exist_ok=True)
 
@@ -112,7 +113,7 @@ def setup_mac():
 
     print_step("Tentando instalar via Homebrew...")
     try:
-        subprocess.run(["brew", "install", "--cask", "obs"], check=True)
+        run_silent(["brew", "install", "--cask", "obs"], check=True)
         print_success("OBS instalado via Brew.")
         return True
     except Exception as e:

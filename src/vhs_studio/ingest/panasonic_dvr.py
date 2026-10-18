@@ -11,6 +11,7 @@ import sys
 import json
 import shutil
 import subprocess
+from vhs_studio.core.system_process import run_silent
 from dataclasses import dataclass, field
 from typing import Callable, List, Optional, Tuple, Dict, Any
 from vhs_studio.core.logger import log
@@ -263,7 +264,7 @@ def extract_panasonic_media(
     os.makedirs(staging_dir, exist_ok=True)
     cmd = [toolchain_bin, source_path, staging_dir]
     try:
-        res = subprocess.run(
+        res = run_silent(
             cmd,
             capture_output=True,
             text=True,
@@ -291,7 +292,7 @@ def extract_panasonic_media(
                         if os.path.exists(ifo_path) and dvd_vr_bin:
                             emit(f"Demuxing titles with dvd-vr from {fname}...")
                             try:
-                                res_vr = subprocess.run(
+                                res_vr = run_silent(
                                     [dvd_vr_bin, "-n", "[ts]_[pgm]", ifo_path, vro_path],
                                     cwd=dest_dir,
                                     capture_output=True,
@@ -358,7 +359,7 @@ def detect_connected_disks() -> List[Dict[str, Any]]:
                     "ConvertTo-Json"
                 ),
             ]
-            res = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+            res = run_silent(cmd, capture_output=True, text=True, timeout=10)
             if res.returncode == 0 and res.stdout.strip():
                 parsed = json.loads(res.stdout.strip())
                 items = parsed if isinstance(parsed, list) else [parsed]
@@ -413,7 +414,7 @@ def detect_connected_disks() -> List[Dict[str, Any]]:
 
     elif sys.platform == "darwin":
         try:
-            res = subprocess.run(["diskutil", "list"], capture_output=True, text=True, timeout=10)
+            res = run_silent(["diskutil", "list"], capture_output=True, text=True, timeout=10)
             if res.returncode == 0:
                 for line in res.stdout.splitlines():
                     if line.startswith("/dev/disk"):
@@ -440,7 +441,7 @@ def detect_connected_disks() -> List[Dict[str, Any]]:
     elif sys.platform.startswith("linux"):
         try:
             cmd = ["lsblk", "-J", "-b", "-o", "NAME,PATH,MODEL,SIZE,TYPE,TRAN"]
-            res = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+            res = run_silent(cmd, capture_output=True, text=True, timeout=10)
             if res.returncode == 0 and res.stdout.strip():
                 data = json.loads(res.stdout)
                 for dev in data.get("blockdevices", []):

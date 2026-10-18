@@ -2,18 +2,19 @@
 
 import sys
 import subprocess
+from vhs_studio.core.system_process import run_silent
 import os
 import urllib.request
 import tempfile
 import time
-
-
+from vhs_studio.core.paths import get_python_interpreter
+from vhs_studio.video.vapoursynth_qtgmc import VapourSynthQTGMC
 from vhs_studio.cli.utils import print_step, print_success, print_error
 
 
 def run_cmd(cmd, shell=False):
     """Run command with safe cross-platform encoding error handling."""
-    result = subprocess.run(
+    result = run_silent(
         cmd,
         shell=shell,
         capture_output=True,
@@ -30,10 +31,10 @@ def setup_vapoursynth_windows():
 
     # 1. Check vspipe
     print_step("Verificando instalação do vspipe...")
-    vspipe_check = run_cmd(["where", "vspipe"])
-    if vspipe_check.returncode == 0:
+    existing_vspipe = VapourSynthQTGMC.get_vspipe_path()
+    if existing_vspipe:
         print_success(
-            f"VapourSynth já está instalado: {vspipe_check.stdout.strip().split(chr(10))[0]}"
+            f"VapourSynth já está instalado: {existing_vspipe}"
         )
     else:
         print_step("vspipe não encontrado. Tentando instalar via WinGet...")
@@ -61,7 +62,7 @@ def setup_vapoursynth_windows():
                 print_step(
                     "Executando instalador (isso pode exigir permissão de Administrador)..."
                 )
-                subprocess.run([installer_path, "/S"])
+                run_silent([installer_path, "/S"])
                 print_success("Instalador oficial executado.")
             except Exception as e:
                 print_error(f"Falha ao baixar/instalar: {e}")
@@ -69,8 +70,9 @@ def setup_vapoursynth_windows():
 
     # 2. Install python deps
     print_step("Instalando bibliotecas Python para QTGMC (havsfunc)...")
+    py_bin = get_python_interpreter()
     pip_res = run_cmd(
-        [sys.executable, "-m", "pip", "install", "vapoursynth", "havsfunc"]
+        [py_bin, "-m", "pip", "install", "vapoursynth", "havsfunc"]
     )
     if pip_res.returncode == 0:
         print_success("Bibliotecas instaladas com sucesso!")
@@ -82,7 +84,7 @@ def setup_vapoursynth_windows():
     time.sleep(2)  # Wait for paths to settle
     test_res = run_cmd(
         [
-            sys.executable,
+            py_bin,
             "-c",
             "import vapoursynth as vs; print('VapourSynth API:', vs.core.version())",
         ]
@@ -109,7 +111,8 @@ def setup_vapoursynth_unix():
         print_step("Gerenciador de pacotes automático indisponível ou VapourSynth já existente.")
 
     print_step("Instalando bibliotecas Python para QTGMC (havsfunc)...")
-    pip_res = run_cmd([sys.executable, "-m", "pip", "install", "vapoursynth", "havsfunc"])
+    py_bin = get_python_interpreter()
+    pip_res = run_cmd([py_bin, "-m", "pip", "install", "vapoursynth", "havsfunc"])
     if pip_res.returncode == 0:
         print_success("Bibliotecas Python havsfunc instaladas!")
     else:
@@ -117,7 +120,7 @@ def setup_vapoursynth_unix():
 
     test_res = run_cmd(
         [
-            sys.executable,
+            py_bin,
             "-c",
             "import vapoursynth as vs; print('VapourSynth API:', vs.core.version())",
         ]
@@ -133,8 +136,14 @@ def setup_vapoursynth_unix():
         return False
 
 
-if __name__ == "__main__":
+def main() -> int:
+    """CLI / programmatic entrypoint for QTGMC setup."""
     if sys.platform == "win32":
-        setup_vapoursynth_windows()
+        ok = setup_vapoursynth_windows()
     else:
-        setup_vapoursynth_unix()
+        ok = setup_vapoursynth_unix()
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

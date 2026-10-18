@@ -1,0 +1,21 @@
+======================================================================
+  VHS STUDIO PRO - INSTRUCOES DE ASSINATURA DIGITAL E CERTIFICADO
+======================================================================
+
+Por padrao, softwares de codigo aberto distribuidos fora da Microsoft Store
+sao assinados com certificado digital da comunidade (Authenticode).
+
+Para que o Windows reconheca a assinatura como valida e nao exiba avisos
+do SmartScreen ao abrir o VHS_Studio_Pro-Windows.exe:
+
+PASSO A PASSO (1 CLIQUE):
+1. Dê um duplo-clique no arquivo "instalar_certificado.bat" que veio neste zip.
+2. O instalador ira adicionar o certificado "VHS_Studio_Pro.cer" nas autoridades
+   de raiz confiaveis e de editores confiaveis do seu usuario.
+3. Pronto! Ao clicar com o botao direito em "VHS_Studio_Pro-Windows.exe" e ir em
+   "Propriedades" -> "Assinaturas Digitais", a assinatura estara 100% valida
+   e confiavel!
+
+Em caso de duvidas ou para instalar para todos os usuarios do computador:
+Clique com o botao direito em "instalar_certificado.bat" e selecione
+"Executar como Administrador".

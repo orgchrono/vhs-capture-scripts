@@ -104,3 +104,39 @@ def get_panasonic_executable_path(binary_name="extract_meihdfs"):
         return which_path
 
     return None
+
+
+def get_python_interpreter() -> str:
+    """Return a working python interpreter executable, even when frozen inside PyInstaller."""
+    if not getattr(sys, "frozen", False):
+        return sys.executable
+
+    # 1. Check virtualenv in project root or current working dir
+    for root_dir in (PROJECT_ROOT, os.getcwd()):
+        venv_py = os.path.join(root_dir, ".venv", "Scripts", "python.exe") if platform.system() == "Windows" else os.path.join(root_dir, ".venv", "bin", "python")
+        if os.path.isfile(venv_py):
+            return venv_py
+
+    # 2. Check system PATH for python or py
+    for cand in ("python", "python3", "py"):
+        which_py = shutil.which(cand)
+        if which_py and os.path.isfile(which_py):
+            return which_py
+
+    # 3. Check standard Windows Python paths
+    if platform.system() == "Windows":
+        local_appdata = os.environ.get("LOCALAPPDATA", "")
+        py_appdata = os.path.join(local_appdata, "Programs", "Python")
+        if os.path.isdir(py_appdata):
+            for entry in os.listdir(py_appdata):
+                cand = os.path.join(py_appdata, entry, "python.exe")
+                if os.path.isfile(cand):
+                    return cand
+        py_core = os.path.join(local_appdata, "Python")
+        if os.path.isdir(py_core):
+            for entry in os.listdir(py_core):
+                cand = os.path.join(py_core, entry, "python.exe")
+                if os.path.isfile(cand):
+                    return cand
+
+    return sys.executable

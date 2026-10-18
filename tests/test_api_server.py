@@ -243,9 +243,9 @@ def test_api_security_generate_subtitles_validation(client):
         assert ok_res.json()["status"] == "ok"
         mock_start.assert_called_once()
         called_cmd = mock_start.call_args[0][0]
-        assert "sys.argv[1]" in called_cmd[2]
-        assert called_cmd[3] == "media/raw/tape.mkv"
-        assert called_cmd[4] == "small"
+        assert "subtitles" in called_cmd
+        assert "media/raw/tape.mkv" in called_cmd
+        assert "small" in called_cmd
 
 
 def test_api_monitor_stream_proxy_security(client):

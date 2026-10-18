@@ -10,6 +10,7 @@ import json
 import os
 import shutil
 import subprocess
+from vhs_studio.core.system_process import run_silent
 from dataclasses import dataclass, asdict
 from typing import Any, Dict, List, Optional, Set
 
@@ -325,7 +326,7 @@ def finalize_partial_video(output_path: str) -> Optional[str]:
 
     log.info(f"[JOB RECOVERY] Finalizing partial stream container: {input_to_remux} -> {finalized_path}")
     try:
-        res = subprocess.run(cmd, capture_output=True, text=True, errors="replace", timeout=120)
+        res = run_silent(cmd, capture_output=True, text=True, errors="replace", timeout=120)
         if res.returncode == 0 and os.path.exists(finalized_path) and os.path.getsize(finalized_path) > 1024:
             log.info(f"[JOB RECOVERY] Partial video finalized successfully ({os.path.getsize(finalized_path)} bytes).")
             try:

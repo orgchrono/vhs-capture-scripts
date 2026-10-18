@@ -19,8 +19,8 @@ Mecanismo de Alta Performance e Sincronia A/V Perfeita:
 
 import sys
 import os
-import os
 import subprocess
+from vhs_studio.core.system_process import run_silent, popen_silent
 import argparse
 import json
 
@@ -68,7 +68,7 @@ def find_first_video_frame(input_file, max_scan_sec=VideoConfig.MAX_SCAN_SECONDS
     frame_bytes = int(w * h * 1.5)
     y_bytes = w * h
 
-    p = subprocess.Popen(
+    p = popen_silent(
         [
             Toolchain.get_ffmpeg_path(),
             "-hide_banner",
@@ -290,7 +290,7 @@ def restore_stream(args):
         "-",
     ]
 
-    p_in = subprocess.Popen(
+    p_in = popen_silent(
         cmd_in, stdout=subprocess.PIPE, stderr=log_file, bufsize=16 * 1024 * 1024
     )
 
@@ -349,7 +349,7 @@ def restore_stream(args):
         ai_audio_denoise=apply_ai_audio,
     )
 
-    p_out = subprocess.Popen(
+    p_out = popen_silent(
         cmd_out, stdin=subprocess.PIPE, stderr=log_file, bufsize=16 * 1024 * 1024
     )
 
@@ -544,7 +544,7 @@ def restore_stream(args):
             muxed_path,
         ]
         try:
-            subprocess.run(mux_cmd, check=True)
+            run_silent(mux_cmd, check=True)
             os.replace(muxed_path, args.output_path)
             os.remove(chap_path)
             log.info(f"  Metadados/Capítulos injetados com sucesso!")

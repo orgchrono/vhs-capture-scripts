@@ -4,6 +4,7 @@ import os
 import platform
 import shutil
 import subprocess
+from vhs_studio.core.system_process import run_silent
 from typing import Dict, TypedDict
 from vhs_studio.core.constants import TIER_4_MIN_VRAM_GB, TIER_2_MIN_CPU_CORES
 
@@ -85,9 +86,10 @@ def get_ram_info() -> RamInfo:
             pass
     elif sys_name == "Darwin":
         try:
-            out = subprocess.check_output(["sysctl", "-n", "hw.memsize"], text=True).strip()
-            total_gb = round(float(out) / (1024 ** 3), 1)
-            avail_gb = round(total_gb * 0.5, 1)
+            res = run_silent(["sysctl", "-n", "hw.memsize"], capture_output=True, text=True)
+            if res.returncode == 0:
+                total_gb = round(float(res.stdout.strip()) / (1024 ** 3), 1)
+                avail_gb = round(total_gb * 0.5, 1)
         except Exception:
             pass
 
@@ -104,7 +106,7 @@ def detect_gpu_info() -> GpuInfo:
     # 1. Check Vulkan
     if shutil.which("vulkaninfo"):
         try:
-            res = subprocess.run(
+            res = run_silent(
                 ["vulkaninfo", "--summary"],
                 capture_output=True,
                 text=True,
@@ -131,7 +133,7 @@ def detect_gpu_info() -> GpuInfo:
     # 2. Check NVIDIA SMI for dedicated NVIDIA VRAM
     if shutil.which("nvidia-smi"):
         try:
-            res = subprocess.run(
+            res = run_silent(
                 ["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv,noheader,nounits"],
                 capture_output=True,
                 text=True,

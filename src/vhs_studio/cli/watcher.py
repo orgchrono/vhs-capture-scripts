@@ -17,6 +17,7 @@ from vhs_studio.config.advanced import AdvancedConfig
 from vhs_studio.core.constants import OBS_WEBSOCKET_HOST, OBS_WEBSOCKET_PORT
 from vhs_studio.core.queue_manager import enqueue_job
 import subprocess
+from vhs_studio.core.system_process import run_silent
 import io
 
 try:
@@ -56,7 +57,7 @@ def mul_to_db(mul):
 def is_obs_running():
     """Documentation for is_obs_running."""
     try:
-        r = subprocess.run(
+        r = run_silent(
             ["tasklist", "/fi", "imagename eq obs64.exe"],
             capture_output=True,
             text=True,

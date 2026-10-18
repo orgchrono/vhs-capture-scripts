@@ -6,7 +6,9 @@ filter chains and encoder arguments without side-effects (FP Core / SoC).
 
 import sys
 import subprocess
+from functools import lru_cache
 from typing import Optional, List, Callable
+from vhs_studio.core.system_process import run_silent
 
 from vhs_studio.config.settings import Filters, AudioConfig, OutputConfig
 from vhs_studio.core.logger import log
@@ -100,6 +102,7 @@ class FilterBuilder:
         return Toolchain.has_filter(filter_name)
 
     @staticmethod
+    @lru_cache(maxsize=16)
     def check_encoder_support(encoder_name: str) -> bool:
         """Verify if current hardware and driver can successfully encode a test frame."""
         try:
@@ -115,7 +118,7 @@ class FilterBuilder:
                 "null",
                 "-",
             ]
-            res = subprocess.run(
+            res = run_silent(
                 cmd,
                 capture_output=True,
                 text=True,

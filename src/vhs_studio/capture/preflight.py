@@ -3,6 +3,7 @@
 import os
 import shutil
 import subprocess
+from vhs_studio.core.system_process import run_silent
 import urllib.request
 import zipfile
 import platform
@@ -20,7 +21,7 @@ from vhs_studio.core.paths import (
 def is_ffmpeg_in_path():
     """Documentation for is_ffmpeg_in_path."""
     try:
-        subprocess.run(["ffmpeg", "-version"], capture_output=True, check=True)
+        run_silent(["ffmpeg", "-version"], capture_output=True, check=True)
         return True
     except (subprocess.CalledProcessError, FileNotFoundError):
         return False

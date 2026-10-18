@@ -3,6 +3,7 @@ import os
 import platform
 import shutil
 import subprocess
+from vhs_studio.core.system_process import run_silent
 from functools import lru_cache
 from typing import Dict, Optional, Tuple
 from vhs_studio.archive.fixity import FixityChecker
@@ -57,7 +58,7 @@ class Toolchain:
         encoders = ""
         filters = ""
         try:
-            res_enc = subprocess.run(
+            res_enc = run_silent(
                 [ffmpeg, "-encoders"],
                 capture_output=True,
                 text=True,
@@ -65,7 +66,7 @@ class Toolchain:
             )
             encoders = res_enc.stdout
 
-            res_flt = subprocess.run(
+            res_flt = run_silent(
                 [ffmpeg, "-filters"],
                 capture_output=True,
                 text=True,
