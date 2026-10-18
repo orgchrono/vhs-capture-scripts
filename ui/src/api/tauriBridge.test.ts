@@ -298,6 +298,13 @@ describe('Tauri v2 IPC Bridge & Fallback (tauriBridge)', () => {
 
     const hasFilter = await tauriBridge.checkFfmpegCapability('filters: T.. bwdif', 'bwdif', true);
     expect(hasFilter).toBe(true);
+
+    const outPath = await tauriBridge.resolveFinalOutputPath('media/raw/test.avi', 'media/restored', 'gold', 'h264', true);
+    expect(outPath).toContain('test_gold_1080p.mp4');
+
+    const planned = await tauriBridge.planRestorationJob({ input_path: 'tape.avi', output_dir: 'out' }, {});
+    expect(planned.input_path).toBe('tape.avi');
+    expect(planned.part_output_path).toContain('.part');
   });
 });
 

@@ -42,6 +42,7 @@ pub mod lock;
 pub mod oauth;
 pub mod config;
 pub mod toolchain;
+pub mod executor;
 
 use ai::{
     build_codeformer_command, build_realesrgan_command, build_rife_command,
@@ -618,3 +619,31 @@ pub fn ipc_check_ffmpeg_capability(
         check_ffmpeg_encoder_in_output(output_text, name)
     }
 }
+
+use executor::{plan_restoration_job, resolve_final_output_path, PlannedRestoration, RestorationJobRequest};
+use pipeline::OutputCodec;
+
+/// Typed IPC ViewModel command resolving destination output path for restoration.
+#[must_use]
+pub fn ipc_resolve_final_output_path(
+    input_path: &str,
+    output_dir: &str,
+    preset: RestorationPreset,
+    codec: OutputCodec,
+    target_1080p: bool,
+) -> String {
+    resolve_final_output_path(input_path, output_dir, preset, codec, target_1080p)
+        .to_string_lossy()
+        .to_string()
+}
+
+/// Typed IPC ViewModel command creating a deterministic restoration execution plan.
+pub fn ipc_plan_restoration_job(
+    request: RestorationJobRequest,
+    probe: MediaProbeResult,
+    vspipe_path_opt: Option<&str>,
+    ffmpeg_binary: &str,
+) -> Result<PlannedRestoration, String> {
+    plan_restoration_job(&request, &probe, vspipe_path_opt, ffmpeg_binary)
+}
+

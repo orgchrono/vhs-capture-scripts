@@ -28,6 +28,7 @@ fn print_usage() {
     println!("  preferences               Print canonical default program preferences");
     println!("  advanced-config [PATH]    Parse and print advanced TOML parameters");
     println!("  toolchain-check           Inspect and resolve all external binary paths");
+    println!("  plan-restore <INPUT> [P]  Generate complete pipeline plan and FFmpeg arguments");
     println!("  version                   Print version information");
     println!("  help                      Print this help message");
 }
@@ -195,6 +196,64 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 codeformer: resolve("codeformer"),
             };
             println!("{}", serde_json::to_string_pretty(&report)?);
+        }
+        "plan-restore" => {
+            let input_path = match args.get(2) {
+                Some(p) => p,
+                None => {
+                    eprintln!("Error: Missing input path. Usage: vhs-studio plan-restore <INPUT_PATH> [PRESET]");
+                    std::process::exit(1);
+                }
+            };
+            let preset_name = args.get(3).map(String::as_str).unwrap_or("gold");
+            let preset = match preset_name {
+                "gold" => RestorationPreset::Gold,
+                "ai_master" | "ai" => RestorationPreset::AiMaster,
+                "speed" | "fast" => RestorationPreset::Speed,
+                "tbc_hold" | "tbc" => RestorationPreset::TbcHold,
+                _ => RestorationPreset::Gold,
+            };
+
+            let req = vhs_studio_core::executor::RestorationJobRequest {
+                input_path: input_path.clone(),
+                output_dir: "media/restored".to_string(),
+                preset,
+                target_1080p: true,
+                output_codec: None,
+                custom_deinterlacer: None,
+                audio_policy: None,
+                apply_audio_notch_hum: true,
+                apply_loudness_norm: true,
+                start_sec: 0.0,
+                duration_sec: None,
+            };
+
+            // Synthetic probe for planning preview if file isn't probed via ffprobe CLI
+            let probe = vhs_studio_core::probe::MediaProbeResult {
+                file_path: input_path.clone(),
+                width: 720,
+                height: 480,
+                fps: 29.97,
+                fps_rational: "30000/1001".to_string(),
+                duration: 3600.0,
+                total_frames: 107892,
+                video_codec: "h264".to_string(),
+                audio_codec: "pcm_s16le".to_string(),
+                audio_channels: 2,
+                audio_sample_rate: 48000,
+                field_order: "tff".to_string(),
+                is_interlaced: true,
+                pix_fmt: "yuv420p".to_string(),
+                color_space: "smpte170m".to_string(),
+                color_primaries: "smpte170m".to_string(),
+                color_transfer: "smpte170m".to_string(),
+                format_name: "avi".to_string(),
+                standard: "NTSC".to_string(),
+            };
+
+            let planned = vhs_studio_core::executor::plan_restoration_job(&req, &probe, Some("vspipe"), "ffmpeg")
+                .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+            println!("{}", serde_json::to_string_pretty(&planned)?);
         }
         unknown => {
             eprintln!("Unknown command: '{unknown}'");
