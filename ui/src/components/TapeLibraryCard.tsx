@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Folder,
   HardDrive,
@@ -12,13 +12,9 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
-import { useStudioStore } from '../store/useStudioStore';
-import {
-  useGetIncompleteJobsQuery,
-  useHandleIncompleteJobMutation,
-} from '../api/studioRtkApi';
+import { useTapeLibraryViewModel } from '../viewmodels/useTapeLibraryViewModel';
 import type { RawFile } from '../types';
+import { formatMbSize } from '../lib/formatters';
 
 export interface TapeLibraryCardProps {
   files: RawFile[];
@@ -32,54 +28,20 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
   isRefetching,
 }) => {
   const { t } = useTranslation();
-  const { selectedFile, setSelectedFile, addLog, isRestoring, isPaused } = useStudioStore();
-  const [isLibraryExpanded, setIsLibraryExpanded] = useState(true);
-
-  // Auto-polling for real-time synchronization without manual refresh buttons
-  const { data: incompleteData } = useGetIncompleteJobsQuery(undefined, {
-    pollingInterval: isRestoring ? 1500 : 3000,
-  });
-  const [handleJobAction, { isLoading: isPerformingAction }] =
-    useHandleIncompleteJobMutation();
-  const incompleteJobs = incompleteData?.incomplete_jobs ?? [];
-
-  const formatFileSize = (sizeMb: number) => {
-    if (sizeMb >= 1024) {
-      return `${(sizeMb / 1024).toFixed(1)} GB`;
-    }
-    return `${sizeMb.toFixed(1)} MB`;
-  };
-
-  const handleSelectTape = (file: RawFile) => {
-    if (selectedFile === file.path) return;
-    setSelectedFile(file.path);
-    addLog(t('logs.tape_loaded', { name: file.name }));
-    toast.success(t('toast.file_loaded_title'), {
-      description: `${file.name} (${formatFileSize(file.size_mb)})`,
-    });
-  };
-
-  const findIncompleteJob = (filePath: string) => {
-    const sNorm = filePath.replace(/\\/g, '/').toLowerCase();
-    const sFileName = sNorm.split('/').pop() || '';
-    return incompleteJobs.find((j) => {
-      const jNorm = (j.source_file || '').replace(/\\/g, '/').toLowerCase();
-      const jFileName = jNorm.split('/').pop() || '';
-      return (sNorm && jNorm && sNorm === jNorm) || (sFileName && sFileName === jFileName);
-    });
-  };
-
-  const selectedIncompleteJob = selectedFile ? findIncompleteJob(selectedFile) : undefined;
-
-  // Identify any orphan incomplete jobs not in files
-  const orphanJobs = incompleteJobs.filter((job) => {
-    if (!job.source_file) return true;
-    return !files.some((f) => {
-      const fNorm = f.path.replace(/\\/g, '/').toLowerCase();
-      const sNorm = job.source_file.replace(/\\/g, '/').toLowerCase();
-      return fNorm === sNorm;
-    });
-  });
+  const {
+    isLibraryExpanded,
+    setIsLibraryExpanded,
+    selectedFile,
+    setSelectedFile,
+    isRestoring,
+    isPaused,
+    handleSelectTape,
+    findIncompleteJob,
+    selectedIncompleteJob,
+    orphanJobs,
+    handleAction,
+    isPerformingAction,
+  } = useTapeLibraryViewModel({ files, onRefreshParent: onRefresh });
 
   return (
     <div className="bg-studio-panel border border-studio-border rounded-md p-2.5 flex flex-col gap-2 select-none">
@@ -152,7 +114,7 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
               const inc = findIncompleteJob(f.path);
               return (
                 <option key={f.path} value={f.path} className="bg-studio-panel text-slate-200">
-                  {f.name} ({formatFileSize(f.size_mb)}){inc ? ` [${inc.progress_percent}%]` : ''}
+                  {f.name} ({formatMbSize(f.size_mb)}){inc ? ` [${inc.progress_percent}%]` : ''}
                 </option>
               );
             })}
@@ -192,22 +154,7 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
             <button
               type="button"
               disabled={isRestoring || isPerformingAction}
-              onClick={async () => {
-                try {
-                  const res = await handleJobAction({
-                    output_path: selectedIncompleteJob.output_file,
-                    action: 'finalize',
-                    source: selectedIncompleteJob.source_file,
-                  }).unwrap();
-                  toast.success(t('recovery.toast_finalized'), {
-                    description: res.finalized_file ? res.finalized_file.split(/[/\\]/).pop() : undefined,
-                  });
-                  addLog(t('recovery.toast_finalized'));
-                  onRefresh();
-                } catch {
-                  toast.error(t('recovery.toast_action_error'));
-                }
-              }}
+              onClick={() => handleAction(selectedIncompleteJob, 'finalize')}
               className="flex-1 bg-emerald-800/80 hover:bg-emerald-700 disabled:opacity-50 text-emerald-100 py-1 px-1.5 rounded-xs flex items-center justify-center gap-1 font-semibold border border-emerald-600/40 cursor-pointer transition whitespace-nowrap"
               title={t('recovery.finalize_tooltip')}
             >
@@ -218,20 +165,7 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
             <button
               type="button"
               disabled={isRestoring || isPerformingAction}
-              onClick={async () => {
-                try {
-                  await handleJobAction({
-                    output_path: selectedIncompleteJob.output_file,
-                    action: 'discard',
-                    source: selectedIncompleteJob.source_file,
-                  }).unwrap();
-                  toast.info(t('recovery.toast_discarded'));
-                  addLog(t('recovery.toast_discarded'));
-                  onRefresh();
-                } catch {
-                  toast.error(t('recovery.toast_action_error'));
-                }
-              }}
+              onClick={() => handleAction(selectedIncompleteJob, 'discard')}
               className="bg-studio-surface hover:bg-red-950/80 hover:text-red-300 disabled:opacity-50 text-slate-400 py-1 px-2 rounded-xs flex items-center justify-center gap-1 font-semibold border border-studio-border cursor-pointer transition whitespace-nowrap"
               title={t('recovery.discard_tooltip')}
             >
@@ -304,7 +238,7 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
                       </div>
                       <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400">
                         <span className="text-slate-400 tabular-nums">
-                          {formatFileSize(Math.round(job.output_size_bytes / (1024 * 1024)))}
+                          {formatMbSize(Math.round(job.output_size_bytes / (1024 * 1024)))}
                         </span>
                         <span>•</span>
                         <span className="text-slate-500 truncate">
@@ -389,7 +323,7 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
 
                       <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400">
                         <span className="text-slate-400 tabular-nums">
-                          {formatFileSize(file.size_mb)}
+                          {formatMbSize(file.size_mb)}
                         </span>
                         <span>•</span>
                         <span className="text-slate-500 truncate">

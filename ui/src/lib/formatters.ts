@@ -37,6 +37,13 @@ export function formatFileSize(bytes: number): string {
   return `${mb.toFixed(1)} MB`;
 }
 
+export function formatMbSize(sizeMb: number): string {
+  if (sizeMb >= 1024) {
+    return `${(sizeMb / 1024).toFixed(1)} GB`;
+  }
+  return `${sizeMb.toFixed(1)} MB`;
+}
+
 export function formatElapsed(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = Math.round(seconds % 60);

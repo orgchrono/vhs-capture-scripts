@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   AlertTriangle,
   Play,
@@ -12,13 +12,7 @@ import {
   HardDrive,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
-import {
-  useGetIncompleteJobsQuery,
-  useHandleIncompleteJobMutation,
-} from '../api/studioRtkApi';
-import { useStudioStore } from '../store/useStudioStore';
-import type { IncompleteJob } from '../types';
+import { useRecoveryViewModel } from '../viewmodels/useRecoveryViewModel';
 import {
   formatFileSize,
   formatElapsed,
@@ -33,59 +27,17 @@ export const IncompleteJobsCard: React.FC<IncompleteJobsCardProps> = ({
   onRefreshParent,
 }) => {
   const { t } = useTranslation();
-  const { isRestoring, setIsRestoring, setSelectedFile, addLog } = useStudioStore();
-  const [isExpanded, setIsExpanded] = useState(true);
-
   const {
-    data,
+    incompleteJobs,
     isLoading,
     isFetching,
+    isExpanded,
+    setIsExpanded,
     refetch,
-  } = useGetIncompleteJobsQuery(undefined, {
-    pollingInterval: isRestoring ? 1500 : 3000,
-  });
-
-  const [handleJobAction, { isLoading: isPerformingAction }] =
-    useHandleIncompleteJobMutation();
-
-  const incompleteJobs = data?.incomplete_jobs ?? [];
-
-  const handleAction = async (
-    job: IncompleteJob,
-    action: 'resume' | 'finalize' | 'discard'
-  ) => {
-    try {
-      const res = await handleJobAction({
-        output_path: job.output_file,
-        action,
-        source: job.source_file,
-      }).unwrap();
-
-      if (action === 'resume') {
-        if (job.source_file) {
-          setSelectedFile(job.source_file);
-        }
-        setIsRestoring(true);
-        toast.info(t('recovery.toast_resumed'));
-        addLog(t('recovery.toast_resumed'));
-      } else if (action === 'finalize') {
-        toast.success(t('recovery.toast_finalized'), {
-          description: res.finalized_file ? getBaseName(res.finalized_file) : undefined,
-        });
-        addLog(t('recovery.toast_finalized'));
-      } else if (action === 'discard') {
-        toast.info(t('recovery.toast_discarded'));
-        addLog(t('recovery.toast_discarded'));
-      }
-
-      refetch();
-      if (onRefreshParent) {
-        onRefreshParent();
-      }
-    } catch {
-      toast.error(t('recovery.toast_action_error'));
-    }
-  };
+    handleAction,
+    isPerformingAction,
+    isRestoring,
+  } = useRecoveryViewModel({ onRefreshParent });
 
   if (incompleteJobs.length === 0 && !isLoading) {
     return null;
