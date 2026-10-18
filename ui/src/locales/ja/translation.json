@@ -95,7 +95,8 @@
     "tape_loaded_preview": "テープ装填済み",
     "split_play": "比較を再生",
     "split_pause": "比較を一時停止",
-    "split_preset": "分割を{{percent}}%に設定"
+    "split_preset": "分割を{{percent}}%に設定",
+    "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",

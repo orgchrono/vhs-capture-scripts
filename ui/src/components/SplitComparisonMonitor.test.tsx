@@ -135,4 +135,11 @@ describe('SplitComparisonMonitor Component', () => {
     fireEvent.change(slider, { target: { value: '95' } });
     expect(slider.value).toBe('100');
   });
+
+  it('renders timeline info badge with current time, total time and percentage', () => {
+    renderComponent({ initialMode: 'freeze' });
+    const timeInfo = screen.getByTestId('split-timeline-info');
+    expect(timeInfo).toBeInTheDocument();
+    expect(timeInfo.textContent).toMatch(/\d{2}:\d{2}:\d{2} \/ \d{2}:\d{2}:\d{2} \(\d+\.\d+%\)/);
+  });
 });

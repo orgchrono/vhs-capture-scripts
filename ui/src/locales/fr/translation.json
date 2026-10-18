@@ -95,7 +95,8 @@
     "tape_loaded_preview": "Bande Chargée",
     "split_play": "Lire le comparateur",
     "split_pause": "Mettre en pause le comparateur",
-    "split_preset": "Régler la séparation sur {{percent}}%"
+    "split_preset": "Régler la séparation sur {{percent}}%",
+    "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",

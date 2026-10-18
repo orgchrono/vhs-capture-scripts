@@ -288,6 +288,8 @@ def test_api_monitor_comparison_frame(client):
         assert data["status"] == "ok"
         assert "data:image/jpeg;base64," in data["raw_image"]
         assert "data:image/jpeg;base64," in data["processed_image"]
+        assert "duration" in data
+        assert data["duration"] > 0
 
 
 def test_find_existing_restored_master_and_comparison(client, tmp_path):

@@ -95,7 +95,8 @@
     "tape_loaded_preview": "Cinta Cargada",
     "split_play": "Reproducir comparador",
     "split_pause": "Pausar comparador",
-    "split_preset": "Establecer división en {{percent}}%"
+    "split_preset": "Establecer división en {{percent}}%",
+    "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)"
   },
   "files": {
     "input_file_label": "Archivo de Entrada (media/raw/)",

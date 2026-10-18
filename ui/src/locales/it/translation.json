@@ -95,7 +95,8 @@
     "tape_loaded_preview": "Nastro Caricato",
     "split_play": "Riproduci comparatore",
     "split_pause": "Pausa comparatore",
-    "split_preset": "Imposta divisione a {{percent}}%"
+    "split_preset": "Imposta divisione a {{percent}}%",
+    "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",

@@ -172,6 +172,9 @@ test.describe('VHS Studio Pipeline, Settings & Real-time Console E2E', () => {
 
     const slider = page.getByTestId('split-slider-input');
     await expect(slider).toHaveValue('25');
+
+    const timelineInfo = page.getByTestId('split-timeline-info');
+    await expect(timelineInfo).toBeVisible();
   });
 
 });

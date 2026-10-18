@@ -515,8 +515,18 @@ def get_comparison_frame(
 
     safe_time = max(0.0, float(timestamp))
     scale_filter = _resolve_preview_scale_filter(target_path)
+    total_duration = 3600.0
 
     if is_valid_source:
+        try:
+            from vhs_studio.core.vhs_common import probe_media
+
+            meta = probe_media(target_path)
+            total_duration = float(meta.get("duration", 3600.0))
+            if total_duration <= 0.0:
+                total_duration = 3600.0
+        except Exception:
+            total_duration = 3600.0
         cmd_raw = [
             ffmpeg_bin,
             "-hide_banner",
@@ -601,6 +611,7 @@ def get_comparison_frame(
         return {
             "status": "ok",
             "timestamp": safe_time,
+            "duration": round(total_duration, 2),
             "raw_image": raw_b64,
             "processed_image": proc_b64,
             "width": 640,

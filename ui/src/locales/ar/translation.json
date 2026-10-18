@@ -95,7 +95,8 @@
     "tape_loaded_preview": "تم تحميل الشريط",
     "split_play": "تشغيل المقارنة",
     "split_pause": "إيقاف المقارنة مؤقتاً",
-    "split_preset": "تعيين التقسيم إلى {{percent}}%"
+    "split_preset": "تعيين التقسيم إلى {{percent}}%",
+    "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",

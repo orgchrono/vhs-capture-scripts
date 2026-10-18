@@ -95,7 +95,8 @@
     "tape_loaded_preview": "Tape Loaded",
     "split_play": "Play Comparison",
     "split_pause": "Pause Comparison",
-    "split_preset": "Set split to {{percent}}%"
+    "split_preset": "Set split to {{percent}}%",
+    "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",

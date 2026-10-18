@@ -95,7 +95,8 @@
     "tape_loaded_preview": "Кассета загружена",
     "split_play": "Воспроизвести сравнение",
     "split_pause": "Приостановить сравнение",
-    "split_preset": "Установить разделение на {{percent}}%"
+    "split_preset": "Установить разделение на {{percent}}%",
+    "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",

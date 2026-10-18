@@ -95,7 +95,8 @@
     "tape_loaded_preview": "磁带已载入",
     "split_play": "播放对比",
     "split_pause": "暂停对比",
-    "split_preset": "设置分割为 {{percent}}%"
+    "split_preset": "设置分割为 {{percent}}%",
+    "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",

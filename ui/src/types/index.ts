@@ -192,6 +192,7 @@ export interface PanasonicDisk {
 export interface ComparisonFrameResponse {
   status: string;
   timestamp: number;
+  duration?: number;
   raw_image: string;
   processed_image: string;
   width: number;

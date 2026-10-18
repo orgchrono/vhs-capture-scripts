@@ -95,7 +95,8 @@
     "tape_loaded_preview": "Band Geladen",
     "split_play": "Vergleich abspielen",
     "split_pause": "Vergleich pausieren",
-    "split_preset": "Teilung auf {{percent}}% setzen"
+    "split_preset": "Teilung auf {{percent}}% setzen",
+    "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",

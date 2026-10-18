@@ -95,7 +95,8 @@
     "tape_loaded_preview": "Fita Carregada",
     "split_play": "Reproduzir Comparador",
     "split_pause": "Pausar Comparador",
-    "split_preset": "Definir divisão para {{percent}}%"
+    "split_preset": "Definir divisão para {{percent}}%",
+    "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)"
   },
   "files": {
     "input_file_label": "Arquivo de Entrada (media/raw/)",
