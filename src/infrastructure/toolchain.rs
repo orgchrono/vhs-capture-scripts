@@ -92,8 +92,86 @@ pub fn get_tool_search_candidates(
 
     if cfg!(target_os = "windows") {
         candidates.push(PathBuf::from(r"C:\Program Files\obs-studio\bin\64bit\obs64.exe"));
+        candidates.push(PathBuf::from(r"C:\Program Files (x86)\obs-studio\bin\64bit\obs64.exe"));
         candidates.push(PathBuf::from(r"C:\Program Files\VapourSynth\vspipe.exe"));
         candidates.push(PathBuf::from(r"C:\Program Files (x86)\VapourSynth\vspipe.exe"));
+
+        if let Some(local_appdata) = std::env::var_os("LOCALAPPDATA") {
+            let local_path = PathBuf::from(&local_appdata);
+            candidates.push(local_path.join("Programs").join("obs-studio").join("bin").join("64bit").join("obs64.exe"));
+            candidates.push(local_path.join("Microsoft").join("WinGet").join("Links").join(&bin_name));
+
+            // Winget packages search
+            let winget_pkgs = local_path.join("Microsoft").join("WinGet").join("Packages");
+            if let Ok(entries) = std::fs::read_dir(&winget_pkgs) {
+                for entry in entries.flatten() {
+                    candidates.push(entry.path().join(&bin_name));
+                    candidates.push(entry.path().join("bin").join(&bin_name));
+                }
+            }
+
+            // Python site-packages search for VapourSynth vspipe
+            if tool_name == "vspipe" || tool_name == "vapoursynth" {
+                let py_dir = local_path.join("Python");
+                if let Ok(entries) = std::fs::read_dir(&py_dir) {
+                    for entry in entries.flatten() {
+                        candidates.push(entry.path().join("Lib").join("site-packages").join("vapoursynth").join("vspipe.exe"));
+                    }
+                }
+            }
+        }
+
+        if let Some(appdata) = std::env::var_os("APPDATA") {
+            let app_path = PathBuf::from(&appdata);
+            if tool_name == "vspipe" || tool_name == "vapoursynth" {
+                let py_dir = app_path.join("Python");
+                if let Ok(entries) = std::fs::read_dir(&py_dir) {
+                    for entry in entries.flatten() {
+                        candidates.push(entry.path().join("Lib").join("site-packages").join("vapoursynth").join("vspipe.exe"));
+                    }
+                }
+            }
+        }
+
+        // Query Windows Registry for VapourSynth VSPipeEXE and Path
+        if tool_name == "vspipe" || tool_name == "vapoursynth" {
+            for subkey in &[
+                r"HKCU\SOFTWARE\VapourSynth",
+                r"HKLM\SOFTWARE\VapourSynth",
+                r"HKLM\SOFTWARE\WOW6432Node\VapourSynth",
+            ] {
+                if let Ok(output) = run_command_silent(Path::new("reg"), &["query", subkey, "/v", "VSPipeEXE"]) {
+                    if output.status.success() {
+                        let text = String::from_utf8_lossy(&output.stdout);
+                        for line in text.lines() {
+                            if line.contains("REG_SZ") {
+                                if let Some(val) = line.split("REG_SZ").nth(1) {
+                                    let trimmed = val.trim();
+                                    if !trimmed.is_empty() {
+                                        candidates.push(PathBuf::from(trimmed));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if let Ok(output) = run_command_silent(Path::new("reg"), &["query", subkey, "/v", "Path"]) {
+                    if output.status.success() {
+                        let text = String::from_utf8_lossy(&output.stdout);
+                        for line in text.lines() {
+                            if line.contains("REG_SZ") {
+                                if let Some(val) = line.split("REG_SZ").nth(1) {
+                                    let trimmed = val.trim();
+                                    if !trimmed.is_empty() {
+                                        candidates.push(PathBuf::from(trimmed).join("vspipe.exe"));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     } else if cfg!(target_os = "macos") {
         candidates.push(PathBuf::from("/Applications/OBS.app/Contents/MacOS/OBS"));
         candidates.push(PathBuf::from("/opt/homebrew/bin").join(&bin_name));
@@ -132,7 +210,144 @@ pub fn resolve_executable_path(
         }
     }
 
+    if tool_name == "obs" {
+        return resolve_executable_path("obs64", project_root, user_home);
+    }
+
     None
+}
+
+/// Queries whether an executable is available in candidates or system PATH.
+#[must_use]
+pub fn is_executable_available(tool_name: &str) -> bool {
+    resolve_executable_path(tool_name, None, None).is_some()
+}
+
+/// Checks whether FFmpeg is installed and accessible.
+#[must_use]
+pub fn is_ffmpeg_available() -> bool {
+    is_executable_available("ffmpeg")
+}
+
+/// Checks whether VapourSynth (vspipe) is installed and accessible.
+#[must_use]
+pub fn is_vapoursynth_available() -> bool {
+    is_executable_available("vspipe")
+}
+
+/// Checks whether OBS Studio is installed.
+#[must_use]
+pub fn is_obs_installed() -> bool {
+    is_executable_available("obs") || is_executable_available("obs64")
+}
+
+/// Checks whether OBS Studio is actively running or its WebSocket port is listening.
+#[must_use]
+pub fn is_obs_running() -> bool {
+    use std::net::{SocketAddr, TcpStream};
+    use std::time::Duration;
+
+    let addrs = [
+        "127.0.0.1:4455".parse::<SocketAddr>().ok(),
+        "127.0.0.1:4444".parse::<SocketAddr>().ok(),
+    ];
+    for addr in addrs.into_iter().flatten() {
+        if TcpStream::connect_timeout(&addr, Duration::from_millis(50)).is_ok() {
+            return true;
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        if let Ok(output) = create_silent_command(Path::new("tasklist"))
+            .args(["/FI", "IMAGENAME eq obs64.exe", "/NH"])
+            .output()
+        {
+            let text = String::from_utf8_lossy(&output.stdout);
+            if text.contains("obs64.exe") {
+                return true;
+            }
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        if let Ok(output) = Command::new("pgrep").args(["-x", "obs"]).output() {
+            if output.status.success() {
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
+/// Tests whether the current host can successfully encode a test frame with the specified encoder.
+pub fn test_ffmpeg_encoder(encoder_name: &str) -> bool {
+    if let Some(ffmpeg) = resolve_executable_path("ffmpeg", None, None) {
+        let mut cmd = create_silent_command(&ffmpeg);
+        cmd.args([
+            "-f", "lavfi",
+            "-i", "nullsrc=s=64x64:d=0.04",
+            "-c:v", encoder_name,
+            "-f", "null",
+            "-"
+        ]);
+        if let Ok(output) = cmd.output() {
+            return output.status.success();
+        }
+    }
+    false
+}
+
+static BEST_H264_ENCODER: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+static BEST_HEVC_ENCODER: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+
+/// Automatically detects the optimal hardware encoder (NVIDIA, Intel QSV, AMD AMF, Apple VideoToolbox, VAAPI, or CPU).
+#[must_use]
+pub fn detect_best_ffmpeg_encoder(codec: &str) -> String {
+    if codec == "hevc" {
+        return BEST_HEVC_ENCODER.get_or_init(|| {
+            if cfg!(target_os = "macos") {
+                if test_ffmpeg_encoder("hevc_videotoolbox") {
+                    return "hevc_videotoolbox".to_string();
+                }
+                return "libx265".to_string();
+            }
+            if test_ffmpeg_encoder("hevc_nvenc") {
+                return "hevc_nvenc".to_string();
+            }
+            if cfg!(target_os = "windows") && test_ffmpeg_encoder("hevc_amf") {
+                return "hevc_amf".to_string();
+            }
+            if test_ffmpeg_encoder("hevc_qsv") {
+                return "hevc_qsv".to_string();
+            }
+            "libx265".to_string()
+        }).clone();
+    }
+
+    BEST_H264_ENCODER.get_or_init(|| {
+        if cfg!(target_os = "macos") {
+            if test_ffmpeg_encoder("h264_videotoolbox") {
+                return "h264_videotoolbox".to_string();
+            }
+            return "libx264".to_string();
+        }
+        if test_ffmpeg_encoder("h264_nvenc") {
+            return "h264_nvenc".to_string();
+        }
+        if cfg!(target_os = "windows") && test_ffmpeg_encoder("h264_amf") {
+            return "h264_amf".to_string();
+        }
+        if test_ffmpeg_encoder("h264_qsv") {
+            return "h264_qsv".to_string();
+        }
+        if cfg!(not(target_os = "windows")) && test_ffmpeg_encoder("h264_vaapi") {
+            return "h264_vaapi".to_string();
+        }
+        "libx264".to_string()
+    }).clone()
 }
 
 /// Validates binary SHA-256 against a parsed checksums manifest.
