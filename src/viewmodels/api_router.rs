@@ -41,6 +41,10 @@ fn round_two(v: f64) -> f64 {
     (v * 100.0).round() / 100.0
 }
 
+fn round_two_f32(v: f32) -> f32 {
+    (v * 100.0).round() / 100.0
+}
+
 fn resolve_preferences_path() -> PathBuf {
     if let Ok(dir) = std::env::var("VHS_STUDIO_DIR") {
         return PathBuf::from(dir).join("preferences.json");
@@ -225,8 +229,8 @@ pub fn dispatch_api_request(req: &ApiRequest) -> ApiResponse {
             let (total_ram, avail_ram) = detect_system_ram_gb();
             let specs = HardwareSpecs {
                 cpu_cores: cores,
-                ram_total_gb: round_two(total_ram),
-                ram_available_gb: round_two(avail_ram),
+                ram_total_gb: round_two_f32(total_ram),
+                ram_available_gb: round_two_f32(avail_ram),
                 gpu_type: if cfg!(target_os = "macos") {
                     GpuType::AppleSilicon
                 } else {
@@ -266,8 +270,8 @@ pub fn dispatch_api_request(req: &ApiRequest) -> ApiResponse {
 
             let specs = HardwareSpecs {
                 cpu_cores: cores,
-                ram_total_gb: round_two(total_ram),
-                ram_available_gb: round_two(avail_ram),
+                ram_total_gb: round_two_f32(total_ram),
+                ram_available_gb: round_two_f32(avail_ram),
                 gpu_type: GpuType::Dedicated,
                 gpu_name: "Native Vulkan / Hardware Accelerated GPU".to_string(),
                 vram_gb: 8.0,
@@ -306,8 +310,8 @@ pub fn dispatch_api_request(req: &ApiRequest) -> ApiResponse {
             ApiResponse::ok(&json!({
                 "cpu_percent": 4.5,
                 "ram_percent": (ram_percent * 10.0).round() / 10.0,
-                "ram_used_gb": round_two(used_ram),
-                "ram_total_gb": round_two(total_ram)
+                "ram_used_gb": round_two_f32(used_ram),
+                "ram_total_gb": round_two_f32(total_ram)
             }))
         }
 
