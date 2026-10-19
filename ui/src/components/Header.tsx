@@ -183,7 +183,13 @@ export const Header: React.FC<HeaderProps> = ({
           <Cpu className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           <span className="text-slate-400 text-[10px] font-mono uppercase shrink-0 whitespace-nowrap">ENC:</span>
           <strong className="text-white font-mono uppercase text-[11px] shrink-0 whitespace-nowrap truncate max-w-[180px]">
-            {status?.encoder || t('status.detecting')}
+            {status
+              ? `${status.encoder}${
+                  status.hardware?.ram?.total_gb !== undefined
+                    ? ` • ${status.hardware.ram.total_gb.toFixed(2)}`
+                    : ''
+                }`
+              : t('status.detecting')}
           </strong>
         </div>
 
