@@ -143,8 +143,8 @@ export const SystemTelemetryCard: React.FC<SystemTelemetryCardProps> = ({ compac
           icon={<HardDrive className="w-3 h-3 text-slate-400" />}
           label={t('telemetry.ram_usage')}
           detail={t('telemetry.ram_detail', {
-            used: ramUsed.toFixed(1),
-            total: ramTotal.toFixed(1),
+            used: ramUsed.toFixed(2),
+            total: ramTotal.toFixed(2),
             percent: ramPct.toFixed(0),
           })}
           detailTestId="telemetry-ram-detail"
