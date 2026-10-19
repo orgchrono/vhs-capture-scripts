@@ -7,9 +7,12 @@ use std::fs;
 use std::io::{self, Read};
 use std::path::Path;
 
-use crate::domain::archive::{generate_bagit_declaration, generate_bagit_manifest, ArchivalFileEntry};
+use crate::domain::archive::{
+    generate_bagit_declaration, generate_bagit_manifest, ArchivalFileEntry,
+};
 use crate::domain::fixity::compute_sha256_hex;
 use crate::domain::qtgmc::{build_qtgmc_script_content, FieldOrder, QtgmcScriptParams};
+use crate::infrastructure::hardware::detect_system_ram_gb;
 use crate::infrastructure::panasonic::classify_panasonic_probe;
 use crate::models::presets::RestorationPreset;
 
@@ -18,37 +21,45 @@ pub fn print_usage() {
     println!("VHS Studio Pro - Native Functional Engine (v2.1.0)");
     println!("Usage: vhs-studio <COMMAND> [OPTIONS]\n");
     println!("Commands:");
-    println!("  preset <NAME>             Print canonical SSOT preset config (gold, ai_master, archival, fast, clean)");
-    println!("  sha256 <PATH>             Compute cryptographic SHA-256 fixity digest for file");
-    println!("  probe-panasonic <PATH>    Inspect Panasonic DVR / MEIHDFS / DVD-VR header");
-    println!("  qtgmc-script <INPUT>      Generate high-performance VapourSynth QTGMC script");
-    println!("  bagit-manifest <DIR>      Generate RFC 8493 BagIt manifest for target directory");
-    println!("  timecode <SECONDS>        Format seconds as broadcast timecode HH:MM:SS.mmm");
-    println!("  install-ffmpeg <MGR>      Display package manager installation command for FFmpeg");
-    println!("  preferences               Print canonical default program preferences");
-    println!("  advanced-config [PATH]    Parse and print advanced TOML parameters");
-    println!("  toolchain-check           Inspect and resolve all external binary paths");
-    println!("  plan-restore <INPUT> [P]  Generate complete pipeline plan and FFmpeg arguments");
-    println!("  execute-restore <IN> [P]  Execute video restoration natively via Rust engine");
-    println!("  qc-report <INPUT>         Generate archival broadcast QC Markdown report");
-    println!("  chapters <CSV> [TIT] [F]  Generate FFmetadata or WebVTT chapters from scene CSV");
-    println!("  audio-extract <IN> <OUT>  Extract 16kHz mono audio for AI Whisper transcription");
-    println!("  hardware                  Evaluate and report host system hardware assessment");
-    println!("  thumbnail <IN> [S] [OUT]  Extract crisp preview thumbnail from video frame");
-    println!("  ai-upscale <IN> <OUT>     Generate Real-ESRGAN / Real-CUGAN upscaling CLI command");
-    println!("  ai-interpolate <IN> <OUT> Generate RIFE 60fps frame interpolation CLI command");
-    println!("  watch-ingest <DIR>        Scan directory for finalized VHS capture video files");
-    println!("  obs-eval-trigger <ARGS..> Evaluate intelligent capture start/stop trigger state");
-    println!("  detect-drives             Scan connected physical disks and Panasonic DVR units");
-    println!("  storage-config            Print storage configuration and quota status JSON");
-    println!("  storage-save <P> <JSON>   Save storage configuration atomically and return status");
+    println!("  preset <NAME>              Print canonical SSOT preset config (gold, ai_master, archival, fast, clean)");
+    println!("  sha256 <PATH>              Compute cryptographic SHA-256 fixity digest for file");
+    println!("  probe-panasonic <PATH>     Inspect Panasonic DVR / MEIHDFS / DVD-VR header");
+    println!("  qtgmc-script <INPUT>       Generate high-performance VapourSynth QTGMC script");
+    println!("  bagit-manifest <DIR>       Generate RFC 8493 BagIt manifest for target directory");
+    println!("  timecode <SECONDS>         Format seconds as broadcast timecode HH:MM:SS.mmm");
+    println!(
+        "  install-ffmpeg <MGR>       Display package manager installation command for FFmpeg"
+    );
+    println!("  preferences                Print canonical default program preferences");
+    println!("  advanced-config [PATH]     Parse and print advanced TOML parameters");
+    println!("  toolchain-check            Inspect and resolve all external binary paths");
+    println!("  plan-restore <INPUT> [P]   Generate complete pipeline plan and FFmpeg arguments");
+    println!("  execute-restore <IN> [P]   Execute video restoration natively via Rust engine");
+    println!("  qc-report <INPUT>          Generate archival broadcast QC Markdown report");
+    println!("  chapters <CSV> [TIT] [F]   Generate FFmetadata or WebVTT chapters from scene CSV");
+    println!("  audio-extract <IN> <OUT>   Extract 16kHz mono audio for AI Whisper transcription");
+    println!("  hardware                   Evaluate and report host system hardware assessment");
+    println!("  thumbnail <IN> [S] [OUT]   Extract crisp preview thumbnail from video frame");
+    println!(
+        "  ai-upscale <IN> <OUT>      Generate Real-ESRGAN / Real-CUGAN upscaling CLI command"
+    );
+    println!("  ai-interpolate <IN> <OUT>  Generate RIFE 60fps frame interpolation CLI command");
+    println!("  watch-ingest <DIR>         Scan directory for finalized VHS capture video files");
+    println!("  obs-eval-trigger <ARGS..>  Evaluate intelligent capture start/stop trigger state");
+    println!("  detect-drives              Scan connected physical disks and Panasonic DVR units");
+    println!("  storage-config             Print storage configuration and quota status JSON");
+    println!(
+        "  storage-save <P> <JSON>    Save storage configuration atomically and return status"
+    );
     println!("  storage-chunk-plan <S> <C> Evaluate chunk upload plan for large files");
-    println!("  storage-copy <SRC> <DST>  Copy file to destination and verify integrity");
-    println!("  validate-i18n [DIR]       Verify 100% translation key parity across all 10 locales");
-    println!("  serve [PORT]              Start native Rust HTTP/IPC server for UI on 127.0.0.1");
-    println!("  desktop                   Start native OS desktop window with WebView2 / WebKit");
-    println!("  version                   Print version information");
-    println!("  help                      Print this help message");
+    println!("  storage-copy <SRC> <DST>   Copy file to destination and verify integrity");
+    println!(
+        "  validate-i18n [DIR]        Verify 100% translation key parity across all 10 locales"
+    );
+    println!("  serve [PORT]               Start native Rust HTTP/IPC server for UI on 127.0.0.1");
+    println!("  desktop                    Start native OS desktop window with WebView2 / WebKit");
+    println!("  version                    Print version information");
+    println!("  help                       Print this help message");
 }
 
 /// Returns the logical processor concurrency count.
@@ -204,7 +215,9 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
             let sec_str = match args.get(2) {
                 Some(s) => s,
                 None => {
-                    eprintln!("Error: Missing seconds argument. Usage: vhs-studio timecode <SECONDS>");
+                    eprintln!(
+                        "Error: Missing seconds argument. Usage: vhs-studio timecode <SECONDS>"
+                    );
                     std::process::exit(1);
                 }
             };
@@ -241,8 +254,12 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
             let home = home_str.as_ref().map(Path::new);
 
             let resolve = |name: &str| {
-                crate::infrastructure::toolchain::resolve_executable_path(name, cwd.as_deref(), home)
-                    .map(|p| p.to_string_lossy().to_string())
+                crate::infrastructure::toolchain::resolve_executable_path(
+                    name,
+                    cwd.as_deref(),
+                    home,
+                )
+                .map(|p| p.to_string_lossy().to_string())
             };
 
             let report = crate::infrastructure::toolchain::ToolchainReport {
@@ -298,17 +315,26 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
             let home_str = env::var("USERPROFILE").or_else(|_| env::var("HOME")).ok();
             let home = home_str.as_ref().map(Path::new);
 
-            let ffprobe_bin =
-                crate::infrastructure::toolchain::resolve_executable_path("ffprobe", cwd.as_deref(), home)
-                    .map(|p| p.to_string_lossy().to_string())
-                    .unwrap_or_else(|| "ffprobe".to_string());
-            let ffmpeg_bin =
-                crate::infrastructure::toolchain::resolve_executable_path("ffmpeg", cwd.as_deref(), home)
-                    .map(|p| p.to_string_lossy().to_string())
-                    .unwrap_or_else(|| "ffmpeg".to_string());
-            let vspipe_bin =
-                crate::infrastructure::toolchain::resolve_executable_path("vspipe", cwd.as_deref(), home)
-                    .map(|p| p.to_string_lossy().to_string());
+            let ffprobe_bin = crate::infrastructure::toolchain::resolve_executable_path(
+                "ffprobe",
+                cwd.as_deref(),
+                home,
+            )
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|| "ffprobe".to_string());
+            let ffmpeg_bin = crate::infrastructure::toolchain::resolve_executable_path(
+                "ffmpeg",
+                cwd.as_deref(),
+                home,
+            )
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|| "ffmpeg".to_string());
+            let vspipe_bin = crate::infrastructure::toolchain::resolve_executable_path(
+                "vspipe",
+                cwd.as_deref(),
+                home,
+            )
+            .map(|p| p.to_string_lossy().to_string());
 
             let probe = crate::infrastructure::probe::probe_media_file(input_path, &ffprobe_bin)
                 .unwrap_or_else(|_| crate::infrastructure::probe::MediaProbeResult {
@@ -363,17 +389,26 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
             let home_str = env::var("USERPROFILE").or_else(|_| env::var("HOME")).ok();
             let home = home_str.as_ref().map(Path::new);
 
-            let ffprobe_bin =
-                crate::infrastructure::toolchain::resolve_executable_path("ffprobe", cwd.as_deref(), home)
-                    .map(|p| p.to_string_lossy().to_string())
-                    .unwrap_or_else(|| "ffprobe".to_string());
-            let ffmpeg_bin =
-                crate::infrastructure::toolchain::resolve_executable_path("ffmpeg", cwd.as_deref(), home)
-                    .map(|p| p.to_string_lossy().to_string())
-                    .unwrap_or_else(|| "ffmpeg".to_string());
-            let vspipe_bin =
-                crate::infrastructure::toolchain::resolve_executable_path("vspipe", cwd.as_deref(), home)
-                    .map(|p| p.to_string_lossy().to_string());
+            let ffprobe_bin = crate::infrastructure::toolchain::resolve_executable_path(
+                "ffprobe",
+                cwd.as_deref(),
+                home,
+            )
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|| "ffprobe".to_string());
+            let ffmpeg_bin = crate::infrastructure::toolchain::resolve_executable_path(
+                "ffmpeg",
+                cwd.as_deref(),
+                home,
+            )
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|| "ffmpeg".to_string());
+            let vspipe_bin = crate::infrastructure::toolchain::resolve_executable_path(
+                "vspipe",
+                cwd.as_deref(),
+                home,
+            )
+            .map(|p| p.to_string_lossy().to_string());
 
             let output_dir = args
                 .get(4)
@@ -445,9 +480,12 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
                 on_log_fn: |_line| {},
             };
 
-            let summary =
-                crate::infrastructure::executor::execute_restoration_job(&planned, None, Some(&listener))
-                    .map_err(io::Error::other)?;
+            let summary = crate::infrastructure::executor::execute_restoration_job(
+                &planned,
+                None,
+                Some(&listener),
+            )
+            .map_err(io::Error::other)?;
 
             println!("\nRestoration completed: success={}", summary.success);
             println!("{}", serde_json::to_string_pretty(&summary)?);
@@ -456,7 +494,9 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
             let input_path = match args.get(2) {
                 Some(p) => p,
                 None => {
-                    eprintln!("Error: Missing input path. Usage: vhs-studio qc-report <INPUT_PATH>");
+                    eprintln!(
+                        "Error: Missing input path. Usage: vhs-studio qc-report <INPUT_PATH>"
+                    );
                     std::process::exit(1);
                 }
             };
@@ -465,10 +505,13 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
             let home_str = env::var("USERPROFILE").or_else(|_| env::var("HOME")).ok();
             let home = home_str.as_ref().map(Path::new);
 
-            let ffprobe_bin =
-                crate::infrastructure::toolchain::resolve_executable_path("ffprobe", cwd.as_deref(), home)
-                    .map(|p| p.to_string_lossy().to_string())
-                    .unwrap_or_else(|| "ffprobe".to_string());
+            let ffprobe_bin = crate::infrastructure::toolchain::resolve_executable_path(
+                "ffprobe",
+                cwd.as_deref(),
+                home,
+            )
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|| "ffprobe".to_string());
 
             let probe = crate::infrastructure::probe::probe_media_file(input_path, &ffprobe_bin)
                 .unwrap_or_else(|_| crate::infrastructure::probe::MediaProbeResult {
@@ -534,8 +577,7 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
 
             let scenes = crate::domain::chapters::parse_scenedetect_csv(&csv_content);
             if format_type.eq_ignore_ascii_case("vtt") {
-                let vtt =
-                    crate::domain::chapters::generate_webvtt_text(&scenes, Some("Scene"));
+                let vtt = crate::domain::chapters::generate_webvtt_text(&scenes, Some("Scene"));
                 println!("{vtt}");
             } else {
                 let ffmeta = crate::domain::chapters::generate_ffmetadata_text(
@@ -566,10 +608,13 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
             let home_str = env::var("USERPROFILE").or_else(|_| env::var("HOME")).ok();
             let home = home_str.as_ref().map(Path::new);
 
-            let ffmpeg_bin =
-                crate::infrastructure::toolchain::resolve_executable_path("ffmpeg", cwd.as_deref(), home)
-                    .map(|p| p.to_string_lossy().to_string())
-                    .unwrap_or_else(|| "ffmpeg".to_string());
+            let ffmpeg_bin = crate::infrastructure::toolchain::resolve_executable_path(
+                "ffmpeg",
+                cwd.as_deref(),
+                home,
+            )
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|| "ffmpeg".to_string());
 
             let extract_args = crate::domain::whisper::build_audio_extract_args(
                 input_path,
@@ -577,8 +622,9 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
                 &ffmpeg_bin,
             );
 
-            let mut cmd =
-                crate::infrastructure::toolchain::create_silent_command(Path::new(&extract_args[0]));
+            let mut cmd = crate::infrastructure::toolchain::create_silent_command(Path::new(
+                &extract_args[0],
+            ));
             cmd.args(&extract_args[1..]);
 
             match cmd.status() {
@@ -602,6 +648,7 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
             let cores = std::thread::available_parallelism()
                 .map(|p| p.get() as u32)
                 .unwrap_or(8);
+            let (total_ram, avail_ram) = detect_system_ram_gb();
 
             let is_darwin = std::env::consts::OS == "macos";
             let gpu_type = if is_darwin {
@@ -612,8 +659,8 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
 
             let specs = crate::infrastructure::hardware::HardwareSpecs {
                 cpu_cores: cores,
-                ram_total_gb: 16.0,
-                ram_available_gb: 8.0,
+                ram_total_gb: (total_ram * 10.0).round() / 10.0,
+                ram_available_gb: (avail_ram * 10.0).round() / 10.0,
                 gpu_type,
                 gpu_name: if is_darwin {
                     "Apple Silicon".to_string()
@@ -643,10 +690,13 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
             let home_str = env::var("USERPROFILE").or_else(|_| env::var("HOME")).ok();
             let home = home_str.as_ref().map(Path::new);
 
-            let ffmpeg_bin =
-                crate::infrastructure::toolchain::resolve_executable_path("ffmpeg", cwd.as_deref(), home)
-                    .map(|p| p.to_string_lossy().to_string())
-                    .unwrap_or_else(|| "ffmpeg".to_string());
+            let ffmpeg_bin = crate::infrastructure::toolchain::resolve_executable_path(
+                "ffmpeg",
+                cwd.as_deref(),
+                home,
+            )
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|| "ffmpeg".to_string());
 
             let thumb_args = crate::infrastructure::thumbnail::build_thumbnail_extract_args(
                 input_path,
@@ -742,7 +792,9 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
             let dir_str = match args.get(2) {
                 Some(d) => d,
                 None => {
-                    eprintln!("Error: Missing directory argument. Usage: vhs-studio watch-ingest <DIR>");
+                    eprintln!(
+                        "Error: Missing directory argument. Usage: vhs-studio watch-ingest <DIR>"
+                    );
                     std::process::exit(1);
                 }
             };
@@ -750,7 +802,9 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
             let entries = crate::models::media::scan_media_directory(dir_path)?;
             let ready_files: Vec<crate::models::media::MediaFileEntry> = entries
                 .into_iter()
-                .filter(|e| crate::models::media::is_file_ready_for_ingest(Path::new(&e.path), 1024))
+                .filter(|e| {
+                    crate::models::media::is_file_ready_for_ingest(Path::new(&e.path), 1024)
+                })
                 .collect();
 
             println!("{}", serde_json::to_string_pretty(&ready_files)?);
@@ -839,7 +893,9 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
             let src = match args.get(2) {
                 Some(s) => s.as_str(),
                 None => {
-                    eprintln!("Error: Missing source path. Usage: vhs-studio storage-copy <SRC> <DST>");
+                    eprintln!(
+                        "Error: Missing source path. Usage: vhs-studio storage-copy <SRC> <DST>"
+                    );
                     std::process::exit(1);
                 }
             };
@@ -850,7 +906,10 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
                     std::process::exit(1);
                 }
             };
-            match crate::infrastructure::storage::copy_and_verify_file(Path::new(src), Path::new(dst)) {
+            match crate::infrastructure::storage::copy_and_verify_file(
+                Path::new(src),
+                Path::new(dst),
+            ) {
                 Ok(bytes) => println!("{{\"status\":\"ok\",\"bytes_copied\":{bytes}}}"),
                 Err(err) => {
                     eprintln!("Error: {err}");

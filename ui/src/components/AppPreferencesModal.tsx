@@ -112,11 +112,10 @@ export const AppPreferencesModal: React.FC<AppPreferencesModalProps> = ({
             variant={activeTab === 'directories' ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => setActiveTab('directories')}
-            className={`h-8 text-xs font-mono rounded-sm flex items-center gap-1.5 ${
-              activeTab === 'directories'
+            className={`h-8 text-xs font-mono rounded-sm flex items-center gap-1.5 ${activeTab === 'directories'
                 ? 'bg-studio-surface text-amber-400 border border-studio-border'
                 : 'text-slate-400 hover:text-slate-200'
-            }`}
+              }`}
           >
             <Folder className="w-3.5 h-3.5" />
             <span>{t('preferences.tab_storage')}</span>
@@ -125,11 +124,10 @@ export const AppPreferencesModal: React.FC<AppPreferencesModalProps> = ({
             variant={activeTab === 'performance' ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => setActiveTab('performance')}
-            className={`h-8 text-xs font-mono rounded-sm flex items-center gap-1.5 ${
-              activeTab === 'performance'
+            className={`h-8 text-xs font-mono rounded-sm flex items-center gap-1.5 ${activeTab === 'performance'
                 ? 'bg-studio-surface text-amber-400 border border-studio-border'
                 : 'text-slate-400 hover:text-slate-200'
-            }`}
+              }`}
           >
             <Sliders className="w-3.5 h-3.5" />
             <span>{t('preferences.tab_performance')}</span>
@@ -138,11 +136,10 @@ export const AppPreferencesModal: React.FC<AppPreferencesModalProps> = ({
             variant={activeTab === 'console' ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => setActiveTab('console')}
-            className={`h-8 text-xs font-mono rounded-sm flex items-center gap-1.5 ${
-              activeTab === 'console'
+            className={`h-8 text-xs font-mono rounded-sm flex items-center gap-1.5 ${activeTab === 'console'
                 ? 'bg-studio-surface text-amber-400 border border-studio-border'
                 : 'text-slate-400 hover:text-slate-200'
-            }`}
+              }`}
           >
             <Terminal className="w-3.5 h-3.5" />
             <span>{t('preferences.tab_console')}</span>
@@ -151,11 +148,10 @@ export const AppPreferencesModal: React.FC<AppPreferencesModalProps> = ({
             variant={activeTab === 'hardware' ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => setActiveTab('hardware')}
-            className={`h-8 text-xs font-mono rounded-sm flex items-center gap-1.5 ${
-              activeTab === 'hardware'
+            className={`h-8 text-xs font-mono rounded-sm flex items-center gap-1.5 ${activeTab === 'hardware'
                 ? 'bg-studio-surface text-amber-400 border border-studio-border'
                 : 'text-slate-400 hover:text-slate-200'
-            }`}
+              }`}
           >
             <Cpu className="w-3.5 h-3.5" />
             <span>{t('preferences.tab_hardware')}</span>
@@ -164,11 +160,10 @@ export const AppPreferencesModal: React.FC<AppPreferencesModalProps> = ({
             variant={activeTab === 'interface' ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => setActiveTab('interface')}
-            className={`h-8 text-xs font-mono rounded-sm flex items-center gap-1.5 ${
-              activeTab === 'interface'
+            className={`h-8 text-xs font-mono rounded-sm flex items-center gap-1.5 ${activeTab === 'interface'
                 ? 'bg-studio-surface text-amber-400 border border-studio-border'
                 : 'text-slate-400 hover:text-slate-200'
-            }`}
+              }`}
           >
             <Palette className="w-3.5 h-3.5" />
             <span>{t('preferences.tab_interface')}</span>

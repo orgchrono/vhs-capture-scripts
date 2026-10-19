@@ -178,7 +178,7 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
 
       {/* Tape Cards List */}
       {isLibraryExpanded && (
-        <div className="space-y-1.5 max-h-[380px] overflow-y-auto custom-scrollbar pr-0.5 pt-0.5">
+        <div className="space-y-1.5 max-h-95 overflow-y-auto custom-scrollbar pr-0.5 pt-0.5">
           {files.length === 0 && orphanJobs.length === 0 ? (
             <div className="p-4 border border-dashed border-studio-border rounded-sm bg-studio-surface/40 flex flex-col items-center justify-center text-center text-slate-400 gap-1.5">
               <UploadCloud className="w-6 h-6 text-slate-500 mb-0.5" />
@@ -207,13 +207,11 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
                         size_mb: Math.round(job.output_size_bytes / (1024 * 1024)),
                       });
                     }}
-                    className={`group relative p-2 rounded-sm border transition-all flex items-center gap-2.5 select-none ${
-                      isRestoring || isPaused ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'
-                    } ${
-                      isSelected
+                    className={`group relative p-2 rounded-sm border transition-all flex items-center gap-2.5 select-none ${isRestoring || isPaused ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'
+                      } ${isSelected
                         ? 'bg-amber-950/30 border-amber-500 ring-1 ring-amber-500/30 shadow-xs'
                         : 'bg-studio-surface border-amber-900/60 hover:border-amber-600 hover:bg-studio-surface-hover'
-                    }`}
+                      }`}
                   >
                     <div className="w-12 h-9 rounded-sm bg-amber-950/60 border border-amber-800/80 flex flex-col items-center justify-center shrink-0 relative overflow-hidden">
                       <AlertTriangle className="w-4 h-4 text-amber-400" />
@@ -225,9 +223,8 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1 mb-0.5">
                         <h4
-                          className={`text-xs font-mono truncate ${
-                            isSelected ? 'text-amber-200 font-semibold' : 'text-slate-200 group-hover:text-white'
-                          }`}
+                          className={`text-xs font-mono truncate ${isSelected ? 'text-amber-200 font-semibold' : 'text-slate-200 group-hover:text-white'
+                            }`}
                           title={name}
                         >
                           {name}
@@ -263,13 +260,11 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
                       if (isRestoring || isPaused) return;
                       handleSelectTape(file);
                     }}
-                    className={`group relative p-2 rounded-sm border transition-all flex items-center gap-2.5 select-none ${
-                      isRestoring || isPaused ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'
-                    } ${
-                      isSelected
+                    className={`group relative p-2 rounded-sm border transition-all flex items-center gap-2.5 select-none ${isRestoring || isPaused ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'
+                      } ${isSelected
                         ? 'bg-studio-surface border-emerald-500/80 ring-1 ring-emerald-500/30 shadow-xs'
                         : 'bg-studio-surface border-studio-border hover:border-slate-500 hover:bg-studio-surface-hover'
-                    }`}
+                      }`}
                   >
                     {/* Miniature Thumbnail */}
                     {file.thumbnail_url ? (
@@ -303,11 +298,10 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1 mb-0.5">
                         <h4
-                          className={`text-xs font-mono truncate ${
-                            isSelected
+                          className={`text-xs font-mono truncate ${isSelected
                               ? 'text-emerald-300 font-semibold'
                               : 'text-slate-200 group-hover:text-white'
-                          }`}
+                            }`}
                           title={file.name}
                         >
                           {file.name}

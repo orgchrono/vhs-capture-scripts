@@ -1,10 +1,11 @@
 //! Pure Functional REST/IPC API Router ViewModel (`viewmodels::api_router`).
 //!
-//! Replaces legacy Python FastAPI routers (`src/vhs_studio/api/routers/*.py`)
-//! by mapping incoming `/api/*` requests to pure Rust ViewModels and returning
+//! Mapping incoming `/api/*` requests to pure Rust ViewModels and returning
 //! strongly-typed JSON envelopes.
 
-use crate::infrastructure::hardware::{assess_hardware, GpuType, HardwareSpecs};
+use crate::infrastructure::hardware::{
+    assess_hardware, detect_system_ram_gb, GpuType, HardwareSpecs,
+};
 use crate::models::preferences::AppPreferences;
 use crate::viewmodels::ingest_vm::ipc_detect_connected_drives;
 use crate::viewmodels::storage_vm::{ipc_get_storage_config, ipc_save_storage_config};
@@ -70,10 +71,12 @@ pub fn dispatch_api_request(req: &ApiRequest) -> ApiResponse {
             let cores = std::thread::available_parallelism()
                 .map(|n| n.get() as u32)
                 .unwrap_or(8);
+            let (total_ram, avail_ram) = detect_system_ram_gb();
+
             let specs = HardwareSpecs {
                 cpu_cores: cores,
-                ram_total_gb: 16.0,
-                ram_available_gb: 12.0,
+                ram_total_gb: (total_ram * 10.0).round() / 10.0,
+                ram_available_gb: (avail_ram * 10.0).round() / 10.0,
                 gpu_type: GpuType::Dedicated,
                 gpu_name: "Native Vulkan / Hardware Accelerated GPU".to_string(),
                 vram_gb: 8.0,
@@ -100,12 +103,22 @@ pub fn dispatch_api_request(req: &ApiRequest) -> ApiResponse {
             }))
         }
 
-        ("GET", "/api/system/metrics") => ApiResponse::ok(&json!({
-            "cpu_percent": 4.5,
-            "ram_percent": 32.0,
-            "ram_used_gb": 5.1,
-            "ram_total_gb": 16.0
-        })),
+        ("GET", "/api/system/metrics") => {
+            let (total_ram, avail_ram) = detect_system_ram_gb();
+            let used_ram = (total_ram - avail_ram).max(0.0);
+            let ram_percent = if total_ram > 0.0 {
+                (used_ram / total_ram) * 100.0
+            } else {
+                0.0
+            };
+
+            ApiResponse::ok(&json!({
+                "cpu_percent": 4.5,
+                "ram_percent": (ram_percent * 10.0).round() / 10.0,
+                "ram_used_gb": (used_ram * 10.0).round() / 10.0,
+                "ram_total_gb": (total_ram * 10.0).round() / 10.0
+            }))
+        }
 
         ("GET", "/api/obs/stats") => ApiResponse::ok(&json!({
             "connected": false,
@@ -154,12 +167,15 @@ pub fn dispatch_api_request(req: &ApiRequest) -> ApiResponse {
             "message": "Queue worker state updated"
         })),
 
-        ("GET", "/api/incomplete-jobs") | ("GET", "/api/restoration/incomplete") => ApiResponse::ok(&json!({
-            "incomplete_jobs": [],
-            "total": 0
-        })),
+        ("GET", "/api/incomplete-jobs") | ("GET", "/api/restoration/incomplete") => {
+            ApiResponse::ok(&json!({
+                "incomplete_jobs": [],
+                "total": 0
+            }))
+        }
 
-        ("POST", "/api/incomplete-jobs/action") | ("POST", "/api/restoration/incomplete/action") => ApiResponse::ok(&json!({
+        ("POST", "/api/incomplete-jobs/action")
+        | ("POST", "/api/restoration/incomplete/action") => ApiResponse::ok(&json!({
             "status": "ok",
             "message": "Incomplete job handled"
         })),
@@ -190,7 +206,8 @@ pub fn dispatch_api_request(req: &ApiRequest) -> ApiResponse {
             "unallocated_tracks": []
         })),
 
-        ("POST", "/api/ingest/panasonic/extract") | ("POST", "/api/ingest/panasonic/extract-titles") => ApiResponse::ok(&json!({
+        ("POST", "/api/ingest/panasonic/extract")
+        | ("POST", "/api/ingest/panasonic/extract-titles") => ApiResponse::ok(&json!({
             "status": "ok",
             "message": "Panasonic extraction completed",
             "extracted_files": [],
@@ -246,7 +263,9 @@ pub fn dispatch_api_request(req: &ApiRequest) -> ApiResponse {
             "message": "Action dispatched successfully"
         })),
 
-        ("POST", "/api/run") | ("POST", "/api/pause") | ("POST", "/api/resume")
+        ("POST", "/api/run")
+        | ("POST", "/api/pause")
+        | ("POST", "/api/resume")
         | ("POST", "/api/abort") => ApiResponse::ok(&json!({
             "status": "ok"
         })),
@@ -256,7 +275,10 @@ pub fn dispatch_api_request(req: &ApiRequest) -> ApiResponse {
             "message": "Job cancelled"
         })),
 
-        _ => ApiResponse::error(404, &format!("Route not found: {} {}", req.method, req.path)),
+        _ => ApiResponse::error(
+            404,
+            &format!("Route not found: {} {}", req.method, req.path),
+        ),
     }
 }
 
@@ -272,7 +294,9 @@ mod tests {
             body_json: String::new(),
         });
         assert_eq!(token_res.status_code, 200);
-        assert!(token_res.body_json.contains("vhs-native-rust-session-token"));
+        assert!(token_res
+            .body_json
+            .contains("vhs-native-rust-session-token"));
 
         let status_res = dispatch_api_request(&ApiRequest {
             method: "GET".to_string(),

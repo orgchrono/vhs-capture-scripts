@@ -31,6 +31,94 @@ pub struct HardwareAssessment {
     pub supports_realtime_preview: bool,
 }
 
+/// Detects host total and available physical RAM in GB without external heavyweight dependencies.
+#[must_use]
+pub fn detect_system_ram_gb() -> (f32, f32) {
+    #[cfg(target_os = "windows")]
+    {
+        #[repr(C)]
+        struct MemoryStatusEx {
+            dw_length: u32,
+            dw_memory_load: u32,
+            ull_total_phys: u64,
+            ull_avail_phys: u64,
+            ull_total_page_file: u64,
+            ull_avail_page_file: u64,
+            ull_total_virtual: u64,
+            ull_avail_virtual: u64,
+            ull_avail_extended_virtual: u64,
+        }
+
+        extern "system" {
+            fn GlobalMemoryStatusEx(lp_buffer: *mut MemoryStatusEx) -> i32;
+        }
+
+        let mut status = MemoryStatusEx {
+            dw_length: std::mem::size_of::<MemoryStatusEx>() as u32,
+            dw_memory_load: 0,
+            ull_total_phys: 0,
+            ull_avail_phys: 0,
+            ull_total_page_file: 0,
+            ull_avail_page_file: 0,
+            ull_total_virtual: 0,
+            ull_avail_virtual: 0,
+            ull_avail_extended_virtual: 0,
+        };
+
+        // SAFETY: Pointer is valid, non-null, aligned, and dw_length is properly initialized.
+        unsafe {
+            if GlobalMemoryStatusEx(&mut status) != 0 {
+                let total = (status.ull_total_phys as f64 / (1024.0 * 1024.0 * 1024.0)) as f32;
+                let avail = (status.ull_avail_phys as f64 / (1024.0 * 1024.0 * 1024.0)) as f32;
+                return (total, avail);
+            }
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(meminfo) = std::fs::read_to_string("/proc/meminfo") {
+            let mut total_kb = 0u64;
+            let mut avail_kb = 0u64;
+            for line in meminfo.lines() {
+                if line.starts_with("MemTotal:") {
+                    total_kb = line
+                        .split_whitespace()
+                        .nth(1)
+                        .and_then(|s| s.parse().ok())
+                        .unwrap_or(0);
+                } else if line.starts_with("MemAvailable:") {
+                    avail_kb = line
+                        .split_whitespace()
+                        .nth(1)
+                        .and_then(|s| s.parse().ok())
+                        .unwrap_or(0);
+                }
+            }
+            if total_kb > 0 {
+                let total = (total_kb as f64 / (1024.0 * 1024.0)) as f32;
+                let avail = (avail_kb as f64 / (1024.0 * 1024.0)) as f32;
+                return (total, avail);
+            }
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        use std::process::Command;
+        if let Ok(output) = Command::new("sysctl").arg("-n").arg("hw.memsize").output() {
+            if let Ok(s) = String::from_utf8(output.stdout) {
+                if let Ok(bytes) = s.trim().parse::<u64>() {
+                    let total = (bytes as f64 / (1024.0 * 1024.0 * 1024.0)) as f32;
+                    return (total, total * 0.6);
+                }
+            }
+        }
+    }
+
+    (16.0, 8.0)
+}
+
 /// Pure functional hardware tiering evaluator.
 /// Classifies machine capabilities into 4 honest operational tiers without mutable global state.
 pub fn assess_hardware(specs: &HardwareSpecs) -> HardwareAssessment {
@@ -162,6 +250,13 @@ pub fn resolve_optimal_encoder_args(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_detect_system_ram_gb() {
+        let (total, avail) = detect_system_ram_gb();
+        assert!(total > 0.0);
+        assert!(avail >= 0.0);
+    }
 
     #[test]
     fn test_tier_4_dedicated_high_vram() {
