@@ -72,10 +72,15 @@ describe('PanasonicIngestCard Component', () => {
         renderComponent();
       });
 
-      const toggle = screen.getByTestId('toggle-panasonic-ingest-btn');
-      fireEvent.click(toggle);
+      // Se o card ainda não tiver auto-expandido, clica no botão de expansão
+      if (!screen.queryByTestId('panasonic-path-input')) {
+        const toggle = screen.getByTestId('toggle-panasonic-ingest-btn');
+        fireEvent.click(toggle);
+      }
 
-      expect(await screen.findByTestId('panasonic-path-input')).toBeInTheDocument();
+      const input = (await screen.findByTestId('panasonic-path-input')) as HTMLInputElement;
+      expect(input).toBeInTheDocument();
+      expect(screen.getByText('MATSHITA DVD-RAM')).toBeInTheDocument();
     } finally {
       delete (window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;
     }
