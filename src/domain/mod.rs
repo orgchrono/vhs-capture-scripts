@@ -9,6 +9,7 @@ pub mod audio;
 pub mod chapters;
 pub mod filter;
 pub mod fixity;
+pub mod log_buffer;
 pub mod pipeline;
 pub mod qc;
 pub mod qtgmc;

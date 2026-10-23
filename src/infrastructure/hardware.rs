@@ -127,7 +127,12 @@ pub fn detect_cpu_model() -> String {
     #[cfg(target_os = "windows")]
     {
         if let Ok(output) = std::process::Command::new("reg")
-            .args(["query", r"HKLM\HARDWARE\DESCRIPTION\System\CentralProcessor\0", "/v", "ProcessorNameString"])
+            .args([
+                "query",
+                r"HKLM\HARDWARE\DESCRIPTION\System\CentralProcessor\0",
+                "/v",
+                "ProcessorNameString",
+            ])
             .output()
         {
             if output.status.success() {
@@ -170,7 +175,10 @@ pub fn detect_cpu_model() -> String {
 
     #[cfg(target_os = "macos")]
     {
-        if let Ok(output) = std::process::Command::new("sysctl").args(["-n", "machdep.cpu.brand_string"]).output() {
+        if let Ok(output) = std::process::Command::new("sysctl")
+            .args(["-n", "machdep.cpu.brand_string"])
+            .output()
+        {
             let model = String::from_utf8_lossy(&output.stdout).trim().to_string();
             if !model.is_empty() {
                 return model;
@@ -203,7 +211,10 @@ pub fn detect_gpu_info() -> (GpuType, String, bool, f32) {
 
     // 1. Check NVIDIA SMI for dedicated NVIDIA VRAM and name
     if let Ok(output) = std::process::Command::new("nvidia-smi")
-        .args(["--query-gpu=name,memory.total", "--format=csv,noheader,nounits"])
+        .args([
+            "--query-gpu=name,memory.total",
+            "--format=csv,noheader,nounits",
+        ])
         .output()
     {
         if output.status.success() {

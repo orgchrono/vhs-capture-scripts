@@ -132,6 +132,106 @@ pub fn parse_preferences_json(json_content: &str) -> AppPreferences {
     validate_and_clamp_preferences(parsed)
 }
 
+/// Pure `snake_case` → `camelCase` key conversion (`raw_dir` → `rawDir`).
+#[must_use]
+pub fn snake_to_camel(key: &str) -> String {
+    let mut out = String::with_capacity(key.len());
+    let mut upper_next = false;
+    for c in key.chars() {
+        if c == '_' {
+            upper_next = true;
+        } else if upper_next {
+            out.extend(c.to_uppercase());
+            upper_next = false;
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
+/// Pure `camelCase` → `snake_case` key conversion (`rawDir` → `raw_dir`).
+#[must_use]
+pub fn camel_to_snake(key: &str) -> String {
+    let mut out = String::with_capacity(key.len() + 4);
+    for c in key.chars() {
+        if c.is_ascii_uppercase() {
+            out.push('_');
+            out.push(c.to_ascii_lowercase());
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
+/// UI wire format: canonical `snake_case` keys plus a `camelCase` mirror of each key
+/// (legacy backend contract consumed by `ui/src/store/preferencesSlice.ts`).
+#[must_use]
+pub fn to_ui_json(prefs: &AppPreferences) -> serde_json::Value {
+    let mut map = match serde_json::to_value(prefs) {
+        Ok(serde_json::Value::Object(map)) => map,
+        _ => serde_json::Map::new(),
+    };
+    let mirrors: Vec<(String, serde_json::Value)> = map
+        .iter()
+        .map(|(k, v)| (snake_to_camel(k), v.clone()))
+        .filter(|(camel, _)| !map.contains_key(camel))
+        .collect();
+    map.extend(mirrors);
+    serde_json::Value::Object(map)
+}
+
+/// Overlays a (possibly partial, snake- or camel-cased) update onto the current preferences.
+#[must_use]
+pub fn merge_preferences(current: &AppPreferences, incoming: &serde_json::Value) -> AppPreferences {
+    let mut base = match serde_json::to_value(current) {
+        Ok(serde_json::Value::Object(map)) => map,
+        _ => serde_json::Map::new(),
+    };
+    if let serde_json::Value::Object(updates) = incoming {
+        for (key, value) in updates {
+            base.insert(camel_to_snake(key), value.clone());
+        }
+    }
+    let merged: AppPreferences =
+        serde_json::from_value(serde_json::Value::Object(base)).unwrap_or_else(|_| current.clone());
+    validate_and_clamp_preferences(merged)
+}
+
+#[cfg(test)]
+mod ui_contract_tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn test_key_case_conversion_round_trip() {
+        assert_eq!(snake_to_camel("panasonic_poll_interval_ms"), "panasonicPollIntervalMs");
+        assert_eq!(camel_to_snake("panasonicPollIntervalMs"), "panasonic_poll_interval_ms");
+        assert_eq!(snake_to_camel("theme"), "theme");
+    }
+
+    #[test]
+    fn test_ui_json_contains_snake_and_camel_mirrors() {
+        let ui = to_ui_json(&AppPreferences::default());
+        assert!(ui.get("raw_dir").is_some());
+        assert!(ui.get("rawDir").is_some());
+        assert_eq!(ui.get("theme"), Some(&json!("dark")));
+    }
+
+    #[test]
+    fn test_partial_camel_update_preserves_other_fields() {
+        let current = merge_preferences(&AppPreferences::default(), &json!({"rawDir": "D:/cap", "previewFps": 15}));
+        assert_eq!(current.raw_dir, "D:/cap");
+        assert_eq!(current.preview_fps, 15);
+        let next = merge_preferences(&current, &json!({"theme": "light"}));
+        assert_eq!(next.raw_dir, "D:/cap");
+        assert_eq!(next.theme, "light");
+        let clamped = merge_preferences(&next, &json!({"previewFps": 999}));
+        assert_eq!(clamped.preview_fps, 60);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

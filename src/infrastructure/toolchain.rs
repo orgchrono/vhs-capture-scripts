@@ -91,14 +91,20 @@ pub fn get_tool_search_candidates(
     }
 
     if cfg!(target_os = "windows") {
-        candidates.push(PathBuf::from(r"C:\Program Files\obs-studio\bin\64bit\obs64.exe"));
-        candidates.push(PathBuf::from(r"C:\Program Files (x86)\obs-studio\bin\64bit\obs64.exe"));
-        candidates.push(PathBuf::from(r"C:\Program Files\VapourSynth\vspipe.exe"));
-        candidates.push(PathBuf::from(r"C:\Program Files (x86)\VapourSynth\vspipe.exe"));
+        if tool_name == "obs" || tool_name == "obs64" {
+            candidates.push(PathBuf::from(r"C:\Program Files\obs-studio\bin\64bit\obs64.exe"));
+            candidates.push(PathBuf::from(r"C:\Program Files (x86)\obs-studio\bin\64bit\obs64.exe"));
+        }
+        if tool_name == "vspipe" || tool_name == "vapoursynth" {
+            candidates.push(PathBuf::from(r"C:\Program Files\VapourSynth\vspipe.exe"));
+            candidates.push(PathBuf::from(r"C:\Program Files (x86)\VapourSynth\vspipe.exe"));
+        }
 
         if let Some(local_appdata) = std::env::var_os("LOCALAPPDATA") {
             let local_path = PathBuf::from(&local_appdata);
-            candidates.push(local_path.join("Programs").join("obs-studio").join("bin").join("64bit").join("obs64.exe"));
+            if tool_name == "obs" || tool_name == "obs64" {
+                candidates.push(local_path.join("Programs").join("obs-studio").join("bin").join("64bit").join("obs64.exe"));
+            }
             candidates.push(local_path.join("Microsoft").join("WinGet").join("Links").join(&bin_name));
 
             // Winget packages search
@@ -173,17 +179,40 @@ pub fn get_tool_search_candidates(
             }
         }
     } else if cfg!(target_os = "macos") {
-        candidates.push(PathBuf::from("/Applications/OBS.app/Contents/MacOS/OBS"));
+        if tool_name == "obs" || tool_name == "obs64" {
+            candidates.push(PathBuf::from("/Applications/OBS.app/Contents/MacOS/OBS"));
+        }
         candidates.push(PathBuf::from("/opt/homebrew/bin").join(&bin_name));
         candidates.push(PathBuf::from("/usr/local/bin").join(&bin_name));
     } else {
         candidates.push(PathBuf::from("/usr/bin").join(&bin_name));
         candidates.push(PathBuf::from("/usr/local/bin").join(&bin_name));
-        candidates.push(PathBuf::from("/var/lib/flatpak/exports/bin/com.obsproject.Studio"));
-        candidates.push(PathBuf::from("/snap/bin/obs-studio"));
+        if tool_name == "obs" || tool_name == "obs64" {
+            candidates.push(PathBuf::from("/var/lib/flatpak/exports/bin/com.obsproject.Studio"));
+            candidates.push(PathBuf::from("/snap/bin/obs-studio"));
+        }
     }
 
     candidates
+}
+
+fn is_real_executable(path: &Path) -> bool {
+    if !path.is_file() {
+        return false;
+    }
+    #[cfg(windows)]
+    {
+        let lossy = path.to_string_lossy();
+        if lossy.contains("WindowsApps") {
+            return false;
+        }
+        if let Ok(meta) = path.metadata() {
+            if meta.len() == 0 {
+                return false;
+            }
+        }
+    }
+    true
 }
 
 /// Resolves an executable by checking custom search candidates, directory paths, and system PATH.
@@ -194,7 +223,7 @@ pub fn resolve_executable_path(
 ) -> Option<PathBuf> {
     let candidates = get_tool_search_candidates(tool_name, project_root, user_home);
     for cand in candidates {
-        if cand.is_file() {
+        if is_real_executable(&cand) {
             return Some(cand);
         }
     }
@@ -204,7 +233,7 @@ pub fn resolve_executable_path(
         let separator = if cfg!(windows) { ';' } else { ':' };
         for dir in path_var.split(separator) {
             let p = Path::new(dir).join(&bin_name);
-            if p.is_file() {
+            if is_real_executable(&p) {
                 return Some(p);
             }
         }
@@ -287,12 +316,21 @@ pub fn test_ffmpeg_encoder(encoder_name: &str) -> bool {
     if let Some(ffmpeg) = resolve_executable_path("ffmpeg", None, None) {
         let mut cmd = create_silent_command(&ffmpeg);
         cmd.args([
-            "-f", "lavfi",
-            "-i", "nullsrc=s=64x64:d=0.04",
-            "-c:v", encoder_name,
-            "-f", "null",
-            "-"
+            "-nostdin",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "nullsrc=s=64x64:d=0.04",
+            "-c:v",
+            encoder_name,
+            "-f",
+            "null",
+            "-",
         ]);
+        cmd.stdin(std::process::Stdio::null());
         if let Ok(output) = cmd.output() {
             return output.status.success();
         }
@@ -399,16 +437,13 @@ pub fn verify_binary_integrity(
 /// Spawns a background Command configured to never flash console windows on Windows GUI.
 #[must_use]
 pub fn create_silent_command(program: &Path) -> Command {
+    let mut cmd = Command::new(program);
+    cmd.stdin(std::process::Stdio::null());
     #[cfg(windows)]
     {
-        let mut cmd = Command::new(program);
         cmd.creation_flags(CREATE_NO_WINDOW);
-        cmd
     }
-    #[cfg(not(windows))]
-    {
-        Command::new(program)
-    }
+    cmd
 }
 
 /// Executes a subprocess synchronously with invisible console window and captures output.
@@ -436,6 +471,23 @@ pub fn check_ffmpeg_filter_in_output(output_text: &str, filter_name: &str) -> bo
         (trimmed.starts_with("T..") || trimmed.starts_with("..."))
             && trimmed.split_whitespace().any(|token| token == filter_name)
     })
+}
+
+/// Resolves a tool against the live environment (project root = CWD, user home).
+#[must_use]
+pub fn resolve_tool_in_environment(tool_name: &str) -> Option<PathBuf> {
+    let cwd = std::env::current_dir().ok();
+    let home = std::env::var_os("USERPROFILE")
+        .or_else(|| std::env::var_os("HOME"))
+        .map(PathBuf::from);
+    resolve_executable_path(tool_name, cwd.as_deref(), home.as_deref())
+}
+
+/// Resolves a tool to a runnable command, falling back to the bare name for `PATH` lookup.
+#[must_use]
+pub fn resolve_tool_command(tool_name: &str) -> String {
+    resolve_tool_in_environment(tool_name)
+        .map_or_else(|| tool_name.to_string(), |p| p.to_string_lossy().into_owned())
 }
 
 #[cfg(test)]

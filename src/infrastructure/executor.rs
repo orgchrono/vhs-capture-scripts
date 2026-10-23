@@ -25,6 +25,18 @@ use crate::qtgmc::{build_qtgmc_script_content, build_vspipe_cli_args, FieldOrder
 use crate::runner::ProgressAccumulator;
 use crate::toolchain::create_silent_command;
 
+/// Optional per-job overrides taking precedence over the selected preset (SSOT: `PresetConfig`).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize)]
+pub struct RestorationOverrides {
+    pub crf: Option<u8>,
+    pub chroma_fix: Option<bool>,
+    pub denoise: Option<bool>,
+    pub comb_filter: Option<bool>,
+    pub overscan_blanking: Option<bool>,
+    pub dropout_clean: Option<bool>,
+    pub audio_offset_sec: Option<f64>,
+}
+
 /// Declarative user request to execute a restoration job.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RestorationJobRequest {
@@ -47,6 +59,8 @@ pub struct RestorationJobRequest {
     pub start_sec: f64,
     #[serde(default)]
     pub duration_sec: Option<f64>,
+    #[serde(default)]
+    pub overrides: RestorationOverrides,
 }
 
 /// Fully planned restoration ready for subprocess invocation.
@@ -110,6 +124,8 @@ pub fn plan_restoration_job(
     ffmpeg_binary: &str,
 ) -> Result<PlannedRestoration, String> {
     let preset_conf = PresetConfig::from_preset(request.preset);
+    let ov = request.overrides;
+    let comb_filter = ov.comb_filter.unwrap_or(preset_conf.comb_filter);
 
     let output_codec = request.output_codec.unwrap_or(match preset_conf.output_codec {
         crate::presets::OutputCodec::Prores => OutputCodec::ProRes,
@@ -153,20 +169,20 @@ pub fn plan_restoration_job(
         height: probe.height,
         fps: probe.fps,
         target_1080p,
-        crf: preset_conf.crf,
+        crf: ov.crf.unwrap_or(preset_conf.crf),
         output_codec,
         encoder,
         deinterlacer,
-        apply_chroma_fix: preset_conf.chroma_fix,
-        apply_denoise: preset_conf.denoise,
-        apply_comb_filter: preset_conf.comb_filter,
-        apply_overscan_blanking: preset_conf.overscan_blanking,
-        apply_dropout_clean: preset_conf.dropout_clean,
+        apply_chroma_fix: ov.chroma_fix.unwrap_or(preset_conf.chroma_fix),
+        apply_denoise: ov.denoise.unwrap_or(preset_conf.denoise),
+        apply_comb_filter: comb_filter,
+        apply_overscan_blanking: ov.overscan_blanking.unwrap_or(preset_conf.overscan_blanking),
+        apply_dropout_clean: ov.dropout_clean.unwrap_or(preset_conf.dropout_clean),
         audio_policy,
         apply_audio_notch_hum: request.apply_audio_notch_hum,
         apply_loudness_norm: request.apply_loudness_norm,
         start_sec: request.start_sec,
-        audio_offset_sec: 0.0,
+        audio_offset_sec: ov.audio_offset_sec.unwrap_or(0.0),
         duration_sec: request.duration_sec,
     };
 
@@ -197,7 +213,7 @@ pub fn plan_restoration_job(
                 FieldOrder::Tff
             },
             fps_mode: 2,
-            apply_comb_filter: preset_conf.comb_filter,
+            apply_comb_filter: comb_filter,
             thread_count: 8,
             cache_size_mb: 4000,
         };
@@ -342,6 +358,39 @@ where
     }
 }
 
+/// Maximum stderr tail (bytes) retained for failure diagnostics.
+const STDERR_TAIL_MAX_BYTES: usize = 8 * 1024;
+
+/// Pure helper keeping only the last `max_bytes` of `text`, cut on a UTF-8 boundary.
+#[must_use]
+pub fn bounded_tail(text: String, max_bytes: usize) -> String {
+    if text.len() <= max_bytes {
+        return text;
+    }
+    let mut start = text.len() - max_bytes;
+    while !text.is_char_boundary(start) {
+        start += 1;
+    }
+    text[start..].to_string()
+}
+
+fn spawn_stderr_drain(stderr: Option<std::process::ChildStderr>) -> Option<std::thread::JoinHandle<String>> {
+    stderr.map(|mut pipe| {
+        std::thread::spawn(move || {
+            let mut tail = String::new();
+            let mut buf = [0u8; 4096];
+            while let Ok(n) = pipe.read(&mut buf) {
+                if n == 0 {
+                    break;
+                }
+                tail.push_str(&String::from_utf8_lossy(&buf[..n]));
+                tail = bounded_tail(tail, STDERR_TAIL_MAX_BYTES);
+            }
+            tail
+        })
+    })
+}
+
 /// Real-time native execution of a planned restoration pipeline.
 /// Spawns silent subprocesses, pipes VSPipe into FFmpeg if QTGMC is requested,
 /// streams telemetry line-by-line into `ProgressAccumulator`, supports clean
@@ -425,6 +474,9 @@ pub fn execute_restoration_job(
         .take()
         .ok_or_else(|| "Failed to capture FFmpeg stdout pipe".to_string())?;
 
+    // Drain stderr concurrently: an unread pipe fills up and stalls FFmpeg indefinitely.
+    let stderr_drain = spawn_stderr_drain(ffmpeg_child.stderr.take());
+
     let mut reader = BufReader::new(stdout);
     let mut accumulator = ProgressAccumulator::new(planned.expected_frames, planned.expected_duration_sec);
     let mut line_buf = String::new();
@@ -492,12 +544,11 @@ pub fn execute_restoration_job(
 
     if !status.success() {
         let mut err_msg = format!("FFmpeg exited with error status: {status}");
-        if let Some(mut stderr) = ffmpeg_child.stderr.take() {
-            let mut err_text = String::new();
-            let _ = stderr.read_to_string(&mut err_text);
-            if !err_text.is_empty() {
-                err_msg = format!("{err_msg} | Stderr: {err_text}");
-            }
+        let err_text = stderr_drain
+            .and_then(|handle| handle.join().ok())
+            .unwrap_or_default();
+        if !err_text.trim().is_empty() {
+            err_msg = format!("{err_msg} | Stderr: {}", err_text.trim());
         }
         cleanup_part_and_vpy(planned);
         return Ok(build_restoration_summary(
@@ -604,6 +655,7 @@ mod tests {
             apply_loudness_norm: true,
             start_sec: 10.0,
             duration_sec: Some(60.0),
+            overrides: RestorationOverrides::default(),
         };
 
         let probe = dummy_probe();
@@ -632,6 +684,7 @@ mod tests {
             apply_loudness_norm: false,
             start_sec: 0.0,
             duration_sec: Some(100.0),
+            overrides: RestorationOverrides::default(),
         };
         let probe = dummy_probe();
         let planned = plan_restoration_job(&req, &probe, None, "ffmpeg.exe").unwrap();
@@ -669,6 +722,7 @@ mod tests {
             apply_loudness_norm: false,
             start_sec: 0.0,
             duration_sec: Some(10.0),
+            overrides: RestorationOverrides::default(),
         };
         let probe = dummy_probe();
         let planned = plan_restoration_job(&req, &probe, None, "ffmpeg.exe").unwrap();
@@ -693,6 +747,7 @@ mod tests {
             apply_loudness_norm: false,
             start_sec: 0.0,
             duration_sec: Some(10.0),
+            overrides: RestorationOverrides::default(),
         };
         let probe = dummy_probe();
         let planned = plan_restoration_job(&req, &probe, None, "nonexistent_ffmpeg_bin_xyz").unwrap();
