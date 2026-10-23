@@ -6,7 +6,7 @@
 
 use serde::{Deserialize, Serialize};
 
-pub const DEFAULT_MIN_FREE_DISK_GB: f64 = 50.0;
+pub use crate::models::constants::DEFAULT_MIN_FREE_DISK_GB;
 pub const BYTES_PER_GB: f64 = 1_073_741_824.0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

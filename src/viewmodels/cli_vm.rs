@@ -12,9 +12,61 @@ use crate::domain::archive::{
 };
 use crate::domain::fixity::compute_sha256_hex;
 use crate::domain::qtgmc::{build_qtgmc_script_content, FieldOrder, QtgmcScriptParams};
+use crate::infrastructure::executor::{RestorationJobRequest, RestorationOverrides};
 use crate::infrastructure::hardware::detect_system_ram_gb;
 use crate::infrastructure::panasonic::classify_panasonic_probe;
+use crate::models::constants::MEDIA_RESTORED_REL_PATH;
 use crate::models::presets::RestorationPreset;
+use crate::viewmodels::restoration_job_vm::{plan_restoration_request, run_restoration_request};
+
+/// Maps a CLI preset token to its canonical preset (unknown tokens fall back to Gold).
+fn parse_preset(name: &str) -> RestorationPreset {
+    match name {
+        "ai_master" | "ai" => RestorationPreset::AiMaster,
+        "speed" | "fast" => RestorationPreset::Speed,
+        "tbc_hold" | "tbc" => RestorationPreset::TbcHold,
+        "custom" => RestorationPreset::Custom,
+        _ => RestorationPreset::Gold,
+    }
+}
+
+/// Builds the positional-argument job request shared by `plan-restore` / `execute-restore`.
+fn build_cli_job_request(
+    input_path: &str,
+    preset: Option<&str>,
+    output_dir: Option<&str>,
+) -> RestorationJobRequest {
+    RestorationJobRequest {
+        input_path: input_path.to_string(),
+        output_dir: output_dir.unwrap_or(MEDIA_RESTORED_REL_PATH).to_string(),
+        preset: parse_preset(preset.unwrap_or("gold")),
+        target_1080p: true,
+        output_codec: None,
+        custom_deinterlacer: None,
+        audio_policy: None,
+        apply_audio_notch_hum: true,
+        apply_loudness_norm: true,
+        start_sec: 0.0,
+        duration_sec: None,
+        overrides: RestorationOverrides::default(),
+    }
+}
+
+/// Executes a job streaming telemetry to stdout; exits non-zero when the restoration failed
+/// so supervising processes (`ProcessManager`, queue worker) observe the real outcome.
+fn run_job_and_report(request: &RestorationJobRequest) -> Result<(), Box<dyn std::error::Error>> {
+    let summary =
+        run_restoration_request(request, &|line| println!("{line}")).map_err(io::Error::other)?;
+    println!("{}", serde_json::to_string_pretty(&summary)?);
+    if !summary.success {
+        eprintln!(
+            "Restoration failed: {}",
+            summary.error_message.as_deref().unwrap_or("unknown error")
+        );
+        std::process::exit(1);
+    }
+    Ok(())
+}
 
 /// Displays the canonical usage help message.
 pub fn print_usage() {
@@ -35,6 +87,7 @@ pub fn print_usage() {
     println!("  toolchain-check            Inspect and resolve all external binary paths");
     println!("  plan-restore <INPUT> [P]   Generate complete pipeline plan and FFmpeg arguments");
     println!("  execute-restore <IN> [P]   Execute video restoration natively via Rust engine");
+    println!("  restore-job <JSON>         Execute a typed restoration job request (used by the UI/queue)");
     println!("  qc-report <INPUT>          Generate archival broadcast QC Markdown report");
     println!("  chapters <CSV> [TIT] [F]   Generate FFmetadata or WebVTT chapters from scene CSV");
     println!("  audio-extract <IN> <OUT>   Extract 16kHz mono audio for AI Whisper transcription");
@@ -275,220 +328,32 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
             };
             println!("{}", serde_json::to_string_pretty(&report)?);
         }
-        "plan-restore" => {
-            let input_path = match args.get(2) {
-                Some(p) => p,
-                None => {
-                    eprintln!("Error: Missing input path. Usage: vhs-studio plan-restore <INPUT_PATH> [PRESET]");
-                    std::process::exit(1);
-                }
+        "plan-restore" | "execute-restore" => {
+            let command = args[1].as_str();
+            let Some(input_path) = args.get(2) else {
+                eprintln!("Error: Missing input path. Usage: vhs-studio {command} <INPUT_PATH> [PRESET] [OUTPUT_DIR]");
+                std::process::exit(1);
             };
-            let preset_name = args.get(3).map(String::as_str).unwrap_or("gold");
-            let preset = match preset_name {
-                "gold" => RestorationPreset::Gold,
-                "ai_master" | "ai" => RestorationPreset::AiMaster,
-                "speed" | "fast" => RestorationPreset::Speed,
-                "tbc_hold" | "tbc" => RestorationPreset::TbcHold,
-                _ => RestorationPreset::Gold,
-            };
-
-            let output_dir = args
-                .get(4)
-                .cloned()
-                .unwrap_or_else(|| crate::models::constants::MEDIA_RESTORED_REL_PATH.to_string());
-
-            let req = crate::infrastructure::executor::RestorationJobRequest {
-                input_path: input_path.clone(),
-                output_dir,
-                preset,
-                target_1080p: true,
-                output_codec: None,
-                custom_deinterlacer: None,
-                audio_policy: None,
-                apply_audio_notch_hum: true,
-                apply_loudness_norm: true,
-                start_sec: 0.0,
-                duration_sec: None,
-            };
-
-            let cwd = env::current_dir().ok();
-            let home_str = env::var("USERPROFILE").or_else(|_| env::var("HOME")).ok();
-            let home = home_str.as_ref().map(Path::new);
-
-            let ffprobe_bin = crate::infrastructure::toolchain::resolve_executable_path(
-                "ffprobe",
-                cwd.as_deref(),
-                home,
-            )
-            .map(|p| p.to_string_lossy().to_string())
-            .unwrap_or_else(|| "ffprobe".to_string());
-            let ffmpeg_bin = crate::infrastructure::toolchain::resolve_executable_path(
-                "ffmpeg",
-                cwd.as_deref(),
-                home,
-            )
-            .map(|p| p.to_string_lossy().to_string())
-            .unwrap_or_else(|| "ffmpeg".to_string());
-            let vspipe_bin = crate::infrastructure::toolchain::resolve_executable_path(
-                "vspipe",
-                cwd.as_deref(),
-                home,
-            )
-            .map(|p| p.to_string_lossy().to_string());
-
-            let probe = crate::infrastructure::probe::probe_media_file(input_path, &ffprobe_bin)
-                .unwrap_or_else(|_| crate::infrastructure::probe::MediaProbeResult {
-                    file_path: input_path.clone(),
-                    width: 720,
-                    height: 480,
-                    fps: 29.97,
-                    fps_rational: "30000/1001".to_string(),
-                    duration: 3600.0,
-                    total_frames: 107892,
-                    video_codec: "h264".to_string(),
-                    audio_codec: "pcm_s16le".to_string(),
-                    audio_channels: 2,
-                    audio_sample_rate: 48000,
-                    field_order: "tff".to_string(),
-                    is_interlaced: true,
-                    pix_fmt: "yuv420p".to_string(),
-                    color_space: "smpte170m".to_string(),
-                    color_primaries: "smpte170m".to_string(),
-                    color_transfer: "smpte170m".to_string(),
-                    format_name: "avi".to_string(),
-                    standard: "NTSC".to_string(),
-                });
-
-            let planned = crate::infrastructure::executor::plan_restoration_job(
-                &req,
-                &probe,
-                vspipe_bin.as_deref(),
-                &ffmpeg_bin,
-            )
-            .map_err(io::Error::other)?;
-            println!("{}", serde_json::to_string_pretty(&planned)?);
-        }
-        "execute-restore" => {
-            let input_path = match args.get(2) {
-                Some(p) => p,
-                None => {
-                    eprintln!("Error: Missing input path. Usage: vhs-studio execute-restore <INPUT_PATH> [PRESET]");
-                    std::process::exit(1);
-                }
-            };
-            let preset_name = args.get(3).map(String::as_str).unwrap_or("gold");
-            let preset = match preset_name {
-                "gold" => RestorationPreset::Gold,
-                "ai_master" | "ai" => RestorationPreset::AiMaster,
-                "speed" | "fast" => RestorationPreset::Speed,
-                "tbc_hold" | "tbc" => RestorationPreset::TbcHold,
-                _ => RestorationPreset::Gold,
-            };
-
-            let cwd = env::current_dir().ok();
-            let home_str = env::var("USERPROFILE").or_else(|_| env::var("HOME")).ok();
-            let home = home_str.as_ref().map(Path::new);
-
-            let ffprobe_bin = crate::infrastructure::toolchain::resolve_executable_path(
-                "ffprobe",
-                cwd.as_deref(),
-                home,
-            )
-            .map(|p| p.to_string_lossy().to_string())
-            .unwrap_or_else(|| "ffprobe".to_string());
-            let ffmpeg_bin = crate::infrastructure::toolchain::resolve_executable_path(
-                "ffmpeg",
-                cwd.as_deref(),
-                home,
-            )
-            .map(|p| p.to_string_lossy().to_string())
-            .unwrap_or_else(|| "ffmpeg".to_string());
-            let vspipe_bin = crate::infrastructure::toolchain::resolve_executable_path(
-                "vspipe",
-                cwd.as_deref(),
-                home,
-            )
-            .map(|p| p.to_string_lossy().to_string());
-
-            let output_dir = args
-                .get(4)
-                .cloned()
-                .unwrap_or_else(|| crate::models::constants::MEDIA_RESTORED_REL_PATH.to_string());
-
-            let req = crate::infrastructure::executor::RestorationJobRequest {
-                input_path: input_path.clone(),
-                output_dir,
-                preset,
-                target_1080p: true,
-                output_codec: None,
-                custom_deinterlacer: None,
-                audio_policy: None,
-                apply_audio_notch_hum: true,
-                apply_loudness_norm: true,
-                start_sec: 0.0,
-                duration_sec: None,
-            };
-
-            let probe = crate::infrastructure::probe::probe_media_file(input_path, &ffprobe_bin)
-                .unwrap_or_else(|_| crate::infrastructure::probe::MediaProbeResult {
-                    file_path: input_path.clone(),
-                    width: 720,
-                    height: 480,
-                    fps: 29.97,
-                    fps_rational: "30000/1001".to_string(),
-                    duration: 3600.0,
-                    total_frames: 107892,
-                    video_codec: "h264".to_string(),
-                    audio_codec: "pcm_s16le".to_string(),
-                    audio_channels: 2,
-                    audio_sample_rate: 48000,
-                    field_order: "tff".to_string(),
-                    is_interlaced: true,
-                    pix_fmt: "yuv420p".to_string(),
-                    color_space: "smpte170m".to_string(),
-                    color_primaries: "smpte170m".to_string(),
-                    color_transfer: "smpte170m".to_string(),
-                    format_name: "avi".to_string(),
-                    standard: "NTSC".to_string(),
-                });
-
-            let planned = crate::infrastructure::executor::plan_restoration_job(
-                &req,
-                &probe,
-                vspipe_bin.as_deref(),
-                &ffmpeg_bin,
-            )
-            .map_err(io::Error::other)?;
-
-            println!(
-                "Starting native restoration: {} -> {}",
-                planned.input_path, planned.final_output_path
+            let request = build_cli_job_request(
+                input_path,
+                args.get(3).map(String::as_str),
+                args.get(4).map(String::as_str),
             );
-
-            let listener = crate::infrastructure::executor::CallbackListener {
-                on_progress_fn: |acc| {
-                    print!(
-                        "\r[Progress] Frame: {} | FPS: {:.1} | Bitrate: {:.0} kbps | Speed: {:.2}x",
-                        acc.current_frame,
-                        acc.current_fps,
-                        acc.current_bitrate_kbps,
-                        acc.current_speed
-                    );
-                    use std::io::Write;
-                    let _ = std::io::stdout().flush();
-                },
-                on_log_fn: |_line| {},
+            if command == "plan-restore" {
+                let planned = plan_restoration_request(&request).map_err(io::Error::other)?;
+                println!("{}", serde_json::to_string_pretty(&planned)?);
+            } else {
+                run_job_and_report(&request)?;
+            }
+        }
+        "restore-job" => {
+            let Some(json) = args.get(2) else {
+                eprintln!("Error: Missing job request. Usage: vhs-studio restore-job <REQUEST_JSON>");
+                std::process::exit(1);
             };
-
-            let summary = crate::infrastructure::executor::execute_restoration_job(
-                &planned,
-                None,
-                Some(&listener),
-            )
-            .map_err(io::Error::other)?;
-
-            println!("\nRestoration completed: success={}", summary.success);
-            println!("{}", serde_json::to_string_pretty(&summary)?);
+            let request: crate::infrastructure::executor::RestorationJobRequest =
+                serde_json::from_str(json)?;
+            run_job_and_report(&request)?;
         }
         "qc-report" => {
             let input_path = match args.get(2) {

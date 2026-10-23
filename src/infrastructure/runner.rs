@@ -222,6 +222,40 @@ pub fn format_eta_duration(seconds: f64) -> String {
     format!("{:02}:{:02}:{:02}", hrs, mins, secs)
 }
 
+/// Renders the single-line telemetry record the UI console parses
+/// (`PROGRESS:`, `Frames:`, `FPS:`, `Speed:`, `ETA:` — see `ui/src/lib/telemetry.ts`).
+#[must_use]
+pub fn format_progress_log_line(acc: &ProgressAccumulator) -> String {
+    let snapshot = acc.build_snapshot();
+    format!(
+        "PROGRESS: {:.0}% | Frames: {} / {} | FPS: {:.1} | Speed: {:.2}x | ETA: {}",
+        snapshot.progress_percent,
+        snapshot.frame,
+        acc.total_expected_frames,
+        snapshot.fps,
+        snapshot.speed,
+        snapshot.eta_formatted
+    )
+}
+
+#[cfg(test)]
+mod progress_line_tests {
+    use super::*;
+
+    #[test]
+    fn test_progress_line_matches_ui_telemetry_contract() {
+        let mut acc = ProgressAccumulator::new(1000, 0.0);
+        acc.current_frame = 250;
+        acc.current_fps = 25.0;
+        acc.current_speed = 1.5;
+        let line = format_progress_log_line(&acc);
+        assert_eq!(
+            line,
+            "PROGRESS: 25% | Frames: 250 / 1000 | FPS: 25.0 | Speed: 1.50x | ETA: 00:00:30"
+        );
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

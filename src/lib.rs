@@ -13,12 +13,13 @@ pub mod viewmodels;
 
 // Canonical flat crate-root re-exports for ergonomic cross-module and CLI resolution
 pub use domain::{
-    ai, archive, audio, chapters, filter, fixity, pipeline, qc, qtgmc, queue, recovery, stream,
-    tbc, whisper,
+    ai, archive, audio, chapters, filter, fixity, log_buffer, pipeline, qc, qtgmc, queue,
+    recovery, stream, tbc, whisper,
 };
 pub use infrastructure::{
-    executor, hardware, http_server, i18n_validator, lock, meihdfs, oauth, obs, package,
-    panasonic, preflight, probe, runner, storage, thumbnail, toolchain,
+    app_context, executor, hardware, http_codec, http_server, i18n_validator, lock, meihdfs,
+    oauth, obs, package, panasonic, paths, preflight, probe, process_control, process_manager,
+    queue_store, queue_worker, runner, security, storage, thumbnail, toolchain,
 };
-pub use models::{config, constants, media, preferences, presets};
+pub use models::{config, constants, media, preferences, presets, timestamp};
 pub use viewmodels::*;
