@@ -57,10 +57,10 @@ export const FooterStatusBar: React.FC = () => {
     <footer
       role="status"
       aria-label={t('telemetry.title', 'Barra de Status e Telemetria')}
-      className="h-8 bg-studio-panel/95 backdrop-blur border-t border-studio-border text-slate-300 font-mono text-[11px] select-none flex items-center justify-between px-3 shrink-0 z-30"
+      className="h-8 w-full max-w-full overflow-hidden bg-studio-panel/95 backdrop-blur border-t border-studio-border text-slate-300 font-mono text-[11px] select-none flex items-center justify-between px-2.5 shrink-0 z-30"
     >
       {/* LEFT SECTION: Tally Status, Current Stage & Active File */}
-      <div className="flex items-center gap-3 min-w-0 shrink-0">
+      <div className="flex items-center gap-2 min-w-0 shrink-0">
         <div className="flex items-center gap-1.5 shrink-0">
           <span
             className={`led-lamp ${
@@ -83,7 +83,7 @@ export const FooterStatusBar: React.FC = () => {
 
         {fileName && (
           <div
-            className="hidden sm:flex items-center gap-1 text-[10px] text-slate-400 bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border truncate max-w-[200px] shrink-0"
+            className="hidden md:flex items-center gap-1 text-[10px] text-slate-400 bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border truncate max-w-[120px] lg:max-w-[180px] shrink-0"
             title={selectedFile}
           >
             <FileVideo className="w-3 h-3 text-slate-400 shrink-0" />
@@ -93,11 +93,11 @@ export const FooterStatusBar: React.FC = () => {
       </div>
 
       {/* CENTER SECTION: Frame Accurate Telemetry Meters */}
-      <div className="flex items-center gap-3 shrink-0">
+      <div className="flex items-center gap-2 min-w-0 shrink overflow-hidden">
         {isRestoring ? (
           <>
             {/* Mini Progress Pill */}
-            <div className="flex items-center gap-1.5 bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border shrink-0 whitespace-nowrap">
+            <div className="flex items-center gap-1.5 bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border shrink-0 whitespace-nowrap">
               <span className="text-[10px] text-slate-400">{t('telemetry.stage_progress', 'Progresso')}:</span>
               <span className="text-emerald-400 font-bold tabular-nums">
                 {telemetry.progressPercent}%
@@ -105,7 +105,7 @@ export const FooterStatusBar: React.FC = () => {
             </div>
 
             {/* Frames */}
-            <div className="hidden md:flex items-center gap-1 text-[10px] bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border shrink-0 whitespace-nowrap">
+            <div className="hidden sm:flex items-center gap-1 text-[10px] bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border shrink-0 whitespace-nowrap">
               <Film className="w-3 h-3 text-slate-400 shrink-0" />
               <span className="text-slate-400">{t('telemetry.frames', 'Quadros')}:</span>
               <span className="text-white font-medium tabular-nums">
@@ -118,7 +118,7 @@ export const FooterStatusBar: React.FC = () => {
             </div>
 
             {/* FPS */}
-            <div className="hidden lg:flex items-center gap-1 text-[10px] bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border shrink-0 whitespace-nowrap">
+            <div className="hidden xl:flex items-center gap-1 text-[10px] bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border shrink-0 whitespace-nowrap">
               <Gauge className="w-3 h-3 text-emerald-400 shrink-0" />
               <span className="text-slate-400">{t('telemetry.fps', 'FPS')}:</span>
               <span className="text-white font-medium tabular-nums">
@@ -127,7 +127,7 @@ export const FooterStatusBar: React.FC = () => {
             </div>
 
             {/* ETA */}
-            <div className="hidden sm:flex items-center gap-1 text-[10px] bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border shrink-0 whitespace-nowrap">
+            <div className="hidden lg:flex items-center gap-1 text-[10px] bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border shrink-0 whitespace-nowrap">
               <Clock className="w-3 h-3 text-amber-400 shrink-0" />
               <span className="text-slate-400">{t('telemetry.eta', 'ETA')}:</span>
               <span className="text-white font-medium tabular-nums">
@@ -136,7 +136,7 @@ export const FooterStatusBar: React.FC = () => {
             </div>
 
             {/* Speed */}
-            <div className="hidden xl:flex items-center gap-1 text-[10px] bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border shrink-0 whitespace-nowrap">
+            <div className="hidden 2xl:flex items-center gap-1 text-[10px] bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border shrink-0 whitespace-nowrap">
               <Activity className="w-3 h-3 text-slate-300 shrink-0" />
               <span className="text-slate-400">{t('telemetry.speed', 'Vel')}:</span>
               <span className="text-white font-medium tabular-nums">
@@ -153,7 +153,7 @@ export const FooterStatusBar: React.FC = () => {
       </div>
 
       {/* RIGHT SECTION: Hardware Telemetry Drawer Toggle, Active Preset & Terminal Drawer Toggle */}
-      <div className="relative flex items-center gap-2.5 shrink-0">
+      <div className="relative flex items-center gap-2 shrink-0 ml-auto">
         {hwDrawerOpen && (
           <div
             data-testid="hw-telemetry-drawer"
@@ -187,9 +187,9 @@ export const FooterStatusBar: React.FC = () => {
         </button>
 
         {/* Active Strategy Badge */}
-        <div className="hidden sm:flex items-center gap-1 text-[10px] bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border text-slate-300 shrink-0 whitespace-nowrap">
+        <div className="hidden lg:flex items-center gap-1 text-[10px] bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border text-slate-300 shrink-0 whitespace-nowrap">
           <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />
-          <span className="truncate max-w-[130px]">{presetLabels[preset] || preset}</span>
+          <span className="truncate max-w-[120px]">{presetLabels[preset] || preset}</span>
         </div>
 
         {/* Console / Log Drawer Toggle Button */}

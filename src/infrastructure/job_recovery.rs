@@ -229,6 +229,32 @@ pub fn scan_incomplete_jobs(search_dirs: &[PathBuf], raw_dirs: &[PathBuf]) -> Ve
                     clean_name
                 };
 
+                // If a fully restored master already exists on disk for this tape, skip orphaned .part
+                let has_completed_master = if let Ok(dir_entries) = fs::read_dir(&current_dir) {
+                    dir_entries.flatten().any(|e| {
+                        let ep = e.path();
+                        if ep.is_file() {
+                            let ename = ep.file_name().and_then(|n| n.to_str()).unwrap_or_default();
+                            !ename.ends_with(".part")
+                                && !ename.ends_with(".json")
+                                && !ename.ends_with(".log")
+                                && !ename.ends_with(".vtt")
+                                && !ename.ends_with(".md")
+                                && ename.contains(raw_stem)
+                                && ename.contains("_restored")
+                                && ep.metadata().map(|m| m.len()).unwrap_or(0) >= MIN_VIABLE_PART_SIZE_BYTES
+                        } else {
+                            false
+                        }
+                    })
+                } else {
+                    false
+                };
+
+                if has_completed_master {
+                    continue;
+                }
+
                 let mut source_file = String::new();
                 let mut source_exists = false;
 
@@ -330,6 +356,30 @@ pub fn finalize_partial_video(output_path: &Path, ffmpeg_bin: &Path) -> Result<P
             ))
         }
     };
+
+    // If a completed master file already exists in the same folder, use it and remove stale .part
+    if let Some(parent) = real_input.parent() {
+        if let Ok(entries) = fs::read_dir(parent) {
+            for entry in entries.flatten() {
+                let p = entry.path();
+                if p.is_file() {
+                    let ename = p.file_name().and_then(|n| n.to_str()).unwrap_or_default();
+                    if !ename.ends_with(".part")
+                        && !ename.ends_with(".json")
+                        && !ename.ends_with(".log")
+                        && !ename.ends_with(".vtt")
+                        && !ename.ends_with(".md")
+                        && ename.contains("_restored")
+                        && !ename.contains("_finalized")
+                        && p.metadata().map(|m| m.len()).unwrap_or(0) >= MIN_VIABLE_PART_SIZE_BYTES
+                    {
+                        let _ = fs::remove_file(&real_input);
+                        return Ok(p);
+                    }
+                }
+            }
+        }
+    }
 
     let base_clean_str = real_input
         .to_string_lossy()
