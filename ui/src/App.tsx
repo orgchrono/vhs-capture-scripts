@@ -67,6 +67,8 @@ const StudioMain: React.FC<{
     addLog,
     logs,
     preset,
+    outputCodec,
+    setOutputCodec,
   } = useStudioStore()
 
   const telemetry = useMemo(() => {
@@ -95,14 +97,21 @@ const StudioMain: React.FC<{
   const incompleteJobForSelected = selectedFile
     ? incompleteData?.incomplete_jobs?.find((j) => {
         const sNorm = selectedFile.replace(/\\/g, '/').toLowerCase()
+        const sFileName = sNorm.split('/').pop() || ''
         const jNorm = (j.source_file || '').replace(/\\/g, '/').toLowerCase()
-        const sBase = sNorm.split('/').pop()?.split('.')[0] || ''
-        const jBase = jNorm.split('/').pop()?.split('.')[0] || ''
-        if (sNorm && jNorm && sNorm === jNorm) return true
-        if (sBase && jBase && sBase === jBase) return true
+        const jFileName = jNorm.split('/').pop() || ''
+
+        // 1. If source_file is specified in checkpoint/job, match strictly
+        if (jNorm) {
+          return sNorm === jNorm || (sFileName && jFileName && sFileName === jFileName)
+        }
+
+        // 2. Orphan job without source_file recorded: match output stem
+        const sStem = sFileName.replace(/\.[^/.]+$/, '')
         const outNorm = (j.output_file || '').replace(/\\/g, '/').toLowerCase()
-        const outBase = outNorm.split('/').pop()?.split('.')[0] || ''
-        return Boolean(sBase && (outBase === sBase || outBase.startsWith(`${sBase}_`)))
+        const outFileName = outNorm.split('/').pop() || ''
+        const outStem = outFileName.replace(/\.[^/.]+$/, '').replace(/\.part$/, '')
+        return Boolean(sStem && (outStem === sStem || outStem.startsWith(`${sStem}_`)))
       })
     : undefined
 
@@ -218,6 +227,8 @@ const StudioMain: React.FC<{
 
       <Header
         status={status}
+        outputCodec={outputCodec}
+        onSelectOutputCodec={setOutputCodec}
         onInstallQtgmc={handleInstallQtgmc}
         isInstallingQtgmc={isInstallingQtgmc}
         isInstallingObs={isInstallingObs}
@@ -408,7 +419,10 @@ const StudioMain: React.FC<{
 }
 
 export default function App() {
-  const [privacyOpen, setPrivacyOpen] = useState(false)
+  const [privacyOpen, setPrivacyOpen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    return !localStorage.getItem('vhs_studio_eula_accepted')
+  })
   const [preferencesOpen, setPreferencesOpen] = useState(false)
   const { data: serverPrefs } = useGetPreferencesQuery()
   const { updatePreferences } = usePreferencesStore()
@@ -425,6 +439,7 @@ export default function App() {
       <AppPreferencesModal
         isOpen={preferencesOpen}
         onClose={() => setPreferencesOpen(false)}
+        onOpenPrivacy={() => setPrivacyOpen(true)}
       />
       <StudioMain
         onOpenPrivacy={() => setPrivacyOpen(true)}

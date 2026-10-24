@@ -261,6 +261,12 @@ pub fn plan_restoration_job(
     // Encoders and output
     ffmpeg_args.extend(plan.encoder_args.clone());
     ffmpeg_args.extend(plan.audio_args.clone());
+    let muxer_format = match output_codec {
+        OutputCodec::H264 | OutputCodec::Hevc => "mp4",
+        OutputCodec::ProRes => "mov",
+        OutputCodec::Ffv1 => "matroska",
+    };
+    ffmpeg_args.extend(vec!["-f".to_string(), muxer_format.to_string()]);
     ffmpeg_args.push(part_path.clone());
 
     let raw_duration = if probe.duration > request.start_sec {
@@ -673,6 +679,8 @@ mod tests {
         assert!(plan.is_qtgmc_active);
         assert!(plan.qtgmc_vpy_content.is_some());
         assert!(plan.vspipe_cli_args.is_some());
+        assert!(plan.ffmpeg_cli_args.iter().any(|arg| arg == "-f"));
+        assert!(plan.ffmpeg_cli_args.iter().any(|arg| arg == "mp4"));
         assert!(plan.ffmpeg_cli_args.iter().any(|arg| arg == "yuv4mpegpipe"));
         assert!(plan.part_output_path.ends_with(".part"));
         let exp_f: f64 = 60.0 * 29.97;

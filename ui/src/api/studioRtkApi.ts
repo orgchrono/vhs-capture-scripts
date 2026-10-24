@@ -370,7 +370,16 @@ export const studioRtkApi = createApi({
 
     getComparisonFrame: builder.query<
       ComparisonFrameResponse,
-      { source?: string; timestamp?: number; deinterlacer?: string; denoise?: boolean; chroma_fix?: boolean }
+      {
+        source?: string;
+        timestamp?: number;
+        deinterlacer?: string;
+        denoise?: boolean;
+        chroma_fix?: boolean;
+        comb_filter?: boolean;
+        overscan?: boolean;
+        dropout?: boolean;
+      }
     >({
       queryFn: async (params, _queryApi, _extraOptions, baseQuery) => {
         if (isTauriEnvironment()) {
@@ -389,6 +398,9 @@ export const studioRtkApi = createApi({
             deinterlacer: params.deinterlacer || 'qtgmc',
             denoise: params.denoise ?? true,
             chroma_fix: params.chroma_fix ?? true,
+            comb_filter: params.comb_filter ?? false,
+            overscan: params.overscan ?? false,
+            dropout: params.dropout ?? false,
           },
         });
         return result.data

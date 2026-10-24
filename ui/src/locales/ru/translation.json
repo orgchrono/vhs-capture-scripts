@@ -98,7 +98,10 @@
     "split_play": "Воспроизвести сравнение",
     "split_pause": "Приостановить сравнение",
     "split_preset": "Установить разделение на {{percent}}%",
-    "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)"
+    "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)",
+    "live_badge": "ПРЯМОЙ ЭФИР",
+    "jump_to_live": "Вернуться к прямому эфиру",
+    "return_live_view": "Вернуться к монитору реального времени"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",

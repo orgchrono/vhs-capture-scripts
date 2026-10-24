@@ -105,7 +105,8 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
                 }
               }
             }}
-            className="w-full bg-studio-surface border border-studio-border rounded-sm px-2.5 py-1 text-xs font-mono text-slate-200 outline-none focus:border-studio-border-focus focus:ring-1 focus:ring-studio-border-focus transition appearance-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            title={selectedFile || t('files.select_placeholder')}
+            className="w-full bg-studio-surface border border-studio-border rounded-sm pl-2.5 pr-8 py-1 text-xs font-mono text-slate-200 outline-none focus:border-studio-border-focus focus:ring-1 focus:ring-studio-border-focus transition appearance-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed truncate"
           >
             <option value="" disabled hidden>
               {t('files.select_placeholder')}

@@ -113,7 +113,7 @@ export const SystemTelemetryCard: React.FC<SystemTelemetryCardProps> = ({ compac
           </span>
         </div>
         <span
-          className={`text-[10px] px-2 py-0.5 rounded-xs border font-semibold ${
+          className={`text-[10px] px-2 py-0.5 rounded-xs border font-semibold whitespace-nowrap shrink-0 ${
             isPaused
               ? 'bg-amber-950/60 text-amber-300 border-amber-500/40'
               : isRunning

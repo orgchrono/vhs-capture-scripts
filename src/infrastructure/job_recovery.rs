@@ -42,11 +42,7 @@ pub fn resolve_physical_target_file(path: &Path) -> Option<PathBuf> {
                 .file_stem()
                 .and_then(|s| s.to_str())
                 .unwrap_or(base_name);
-            let clean_stem = if let Some((prefix, _)) = base_stem.split_once("_restored") {
-                prefix
-            } else {
-                base_stem
-            };
+            let clean_stem = base_stem;
 
             if let Ok(entries) = fs::read_dir(parent) {
                 for entry in entries.flatten() {

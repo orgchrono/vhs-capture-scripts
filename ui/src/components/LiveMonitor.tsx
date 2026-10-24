@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Video,
   AlertTriangle,
@@ -20,6 +20,8 @@ import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import type { SystemHealth } from '../types';
 import { formatBitrate, formatDuration } from '../lib/formatters';
 import { useGetComparisonFrameQuery } from '../api/studioRtkApi';
+import { createTelemetryParser } from '../lib/telemetry';
+import { LiveEdgeIndicator } from './LiveEdgeIndicator';
 
 export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => {
   const { t } = useTranslation();
@@ -27,18 +29,40 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
     selectedFile,
     isRestoring,
     deinterlacer,
+    denoise,
+    chromaFix,
+    combFilter,
+    overscanBlanking,
+    dropoutClean,
     previewTimestamp,
     setPreviewTimestamp,
+    logs,
+    preset,
   } = useStudioStore();
   const { livePreviewEnabled } = usePreferencesStore();
   const [isSplitMode, setIsSplitMode] = useState(false);
-  const [erroredFile, setErroredFile] = useState<string | null>(null);
   const [liveFrameSrc, setLiveFrameSrc] = useState<string | null>(null);
-  const thumbError = Boolean(selectedFile && erroredFile === selectedFile);
   const { videoRef, isActive, error, obsStats, isCapturing } = useLiveMonitor();
   const shouldReduceMotion = useReducedMotion();
 
-  const currentTimestamp = previewTimestamp ?? 5.0;
+  const telemetry = useMemo(() => {
+    const parser = createTelemetryParser();
+    return parser(logs, isRestoring, preset);
+  }, [logs, isRestoring, preset]);
+
+  const liveSec = telemetry.currentSeconds;
+  const rawTimestamp = previewTimestamp ?? 5.0;
+  const isAtLiveEdge = !isRestoring || Math.abs(rawTimestamp - liveSec) <= 2.0;
+  const currentTimestamp = isRestoring && isAtLiveEdge && liveSec > 0 ? liveSec : rawTimestamp;
+
+  const [debouncedTimestamp, setDebouncedTimestamp] = useState<number>(currentTimestamp);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedTimestamp(currentTimestamp);
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [currentTimestamp]);
+
   const [streamAnchor, setStreamAnchor] = useState<number>(currentTimestamp);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [streamKey, setStreamKey] = useState<number>(0);
@@ -46,12 +70,15 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
   const { data: frameData } = useGetComparisonFrameQuery(
     {
       source: selectedFile || '',
-      timestamp: currentTimestamp,
+      timestamp: debouncedTimestamp,
       deinterlacer: deinterlacer || 'qtgmc',
-      denoise: true,
-      chroma_fix: true,
+      denoise: denoise ?? false,
+      chroma_fix: chromaFix ?? true,
+      comb_filter: combFilter ?? false,
+      overscan: overscanBlanking ?? true,
+      dropout: dropoutClean ?? false,
     },
-    { skip: !selectedFile || isActive || isRestoring || isPlaying }
+    { skip: !selectedFile || isActive || isPlaying }
   );
 
   const totalDuration = frameData?.duration && frameData.duration > 0 ? frameData.duration : 3600;
@@ -100,13 +127,21 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
       try {
         const res = await fetch(`/api/monitor/live-restoration-frame?t=${Date.now()}`);
         if (res.status === 200 && active) {
-          const blob = await res.blob();
-          if (blob.size > 0 && active) {
-            const newUrl = URL.createObjectURL(blob);
-            setLiveFrameSrc((prev) => {
-              if (prev) URL.revokeObjectURL(prev);
-              return newUrl;
-            });
+          const contentType = res.headers.get('content-type') || '';
+          if (contentType.includes('image')) {
+            const blob = await res.blob();
+            if (blob.size > 0 && active) {
+              const newUrl = URL.createObjectURL(blob);
+              setLiveFrameSrc((prev) => {
+                if (prev) URL.revokeObjectURL(prev);
+                return newUrl;
+              });
+            }
+          } else {
+            const data = await res.json();
+            if (data.has_frame && data.frame && active) {
+              setLiveFrameSrc(data.frame);
+            }
           }
         }
       } catch {
@@ -166,7 +201,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
   return (
     <div className="relative w-full h-full bg-black flex flex-col items-center justify-center overflow-hidden" data-testid="live-monitor-container">
       {/* Top Header: Signal Status, Split Toggle & Telemetry HUD */}
-      <div className="absolute top-2.5 left-2.5 right-2.5 z-20 flex items-center justify-between pointer-events-auto gap-2">
+      <div className="absolute top-2.5 left-2.5 right-2.5 z-20 flex items-center justify-between pointer-events-auto gap-2 flex-nowrap min-w-0 overflow-hidden">
         <div className="flex items-center gap-2 shrink-0">
           <span className="bg-black/85 backdrop-blur-md px-2.5 py-1 rounded-sm text-[10px] font-mono text-slate-300 border border-studio-border shadow-sm flex items-center gap-1.5 shrink-0 whitespace-nowrap">
             <span
@@ -204,13 +239,13 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
           </button>
         </div>
 
-        <div className="flex items-center gap-1.5 ml-auto shrink-0">
+        <div className="flex items-center gap-1.5 ml-auto shrink-0 flex-nowrap">
           <AnimatePresence>
             {(isCapturing || obsStats?.recording) && (
               <motion.span
                 key="badge-rec"
                 {...badgeMotion}
-                className="bg-red-900/90 px-2.5 py-1 rounded-sm text-[10px] font-bold text-white border border-red-600/50 shadow-sm flex items-center gap-1.5 animate-pulse tracking-wider font-mono shrink-0"
+                className="bg-red-900/90 px-2.5 py-1 rounded-sm text-[10px] font-bold text-white border border-red-600/50 shadow-sm flex items-center gap-1.5 animate-pulse tracking-wider font-mono shrink-0 whitespace-nowrap"
               >
                 <span className="led-lamp led-rec"></span>
                 {obsStats?.timecode ? `REC ${obsStats.timecode}` : 'REC'}
@@ -220,17 +255,17 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
               <motion.span
                 key="badge-bitrate"
                 {...badgeMotion}
-                className="bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-sm text-[10px] font-mono font-semibold text-slate-200 border border-studio-border shadow-sm flex items-center gap-1.5 shrink-0"
+                className="bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-sm text-[10px] font-mono font-semibold text-slate-200 border border-studio-border shadow-sm flex items-center gap-1.5 shrink-0 whitespace-nowrap"
               >
-                <Activity className="w-3 h-3 text-slate-400" />
-                {formatBitrate(obsStats.bitrate_kbps)}
+                <Activity className="w-3 h-3 text-slate-400 shrink-0" />
+                <span className="shrink-0 whitespace-nowrap">{formatBitrate(obsStats.bitrate_kbps)}</span>
               </motion.span>
             )}
             {obsStats?.connected && obsStats?.fps !== undefined && obsStats.fps > 0 && (
               <motion.span
                 key="badge-fps"
                 {...badgeMotion}
-                className="bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-sm text-[10px] font-mono text-slate-300 border border-studio-border shadow-sm tabular-nums shrink-0"
+                className="bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-sm text-[10px] font-mono text-slate-300 border border-studio-border shadow-sm tabular-nums shrink-0 whitespace-nowrap"
               >
                 {obsStats.fps} FPS
               </motion.span>
@@ -239,9 +274,9 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
               <motion.span
                 key="badge-drops"
                 {...badgeMotion}
-                className="bg-amber-900/90 px-2.5 py-1 rounded-sm text-[10px] font-bold text-white border border-amber-600/50 shadow-sm flex items-center gap-1.5 animate-pulse tracking-wider font-mono shrink-0"
+                className="bg-amber-900/90 px-2.5 py-1 rounded-sm text-[10px] font-bold text-white border border-amber-600/50 shadow-sm flex items-center gap-1.5 animate-pulse tracking-wider font-mono shrink-0 whitespace-nowrap"
               >
-                <AlertTriangle className="w-3 h-3 text-white" /> {t('monitor.dropped_frames', { count: health?.dropped_frames })}
+                <AlertTriangle className="w-3 h-3 text-white shrink-0" /> {t('monitor.dropped_frames', { count: health?.dropped_frames })}
               </motion.span>
             )}
           </AnimatePresence>
@@ -249,13 +284,12 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
       </div>
       
       {/* Live Rendering Miniature or Loaded Tape Preview */}
-      {!isActive && selectedFile && !thumbError && (
+      {!isActive && selectedFile && (
         <div className="absolute inset-0 z-0 flex items-center justify-center bg-black overflow-hidden">
-          {isRestoring ? (
+          {isRestoring && isAtLiveEdge ? (
             <img
-              src={liveFrameSrc || thumbnailUrl}
+              src={liveFrameSrc || frameData?.processed_image || thumbnailUrl}
               alt={t('monitor.rendering_preview')}
-              onError={() => setErroredFile(selectedFile)}
               className="w-full h-full object-contain brightness-105 contrast-105 transition-all duration-300"
             />
           ) : isPlaying ? (
@@ -267,10 +301,9 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
             />
           ) : (
             <img
-              key={`live-frame-${currentTimestamp}`}
-              src={frameData?.processed_image || frameData?.raw_image || thumbnailUrl}
+              key={`live-frame-${debouncedTimestamp}`}
+              src={frameData?.processed_image || frameData?.raw_image || liveFrameSrc || thumbnailUrl}
               alt={t('monitor.rendering_preview')}
-              onError={() => setErroredFile(selectedFile)}
               className="w-full h-full object-contain opacity-90 transition-all duration-300"
             />
           )}
@@ -284,7 +317,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
       )}
 
       {/* Fallback / Error State */}
-      {!isActive && (!selectedFile || thumbError) && (
+      {!isActive && !selectedFile && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/80 z-0">
           {error ? (
             <>
@@ -323,7 +356,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
       </div>
 
       {/* Bottom Transport Controls when tape is loaded */}
-      {!isActive && selectedFile && !isRestoring ? (
+      {!isActive && selectedFile ? (
         <div className="absolute bottom-0 left-0 right-0 z-30 bg-studio-panel/95 border-t border-studio-border px-2.5 py-1.5 flex items-center justify-between gap-2.5 text-xs font-mono select-none flex-nowrap min-w-0">
           <div className="flex items-center gap-1 shrink-0">
             <button
@@ -386,6 +419,18 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
               <ChevronsRight className="w-3.5 h-3.5" />
             </button>
           </div>
+
+          {/* Jump to Live Restoration Point Button or Live Edge indicator */}
+          {isRestoring && (
+            <LiveEdgeIndicator
+              isAtLiveEdge={isAtLiveEdge}
+              onJumpToLive={() => {
+                handleTimelineInput(liveSec);
+                handleTimelineCommit();
+              }}
+              testId="live-indicator-badge"
+            />
+          )}
 
           <div className="flex-1 min-w-0 flex items-center gap-2.5">
             <input

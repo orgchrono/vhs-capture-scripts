@@ -21,10 +21,50 @@ The architectural design of VHS Studio Pro satisfies stringent requirements for 
    - The algorithmic foundation is constructed using pure functions with zero side-effects (`resolve_deinterlace_filter`, `resolve_codec_video_args`, `build_master_ffmpeg_args`, `calculate_expected_frames`).
    - Shared mutable state has been eliminated. Structs are immutable by default, utilizing Rust's type system and ownership model.
    - Untyped dynamic constructs have been replaced with strict Rust ADTs (`enum`, `struct`), typed `Result<T, E>` monads, and strict TypeScript interfaces across frontend layers.
+6. **Zero-Hardcode & Comprehensive i18n:** Zero literal strings in React components, 100% parity across all 10 locales (`pt-BR`, `en-US`, `es`, `fr`, `de`, `it`, `ja`, `ar`, `ru`, `zh-CN`), and zero magic numbers in code logic.
 
 ---
 
-## 2. Layered Application Structure (Strict MVVM)
+## 2. Diagnóstico e Arquitetura Consolidada (Clean MVVM 4-Tier)
+
+A migração de todo o código legado em Python para Rust nativo foi realizada seguindo a arquitetura **MVVM de 4 camadas** e as diretrizes rigorosas do repositório (**FP, SoC, SRP, DRY, SSOT** e **ZERO-HARDCODE**):
+
+```mermaid
+graph TD
+    subgraph VIEW["VIEW / FRONTEND (React 19)"]
+        V1["10 Locales i18n · Radix UI · TailwindCSS · RTK Query · Tauri Bridge"]
+    end
+
+    subgraph VIEWMODELS["VIEWMODELS (Typed IPC & REST Routers)"]
+        VM1["api_system · api_restoration · api_queue · api_ingest · api_obs · cli"]
+        VM2["ipc_commands (57 Tauri v2 handlers: restoration, ingest, storage, etc)"]
+    end
+
+    subgraph INFRASTRUCTURE["INFRASTRUCTURE (OS / IO / Subprocess)"]
+        INF1["http_server · job_recovery · panasonic · meihdfs · obs · toolchain"]
+        INF2["thumbnail · storage · process_manager · queue_worker · security"]
+    end
+
+    subgraph DOMAIN["DOMAIN (Pure Functional Logic)"]
+        DOM1["qc · qtgmc · stream · recovery · pipeline · filter · fixity · audio"]
+        DOM2["ai (Real-ESRGAN, RIFE, CodeFormer, Afftdn) · archive · chapters"]
+    end
+
+    subgraph MODELS["MODELS (Entities & Constants)"]
+        MOD1["constants · presets · preferences · config · media · recovery · queue"]
+    end
+
+    VIEW <-->|"IPC (Tauri v2) / REST (HTTP/1.1) / SSE"| VIEWMODELS
+    VIEWMODELS <-->|"Pure Types / Typed Commands"| INFRASTRUCTURE
+    INFRASTRUCTURE <-->|"Pure Computation / Immutable Specs"| DOMAIN
+    DOMAIN -->|"SSOT Validation & Bounds"| MODELS
+    INFRASTRUCTURE -->|"SSOT Constants"| MODELS
+    VIEWMODELS -->|"SSOT Presets & Defaults"| MODELS
+```
+
+---
+
+## 3. Layered Application Structure & Process Orchestration
 
 ```mermaid
 flowchart TD
@@ -56,7 +96,7 @@ flowchart TD
 
 ---
 
-## 3. Modular Architecture Decomposition
+## 4. Modular Architecture Decomposition
 
 The backend is decomposed into specialized, decoupled modules organized across four strict Clean Architecture / MVVM layers:
 
@@ -70,7 +110,7 @@ The backend is decomposed into specialized, decoupled modules organized across f
 
 ---
 
-## 4. Sequential Pipelined Chain Architecture (DAG)
+## 5. Sequential Pipelined Chain Architecture (DAG)
 
 The [`PipelineOrchestrator`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/domain/pipeline.rs) compiles video processing tasks into a Directed Acyclic Graph (DAG) implementing a **Sequential Pipelined Chain** for cumulative transformations:
 
@@ -107,7 +147,7 @@ flowchart TD
 
 ---
 
-## 5. Reactive Frontend & Functional Purity
+## 6. Reactive Frontend & Functional Purity
 
 The frontend implementation in `ui/src/` strictly follows modern React 19 architecture:
 
@@ -125,7 +165,7 @@ The frontend implementation in `ui/src/` strictly follows modern React 19 archit
 
 ---
 
-## 6. Code Integrity & Automated Verification
+## 7. Code Integrity & Automated Verification
 
 Codebase health is enforced across two complementary audit layers:
 
@@ -137,14 +177,14 @@ Codebase health is enforced across two complementary audit layers:
    - **Playwright:** End-to-End integration testing under headless Chromium.
    - **Cargo Check:** Fast compilation check of the entire native Rust core.
    - **Cargo Clippy:** Strict idiomatic Rust linting (`clippy -- -D warnings`).
-   - **Cargo Test:** 150/150 native Rust unit tests covering all domain models and infrastructure.
+   - **Cargo Test:** 211/211 native Rust unit tests covering all domain models and infrastructure.
    - **i18n Parity:** Verification of key parity across all 10 supported translation dictionaries.
 2. **Swarm Auditors (`scripts/swarm_auditors.mts`):**
    - 7 parallel auditors inspecting Architecture (SoC/SRP/MVVM), Dependencies, Security (zero hardcoded secrets), Code Quality & FP purity, Test Harness, UX/UI & A11y, and CI/CD pipelines.
 
 ---
 
-## 7. Broadcast Telemetry & Footer StatusBar (NLE Standard)
+## 8. Broadcast Telemetry & Footer StatusBar (NLE Standard)
 
 Drawing from industry-standard non-linear editing suites (DaVinci Resolve, Adobe Premiere Pro, Cockos Reaper), monitoring is organized around a **permanent Footer StatusBar**:
 
@@ -160,7 +200,7 @@ Drawing from industry-standard non-linear editing suites (DaVinci Resolve, Adobe
 
 ---
 
-## 8. Panasonic DVR Ingestion & Decoupled Toolchain
+## 9. Panasonic DVR Ingestion & Decoupled Toolchain
 
 Panasonic standalone DVD/HDD recorders write recordings in specialized low-level formats:
 1. **MEIHDFS-V2.0 and MEIHDFS-V1.0:** Matsushita Electric Industrial Host Disk File System with superblocks located in the partition table and initial media sectors.
@@ -174,7 +214,7 @@ Panasonic standalone DVD/HDD recorders write recordings in specialized low-level
 
 ---
 
-## 9. Zero-Hardcode Policy & Internationalization
+## 10. Zero-Hardcode Policy & Internationalization
 
 As stipulated in [`AGENTS.md`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/AGENTS.md) and [`GEMINI.md`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/GEMINI.md), user-facing text is strictly separated from code logic:
 1. **100% i18n:** Every React component must invoke `t('namespace.key')` from `react-i18next`. Static text literals in JSX, toast alerts, tooltips, or action buttons are prohibited.
@@ -183,7 +223,7 @@ As stipulated in [`AGENTS.md`](file:///c:/Users/danie/Documents/vhs-capture-scri
 
 ---
 
-## 10. Automated Quality Control & Analog Defect Diagnostics
+## 11. Automated Quality Control & Analog Defect Diagnostics
 
 The [`QualityControl`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/domain/qc.rs) subsystem performs automated diagnostics across archive captures:
 
@@ -196,7 +236,7 @@ The [`QualityControl`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main
 
 ---
 
-## 11. Architectural Decision Records (ADRs) & Technology Stack Rationale
+## 12. Architectural Decision Records (ADRs) & Technology Stack Rationale
 
 In accordance with broadcast and institutional archiving standards (**IASA-TC 04, FADGI 4-Star, CONARQ**), every technology selection is grounded in formal engineering trade-off evaluations:
 

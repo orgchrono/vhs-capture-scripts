@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import {
   RefreshCw,
   Play,
@@ -7,15 +7,17 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  Power,
   Layers,
   Film,
   Radio,
+  X,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useGetComparisonFrameQuery } from '../api/studioRtkApi';
 import { useStudioStore } from '../store/useStudioStore';
 import { formatDuration } from '../lib/formatters';
+import { createTelemetryParser } from '../lib/telemetry';
+import { LiveEdgeIndicator } from './LiveEdgeIndicator';
 
 const SPLIT_PRESETS = [0, 25, 50, 75, 100] as const;
 
@@ -64,6 +66,14 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
     setSplitPosition,
     setPreviewMode,
     deinterlacer,
+    denoise,
+    chromaFix,
+    combFilter,
+    overscanBlanking,
+    dropoutClean,
+    isRestoring,
+    logs,
+    preset,
   } = useStudioStore();
 
   const [splitPos, setSplitPos] = useState<number>(splitPosition ?? 50);
@@ -79,16 +89,37 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
   const activePlaying = hasMedia && isPlaying;
   const isStreamActive = viewMode === 'stream' && activePlaying;
 
+  const telemetry = useMemo(() => {
+    const parser = createTelemetryParser();
+    return parser(logs, isRestoring, preset);
+  }, [logs, isRestoring, preset]);
+
+  const liveSec = telemetry.currentSeconds;
+  const isAtLiveEdge = !isRestoring || Math.abs(timestamp - liveSec) <= 2.0;
+  const effectiveTimestamp = isRestoring && isAtLiveEdge && liveSec > 0 ? liveSec : timestamp;
+
+  const [debouncedTimestamp, setDebouncedTimestamp] = useState<number>(previewTimestamp ?? 5.0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedTimestamp(effectiveTimestamp);
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [effectiveTimestamp]);
+
   const {
     data: frameData,
     isFetching,
   } = useGetComparisonFrameQuery(
     {
       source,
-      timestamp,
+      timestamp: debouncedTimestamp,
       deinterlacer: deinterlacer || 'qtgmc',
-      denoise: true,
-      chroma_fix: true,
+      denoise: denoise ?? false,
+      chroma_fix: chromaFix ?? true,
+      comb_filter: combFilter ?? false,
+      overscan: overscanBlanking ?? true,
+      dropout: dropoutClean ?? false,
     },
     { skip: !hasMedia || isStreamActive }
   );
@@ -259,16 +290,23 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
       data-testid="split-comparison-monitor"
     >
       {/* Top Header Bar (SSOT with LiveMonitor) */}
-      <div className="absolute top-2.5 left-2.5 right-2.5 z-30 flex items-center justify-between pointer-events-auto gap-2">
-        {/* Left: Monitor Title & Split Percentage Badge (Fixed Width to prevent layout shift) */}
+      <div className="absolute top-2.5 left-2.5 right-2.5 z-30 flex items-center justify-between pointer-events-auto gap-2 flex-nowrap min-w-0 overflow-hidden">
+        {/* Left: Monitor Title & Split Percentage Badge (Clickable to return to real-time view) */}
         <div className="flex items-center gap-2 shrink-0">
-          <span className="bg-black/85 backdrop-blur-md px-2.5 py-1 rounded-sm text-[10px] font-mono text-slate-300 border border-studio-border shadow-sm flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+          <button
+            type="button"
+            onClick={onClose}
+            className="bg-black/85 hover:bg-studio-surface backdrop-blur-md px-2.5 py-1 rounded-sm text-[10px] font-mono text-slate-300 hover:text-white border border-studio-border hover:border-amber-400/50 shadow-sm flex items-center gap-1.5 shrink-0 whitespace-nowrap cursor-pointer transition"
+            title={t('monitor.split_close')}
+            aria-label={t('monitor.split_close')}
+            data-testid="split-title-badge-btn"
+          >
             <Layers className="w-3.5 h-3.5 text-amber-400 shrink-0" />
             <span className="font-bold text-slate-200">{t('monitor.split_title')}</span>
             <span className="text-slate-400 border-l border-studio-border pl-1.5 tabular-nums inline-block min-w-[34px] text-center font-mono">
               {splitPos}%
             </span>
-          </span>
+          </button>
         </div>
 
         {/* Right: Controls & Actions (Split Presets, View Mode & Close - pulled to the right, clear of the central 50% divider) */}
@@ -330,12 +368,13 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="w-6 h-6 flex items-center justify-center bg-black/85 backdrop-blur-md text-slate-400 hover:text-red-300 hover:bg-red-950/40 rounded-sm border border-studio-border hover:border-red-800/60 shadow-sm transition cursor-pointer shrink-0"
+              className="px-2 h-6 flex items-center gap-1 bg-black/85 hover:bg-red-950/40 backdrop-blur-md text-slate-300 hover:text-red-200 rounded-sm border border-studio-border hover:border-red-800/60 shadow-sm transition cursor-pointer shrink-0 font-mono text-[10px]"
               title={t('monitor.split_close')}
               aria-label={t('monitor.split_close')}
               data-testid="split-close-btn"
             >
-              <Power className="w-3.5 h-3.5 text-red-400" />
+              <X className="w-3.5 h-3.5 text-red-400 shrink-0" />
+              <span className="hidden sm:inline">{t('monitor.split_close')}</span>
             </button>
           )}
         </div>
@@ -522,6 +561,18 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           </button>
         </div>
 
+        {/* Jump to Live Restoration Point Button or Live Edge indicator */}
+        {isRestoring && (
+          <LiveEdgeIndicator
+            isAtLiveEdge={isAtLiveEdge}
+            onJumpToLive={() => {
+              handleTimelineInput(liveSec);
+              handleTimelineCommit();
+            }}
+            testId="split-live-indicator-badge"
+          />
+        )}
+
         {/* Center/Right: Full Timeline Scrubber with Time & Progress Information */}
         <div className="flex-1 min-w-0 flex items-center gap-2.5">
           <input
@@ -529,11 +580,12 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
             min={0}
             max={totalDuration}
             step={1}
-            value={timestamp}
+            value={effectiveTimestamp}
             disabled={!hasMedia}
             onChange={(e) => handleTimelineInput(Number(e.target.value))}
             onMouseUp={handleTimelineCommit}
             onTouchEnd={handleTimelineCommit}
+            onKeyUp={handleTimelineCommit}
             className="w-full h-1.5 bg-studio-surface rounded-lg appearance-none cursor-pointer accent-amber-400 disabled:opacity-40 disabled:cursor-not-allowed"
             aria-label={t('monitor.timeline_scrubber')}
             title={t('monitor.timeline_scrubber')}
@@ -544,7 +596,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
             data-testid="split-timeline-info"
           >
             {t('monitor.split_timeline_info', {
-              current: formatDuration(timestamp),
+              current: formatDuration(effectiveTimestamp),
               total: formatDuration(totalDuration),
               percent: progressPct,
             })}

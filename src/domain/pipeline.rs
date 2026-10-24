@@ -112,7 +112,7 @@ pub fn build_video_filtergraph(spec: &PipelineSpec) -> String {
     }
 
     if spec.apply_comb_filter {
-        filters.push("dedot=m=comb".to_string());
+        filters.push("dedot=m=dotcrawl+rainbows".to_string());
     }
 
     if spec.apply_chroma_fix {

@@ -27,6 +27,7 @@ import { useSavePreferencesMutation } from '../api/studioRtkApi';
 interface AppPreferencesModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenPrivacy?: () => void;
 }
 
 type TabType = 'directories' | 'performance' | 'console' | 'hardware' | 'interface';
@@ -34,6 +35,7 @@ type TabType = 'directories' | 'performance' | 'console' | 'hardware' | 'interfa
 export const AppPreferencesModal: React.FC<AppPreferencesModalProps> = ({
   isOpen,
   onClose,
+  onOpenPrivacy,
 }) => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabType>('directories');
@@ -510,6 +512,30 @@ export const AppPreferencesModal: React.FC<AppPreferencesModalProps> = ({
                   </SelectContent>
                 </Select>
               </div>
+
+              {onOpenPrivacy && (
+                <div className="flex items-center justify-between bg-studio-surface/50 p-3 rounded-sm border border-studio-border">
+                  <div className="space-y-0.5 pr-2">
+                    <label className="text-xs font-medium text-slate-200 font-mono block">
+                      {t('privacy.title')}
+                    </label>
+                    <p className="text-[11px] text-slate-400 font-mono">
+                      {t('privacy.subtitle')}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      onClose();
+                      onOpenPrivacy();
+                    }}
+                    className="h-7 text-xs font-mono shrink-0 whitespace-nowrap bg-studio-panel border-studio-border text-slate-200 hover:text-white"
+                  >
+                    {t('privacy.grant_title')}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </div>
