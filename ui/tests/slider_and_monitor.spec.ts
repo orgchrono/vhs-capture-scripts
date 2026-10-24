@@ -191,13 +191,14 @@ test.describe('Split Comparison & Timeline Slider E2E Study', () => {
     const timelineInput = page.getByTestId('timeline-scrubber-input');
     await expect(timelineInput).toBeVisible();
 
+    const timelineInfo = page.getByTestId('split-timeline-info');
+    await expect(timelineInfo).toBeVisible();
+
     // Fill timestamp
     await timelineInput.fill('45');
     await timelineInput.dispatchEvent('pointerup');
     await timelineInput.dispatchEvent('mouseup');
 
-    const timelineInfo = page.getByTestId('split-timeline-info');
-    await expect(timelineInfo).toBeVisible();
     await expect(timelineInfo).toContainText('00:00:45');
 
     // Take screenshot of split comparison monitor for visual inspection
