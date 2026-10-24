@@ -161,13 +161,14 @@ pub fn build_video_filtergraph(spec: &PipelineSpec) -> String {
         filters.push("drawbox=y=ih-16:color=black:width=iw:height=16:t=fill".to_string());
     }
 
-    // 7. Post-deinterlace: Broadcast legalizer (EBU R103 / SMPTE 170M gamut compliance)
-    filters.push("limiter=min=16:max=235:planes=1,limiter=min=16:max=240:planes=6".to_string());
-
-    // 8. Post-deinterlace: Preserves exact 4:3 broadcast aspect ratio inside 1920x1080 frame with Lanczos interpolation and BT.601 to BT.709 matrix
+    // 7. Post-deinterlace: Preserves exact 4:3 broadcast aspect ratio inside 1920x1080 frame with Lanczos interpolation and BT.601 to BT.709 matrix
     if spec.target_1080p {
         filters.push("scale=1440:1080:flags=lanczos:in_color_matrix=bt601:out_color_matrix=bt709,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1".to_string());
     }
+
+    // 8. Post-deinterlace: Broadcast legalizer (EBU R103 / SMPTE 170M gamut compliance)
+    // Placed after scale and pad to prevent Lanczos ringing and matrix overshoot/undershoot
+    filters.push("limiter=min=16:max=235:planes=1,limiter=min=16:max=240:planes=6".to_string());
 
     if filters.is_empty() {
         "null".to_string()
@@ -198,12 +199,13 @@ pub fn build_post_qtgmc_video_filtergraph(spec: &PipelineSpec) -> String {
         filters.push("drawbox=y=ih-16:color=black:width=iw:height=16:t=fill".to_string());
     }
 
-    // Broadcast legalizer (EBU R103 / SMPTE 170M gamut compliance)
-    filters.push("limiter=min=16:max=235:planes=1,limiter=min=16:max=240:planes=6".to_string());
-
     if spec.target_1080p {
         filters.push("scale=1440:1080:flags=lanczos:in_color_matrix=bt601:out_color_matrix=bt709,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1".to_string());
     }
+
+    // Broadcast legalizer (EBU R103 / SMPTE 170M gamut compliance)
+    // Placed after scale and pad to prevent Lanczos ringing and matrix overshoot/undershoot
+    filters.push("limiter=min=16:max=235:planes=1,limiter=min=16:max=240:planes=6".to_string());
 
     if filters.is_empty() {
         "null".to_string()

@@ -58,6 +58,8 @@ pub struct RestorationJobRequest {
     #[serde(default)]
     pub start_sec: f64,
     #[serde(default)]
+    pub base_start_sec: Option<f64>,
+    #[serde(default)]
     pub duration_sec: Option<f64>,
     #[serde(default)]
     pub overrides: RestorationOverrides,
@@ -145,6 +147,7 @@ pub fn plan_restoration_job(
         Deinterlacer::None => DeinterlaceFilter::None,
     });
 
+    let hash_start = request.base_start_sec.unwrap_or(request.start_sec);
     let params_payload = serde_json::json!({
         "preset": format!("{:?}", request.preset),
         "codec": format!("{:?}", output_codec),
@@ -158,7 +161,7 @@ pub fn plan_restoration_job(
         "audio_policy": format!("{:?}", request.audio_policy),
         "notch_hum": request.apply_audio_notch_hum,
         "loudness": request.apply_loudness_norm,
-        "start_sec": format!("{:.2}", request.start_sec),
+        "start_sec": format!("{:.2}", hash_start),
         "duration_sec": request.duration_sec.map(|d| format!("{d:.2}")),
     });
     let phash = crate::models::media::generate_param_hash(params_payload.to_string().as_bytes());
@@ -172,7 +175,15 @@ pub fn plan_restoration_job(
         Some(&phash),
     );
     let final_path_str = final_path.to_string_lossy().to_string();
-    let part_path = get_part_path(&final_path_str);
+    let original_part = get_part_path(&final_path_str);
+    let part_path = if request.base_start_sec.is_some()
+        && request.start_sec > 0.05
+        && Path::new(&original_part).is_file()
+    {
+        format!("{final_path_str}.resumption.part")
+    } else {
+        original_part
+    };
 
     let encoder = match output_codec {
         OutputCodec::ProRes => VideoEncoder::ProResKs,
@@ -731,9 +742,48 @@ pub fn execute_restoration_job(
 
     // 5. Finalize output: for MP4 containers, fast remux with +faststart to consolidate moov atom
     let is_mp4 = planned.final_output_path.to_lowercase().ends_with(".mp4");
+    let is_mov = planned.final_output_path.to_lowercase().ends_with(".mov");
     let mut remux_succeeded = false;
 
-    if is_mp4 && !planned.ffmpeg_cli_args.is_empty() {
+    let original_part = get_part_path(&planned.final_output_path);
+    let is_resuming = planned.part_output_path.ends_with(".resumption.part");
+
+    if is_resuming && Path::new(&original_part).is_file() && !planned.ffmpeg_cli_args.is_empty() {
+        let concat_list_path = format!("{}.concat.txt", planned.final_output_path);
+        let part1_esc = original_part.replace('\\', "/");
+        let part2_esc = planned.part_output_path.replace('\\', "/");
+        let concat_body = format!("file '{part1_esc}'\nfile '{part2_esc}'\n");
+        if fs::write(&concat_list_path, concat_body).is_ok() {
+            let mut concat_cmd = create_silent_command(Path::new(&planned.ffmpeg_cli_args[0]));
+            let mut args = vec![
+                "-y".to_string(),
+                "-f".to_string(),
+                "concat".to_string(),
+                "-safe".to_string(),
+                "0".to_string(),
+                "-i".to_string(),
+                concat_list_path.clone(),
+                "-c".to_string(),
+                "copy".to_string(),
+            ];
+            if is_mp4 || is_mov {
+                args.extend(vec!["-movflags".to_string(), "+faststart".to_string()]);
+            }
+            args.push(planned.final_output_path.clone());
+            concat_cmd.args(&args);
+
+            if let Ok(res) = concat_cmd.status() {
+                if res.success() {
+                    remux_succeeded = true;
+                    let _ = fs::remove_file(&planned.part_output_path);
+                    let _ = fs::remove_file(&original_part);
+                }
+            }
+            let _ = fs::remove_file(&concat_list_path);
+        }
+    }
+
+    if !remux_succeeded && is_mp4 && !planned.ffmpeg_cli_args.is_empty() {
         let mut remux_cmd = create_silent_command(Path::new(&planned.ffmpeg_cli_args[0]));
         remux_cmd.args([
             "-y",
@@ -1003,6 +1053,12 @@ fn cleanup_part_and_vpy(planned: &PlannedRestoration) {
     if Path::new(&planned.part_output_path).exists() {
         let _ = fs::remove_file(&planned.part_output_path);
     }
+    if planned.part_output_path.ends_with(".resumption.part") {
+        let original_part = get_part_path(&planned.final_output_path);
+        if Path::new(&original_part).exists() {
+            let _ = fs::remove_file(original_part);
+        }
+    }
     cleanup_vpy_only(planned);
 }
 
@@ -1072,6 +1128,7 @@ mod tests {
             apply_audio_notch_hum: true,
             apply_loudness_norm: true,
             start_sec: 10.0,
+            base_start_sec: None,
             duration_sec: Some(60.0),
             overrides: RestorationOverrides::default(),
         };
@@ -1098,6 +1155,7 @@ mod tests {
             apply_audio_notch_hum: true,
             apply_loudness_norm: true,
             start_sec: 10.0,
+            base_start_sec: None,
             duration_sec: Some(60.0),
             overrides: RestorationOverrides::default(),
         };
@@ -1129,6 +1187,7 @@ mod tests {
             apply_audio_notch_hum: false,
             apply_loudness_norm: false,
             start_sec: 0.0,
+            base_start_sec: None,
             duration_sec: Some(100.0),
             overrides: RestorationOverrides::default(),
         };
@@ -1167,6 +1226,7 @@ mod tests {
             apply_audio_notch_hum: false,
             apply_loudness_norm: false,
             start_sec: 0.0,
+            base_start_sec: None,
             duration_sec: Some(10.0),
             overrides: RestorationOverrides::default(),
         };
@@ -1192,6 +1252,7 @@ mod tests {
             apply_audio_notch_hum: false,
             apply_loudness_norm: false,
             start_sec: 0.0,
+            base_start_sec: None,
             duration_sec: Some(10.0),
             overrides: RestorationOverrides::default(),
         };

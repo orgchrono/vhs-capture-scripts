@@ -412,27 +412,50 @@ fn handle_incomplete_action(req: &ApiRequest, ctx: &AppContext) -> ApiResponse {
             let source_str = payload.source.unwrap_or_default();
             let clean_base = payload.output_path.strip_suffix(".part").unwrap_or(&payload.output_path);
             let chk_cand = PathBuf::from(format!("{clean_base}.checkpoint.json"));
-            let mut resume_start_sec = 0.0;
-
-            let resolved_source = if !source_str.is_empty() {
-                resolve_media_input(&source_str, &dirs).unwrap_or(source_str)
-            } else if chk_cand.is_file() {
-                let content = fs::read_to_string(&chk_cand).unwrap_or_default();
-                if let Ok(data) = serde_json::from_str::<CheckpointData>(&content) {
-                    let kept = data.kept_frames.unwrap_or(0);
-                    let fps = data.fps.unwrap_or(29.97).max(1.0);
-                    resume_start_sec = crate::domain::recovery::compute_resumption_start_sec(0.0, kept, fps);
-                    let src = data.source.unwrap_or_default();
-                    resolve_media_input(&src, &dirs).unwrap_or(src)
-                } else {
-                    String::new()
+            let mut checkpoint_opt: Option<CheckpointData> = None;
+            if chk_cand.is_file() {
+                if let Ok(content) = fs::read_to_string(&chk_cand) {
+                    if let Ok(data) = serde_json::from_str::<CheckpointData>(&content) {
+                        checkpoint_opt = Some(data);
+                    }
                 }
+            }
+
+            let mut resolved_source = if !source_str.is_empty() {
+                resolve_media_input(&source_str, &dirs).unwrap_or(source_str)
             } else {
                 String::new()
             };
 
+            if resolved_source.is_empty() {
+                if let Some(ref data) = checkpoint_opt {
+                    if let Some(ref src) = data.source {
+                        resolved_source = resolve_media_input(src, &dirs).unwrap_or_else(|| src.clone());
+                    }
+                }
+            }
+
             if resolved_source.is_empty() || !Path::new(&resolved_source).exists() {
                 return ApiResponse::error(400, "Cannot resume: source tape file does not exist on disk.");
+            }
+
+            let ffprobe_bin = crate::infrastructure::toolchain::resolve_executable_path("ffprobe", None, None)
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_else(|| "ffprobe".to_string());
+
+            let mut resume_start_sec = 0.0;
+            if let Some(ref data) = checkpoint_opt {
+                let kept = data.kept_frames.unwrap_or(0);
+                let total_expected = data.total_expected_frames.unwrap_or(0);
+                if kept > 0 {
+                    if let Ok(probe) = crate::infrastructure::probe::probe_media_file(&resolved_source, &ffprobe_bin) {
+                        if total_expected > 0 && probe.duration > 0.0 {
+                            resume_start_sec = ((kept as f64 / total_expected as f64) * probe.duration).clamp(0.0, probe.duration);
+                        } else if probe.fps > 0.0 {
+                            resume_start_sec = (kept as f64 / probe.fps).clamp(0.0, probe.duration);
+                        }
+                    }
+                }
             }
 
             let default_output = dirs.restored.to_string_lossy().to_string();
@@ -440,7 +463,8 @@ fn handle_incomplete_action(req: &ApiRequest, ctx: &AppContext) -> ApiResponse {
                 "input": resolved_source,
                 "output": payload.output_path,
                 "start_sec": resume_start_sec,
-                "start": resume_start_sec
+                "start": resume_start_sec,
+                "base_start_sec": 0.0
             });
             let mapped = map_restoration_payload(&resume_payload, &resolved_source, &default_output);
 

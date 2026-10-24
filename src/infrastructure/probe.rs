@@ -307,11 +307,11 @@ pub fn assess_media_file_qc(
     }
 
     let mut cmd = create_silent_command(Path::new(ffmpeg_binary));
-    let fps_filter = if probe.duration > 30.0 {
+    let (fps_filter, sample_interval_sec) = if probe.duration > 30.0 {
         let interval = (probe.duration / 10.0).max(1.0);
-        format!("fps=1/{interval:.4}")
+        (format!("fps=1/{interval:.4}"), interval)
     } else {
-        "fps=1".to_string()
+        ("fps=1".to_string(), 1.0)
     };
 
     cmd.args([
@@ -365,7 +365,7 @@ pub fn assess_media_file_qc(
         }
     }
 
-    let black_leader_sec = black_leader_count as f64;
+    let black_leader_sec = (black_leader_count as f64 * sample_interval_sec).min(probe.duration);
 
     Ok(crate::domain::qc::aggregate_frame_qc_reports(
         &reports,
