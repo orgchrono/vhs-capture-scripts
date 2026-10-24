@@ -28,56 +28,16 @@ export interface SplitComparisonMonitorProps {
   initialMode?: 'stream' | 'freeze';
 }
 
-interface SplitStreamViewportProps {
-  src: string;
-  alt: string;
-  testId: string;
-  alignLeft?: boolean;
-}
-
-const SplitStreamViewport: React.FC<SplitStreamViewportProps> = ({
-  src,
-  alt,
-  testId,
-  alignLeft = false,
-}) => {
-  const [streamError, setStreamError] = useState(false);
-
-  useEffect(() => {
-    setStreamError(false);
-  }, [src]);
-
-  return (
-    <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
-      <div className="relative w-full h-full aspect-video max-w-full max-h-full overflow-hidden">
-        <img
-          src={src}
-          alt={alt}
-          onError={() => setStreamError(true)}
-          className={`absolute top-0 bottom-0 ${alignLeft ? 'left-0' : 'left-[-100%]'} w-[200%] h-full max-w-none object-fill transition-opacity duration-150 ${
-            streamError ? 'opacity-0 pointer-events-none' : 'opacity-100'
-          }`}
-          data-testid={testId}
-        />
-      </div>
-    </div>
-  );
-};
-
 interface ComparisonPaneProps {
   type: 'raw' | 'restored';
-  isStreamActive: boolean;
-  streamUrl: string;
-  image?: string;
+  imageSrc?: string;
   label: string;
   testId: string;
 }
 
 const ComparisonPane: React.FC<ComparisonPaneProps> = ({
   type,
-  isStreamActive,
-  streamUrl,
-  image,
+  imageSrc,
   label,
   testId,
 }) => {
@@ -90,18 +50,12 @@ const ComparisonPane: React.FC<ComparisonPaneProps> = ({
 
   return (
     <>
-      {isStreamActive ? (
-        <SplitStreamViewport
-          src={streamUrl}
-          alt={label}
-          testId={testId}
-          alignLeft={isRaw}
-        />
-      ) : image ? (
+      {imageSrc ? (
         <img
-          src={image}
+          src={imageSrc}
           alt={label}
           className="w-full h-full object-contain pointer-events-none"
+          data-testid={testId}
         />
       ) : (
         <div className={`w-full h-full ${emptyBg} flex items-center justify-center select-none`} />
@@ -337,7 +291,11 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
   const rawImg = frameData?.raw_image || cachedImagesRef.current.raw;
   const procImg = frameData?.processed_image || cachedImagesRef.current.processed;
 
-  const splitStreamUrl = `/api/monitor/stream-proxy?mode=split&source=${encodeURIComponent(source)}&fps=15&timestamp=${streamAnchor}&k=${streamKey}`;
+  const rawStreamUrl = `/api/monitor/stream-proxy?mode=raw&source=${encodeURIComponent(source)}&fps=15&timestamp=${streamAnchor}&k=${streamKey}`;
+  const procStreamUrl = `/api/monitor/stream-proxy?mode=processed&source=${encodeURIComponent(source)}&fps=15&timestamp=${streamAnchor}&k=${streamKey}`;
+
+  const rawSrc = isStreamActive ? rawStreamUrl : rawImg;
+  const procSrc = isStreamActive ? procStreamUrl : procImg;
 
   return (
     <div
@@ -348,21 +306,20 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
       aria-label={t('monitor.split_title')}
       data-testid="split-comparison-monitor"
     >
-      {/* Top Header Bar: SSOT with LiveMonitor (Translucent Floating HUD) */}
-      <div className="absolute top-2.5 left-2.5 right-2.5 z-20 flex items-center justify-between pointer-events-auto gap-2 flex-nowrap min-w-0 overflow-hidden">
-        {/* Left: Monitor Title & Split Percentage Badge */}
+      {/* Top Header Bar: Zero Overflow Guaranteed Floating HUD */}
+      <div className="absolute top-2 left-2 right-2 z-20 flex items-center justify-between pointer-events-auto gap-1.5 flex-nowrap min-w-0">
+        {/* Left: Compact A/B Monitor Title & Split Percentage Badge */}
         <div className="flex items-center gap-1.5 shrink-0 min-w-0">
           <button
             type="button"
             onClick={onClose}
             className="bg-black/85 hover:bg-studio-surface backdrop-blur-md px-2 py-1 rounded-sm text-[10px] font-mono text-slate-300 hover:text-white border border-studio-border hover:border-amber-400/50 shadow-sm flex items-center gap-1.5 shrink-0 whitespace-nowrap cursor-pointer transition min-w-0"
-            title={t('monitor.split_close')}
-            aria-label={t('monitor.split_close')}
+            title={t('monitor.split_title')}
+            aria-label={t('monitor.split_title')}
             data-testid="split-title-badge-btn"
           >
             <Layers className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <span className="font-bold text-slate-200 hidden md:inline">{t('monitor.split_title')}</span>
-            <span className="font-bold text-slate-200 inline md:hidden">{t('monitor.split_title_short')}</span>
+            <span className="font-bold text-slate-200">{t('monitor.split_title_short')}</span>
             {splitLayout === 'wipe' && (
               <span className="text-amber-300 font-bold border-l border-studio-border pl-1.5 tabular-nums text-center font-mono">
                 {splitPos}%
@@ -382,7 +339,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
         </div>
 
         {/* Right: Controls & Actions (Layout Mode, Split Presets, View Mode & Close) */}
-        <div className="flex items-center gap-1.5 ml-auto shrink-0 flex-nowrap">
+        <div className="flex items-center gap-1 ml-auto shrink-0 flex-nowrap">
           {/* Layout Mode Selector (Wipe vs Dual) */}
           <div className="flex items-center gap-0.5 bg-black/85 backdrop-blur-md p-0.5 rounded-sm border border-studio-border shadow-sm shrink-0">
             <button
@@ -417,13 +374,13 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
 
           {/* Quick Split Presets (only in Wipe mode) */}
           {splitLayout === 'wipe' && (
-            <div className="flex items-center gap-0.5 bg-black/85 backdrop-blur-md p-0.5 rounded-sm border border-studio-border text-[9px] font-mono shadow-sm shrink-0">
+            <div className="flex items-center gap-0.5 bg-black/85 backdrop-blur-md p-0.5 rounded-sm border border-studio-border text-[8.5px] font-mono shadow-sm shrink-0">
               {SPLIT_PRESETS.map((p) => (
                 <button
                   key={p}
                   type="button"
                   onClick={() => handlePresetSelect(p)}
-                  className={`w-5 sm:w-5.5 h-4 flex items-center justify-center rounded-xs transition-colors cursor-pointer border ${
+                  className={`w-4.5 sm:w-5 h-4 flex items-center justify-center rounded-xs transition-colors cursor-pointer border ${
                     splitPos === p
                       ? 'bg-amber-500/25 text-amber-300 font-semibold border-amber-400/50'
                       : 'text-slate-400 hover:text-slate-200 border-transparent'
@@ -470,11 +427,12 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
             </button>
           </div>
 
+          {/* Close Button - MUST NEVER be cut off */}
           {onClose && (
             <button
               type="button"
               onClick={onClose}
-              className="w-6 h-6 flex items-center justify-center bg-black/85 hover:bg-red-950/40 backdrop-blur-md text-slate-300 hover:text-red-200 rounded-sm border border-studio-border hover:border-red-800/60 shadow-sm transition cursor-pointer shrink-0"
+              className="w-5.5 h-5.5 flex items-center justify-center bg-black/85 hover:bg-red-950/60 backdrop-blur-md text-slate-300 hover:text-red-200 rounded-sm border border-studio-border hover:border-red-600/70 shadow-sm transition cursor-pointer shrink-0 z-30"
               title={t('monitor.split_close')}
               aria-label={t('monitor.split_close')}
               data-testid="split-close-btn"
@@ -506,9 +464,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
               <ComparisonPane
                 type="restored"
-                isStreamActive={isStreamActive}
-                streamUrl={splitStreamUrl}
-                image={procImg}
+                imageSrc={procSrc}
                 label={t('monitor.split_restored')}
                 testId="split-proc-stream"
               />
@@ -521,9 +477,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
             >
               <ComparisonPane
                 type="raw"
-                isStreamActive={isStreamActive}
-                streamUrl={splitStreamUrl}
-                image={rawImg}
+                imageSrc={rawSrc}
                 label={t('monitor.split_raw')}
                 testId="split-raw-stream"
               />
@@ -573,9 +527,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
             <div className="relative w-1/2 h-full border-r border-amber-400/30 overflow-hidden flex items-center justify-center bg-black">
               <ComparisonPane
                 type="raw"
-                isStreamActive={isStreamActive}
-                streamUrl={splitStreamUrl}
-                image={rawImg}
+                imageSrc={rawSrc}
                 label={t('monitor.split_raw')}
                 testId="split-raw-stream"
               />
@@ -585,9 +537,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
             <div className="relative w-1/2 h-full overflow-hidden flex items-center justify-center bg-black">
               <ComparisonPane
                 type="restored"
-                isStreamActive={isStreamActive}
-                streamUrl={splitStreamUrl}
-                image={procImg}
+                imageSrc={procSrc}
                 label={t('monitor.split_restored')}
                 testId="split-proc-stream"
               />
