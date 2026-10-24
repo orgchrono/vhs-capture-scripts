@@ -242,9 +242,19 @@ pub fn plan_restoration_job(
             (dur * probe.fps.max(1.0)).round() as usize
         });
 
+        let thread_count = std::thread::available_parallelism()
+            .map(|n| n.get())
+            .unwrap_or(8)
+            .clamp(2, 32);
+        let qtgmc_preset = match request.preset {
+            RestorationPreset::Speed => "Fast".to_string(),
+            RestorationPreset::Gold | RestorationPreset::AiMaster => "Slower".to_string(),
+            _ => "Slow".to_string(),
+        };
+
         let qtgmc_params = QtgmcScriptParams {
             input_path: abs_input_str,
-            preset: "Slower".to_string(),
+            preset: qtgmc_preset,
             field_order: if probe.field_order.to_lowercase().contains("bff") {
                 FieldOrder::Bff
             } else {
@@ -252,7 +262,7 @@ pub fn plan_restoration_job(
             },
             fps_mode: 2,
             apply_comb_filter: comb_filter,
-            thread_count: 8,
+            thread_count,
             cache_size_mb: 4000,
             trim_start_frame,
             trim_length_frames,
