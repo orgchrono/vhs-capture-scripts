@@ -70,7 +70,18 @@ impl QueueStore {
         let tmp = self.path.with_extension("json.tmp");
         let content = serde_json::to_string_pretty(file).map_err(|e| e.to_string())?;
         fs::write(&tmp, content).map_err(|e| e.to_string())?;
-        fs::rename(&tmp, &*self.path).map_err(|e| e.to_string())
+
+        let mut last_err = None;
+        for attempt in 0..5 {
+            match fs::rename(&tmp, &*self.path) {
+                Ok(()) => return Ok(()),
+                Err(e) => {
+                    last_err = Some(e);
+                    std::thread::sleep(std::time::Duration::from_millis(20 * (1 << attempt)));
+                }
+            }
+        }
+        Err(last_err.map_or_else(|| "Failed to rename temp queue file".to_string(), |e| e.to_string()))
     }
 
     /// Appends a new pending job and returns its id.

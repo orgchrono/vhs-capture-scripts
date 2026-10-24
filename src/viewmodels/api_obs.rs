@@ -7,6 +7,7 @@
 //! - `POST /api/obs/virtualcam`
 
 use crate::infrastructure::app_context::AppContext;
+use crate::infrastructure::obs::execute_obs_rpc_command;
 use crate::infrastructure::toolchain::{is_obs_installed, is_obs_running};
 use crate::viewmodels::api_types::{ApiRequest, ApiResponse};
 use serde_json::{json, Value};
@@ -26,9 +27,31 @@ pub fn handle_obs_route(req: &ApiRequest, _ctx: &AppContext) -> Option<ApiRespon
 }
 
 fn handle_obs_stats() -> ApiResponse {
-    let running = is_obs_running();
     let installed = is_obs_installed();
 
+    if let Ok(data) = execute_obs_rpc_command("GetRecordStatus", None, None) {
+        let active = data.get("outputActive").and_then(Value::as_bool).unwrap_or(false);
+        let timecode = data.get("outputTimecode").and_then(Value::as_str).unwrap_or("00:00:00");
+        let duration_sec = data.get("outputDuration").and_then(Value::as_f64).unwrap_or(0.0) / 1000.0;
+        let bytes = data.get("outputBytes").and_then(Value::as_u64).unwrap_or(0);
+
+        return ApiResponse::ok(&json!({
+            "connected": true,
+            "installed": installed,
+            "recording": active,
+            "streaming": false,
+            "timecode": timecode,
+            "duration_sec": duration_sec,
+            "bytes": bytes,
+            "bitrate_kbps": if duration_sec > 0.0 { (bytes as f64 * 8.0) / (duration_sec * 1000.0) } else { 0.0 },
+            "fps": 60.0,
+            "cpu_usage": 0.0,
+            "memory_mb": 0.0,
+            "dropped_frames": 0
+        }));
+    }
+
+    let running = is_obs_running();
     if !running {
         return ApiResponse::ok(&json!({
             "connected": false,
@@ -63,6 +86,13 @@ fn handle_obs_stats() -> ApiResponse {
 }
 
 fn handle_obs_start() -> ApiResponse {
+    if let Ok(_data) = execute_obs_rpc_command("StartRecord", None, None) {
+        return ApiResponse::ok(&json!({
+            "status": "ok",
+            "message": "Recording started via OBS WebSocket v5."
+        }));
+    }
+
     if !is_obs_running() {
         return ApiResponse::error(503, "OBS Studio is not running");
     }
@@ -73,6 +103,15 @@ fn handle_obs_start() -> ApiResponse {
 }
 
 fn handle_obs_stop() -> ApiResponse {
+    if let Ok(data) = execute_obs_rpc_command("StopRecord", None, None) {
+        let path = data.get("outputPath").and_then(Value::as_str).unwrap_or("");
+        return ApiResponse::ok(&json!({
+            "status": "ok",
+            "message": "Recording stopped via OBS WebSocket v5.",
+            "path": path
+        }));
+    }
+
     ApiResponse::ok(&json!({
         "status": "ok",
         "message": "Recording stopped.",
