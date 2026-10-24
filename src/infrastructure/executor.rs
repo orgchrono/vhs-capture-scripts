@@ -188,7 +188,7 @@ pub fn plan_restoration_job(
 
     let plan = build_pipeline_plan(pipeline_spec);
 
-    let is_qtgmc = deinterlacer == DeinterlaceFilter::Qtgmc;
+    let is_qtgmc = (deinterlacer == DeinterlaceFilter::Qtgmc) && vspipe_path_opt.is_some();
     let mut qtgmc_vpy_content = None;
     let mut qtgmc_vpy_path = None;
     let mut vspipe_cli = None;
@@ -427,6 +427,7 @@ pub fn execute_restoration_job(
 
     // 4. Subprocess execution
     let mut vspipe_child: Option<std::process::Child> = None;
+    let mut vspipe_stderr_drain: Option<std::thread::JoinHandle<String>> = None;
 
     if let Some(ref vspipe_args) = planned.vspipe_cli_args {
         if vspipe_args.is_empty() {
@@ -436,12 +437,13 @@ pub fn execute_restoration_job(
         let mut cmd = create_silent_command(Path::new(&vspipe_args[0]));
         cmd.args(&vspipe_args[1..]);
         cmd.stdout(Stdio::piped());
-        cmd.stderr(Stdio::null());
+        cmd.stderr(Stdio::piped());
 
-        let child = cmd.spawn().map_err(|e| {
+        let mut child = cmd.spawn().map_err(|e| {
             cleanup_part_and_vpy(planned);
             format!("Failed to spawn VSPipe process '{:?}': {e}", vspipe_args[0])
         })?;
+        vspipe_stderr_drain = spawn_stderr_drain(child.stderr.take());
         vspipe_child = Some(child);
     }
 
@@ -543,7 +545,14 @@ pub fn execute_restoration_job(
     }
 
     if !status.success() {
-        let mut err_msg = format!("FFmpeg exited with error status: {status}");
+        let vs_err = vspipe_stderr_drain
+            .and_then(|handle| handle.join().ok())
+            .unwrap_or_default();
+        let mut err_msg = if !vs_err.trim().is_empty() {
+            format!("VapourSynth/QTGMC failed: {} | FFmpeg exit: {status}", vs_err.trim())
+        } else {
+            format!("FFmpeg exited with error status: {status}")
+        };
         let err_text = stderr_drain
             .and_then(|handle| handle.join().ok())
             .unwrap_or_default();

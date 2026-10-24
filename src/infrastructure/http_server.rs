@@ -6,11 +6,12 @@
 
 use crate::infrastructure::app_context::AppContext;
 use crate::infrastructure::http_codec::{
-    find_head_end, format_http_response, format_sse_event, format_sse_head, guess_mime_type,
-    is_safe_relative_asset_path, parse_http_request, parse_request_head,
+    find_head_end, format_http_response, format_sse_event, format_sse_head,
+    format_stream_proxy_head, guess_mime_type, is_safe_relative_asset_path, parse_http_request,
+    parse_request_head,
 };
 use crate::infrastructure::security::{is_safe_media_path, verify_api_request, SecurityVerdict};
-use crate::models::constants::{MAX_HTTP_BODY_BYTES, UI_DIST_REL_PATH};
+use crate::models::constants::{DEFAULT_STREAM_PROXY_FPS, MAX_HTTP_BODY_BYTES, UI_DIST_REL_PATH};
 use crate::viewmodels::api_router::{dispatch_api_request_with_context, ApiRequest, ApiResponse};
 use crate::viewmodels::api_support::media_dirs;
 use serde_json::json;
@@ -142,6 +143,113 @@ fn handle_sse_stream(
     Ok(())
 }
 
+fn handle_stream_proxy(
+    mut stream: TcpStream,
+    target: &str,
+    allow_origin: Option<&str>,
+) -> Result<(), ()> {
+    let source_param =
+        crate::infrastructure::http_codec::query_param(target, "source").unwrap_or_default();
+    let mode_param =
+        crate::infrastructure::http_codec::query_param(target, "mode").unwrap_or_default();
+    let fps_param: u32 = crate::infrastructure::http_codec::query_param(target, "fps")
+        .and_then(|f| f.parse().ok())
+        .unwrap_or(DEFAULT_STREAM_PROXY_FPS);
+    let time_param: f64 = crate::infrastructure::http_codec::query_param(target, "timestamp")
+        .and_then(|t| t.parse::<f64>().ok())
+        .unwrap_or(0.0)
+        .max(0.0);
+
+    let dirs = media_dirs();
+    let valid_source = if !source_param.is_empty() {
+        let resolved = crate::viewmodels::api_support::resolve_media_input(&source_param, &dirs)
+            .unwrap_or(source_param);
+        let p = Path::new(&resolved);
+        if is_safe_media_path(&resolved, &dirs.roots()) && p.is_file() {
+            Some(resolved)
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    let restored_master = valid_source.as_ref().and_then(|src| {
+        let search_dirs = [dirs.restored.clone(), dirs.work.clone()];
+        let raw_dirs = [dirs.raw.clone(), dirs.media.clone()];
+        let check = crate::infrastructure::job_recovery::check_existing_restoration(
+            Path::new(src),
+            &search_dirs,
+            &raw_dirs,
+            &dirs.restored,
+        );
+        if check.has_existing && check.r#type.as_deref() == Some("completed") {
+            check.file_path
+        } else {
+            None
+        }
+    });
+
+    let mode = crate::domain::stream::StreamProxyMode::from_str_opt(&mode_param);
+    let spec = crate::domain::stream::StreamProxySpec {
+        source_path: valid_source,
+        restored_master_path: restored_master,
+        mode,
+        fps: fps_param,
+        timestamp_sec: time_param,
+    };
+
+    let ffmpeg_bin =
+        crate::infrastructure::toolchain::resolve_executable_path("ffmpeg", None, None)
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|| "ffmpeg".to_string());
+
+    let cmd_args = crate::domain::stream::build_stream_proxy_ffmpeg_args(&spec, &ffmpeg_bin);
+
+    let head = format_stream_proxy_head(allow_origin);
+    if stream.write_all(&head).is_err() {
+        return Ok(());
+    }
+    let _ = stream.flush();
+
+    let mut cmd =
+        crate::infrastructure::toolchain::create_silent_command(Path::new(&cmd_args[0]));
+    cmd.args(&cmd_args[1..]);
+    cmd.stdout(std::process::Stdio::piped());
+    cmd.stderr(std::process::Stdio::null());
+
+    let mut child = match cmd.spawn() {
+        Ok(c) => c,
+        Err(_) => return Err(()),
+    };
+
+    let mut stdout = match child.stdout.take() {
+        Some(s) => s,
+        None => {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(());
+        }
+    };
+
+    let mut buffer = [0u8; 16384];
+    loop {
+        match stdout.read(&mut buffer) {
+            Ok(0) => break,
+            Ok(n) => {
+                if stream.write_all(&buffer[..n]).is_err() || stream.flush().is_err() {
+                    break;
+                }
+            }
+            Err(_) => break,
+        }
+    }
+
+    let _ = child.kill();
+    let _ = child.wait();
+    Ok(())
+}
+
 fn handle_connection(mut stream: TcpStream, ctx: &AppContext) {
     let raw_bytes = match read_complete_request(&mut stream) {
         Ok(b) => b,
@@ -209,6 +317,57 @@ fn handle_connection(mut stream: TcpStream, ctx: &AppContext) {
             }
         }
 
+        // Thumbnail endpoint (raw binary JPEG)
+        if req.path == "/api/media/thumbnail" {
+            let p = crate::infrastructure::http_codec::query_param(&req.target(), "path")
+                .unwrap_or_default();
+            let dirs = media_dirs();
+            let resolved = crate::viewmodels::api_support::resolve_media_input(&p, &dirs).unwrap_or(p);
+            if is_safe_media_path(&resolved, &dirs.roots()) && Path::new(&resolved).is_file() {
+                let ffmpeg = crate::infrastructure::toolchain::resolve_executable_path("ffmpeg", None, None);
+                if let Some(bytes) = crate::infrastructure::thumbnail::get_or_generate_thumbnail(
+                    Path::new(&resolved),
+                    ffmpeg.as_deref(),
+                ) {
+                    let resp = format_http_response(200, "image/jpeg", &bytes, origin);
+                    let _ = stream.write_all(&resp);
+                    return;
+                }
+            }
+            let resp = format_http_response(
+                404,
+                "application/json",
+                br#"{"error":"Thumbnail not found"}"#,
+                origin,
+            );
+            let _ = stream.write_all(&resp);
+            return;
+        }
+
+        // Live restoration frame endpoint (raw binary JPEG)
+        if req.path == "/api/monitor/live-restoration-frame" {
+            let dirs = media_dirs();
+            let live_frame_path = dirs.work.join("live_frame.jpg");
+            if live_frame_path.is_file() {
+                if let Ok(bytes) = fs::read(&live_frame_path) {
+                    if bytes.len() > 100 {
+                        let resp = format_http_response(200, "image/jpeg", &bytes, origin);
+                        let _ = stream.write_all(&resp);
+                        return;
+                    }
+                }
+            }
+            let resp = format_http_response(204, "image/jpeg", &[], origin);
+            let _ = stream.write_all(&resp);
+            return;
+        }
+
+        // Streaming proxy endpoint (multipart/x-mixed-replace MJPEG)
+        if req.path == "/api/monitor/stream-proxy" {
+            let _ = handle_stream_proxy(stream, &req.target(), origin);
+            return;
+        }
+
         let api_req = ApiRequest {
             path: req.target(),
             method: req.method,
@@ -222,28 +381,6 @@ fn handle_connection(mut stream: TcpStream, ctx: &AppContext) {
             status_code,
             "application/json; charset=utf-8",
             body_json.as_bytes(),
-            origin,
-        );
-        let _ = stream.write_all(&resp);
-        return;
-    }
-
-    // Thumbnail endpoint
-    if req.path == "/api/media/thumbnail" {
-        let p = crate::infrastructure::http_codec::query_param(&req.target(), "path")
-            .unwrap_or_default();
-        let dirs = media_dirs();
-        if is_safe_media_path(&p, &dirs.roots()) && Path::new(&p).is_file() {
-            if let Ok(bytes) = fs::read(&p) {
-                let resp = format_http_response(200, "image/jpeg", &bytes, origin);
-                let _ = stream.write_all(&resp);
-                return;
-            }
-        }
-        let resp = format_http_response(
-            404,
-            "application/json",
-            br#"{"error":"Thumbnail not found"}"#,
             origin,
         );
         let _ = stream.write_all(&resp);

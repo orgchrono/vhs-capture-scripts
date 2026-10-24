@@ -13,17 +13,24 @@
 //! - `POST /api/install_qtgmc`
 //! - `GET  /api/monitor/comparison-frame`
 
+use crate::domain::recovery::CheckpointData;
 use crate::infrastructure::app_context::AppContext;
+use crate::infrastructure::job_recovery::{
+    check_existing_restoration, discard_incomplete_job, finalize_partial_video,
+    scan_incomplete_jobs,
+};
 use crate::infrastructure::security::is_safe_media_path;
 use crate::infrastructure::toolchain::{
     is_obs_installed, is_vapoursynth_available, resolve_executable_path,
 };
 use crate::models::presets::{PresetConfig, RestorationPreset};
+use crate::models::recovery::IncompleteJobActionPayload;
 use crate::viewmodels::api_support::{media_dirs, resolve_media_input};
 use crate::viewmodels::api_types::{ApiRequest, ApiResponse};
 use crate::viewmodels::job_request_vm::{build_restore_job_command, map_restoration_payload};
 use serde_json::{json, Value};
-use std::process::Command;
+use std::fs;
+use std::path::{Path, PathBuf};
 
 /// Handles incoming restoration requests. Returns `None` if the path is not matched.
 #[must_use]
@@ -41,10 +48,13 @@ pub fn handle_restoration_route(req: &ApiRequest, ctx: &AppContext) -> Option<Ap
             Some(handle_incomplete_list())
         }
         ("POST", "/api/incomplete-jobs/action")
-        | ("POST", "/api/restoration/incomplete/action") => Some(handle_incomplete_action(req)),
+        | ("POST", "/api/restoration/incomplete/action") => {
+            Some(handle_incomplete_action(req, ctx))
+        }
         ("GET", "/api/restoration/qc-report") => Some(handle_qc_report(req)),
         ("POST", "/api/install_qtgmc") => Some(handle_install_qtgmc(ctx)),
-        ("GET", "/api/monitor/comparison-frame") => Some(handle_comparison_frame()),
+        ("GET", "/api/monitor/comparison-frame") => Some(handle_comparison_frame(req)),
+        ("GET", "/api/monitor/live-restoration-frame") => Some(handle_live_frame()),
         _ => None,
     }
 }
@@ -194,10 +204,51 @@ fn handle_action(req: &ApiRequest, ctx: &AppContext) -> ApiResponse {
             if ctx.process.is_running() {
                 return ApiResponse::error(400, "Please wait for current process to finish.");
             }
-            ApiResponse::ok(&json!({
-                "status": "ok",
-                "message": "AI subtitle generation started successfully."
-            }))
+            let raw_input = params
+                .get("input")
+                .and_then(Value::as_str)
+                .unwrap_or("")
+                .trim();
+            if raw_input.is_empty() {
+                return ApiResponse::error(400, "Missing required parameter 'input'");
+            }
+
+            let dirs = media_dirs();
+            let input_path_str = match resolve_media_input(raw_input, &dirs) {
+                Some(p) => p,
+                None => raw_input.to_string(),
+            };
+
+            if !is_safe_media_path(&input_path_str, &dirs.roots()) {
+                return ApiResponse::error(400, "Invalid or insecure file path.");
+            }
+
+            let ffmpeg = match resolve_executable_path("ffmpeg", None, None) {
+                Some(p) => p,
+                None => return ApiResponse::error(500, "FFmpeg binary is not available."),
+            };
+
+            let out_wav = dirs.work.join("extracted_audio_16k.wav");
+            let args = crate::domain::whisper::build_audio_extract_args(
+                &input_path_str,
+                &out_wav.to_string_lossy(),
+                &ffmpeg.to_string_lossy(),
+            );
+
+            let program = ffmpeg.clone();
+            let prog_args = if args.len() > 1 {
+                args[1..].to_vec()
+            } else {
+                Vec::new()
+            };
+
+            match ctx.process.start(&program, &prog_args) {
+                Ok(()) => ApiResponse::ok(&json!({
+                    "status": "ok",
+                    "message": "AI audio extraction & subtitle pipeline started."
+                })),
+                Err(e) => ApiResponse::error(500, &e),
+            }
         }
         _ => ApiResponse::error(400, "Unknown action."),
     }
@@ -280,24 +331,127 @@ fn handle_check_existing(req: &ApiRequest) -> ApiResponse {
         return ApiResponse::ok(&json!({ "has_existing": false }));
     }
 
-    ApiResponse::ok(&json!({
-        "has_existing": false,
-        "existing_path": null
-    }))
+    let dirs = media_dirs();
+    let resolved_source = match resolve_media_input(&source, &dirs) {
+        Some(s) => s,
+        None => source,
+    };
+
+    let search_dirs = [dirs.restored.clone(), dirs.work.clone()];
+    let raw_dirs = [dirs.raw.clone(), dirs.media.clone()];
+    let check = check_existing_restoration(
+        Path::new(&resolved_source),
+        &search_dirs,
+        &raw_dirs,
+        &dirs.restored,
+    );
+
+    let check_val =
+        serde_json::to_value(&check).unwrap_or_else(|_| json!({ "has_existing": false }));
+    ApiResponse::ok(&check_val)
 }
 
 fn handle_incomplete_list() -> ApiResponse {
+    let dirs = media_dirs();
+    let search_dirs = [dirs.restored.clone(), dirs.work.clone()];
+    let raw_dirs = [dirs.raw.clone(), dirs.media.clone()];
+    let jobs = scan_incomplete_jobs(&search_dirs, &raw_dirs);
+    let total = jobs.len();
+
     ApiResponse::ok(&json!({
-        "incomplete_jobs": [],
-        "total": 0
+        "incomplete_jobs": jobs,
+        "total": total
     }))
 }
 
-fn handle_incomplete_action(_req: &ApiRequest) -> ApiResponse {
-    ApiResponse::ok(&json!({
-        "status": "ok",
-        "message": "Incomplete job handled"
-    }))
+fn handle_incomplete_action(req: &ApiRequest, ctx: &AppContext) -> ApiResponse {
+    let payload: IncompleteJobActionPayload = match serde_json::from_str(&req.body_json) {
+        Ok(p) => p,
+        Err(e) => return ApiResponse::error(400, &format!("Invalid incomplete job action payload: {e}")),
+    };
+
+    let dirs = media_dirs();
+    let target_path = Path::new(&payload.output_path);
+
+    match payload.action.to_ascii_lowercase().as_str() {
+        "finalize" => {
+            let ffmpeg_bin = match resolve_executable_path("ffmpeg", None, None) {
+                Some(bin) => bin,
+                None => return ApiResponse::error(500, "FFmpeg binary could not be resolved."),
+            };
+
+            match finalize_partial_video(target_path, Path::new(&ffmpeg_bin)) {
+                Ok(finalized) => ApiResponse::ok(&json!({
+                    "status": "ok",
+                    "message": "Partial video container finalized successfully.",
+                    "finalized_file": finalized.to_string_lossy()
+                })),
+                Err(e) => ApiResponse::error(500, &e),
+            }
+        }
+        "discard" => {
+            match discard_incomplete_job(target_path) {
+                Ok(count) => ApiResponse::ok(&json!({
+                    "status": "ok",
+                    "message": format!("Discarded {count} partial files and checkpoint artifacts.")
+                })),
+                Err(e) => ApiResponse::error(500, &e),
+            }
+        }
+        "resume" => {
+            if ctx.process.is_running() {
+                return ApiResponse::error(400, "A restoration process is already running. Wait for completion.");
+            }
+
+            let source_str = payload.source.unwrap_or_default();
+            let resolved_source = if !source_str.is_empty() {
+                resolve_media_input(&source_str, &dirs).unwrap_or(source_str)
+            } else {
+                let clean_base = payload.output_path.strip_suffix(".part").unwrap_or(&payload.output_path);
+                let chk_cand = PathBuf::from(format!("{clean_base}.checkpoint.json"));
+                if chk_cand.is_file() {
+                    let content = fs::read_to_string(&chk_cand).unwrap_or_default();
+                    if let Ok(data) = serde_json::from_str::<CheckpointData>(&content) {
+                        data.source.unwrap_or_default()
+                    } else {
+                        String::new()
+                    }
+                } else {
+                    String::new()
+                }
+            };
+
+            if resolved_source.is_empty() || !Path::new(&resolved_source).exists() {
+                return ApiResponse::error(400, "Cannot resume: source tape file does not exist on disk.");
+            }
+
+            let default_output = dirs.restored.to_string_lossy().to_string();
+            let resume_payload = json!({
+                "input": resolved_source,
+                "output": payload.output_path
+            });
+            let mapped = map_restoration_payload(&resume_payload, &resolved_source, &default_output);
+
+            let current_exe = match std::env::current_exe() {
+                Ok(exe) => exe,
+                Err(e) => return ApiResponse::error(500, &format!("Failed to resolve current binary: {e}")),
+            };
+
+            let (program, args) = match build_restore_job_command(&current_exe, &mapped.request) {
+                Ok(pair) => pair,
+                Err(e) => return ApiResponse::error(500, &e),
+            };
+
+            match ctx.process.start(&program, &args) {
+                Ok(()) => ApiResponse::ok(&json!({
+                    "status": "ok",
+                    "message": "Resumed restoration pipeline successfully."
+                })),
+                Err(e) => ApiResponse::error(500, &e),
+            }
+        }
+        other => ApiResponse::error(400, &format!("Unknown recovery action: '{other}'")),
+    }
 }
 
 fn handle_qc_report(req: &ApiRequest) -> ApiResponse {
@@ -307,10 +461,39 @@ fn handle_qc_report(req: &ApiRequest) -> ApiResponse {
         return ApiResponse::error(400, "Missing required query parameter 'file_path'");
     }
 
+    let dirs = media_dirs();
+    let target = resolve_media_input(&file_path, &dirs).unwrap_or(file_path);
+    if !is_safe_media_path(&target, &dirs.roots()) {
+        return ApiResponse::error(400, "Invalid or unsafe file path.");
+    }
+
+    let json_path = format!("{target}_qc_report.json");
+    let md_path = format!("{target}_defect_report.md");
+
+    let p_json = Path::new(&json_path);
+    if !p_json.is_file() {
+        return ApiResponse::ok(&json!({
+            "exists": false,
+            "report": null,
+            "markdown": ""
+        }));
+    }
+
+    let report_content = fs::read_to_string(p_json).unwrap_or_default();
+    let report_data: Value = serde_json::from_str(&report_content).unwrap_or_else(|_| json!({}));
+
+    let md_text = if Path::new(&md_path).is_file() {
+        fs::read_to_string(&md_path).unwrap_or_default()
+    } else {
+        String::new()
+    };
+
     ApiResponse::ok(&json!({
-        "exists": false,
-        "report": null,
-        "markdown": ""
+        "exists": true,
+        "report_json_path": json_path,
+        "report_md_path": md_path,
+        "report": report_data,
+        "markdown": md_text
     }))
 }
 
@@ -335,107 +518,163 @@ fn handle_install_qtgmc(ctx: &AppContext) -> ApiResponse {
     }
 }
 
-fn handle_comparison_frame() -> ApiResponse {
-    ApiResponse::ok(&json!({
-        "source_frame": "",
-        "filtered_frame": "",
-        "metrics": {
-            "luma": 128.0,
-            "sharpness": 50.0
+fn handle_comparison_frame(req: &ApiRequest) -> ApiResponse {
+    let source = req.query("source").unwrap_or_default();
+    let timestamp = req
+        .query("timestamp")
+        .and_then(|t| t.parse::<f64>().ok())
+        .unwrap_or(5.0)
+        .max(0.0);
+    let deinterlacer = req
+        .query("deinterlacer")
+        .unwrap_or_else(|| "qtgmc".to_string());
+    let denoise = req.query("denoise").map(|d| d != "false").unwrap_or(true);
+    let chroma_fix = req
+        .query("chroma_fix")
+        .map(|c| c != "false")
+        .unwrap_or(true);
+
+    let dirs = media_dirs();
+    let resolved_source = if !source.is_empty() {
+        resolve_media_input(&source, &dirs).unwrap_or(source)
+    } else {
+        String::new()
+    };
+
+    let p = Path::new(&resolved_source);
+    let ffmpeg_bin = resolve_executable_path("ffmpeg", None, None);
+
+    if !resolved_source.is_empty()
+        && is_safe_media_path(&resolved_source, &dirs.roots())
+        && p.is_file()
+        && ffmpeg_bin.is_some()
+    {
+        if let Some(ffmpeg) = ffmpeg_bin {
+            // Raw frame extraction
+            let mut raw_cmd = crate::infrastructure::toolchain::create_silent_command(&ffmpeg);
+            raw_cmd.args([
+                "-hide_banner",
+                "-loglevel",
+                "error",
+                "-ss",
+                &format!("{timestamp:.3}"),
+                "-i",
+                &resolved_source,
+                "-frames:v",
+                "1",
+                "-vf",
+                "scale=640:360",
+                "-f",
+                "image2",
+                "-c:v",
+                "mjpeg",
+                "pipe:1",
+            ]);
+
+            // Processed preview filter chain
+            let deint_filter = if deinterlacer.to_ascii_lowercase().contains("bwdif") {
+                "bwdif=mode=0"
+            } else {
+                "yadif=mode=0"
+            };
+            let mut filters = vec![deint_filter.to_string()];
+            if denoise {
+                filters.push("hqdn3d=1.5:1.5:6:6".to_string());
+            }
+            if chroma_fix {
+                filters.push("eq=saturation=1.1:contrast=1.05".to_string());
+            }
+            filters.push("scale=640:360".to_string());
+            let proc_vf = filters.join(",");
+
+            let mut proc_cmd =
+                crate::infrastructure::toolchain::create_silent_command(&ffmpeg);
+            proc_cmd.args([
+                "-hide_banner",
+                "-loglevel",
+                "error",
+                "-ss",
+                &format!("{timestamp:.3}"),
+                "-i",
+                &resolved_source,
+                "-frames:v",
+                "1",
+                "-vf",
+                &proc_vf,
+                "-f",
+                "image2",
+                "-c:v",
+                "mjpeg",
+                "pipe:1",
+            ]);
+
+            let raw_out = raw_cmd.output().ok();
+            let proc_out = proc_cmd.output().ok();
+
+            if let (Some(r), Some(pr)) = (raw_out, proc_out) {
+                if r.status.success()
+                    && pr.status.success()
+                    && !r.stdout.is_empty()
+                    && !pr.stdout.is_empty()
+                {
+                    let raw_b64 = format!(
+                        "data:image/jpeg;base64,{}",
+                        crate::infrastructure::obs::base64_encode(&r.stdout)
+                    );
+                    let proc_b64 = format!(
+                        "data:image/jpeg;base64,{}",
+                        crate::infrastructure::obs::base64_encode(&pr.stdout)
+                    );
+
+                    return ApiResponse::ok(&json!({
+                        "status": "ok",
+                        "timestamp": timestamp,
+                        "duration": 3600.0,
+                        "raw_image": raw_b64,
+                        "processed_image": proc_b64,
+                        "width": 640,
+                        "height": 360
+                    }));
+                }
+            }
         }
+    }
+
+    ApiResponse::ok(&json!({
+        "status": "ok",
+        "timestamp": timestamp,
+        "duration": 0.0,
+        "raw_image": "",
+        "processed_image": "",
+        "width": 640,
+        "height": 360
     }))
 }
 
-fn command_available(name: &str) -> bool {
-    resolve_executable_path(name, None, None).is_some()
-}
-
-fn execute_install_command(program: &str, args: &[&str]) -> Result<String, String> {
-    let output = Command::new(program)
-        .args(args)
-        .output()
-        .map_err(|e| format!("failed to execute '{program}': {e}"))?;
-    if output.status.success() {
-        Ok(format!("{program} {}", args.join(" ")))
-    } else {
-        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-        let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        let detail = if !stderr.is_empty() { stderr } else { stdout };
-        Err(format!("{program} failed: {detail}"))
-    }
-}
-
-fn install_obs_toolchain() -> Result<String, String> {
-    if cfg!(target_os = "windows") {
-        if command_available("winget") {
-            return execute_install_command(
-                "winget",
-                &[
-                    "install",
-                    "--id",
-                    "OBSProject.OBSStudio",
-                    "-e",
-                    "--accept-package-agreements",
-                    "--accept-source-agreements",
-                ],
-            );
-        }
-        if command_available("choco") {
-            return execute_install_command("choco", &["install", "obs-studio", "-y"]);
-        }
-    } else if cfg!(target_os = "macos") {
-        if command_available("brew") {
-            return execute_install_command("brew", &["install", "--cask", "obs"]);
-        }
-    } else {
-        if command_available("apt-get") {
-            return execute_install_command("apt-get", &["install", "-y", "obs-studio"]);
-        }
-        if command_available("dnf") {
-            return execute_install_command("dnf", &["install", "-y", "obs-studio"]);
-        }
-        if command_available("pacman") {
-            return execute_install_command("pacman", &["-S", "--noconfirm", "obs-studio"]);
+fn handle_live_frame() -> ApiResponse {
+    let dirs = media_dirs();
+    let live_frame_path = dirs.work.join("live_frame.jpg");
+    if live_frame_path.is_file() {
+        if let Ok(bytes) = fs::read(&live_frame_path) {
+            if bytes.len() > 100 {
+                let b64 = crate::infrastructure::obs::base64_encode(&bytes);
+                return ApiResponse::ok(&json!({
+                    "status": "ok",
+                    "has_frame": true,
+                    "frame": format!("data:image/jpeg;base64,{b64}")
+                }));
+            }
         }
     }
-    Err("no supported OBS installer command found on host".to_string())
+
+    ApiResponse::ok(&json!({
+        "status": "ok",
+        "has_frame": false,
+        "frame": ""
+    }))
 }
 
-fn install_vapoursynth_toolchain() -> Result<String, String> {
-    if cfg!(target_os = "windows") {
-        if command_available("winget") {
-            return execute_install_command(
-                "winget",
-                &[
-                    "install",
-                    "--id",
-                    "VapourSynth.VapourSynth",
-                    "-e",
-                    "--accept-package-agreements",
-                    "--accept-source-agreements",
-                ],
-            );
-        }
-        if command_available("choco") {
-            return execute_install_command("choco", &["install", "vapoursynth", "-y"]);
-        }
-    } else if cfg!(target_os = "macos") {
-        if command_available("brew") {
-            return execute_install_command("brew", &["install", "vapoursynth"]);
-        }
-    } else {
-        if command_available("apt-get") {
-            return execute_install_command("apt-get", &["install", "-y", "vapoursynth"]);
-        }
-        if command_available("dnf") {
-            return execute_install_command("dnf", &["install", "-y", "vapoursynth"]);
-        }
-        if command_available("pacman") {
-            return execute_install_command("pacman", &["-S", "--noconfirm", "vapoursynth"]);
-        }
-    }
-    Err("no supported VapourSynth installer command found on host".to_string())
-}
+use crate::infrastructure::package::{install_obs_toolchain, install_vapoursynth_toolchain};
 
 #[cfg(test)]
 mod tests {
@@ -473,6 +712,35 @@ mod tests {
         let res = handle_restoration_route(&req, &ctx).expect("matched route");
         assert_eq!(res.status_code, 200);
         assert!(res.body_json.contains("\"active\":false"));
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn test_incomplete_endpoints_and_actions() {
+        let tmp = std::env::temp_dir().join(format!("vhs_resto_test_incomp_{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&tmp);
+        let ctx = AppContext::new_test(&tmp);
+
+        let req_list = ApiRequest {
+            method: "GET".to_string(),
+            path: "/api/restoration/incomplete".to_string(),
+            body_json: String::new(),
+        };
+        let res_list = handle_restoration_route(&req_list, &ctx).expect("matched route");
+        assert_eq!(res_list.status_code, 200);
+        assert!(res_list.body_json.contains("\"incomplete_jobs\":"));
+        assert!(res_list.body_json.contains("\"total\":"));
+
+        // Test check-existing
+        let req_check = ApiRequest {
+            method: "GET".to_string(),
+            path: "/api/restoration/check-existing?source=nonexistent.mkv".to_string(),
+            body_json: String::new(),
+        };
+        let res_check = handle_restoration_route(&req_check, &ctx).expect("matched route");
+        assert_eq!(res_check.status_code, 200);
+        assert!(res_check.body_json.contains("\"has_existing\":false"));
+
         let _ = std::fs::remove_dir_all(&tmp);
     }
 }

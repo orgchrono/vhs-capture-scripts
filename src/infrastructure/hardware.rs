@@ -426,8 +426,8 @@ pub fn build_hardware_profile_json(
             "model": cpu_model
         },
         "ram": {
-            "total_gb": (specs.ram_total_gb * 10.0).round() / 10.0,
-            "available_gb": (specs.ram_available_gb * 10.0).round() / 10.0
+            "total_gb": format!("{:.1}", specs.ram_total_gb).parse::<f64>().unwrap_or(0.0),
+            "available_gb": format!("{:.1}", specs.ram_available_gb).parse::<f64>().unwrap_or(0.0)
         },
         "gpu": {
             "type": gpu_type_str,

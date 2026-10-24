@@ -210,7 +210,8 @@
     "crf_smaller": "Smaller File (28)",
     "tab_presets": "モード",
     "reset_default": "デフォルトに戻す",
-    "tabs_aria_label": "Abas de Configuração"
+    "tabs_aria_label": "Abas de Configuração",
+    "output_codec_hint": "最終動画のエンコード形式および圧縮コーデック。"
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",

@@ -28,7 +28,11 @@ pub fn should_emit_progress(last_emit_ms: Option<u64>, now_ms: u64, is_complete:
 pub fn plan_restoration_request(request: &RestorationJobRequest) -> Result<PlannedRestoration, String> {
     let ffprobe = resolve_tool_command("ffprobe");
     let ffmpeg = resolve_tool_command("ffmpeg");
-    let vspipe = resolve_tool_in_environment("vspipe").map(|p| p.to_string_lossy().into_owned());
+    let vspipe = if crate::infrastructure::toolchain::is_qtgmc_viable() {
+        resolve_tool_in_environment("vspipe").map(|p| p.to_string_lossy().into_owned())
+    } else {
+        None
+    };
     let probe = probe_media_file(&request.input_path, &ffprobe)?;
     plan_restoration_job(request, &probe, vspipe.as_deref(), &ffmpeg)
 }

@@ -14,6 +14,7 @@ pub struct MediaDirs {
     pub media: PathBuf,
     pub raw: PathBuf,
     pub restored: PathBuf,
+    pub work: PathBuf,
 }
 
 impl MediaDirs {
@@ -46,6 +47,7 @@ pub fn media_dirs_for(prefs: &AppPreferences, base: &Path) -> MediaDirs {
         media: base.join(MEDIA_ROOT_REL_PATH),
         raw: resolve_dir(&prefs.raw_dir, MEDIA_RAW_REL_PATH, base),
         restored: resolve_dir(&prefs.restored_dir, MEDIA_RESTORED_REL_PATH, base),
+        work: base.join(MEDIA_ROOT_REL_PATH).join("work"),
     }
 }
 
@@ -113,7 +115,12 @@ mod tests {
         let raw = tmp.join("raw");
         std::fs::create_dir_all(&raw).expect("mkdir");
         std::fs::write(raw.join("tape.mkv"), b"x").expect("write");
-        let dirs = MediaDirs { media: tmp.clone(), raw: raw.clone(), restored: tmp.join("out") };
+        let dirs = MediaDirs {
+            media: tmp.clone(),
+            raw: raw.clone(),
+            restored: tmp.join("out"),
+            work: tmp.join("work"),
+        };
         assert_eq!(
             resolve_media_input("tape.mkv", &dirs),
             Some(raw.join("tape.mkv").to_string_lossy().into_owned())

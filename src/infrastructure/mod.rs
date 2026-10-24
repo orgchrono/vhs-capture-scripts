@@ -7,6 +7,7 @@ pub mod hardware;
 pub mod http_codec;
 pub mod http_server;
 pub mod i18n_validator;
+pub mod job_recovery;
 pub mod lock;
 pub mod meihdfs;
 pub mod oauth;

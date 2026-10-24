@@ -3,6 +3,7 @@ import {
   Sliders,
   Search,
   Video,
+  Film,
   Music,
   Settings2,
   Image as ImageIcon,
@@ -192,14 +193,14 @@ export const RestorationSettings: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 min-h-0 flex flex-col" aria-label={t('settings.tabs_aria_label')}>
-        <TabsList className="grid w-full grid-cols-4 sm:grid-cols-7 gap-1 mb-2.5 bg-studio-surface p-1 border border-studio-border rounded-sm shrink-0">
-          <TabsTrigger value="presets" data-testid="tab-presets" className={`flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium font-mono rounded-sm ${isTabMatching('presets') ? 'text-amber-400' : ''}`}><Sparkles className="w-3.5 h-3.5 text-amber-400" />{t('settings.tab_presets', 'Modo')}</TabsTrigger>
-          <TabsTrigger value="video" data-testid="tab-video" className={`flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium font-mono rounded-sm ${isTabMatching('video') ? 'text-amber-400' : ''}`}><Video className="w-3.5 h-3.5 text-slate-300" />{t('settings.tab_video')}</TabsTrigger>
-          <TabsTrigger value="audio" data-testid="tab-audio" className={`flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium font-mono rounded-sm ${isTabMatching('audio') ? 'text-amber-400' : ''}`}><Music className="w-3.5 h-3.5 text-slate-300" />{t('settings.tab_audio')}</TabsTrigger>
-          <TabsTrigger value="filters" data-testid="tab-filters" className={`flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium font-mono rounded-sm ${isTabMatching('filters') ? 'text-amber-400' : ''}`}><ImageIcon className="w-3.5 h-3.5 text-slate-300" />{t('settings.tab_filters')}</TabsTrigger>
-          <TabsTrigger value="advanced" data-testid="tab-advanced" className={`flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium font-mono rounded-sm ${isTabMatching('advanced') ? 'text-amber-400' : ''}`}><Settings2 className="w-3.5 h-3.5 text-slate-300" />{t('settings.tab_advanced')}</TabsTrigger>
-          <TabsTrigger value="ai" data-testid="tab-ai" className={`flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium font-mono rounded-sm ${isTabMatching('ai') ? 'text-amber-400' : ''}`}><Cpu className="w-3.5 h-3.5 text-slate-300" />{t('settings.tab_ai')}</TabsTrigger>
-          <TabsTrigger value="storage" data-testid="tab-storage" className={`flex items-center justify-center gap-1.5 text-xs py-1.5 px-1 font-medium font-mono rounded-sm ${isTabMatching('storage') ? 'text-amber-400' : ''}`}><Cloud className="w-3.5 h-3.5 text-slate-300" />{t('settings.tab_storage')}</TabsTrigger>
+        <TabsList className="flex items-center overflow-x-auto custom-scrollbar gap-1 mb-2.5 bg-studio-surface p-1 border border-studio-border rounded-sm shrink-0">
+          <TabsTrigger value="presets" data-testid="tab-presets" className={`flex items-center justify-center gap-1.5 text-xs py-1.5 px-2.5 font-medium font-mono rounded-sm shrink-0 whitespace-nowrap ${isTabMatching('presets') ? 'text-amber-400' : ''}`}><Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />{t('settings.tab_presets', 'Modo')}</TabsTrigger>
+          <TabsTrigger value="video" data-testid="tab-video" className={`flex items-center justify-center gap-1.5 text-xs py-1.5 px-2.5 font-medium font-mono rounded-sm shrink-0 whitespace-nowrap ${isTabMatching('video') ? 'text-amber-400' : ''}`}><Video className="w-3.5 h-3.5 text-slate-300 shrink-0" />{t('settings.tab_video')}</TabsTrigger>
+          <TabsTrigger value="audio" data-testid="tab-audio" className={`flex items-center justify-center gap-1.5 text-xs py-1.5 px-2.5 font-medium font-mono rounded-sm shrink-0 whitespace-nowrap ${isTabMatching('audio') ? 'text-amber-400' : ''}`}><Music className="w-3.5 h-3.5 text-slate-300 shrink-0" />{t('settings.tab_audio')}</TabsTrigger>
+          <TabsTrigger value="filters" data-testid="tab-filters" className={`flex items-center justify-center gap-1.5 text-xs py-1.5 px-2.5 font-medium font-mono rounded-sm shrink-0 whitespace-nowrap ${isTabMatching('filters') ? 'text-amber-400' : ''}`}><ImageIcon className="w-3.5 h-3.5 text-slate-300 shrink-0" />{t('settings.tab_filters')}</TabsTrigger>
+          <TabsTrigger value="advanced" data-testid="tab-advanced" className={`flex items-center justify-center gap-1.5 text-xs py-1.5 px-2.5 font-medium font-mono rounded-sm shrink-0 whitespace-nowrap ${isTabMatching('advanced') ? 'text-amber-400' : ''}`}><Settings2 className="w-3.5 h-3.5 text-slate-300 shrink-0" />{t('settings.tab_advanced')}</TabsTrigger>
+          <TabsTrigger value="ai" data-testid="tab-ai" className={`flex items-center justify-center gap-1.5 text-xs py-1.5 px-2.5 font-medium font-mono rounded-sm shrink-0 whitespace-nowrap ${isTabMatching('ai') ? 'text-amber-400' : ''}`}><Cpu className="w-3.5 h-3.5 text-slate-300 shrink-0" />{t('settings.tab_ai')}</TabsTrigger>
+          <TabsTrigger value="storage" data-testid="tab-storage" className={`flex items-center justify-center gap-1.5 text-xs py-1.5 px-2.5 font-medium font-mono rounded-sm shrink-0 whitespace-nowrap ${isTabMatching('storage') ? 'text-amber-400' : ''}`}><Cloud className="w-3.5 h-3.5 text-slate-300 shrink-0" />{t('settings.tab_storage')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="presets" className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 space-y-3">
@@ -216,6 +217,26 @@ export const RestorationSettings: React.FC = () => {
                   </p>
                 </div>
                 <PresetSelector />
+
+                <div className="mt-3 p-3 bg-studio-surface/60 border border-studio-border rounded-sm flex items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <label className="text-xs font-semibold text-slate-300 font-mono flex items-center gap-1.5">
+                      <Film className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      {t('settings.output_codec_label')}
+                    </label>
+                    <p className="text-[10px] text-slate-400 font-mono">
+                      {t('settings.output_codec_hint')}
+                    </p>
+                  </div>
+                  <div className="w-56">
+                    <GenericSelect
+                      value={outputCodec}
+                      onChange={setOutputCodec}
+                      options={OUTPUT_CODEC_OPTIONS}
+                      disabled={isLocked}
+                    />
+                  </div>
+                </div>
               </>
             )}
           </TabTransition>
@@ -436,7 +457,7 @@ export const RestorationSettings: React.FC = () => {
                       <div className="bg-studio-panel p-2 rounded-sm border border-studio-border">
                         <span className="text-[10px] text-slate-400 block mb-0.5">{t('ai.ram')}</span>
                         <span className="text-white font-medium">
-                          {t('ai.ram_format', { total: hardwareProfile.ram?.total_gb || 0, free: hardwareProfile.ram?.available_gb || 0 })}
+                          {t('ai.ram_format', { total: Number(hardwareProfile.ram?.total_gb || 0).toFixed(1), free: Number(hardwareProfile.ram?.available_gb || 0).toFixed(1) })}
                         </span>
                       </div>
                       <div className="bg-studio-panel p-2 rounded-sm border border-studio-border">

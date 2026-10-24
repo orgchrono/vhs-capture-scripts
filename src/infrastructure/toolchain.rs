@@ -258,10 +258,66 @@ pub fn is_ffmpeg_available() -> bool {
     is_executable_available("ffmpeg")
 }
 
+/// Static cache for QTGMC viability probe: -1 = uninitialized, 0 = not viable, 1 = viable.
+static QTGMC_VIABLE_CACHE: std::sync::atomic::AtomicI8 = std::sync::atomic::AtomicI8::new(-1);
+
+/// Checks whether VapourSynth and QTGMC dependencies (plugins, havsfunc, mvtools) are fully functional.
+#[must_use]
+pub fn is_qtgmc_viable() -> bool {
+    let cached = QTGMC_VIABLE_CACHE.load(std::sync::atomic::Ordering::Relaxed);
+    if cached == 0 {
+        return false;
+    } else if cached == 1 {
+        return true;
+    }
+
+    let vspipe = match resolve_executable_path("vspipe", None, None) {
+        Some(p) => p,
+        None => {
+            QTGMC_VIABLE_CACHE.store(0, std::sync::atomic::Ordering::Relaxed);
+            return false;
+        }
+    };
+
+    let temp_vpy = std::env::temp_dir().join("vhs_qtgmc_probe.vpy");
+    let script_content = concat!(
+        "import vapoursynth as vs\n",
+        "from vapoursynth import core\n",
+        "import havsfunc as haf\n",
+        "clip = core.std.BlankClip(format=vs.YUV420P8, width=64, height=64, length=1)\n",
+        "clip = haf.QTGMC(clip, Preset='Fast', TFF=True)\n",
+        "clip.set_output()\n"
+    );
+
+    if std::fs::write(&temp_vpy, script_content).is_err() {
+        QTGMC_VIABLE_CACHE.store(0, std::sync::atomic::Ordering::Relaxed);
+        return false;
+    }
+
+    let mut cmd = create_silent_command(Path::new(&vspipe));
+    cmd.args(["--info", &temp_vpy.to_string_lossy(), "-"]);
+    cmd.stdout(std::process::Stdio::null());
+    cmd.stderr(std::process::Stdio::null());
+
+    let is_viable = match cmd.status() {
+        Ok(status) => status.success(),
+        Err(_) => false,
+    };
+
+    let _ = std::fs::remove_file(&temp_vpy);
+    QTGMC_VIABLE_CACHE.store(if is_viable { 1 } else { 0 }, std::sync::atomic::Ordering::Relaxed);
+    is_viable
+}
+
+/// Invalidates the QTGMC viability cache (e.g. after toolchain installer runs).
+pub fn invalidate_qtgmc_cache() {
+    QTGMC_VIABLE_CACHE.store(-1, std::sync::atomic::Ordering::Relaxed);
+}
+
 /// Checks whether VapourSynth (vspipe) is installed and accessible.
 #[must_use]
 pub fn is_vapoursynth_available() -> bool {
-    is_executable_available("vspipe")
+    is_qtgmc_viable()
 }
 
 /// Checks whether OBS Studio is installed.

@@ -210,7 +210,8 @@
     "crf_default": "Padrão (18)",
     "crf_smaller": "Menor Tamanho (28)",
     "reset_default": "Restaurar padrão",
-    "tabs_aria_label": "Abas de Configuração"
+    "tabs_aria_label": "Abas de Configuração",
+    "output_codec_hint": "Formato de codificação e compressão do vídeo final."
   },
   "ai": {
     "diagnostic_title": "Diagnóstico Honesto do Hardware",

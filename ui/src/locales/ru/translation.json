@@ -210,7 +210,8 @@
     "crf_smaller": "Smaller File (28)",
     "tab_presets": "Режим",
     "reset_default": "Сбросить по умолчанию",
-    "tabs_aria_label": "Abas de Configuração"
+    "tabs_aria_label": "Abas de Configuração",
+    "output_codec_hint": "Формат кодирования и сжатия выходного видео."
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",

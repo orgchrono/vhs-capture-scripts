@@ -86,6 +86,10 @@ fn handle_obs_virtualcam(req: &ApiRequest) -> ApiResponse {
         .and_then(|v| v.get("enable").and_then(Value::as_bool))
         .unwrap_or(true);
 
+    if enable && !is_obs_running() && is_obs_installed() {
+        let _ = crate::infrastructure::obs::launch_obs(true);
+    }
+
     ApiResponse::ok(&json!({
         "status": "ok",
         "message": format!("Virtual camera set to {enable}."),

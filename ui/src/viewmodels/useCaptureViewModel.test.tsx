@@ -1,6 +1,7 @@
 import React from 'react';
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import i18n from '../i18n';
 import { useCaptureViewModel } from './useCaptureViewModel';
 import { useStudioStore } from '../store/useStudioStore';
 import { Provider } from 'react-redux';
@@ -46,7 +47,7 @@ describe('useCaptureViewModel', () => {
 
     expect(mockStartCaptureTrigger).toHaveBeenCalledTimes(1);
     expect(useStudioStore.getState().isCapturing).toBe(true);
-    expect(useStudioStore.getState().logs).toContain('log.obs_capture_started');
+    expect(useStudioStore.getState().logs).toContain(i18n.t('logs.obs_capture_started'));
   });
 
   it('stops capture successfully and updates state and selectedFile', async () => {
