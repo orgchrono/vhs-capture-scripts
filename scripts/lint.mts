@@ -160,6 +160,10 @@ async function main(): Promise<void> {
       const res: StepResult[] = [];
       for (const step of rustSteps) {
         res.push(await runStep(step));
+        if (process.platform === 'win32') {
+          // Allow Windows file handles on target/ artifacts to fully release
+          await new Promise((r) => setTimeout(r, 300));
+        }
       }
       return res;
     })(),
