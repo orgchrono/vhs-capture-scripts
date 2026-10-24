@@ -95,33 +95,52 @@ pub fn resolve_deinterlace_filter(deinterlacer: &str) -> &'static str {
 }
 
 /// Pure compiler for video filtergraph chains.
+/// Follows strict analog video signal processing order:
+/// 1. Comb filter (pre-deinterlace for composite dot crawl / rainbows)
+/// 2. Deinterlacing (converts fields to progressive frames)
+/// 3. Spatial dropout/grain cleaning (on progressive frame)
+/// 4. Chroma shift (avoids field parity crosstalk)
+/// 5. Temporal denoise (clean spatio-temporal progressive moments)
+/// 6. Overscan blanking mask
+/// 7. 1080p Pillarbox upscale
 #[must_use]
 pub fn build_video_filtergraph(spec: &VideoFilterSpec) -> String {
     let mut filters: Vec<String> = Vec::new();
 
+    // 1. Pre-deinterlace: Comb filter
+    if spec.apply_comb_filter {
+        filters.push(FILTER_DEDOT.to_string());
+    }
+
+    // 2. Deinterlacing
+    let deint = resolve_deinterlace_filter(&spec.deinterlacer);
+    if !deint.is_empty() {
+        filters.push(deint.to_string());
+    }
+
+    // 3. Post-deinterlace: Spatial grain/dropout removal
+    if spec.apply_dropout_clean {
+        filters.push("removegrain=m=1".to_string());
+    }
+
+    // 4. Post-deinterlace: Chroma phase alignment
+    if spec.apply_chroma_shift {
+        filters.push(FILTER_CHROMA_SHIFT.to_string());
+    }
+
+    // 5. Post-deinterlace: Temporal denoiser
+    if spec.apply_denoise {
+        filters.push(FILTER_DENOISE.to_string());
+    }
+
+    // 6. Post-deinterlace: Overscan blanking mask
     if spec.overscan_blanking {
         filters.push(format!(
             "drawbox=y=ih-{OVERSCAN_BLANKING_HEIGHT_PX}:color=black:width=iw:height={OVERSCAN_BLANKING_HEIGHT_PX}:t=fill"
         ));
     }
 
-    if spec.apply_comb_filter {
-        filters.push(FILTER_DEDOT.to_string());
-    }
-
-    if spec.apply_chroma_shift {
-        filters.push(FILTER_CHROMA_SHIFT.to_string());
-    }
-
-    if spec.apply_denoise {
-        filters.push(FILTER_DENOISE.to_string());
-    }
-
-    let deint = resolve_deinterlace_filter(&spec.deinterlacer);
-    if !deint.is_empty() {
-        filters.push(deint.to_string());
-    }
-
+    // 7. Post-deinterlace: Upscale to 1080p
     if spec.target_1080p {
         filters.push(FILTER_UPSCALE_1080P.to_string());
     }

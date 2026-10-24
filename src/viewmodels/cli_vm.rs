@@ -243,6 +243,8 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
                 apply_comb_filter: true,
                 thread_count: num_cpus(),
                 cache_size_mb: 4000,
+                trim_start_frame: None,
+                trim_length_frames: None,
             };
             let script = build_qtgmc_script_content(&params);
             println!("{script}");

@@ -58,6 +58,7 @@ pub enum AudioChannelPolicy {
     Stereo,
     MonoLeft,  // Duplicate clean left track to right
     MonoRight, // Duplicate clean right track to left
+    MonoSum,   // Symmetrical sum of left and right channels
     Passthrough,
 }
 
@@ -99,30 +100,24 @@ pub struct PipelinePlan {
 }
 
 /// Pure functional resolver for the video filtergraph string.
+/// Follows strict analog video signal processing order:
+/// 1. Comb filter (pre-deinterlace for composite dot crawl / rainbows)
+/// 2. Deinterlacing (converts fields to progressive frames)
+/// 3. Spatial dropout/grain cleaning (on progressive frame)
+/// 4. Chroma shift (avoids field parity crosstalk)
+/// 5. Temporal denoise (clean spatio-temporal progressive moments)
+/// 6. Overscan blanking mask
+/// 7. 1080p Pillarbox upscale
 #[must_use]
 pub fn build_video_filtergraph(spec: &PipelineSpec) -> String {
     let mut filters: Vec<String> = Vec::new();
 
-    if spec.apply_overscan_blanking {
-        filters.push("drawbox=y=ih-16:color=black:width=iw:height=16:t=fill".to_string());
-    }
-
-    if spec.apply_dropout_clean {
-        filters.push("removegrain=m=1".to_string());
-    }
-
+    // 1. Pre-deinterlace: Comb filter for NTSC/PAL composite artifacts (dot crawl / rainbow)
     if spec.apply_comb_filter {
         filters.push("dedot=m=dotcrawl+rainbows".to_string());
     }
 
-    if spec.apply_chroma_fix {
-        filters.push("chromashift=cbh=2:cbv=1:crh=2:crv=1:edge=smear".to_string());
-    }
-
-    if spec.apply_denoise {
-        filters.push("hqdn3d=4.0:3.0:6.0:4.5".to_string());
-    }
-
+    // 2. Deinterlacing
     match spec.deinterlacer {
         DeinterlaceFilter::Qtgmc => {
             // In FFmpeg pipeline context, bwdif bob is used as high-framerate fallback or QTGMC frame rate pass
@@ -146,8 +141,61 @@ pub fn build_video_filtergraph(spec: &PipelineSpec) -> String {
         DeinterlaceFilter::None => {}
     }
 
+    // 3. Post-deinterlace: Spatial grain/dropout removal
+    if spec.apply_dropout_clean {
+        filters.push("removegrain=m=1".to_string());
+    }
+
+    // 4. Post-deinterlace: Chroma phase alignment (VHS color smear correction)
+    if spec.apply_chroma_fix {
+        filters.push("chromashift=cbh=2:cbv=1:crh=2:crv=1:edge=smear".to_string());
+    }
+
+    // 5. Post-deinterlace: Temporal denoiser (spatio-temporal 3D denoise across progressive frames)
+    if spec.apply_denoise {
+        filters.push("hqdn3d=4.0:3.0:6.0:4.5".to_string());
+    }
+
+    // 6. Post-deinterlace: Top/bottom overscan blanking mask
+    if spec.apply_overscan_blanking {
+        filters.push("drawbox=y=ih-16:color=black:width=iw:height=16:t=fill".to_string());
+    }
+
+    // 7. Post-deinterlace: Preserves exact 4:3 broadcast aspect ratio inside 1920x1080 frame with Lanczos interpolation
     if spec.target_1080p {
-        // Preserves exact 4:3 broadcast aspect ratio inside 1920x1080 frame with Lanczos interpolation
+        filters.push("scale=1440:1080:flags=lanczos,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1".to_string());
+    }
+
+    if filters.is_empty() {
+        "null".to_string()
+    } else {
+        filters.join(",")
+    }
+}
+
+/// Pure functional resolver for video filters applied downstream of VapourSynth QTGMC.
+/// Excludes deinterlacers and comb filter (already processed natively in the .vpy script).
+#[must_use]
+pub fn build_post_qtgmc_video_filtergraph(spec: &PipelineSpec) -> String {
+    let mut filters: Vec<String> = Vec::new();
+
+    if spec.apply_dropout_clean {
+        filters.push("removegrain=m=1".to_string());
+    }
+
+    if spec.apply_chroma_fix {
+        filters.push("chromashift=cbh=2:cbv=1:crh=2:crv=1:edge=smear".to_string());
+    }
+
+    if spec.apply_denoise {
+        filters.push("hqdn3d=4.0:3.0:6.0:4.5".to_string());
+    }
+
+    if spec.apply_overscan_blanking {
+        filters.push("drawbox=y=ih-16:color=black:width=iw:height=16:t=fill".to_string());
+    }
+
+    if spec.target_1080p {
         filters.push("scale=1440:1080:flags=lanczos,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1".to_string());
     }
 
@@ -169,6 +217,9 @@ pub fn build_audio_filtergraph(spec: &PipelineSpec) -> String {
         }
         AudioChannelPolicy::MonoRight => {
             filters.push("pan=stereo|c0=c1|c1=c1".to_string());
+        }
+        AudioChannelPolicy::MonoSum => {
+            filters.push("pan=stereo|c0=0.5*c0+0.5*c1|c1=0.5*c0+0.5*c1".to_string());
         }
         AudioChannelPolicy::Stereo | AudioChannelPolicy::Passthrough => {}
     }
