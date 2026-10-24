@@ -239,7 +239,7 @@ Remotely triggers recording start and stop within OBS Studio.
 
 ---
 
-## 5. Restoration & Process Actions (`src/viewmodels/restoration_vm.rs` & `src/domain/pipeline.rs`)
+## 5. Restoration & Process Actions (`src/viewmodels/api_restoration.rs` & `src/domain/pipeline.rs`)
 
 ### `POST /api/run`
 Initiates direct pipeline execution for a selected media file.
@@ -283,9 +283,13 @@ Extracts and returns a comparison frame pair (Raw vs Restored) at a specified ti
 - **Response (HTTP 200):**
   ```json
   {
-    "raw_frame": "data:image/jpeg;base64,...",
-    "processed_frame": "data:image/jpeg;base64,...",
-    "timestamp": 12.5
+    "status": "ok",
+    "raw_image": "data:image/jpeg;base64,...",
+    "processed_image": "data:image/jpeg;base64,...",
+    "timestamp": 12.5,
+    "duration": 7200.0,
+    "width": 640,
+    "height": 360
   }
   ```
 

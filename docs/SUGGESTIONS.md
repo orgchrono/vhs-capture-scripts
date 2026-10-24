@@ -16,7 +16,7 @@ This document outlines completed architectural milestones and future research an
 - [x] **Automated Toolchain & VapourSynth Resolution:** Native toolchain verification engine (`cargo run -- toolchain-check`) resolving FFmpeg, VapourSynth, and Panasonic C forensics.
 - [x] **Deep Neural Super-Resolution:** Real-ESRGAN x4plus and Real-CUGAN models accelerated via Vulkan NCNN.
 - [x] **Automated Neural Subtitling:** Faster-Whisper engine integrated for offline multilingual `.vtt` and `.srt` subtitle creation.
-- [x] **Persistent Batch Queue:** SQLite sequential worker engine featuring job prioritization, pause/resume, and crash isolation.
+- [x] **Persistent Batch Queue:** Atomic JSON sequential worker engine featuring job prioritization, pause/resume, and crash isolation.
 - [x] **Cloud & Archival Offload:** Native adapters for AWS S3, Google Drive (OAuth2 PKCE), and Dropbox.
 - [x] **Forensic Panasonic DVR Ingestion:** Direct raw block and disk dump access to MEIHDFS-V1.0, MEIHDFS-V2.0, and DVD-VR formats with native C utilities and direct VRO container extraction fallback.
 - [x] **Archival Security & Threat Model:**
