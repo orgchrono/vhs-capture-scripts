@@ -94,7 +94,7 @@ pub struct RestorationSummary {
     pub error_message: Option<String>,
 }
 
-/// Computes the final output filename based on input path, preset, and target container codec.
+/// Computes the final output filename based on input path, preset, target container codec, and optional parameter hash.
 #[must_use]
 pub fn resolve_final_output_path(
     input_path: &str,
@@ -102,6 +102,7 @@ pub fn resolve_final_output_path(
     preset: RestorationPreset,
     codec: OutputCodec,
     target_1080p: bool,
+    param_hash: Option<&str>,
 ) -> PathBuf {
     let p = Path::new(input_path);
     let stem = p.file_stem().and_then(|s| s.to_str()).unwrap_or("restored");
@@ -112,7 +113,8 @@ pub fn resolve_final_output_path(
     };
 
     let suffix_1080p = if target_1080p { "_1080p" } else { "" };
-    let filename = format!("{stem}_{preset:?}{suffix_1080p}.{ext}").to_lowercase();
+    let hash_part = param_hash.map(|h| format!("_{h}")).unwrap_or_default();
+    let filename = format!("{stem}_{preset:?}{suffix_1080p}{hash_part}.{ext}").to_lowercase();
     Path::new(output_dir).join(filename)
 }
 
@@ -135,16 +137,6 @@ pub fn plan_restoration_job(
     });
     let target_1080p = request.target_1080p;
 
-    let final_path = resolve_final_output_path(
-        &request.input_path,
-        &request.output_dir,
-        request.preset,
-        output_codec,
-        target_1080p,
-    );
-    let final_path_str = final_path.to_string_lossy().to_string();
-    let part_path = get_part_path(&final_path_str);
-
     let deinterlacer = request.custom_deinterlacer.unwrap_or(match preset_conf.deinterlacer {
         Deinterlacer::Qtgmc | Deinterlacer::QtgmcFast | Deinterlacer::QtgmcSlow => DeinterlaceFilter::Qtgmc,
         Deinterlacer::Bwdif => DeinterlaceFilter::BwdifBob,
@@ -152,6 +144,35 @@ pub fn plan_restoration_job(
         Deinterlacer::Nnedi => DeinterlaceFilter::Nnedi3,
         Deinterlacer::None => DeinterlaceFilter::None,
     });
+
+    let params_payload = serde_json::json!({
+        "preset": format!("{:?}", request.preset),
+        "codec": format!("{:?}", output_codec),
+        "target_1080p": target_1080p,
+        "deinterlacer": format!("{:?}", deinterlacer),
+        "comb_filter": comb_filter,
+        "denoise": ov.denoise.unwrap_or(preset_conf.denoise),
+        "chroma_fix": ov.chroma_fix.unwrap_or(preset_conf.chroma_fix),
+        "overscan": ov.overscan_blanking.unwrap_or(preset_conf.overscan_blanking),
+        "dropout": ov.dropout_clean.unwrap_or(preset_conf.dropout_clean),
+        "audio_policy": format!("{:?}", request.audio_policy),
+        "notch_hum": request.apply_audio_notch_hum,
+        "loudness": request.apply_loudness_norm,
+        "start_sec": format!("{:.2}", request.start_sec),
+        "duration_sec": request.duration_sec.map(|d| format!("{d:.2}")),
+    });
+    let phash = crate::models::media::generate_param_hash(params_payload.to_string().as_bytes());
+
+    let final_path = resolve_final_output_path(
+        &request.input_path,
+        &request.output_dir,
+        request.preset,
+        output_codec,
+        target_1080p,
+        Some(&phash),
+    );
+    let final_path_str = final_path.to_string_lossy().to_string();
+    let part_path = get_part_path(&final_path_str);
 
     let encoder = match output_codec {
         OutputCodec::ProRes => VideoEncoder::ProResKs,
@@ -651,9 +672,47 @@ mod tests {
             RestorationPreset::Gold,
             OutputCodec::H264,
             true,
+            None,
         );
         let out_str = out.to_string_lossy().to_string();
         assert!(out_str.contains("tape_01_gold_1080p.mp4"));
+
+        let out_with_hash = resolve_final_output_path(
+            "media/raw/tape_01.avi",
+            "media/restored",
+            RestorationPreset::Gold,
+            OutputCodec::H264,
+            true,
+            Some("a1b2c3d4"),
+        );
+        let out_hash_str = out_with_hash.to_string_lossy().to_string();
+        assert!(out_hash_str.contains("tape_01_gold_1080p_a1b2c3d4.mp4"));
+    }
+
+    #[test]
+    fn test_plan_restoration_job_hash_changes_on_parameter_mutation() {
+        let mut req1 = RestorationJobRequest {
+            input_path: "media/raw/tape.mkv".to_string(),
+            output_dir: "media/restored".to_string(),
+            preset: RestorationPreset::Gold,
+            target_1080p: true,
+            output_codec: Some(OutputCodec::H264),
+            custom_deinterlacer: Some(DeinterlaceFilter::Qtgmc),
+            audio_policy: Some(AudioChannelPolicy::MonoLeft),
+            apply_audio_notch_hum: true,
+            apply_loudness_norm: true,
+            start_sec: 10.0,
+            duration_sec: Some(60.0),
+            overrides: RestorationOverrides::default(),
+        };
+        let probe = dummy_probe();
+        let plan1 = plan_restoration_job(&req1, &probe, None, "ffmpeg.exe").expect("Planning 1 failed");
+
+        // Mutate one parameter (e.g. disable notch hum)
+        req1.apply_audio_notch_hum = false;
+        let plan2 = plan_restoration_job(&req1, &probe, None, "ffmpeg.exe").expect("Planning 2 failed");
+
+        assert_ne!(plan1.final_output_path, plan2.final_output_path);
     }
 
     #[test]
