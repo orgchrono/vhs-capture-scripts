@@ -274,28 +274,31 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
 
   return (
     <div
-      className="relative w-full h-full bg-black flex flex-col items-center justify-between overflow-hidden select-none"
+      className="relative w-full h-full bg-black flex flex-col items-center justify-center overflow-hidden select-none"
       onKeyDown={handleKeyDown}
       tabIndex={0}
       role="region"
       aria-label={t('monitor.split_title')}
       data-testid="split-comparison-monitor"
     >
-      {/* Top Header Bar: Dedicated broadcast toolbar that never overlaps video or labels */}
-      <div className="w-full bg-studio-panel/95 border-b border-studio-border px-2.5 py-1.5 z-30 flex items-center justify-between gap-1.5 text-xs font-mono select-none flex-nowrap min-w-0 shrink-0">
+      {/* Top Header Bar: SSOT with LiveMonitor (Translucent Floating HUD) */}
+      <div className="absolute top-2.5 left-2.5 right-2.5 z-20 flex items-center justify-between pointer-events-auto gap-2 flex-nowrap min-w-0 overflow-hidden">
         {/* Left: Monitor Title & Split Percentage Badge */}
-        <div className="flex items-center gap-1.5 shrink-0 min-w-0">
-          <span
-            className="bg-black/60 px-2 py-0.5 rounded-xs text-[10px] font-mono text-slate-300 border border-studio-border flex items-center gap-1.5 shrink-0 whitespace-nowrap"
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="bg-black/85 hover:bg-studio-surface backdrop-blur-md px-2.5 py-1 rounded-sm text-[10px] font-mono text-slate-300 hover:text-white border border-studio-border hover:border-amber-400/50 shadow-sm flex items-center gap-1.5 shrink-0 whitespace-nowrap cursor-pointer transition"
+            title={t('monitor.split_close')}
+            aria-label={t('monitor.split_close')}
             data-testid="split-title-badge-btn"
           >
             <Layers className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <span className="font-bold text-slate-200 hidden sm:inline">{t('monitor.split_title')}</span>
-            <span className="font-bold text-slate-200 inline sm:hidden">{t('monitor.split_view')}</span>
-            <span className="text-amber-300 font-bold border-l border-studio-border pl-1.5 tabular-nums">
+            <span className="font-bold text-slate-200">{t('monitor.split_title')}</span>
+            <span className="text-amber-300 font-bold border-l border-studio-border pl-1.5 tabular-nums inline-block min-w-[34px] text-center font-mono">
               {splitPos}%
             </span>
-          </span>
+          </button>
 
           {/* Real-time Live indicator in header when active */}
           {isRestoring && (
@@ -310,7 +313,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
         {/* Right: Controls & Actions (Split Presets, View Mode & Close) */}
         <div className="flex items-center gap-1.5 ml-auto shrink-0 flex-nowrap">
           {/* Quick Split Presets */}
-          <div className="flex items-center gap-0.5 bg-black/60 p-0.5 rounded-xs border border-studio-border text-[9px] font-mono shadow-xs shrink-0">
+          <div className="flex items-center gap-0.5 bg-black/85 backdrop-blur-md p-0.5 rounded-sm border border-studio-border text-[9px] font-mono shadow-sm shrink-0">
             {SPLIT_PRESETS.map((p) => (
               <button
                 key={p}
@@ -331,7 +334,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           </div>
 
           {/* Sub-Screen / View Mode Selector */}
-          <div className="flex items-center gap-0.5 bg-black/60 p-0.5 rounded-xs border border-studio-border shadow-xs shrink-0">
+          <div className="flex items-center gap-0.5 bg-black/85 backdrop-blur-md p-0.5 rounded-sm border border-studio-border shadow-sm shrink-0">
             <button
               type="button"
               onClick={() => handleModeChange('stream')}
@@ -366,7 +369,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="w-6 h-6 flex items-center justify-center bg-black/60 hover:bg-red-950/50 text-slate-300 hover:text-red-200 rounded-xs border border-studio-border hover:border-red-800/60 shadow-xs transition cursor-pointer shrink-0"
+              className="w-6 h-6 flex items-center justify-center bg-black/85 hover:bg-red-950/40 backdrop-blur-md text-slate-300 hover:text-red-200 rounded-sm border border-studio-border hover:border-red-800/60 shadow-sm transition cursor-pointer shrink-0"
               title={t('monitor.split_close')}
               aria-label={t('monitor.split_close')}
               data-testid="split-close-btn"
@@ -377,140 +380,135 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
         </div>
       </div>
 
-      {/* Main Split Image Viewer with Interactive Sliding Curtain */}
+      {/* Main Full-Frame Video Canvas: SSOT with LiveMonitor (Fills the entire monitor card) */}
       <div
-        className="relative w-full flex-1 overflow-hidden flex items-center justify-center bg-slate-950 p-2 sm:p-3 min-h-0"
+        ref={containerRef}
+        className="absolute inset-0 z-0 flex items-center justify-center bg-black overflow-hidden select-none"
         data-testid="split-slider-container"
       >
-        {/* Centered 16:9 Video Canvas Viewport: strictly bounds the split curtain and divider line */}
-        <div
-          ref={containerRef}
-          className="relative w-full h-full max-w-full max-h-full aspect-video flex items-center justify-center overflow-hidden rounded-xs border border-studio-border/60 shadow-2xl bg-black select-none"
-        >
-          {/* Subtle loading badge during async frame requests without blanking the image */}
-          {!isStreamActive && isFetching && (
-            <div className="absolute top-2.5 z-30 flex items-center gap-1.5 px-2 py-0.5 rounded-xs bg-black/80 backdrop-blur-xs text-[10px] font-mono text-amber-300 border border-amber-500/30">
-              <RefreshCw className="w-3 h-3 text-amber-400 animate-spin" />
-              <span>{t('monitor.split_loading')}</span>
+        {/* Subtle loading badge during async frame requests without blanking the image */}
+        {!isStreamActive && isFetching && (
+          <div className="absolute top-12 z-30 flex items-center gap-1.5 px-2 py-0.5 rounded-xs bg-black/80 backdrop-blur-xs text-[10px] font-mono text-amber-300 border border-amber-500/30">
+            <RefreshCw className="w-3 h-3 text-amber-400 animate-spin" />
+            <span>{t('monitor.split_loading')}</span>
+          </div>
+        )}
+
+        {/* Side B: Restored / Processed (Underneath, Full Monitor Width) */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
+          {isStreamActive ? (
+            <SplitStreamViewport
+              src={splitStreamUrl}
+              alt={t('monitor.split_restored')}
+              testId="split-proc-stream"
+              alignLeft={false}
+            />
+          ) : procImg ? (
+            <img
+              src={procImg}
+              alt={t('monitor.split_restored')}
+              className="w-full h-full object-contain pointer-events-none"
+            />
+          ) : (
+            <div className="w-full h-full bg-slate-900 flex items-center justify-center text-slate-600 font-mono text-xs">
+              {t('monitor.split_restored')}
             </div>
           )}
 
-          {/* Side B: Restored / Processed (Underneath, Full 16:9 Canvas) */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
-            {isStreamActive ? (
-              <SplitStreamViewport
-                src={splitStreamUrl}
-                alt={t('monitor.split_restored')}
-                testId="split-proc-stream"
-                alignLeft={false}
-              />
-            ) : procImg ? (
-              <img
-                src={procImg}
-                alt={t('monitor.split_restored')}
-                className="w-full h-full object-fill pointer-events-none"
-              />
-            ) : (
-              <div className="w-full h-full bg-slate-900 flex items-center justify-center text-slate-600 font-mono text-xs">
-                {t('monitor.split_restored')}
-              </div>
-            )}
+          {/* Restored Indicator: Positioned at Bottom Right (clear of top toolbar and bottom transport) */}
+          <div className="absolute bottom-12 right-3 z-10 pointer-events-none">
+            <span className="bg-black/75 backdrop-blur-xs text-emerald-400 px-2 py-0.5 rounded-xs text-[9px] font-mono uppercase tracking-wider border border-emerald-500/40 shadow-xs">
+              {t('monitor.split_restored')}
+            </span>
+          </div>
+        </div>
 
-            {/* Subtle Restored Indicator (Top Right of Video Stage) */}
-            <div className="absolute top-3 right-3 z-10 pointer-events-none">
-              <span className="bg-black/75 backdrop-blur-xs text-emerald-400 px-2 py-0.5 rounded-xs text-[9px] font-mono uppercase tracking-wider border border-emerald-500/40 shadow-xs">
-                {t('monitor.split_restored')}
-              </span>
+        {/* Side A: Raw / Original (Clipped on Left according to splitPos) */}
+        <div
+          className="absolute inset-0 overflow-hidden pointer-events-none flex items-center justify-center"
+          style={{ clipPath: `polygon(0 0, ${splitPos}% 0, ${splitPos}% 100%, 0 100%)` }}
+        >
+          {isStreamActive ? (
+            <SplitStreamViewport
+              src={splitStreamUrl}
+              alt={t('monitor.split_raw')}
+              testId="split-raw-stream"
+              alignLeft={true}
+            />
+          ) : rawImg ? (
+            <img
+              src={rawImg}
+              alt={t('monitor.split_raw')}
+              className="w-full h-full object-contain pointer-events-none"
+            />
+          ) : (
+            <div className="w-full h-full bg-slate-950 flex items-center justify-center text-slate-600 font-mono text-xs">
+              {t('monitor.split_raw')}
+            </div>
+          )}
+
+          {/* Raw Indicator: Positioned at Bottom Left (clear of top toolbar and bottom transport) */}
+          <div className="absolute bottom-12 left-3 z-10 pointer-events-none">
+            <span className="bg-black/75 backdrop-blur-xs text-amber-400 px-2 py-0.5 rounded-xs text-[9px] font-mono uppercase tracking-wider border border-amber-500/40 shadow-xs">
+              {t('monitor.split_raw')}
+            </span>
+          </div>
+        </div>
+
+        {/* Draggable Divider Handle Line with Pointer Capture & Broadcast Grip */}
+        <div
+          className={`absolute top-0 bottom-0 z-20 cursor-ew-resize flex items-center justify-center group ${
+            isDragging ? 'cursor-grabbing' : 'cursor-grab'
+          }`}
+          style={{ left: `${splitPos}%`, transform: 'translateX(-50%)' }}
+          onPointerDown={handleDividerPointerDown}
+          onPointerMove={handleDividerPointerMove}
+          onPointerUp={handleDividerPointerUp}
+          onPointerCancel={handleDividerPointerUp}
+          role="separator"
+          aria-valuenow={splitPos}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          tabIndex={0}
+          data-testid="split-divider-line"
+        >
+          {/* Wider hit-box for effortless grab */}
+          <div className="absolute inset-y-0 -left-4 -right-4 cursor-ew-resize" />
+          
+          {/* Crisp Vertical Line with subtle glow */}
+          <div className="w-0.5 h-full bg-gradient-to-b from-amber-400/20 via-amber-400 to-amber-400/20 shadow-[0_0_8px_rgba(251,191,36,0.7)] group-hover:bg-amber-300 transition-colors pointer-events-none" />
+
+          {/* Central Broadcast Grip Handle */}
+          <div className="absolute top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-slate-950/95 border-2 border-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.6)] flex items-center justify-center cursor-ew-resize group-hover:scale-110 active:scale-95 transition-transform backdrop-blur-md">
+            <div className="flex items-center text-amber-300 pointer-events-none select-none">
+              <ChevronLeft className="w-3.5 h-3.5 -mr-1" />
+              <ChevronRight className="w-3.5 h-3.5 -ml-1" />
+            </div>
+
+            {/* Floating percentage badge above handle */}
+            <div className="absolute -top-7 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-xs bg-black/90 border border-amber-400/60 text-amber-300 text-[9px] font-mono font-bold shadow-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+              {splitPos}%
             </div>
           </div>
+        </div>
 
-          {/* Side A: Raw / Original (Clipped on Left according to splitPos) */}
-          <div
-            className="absolute inset-0 overflow-hidden pointer-events-none flex items-center justify-center"
-            style={{ clipPath: `polygon(0 0, ${splitPos}% 0, ${splitPos}% 100%, 0 100%)` }}
-          >
-            {isStreamActive ? (
-              <SplitStreamViewport
-                src={splitStreamUrl}
-                alt={t('monitor.split_raw')}
-                testId="split-raw-stream"
-                alignLeft={true}
-              />
-            ) : rawImg ? (
-              <img
-                src={rawImg}
-                alt={t('monitor.split_raw')}
-                className="w-full h-full object-fill pointer-events-none"
-              />
-            ) : (
-              <div className="w-full h-full bg-slate-950 flex items-center justify-center text-slate-600 font-mono text-xs">
-                {t('monitor.split_raw')}
-              </div>
-            )}
+        {/* CRT Scanline & Subtle Vignette Overlay: SSOT with LiveMonitor */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-10 shadow-[inset_0_0_60px_rgba(0,0,0,0.85)]"
+        />
 
-            {/* Subtle Raw Indicator (Top Left of Video Stage) */}
-            <div className="absolute top-3 left-3 z-10 pointer-events-none">
-              <span className="bg-black/75 backdrop-blur-xs text-amber-400 px-2 py-0.5 rounded-xs text-[9px] font-mono uppercase tracking-wider border border-amber-500/40 shadow-xs">
-                {t('monitor.split_raw')}
-              </span>
-            </div>
-          </div>
-
-          {/* Draggable Divider Handle Line with Pointer Capture & Broadcast Grip */}
-          <div
-            className={`absolute top-0 bottom-0 z-20 cursor-ew-resize flex items-center justify-center group ${
-              isDragging ? 'cursor-grabbing' : 'cursor-grab'
-            }`}
-            style={{ left: `${splitPos}%`, transform: 'translateX(-50%)' }}
-            onPointerDown={handleDividerPointerDown}
-            onPointerMove={handleDividerPointerMove}
-            onPointerUp={handleDividerPointerUp}
-            onPointerCancel={handleDividerPointerUp}
-            role="separator"
-            aria-valuenow={splitPos}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            tabIndex={0}
-            data-testid="split-divider-line"
-          >
-            {/* Wider hit-box for effortless grab */}
-            <div className="absolute inset-y-0 -left-4 -right-4 cursor-ew-resize" />
-            
-            {/* Crisp Vertical Line with subtle glow */}
-            <div className="w-0.5 h-full bg-gradient-to-b from-amber-400/20 via-amber-400 to-amber-400/20 shadow-[0_0_8px_rgba(251,191,36,0.7)] group-hover:bg-amber-300 transition-colors pointer-events-none" />
-
-            {/* Central Broadcast Grip Handle */}
-            <div className="absolute top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-slate-950/95 border-2 border-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.6)] flex items-center justify-center cursor-ew-resize group-hover:scale-110 active:scale-95 transition-transform backdrop-blur-md">
-              <div className="flex items-center text-amber-300 pointer-events-none select-none">
-                <ChevronLeft className="w-3.5 h-3.5 -mr-1" />
-                <ChevronRight className="w-3.5 h-3.5 -ml-1" />
-              </div>
-
-              {/* Floating percentage badge above handle */}
-              <div className="absolute -top-7 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-xs bg-black/90 border border-amber-400/60 text-amber-300 text-[9px] font-mono font-bold shadow-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-                {splitPos}%
-              </div>
-            </div>
-          </div>
-
-          {/* CRT Scanline & Subtle Vignette Overlay */}
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 z-10 shadow-[inset_0_0_60px_rgba(0,0,0,0.85)]"
-          />
-
-          {/* Broadcast Reticle Corners */}
-          <div aria-hidden="true" className="pointer-events-none absolute inset-3 z-10 border border-white/5 rounded-xs">
-            <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-white/30" />
-            <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-white/30" />
-            <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-white/30" />
-            <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-white/30" />
-          </div>
+        {/* Broadcast Reticle Corners: SSOT with LiveMonitor */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-3 z-10 border border-white/5 rounded-sm">
+          <div className="absolute top-0 left-0 w-2.5 h-2.5 border-t-2 border-l-2 border-white/20" />
+          <div className="absolute top-0 right-0 w-2.5 h-2.5 border-t-2 border-r-2 border-white/20" />
+          <div className="absolute bottom-0 left-0 w-2.5 h-2.5 border-b-2 border-l-2 border-white/20" />
+          <div className="absolute bottom-0 right-0 w-2.5 h-2.5 border-b-2 border-r-2 border-white/20" />
         </div>
       </div>
 
-      {/* Bottom Timeline / Seek Bar */}
-      <div className="w-full bg-studio-panel/95 border-t border-studio-border px-2.5 py-1.5 z-30 flex items-center justify-between gap-2.5 text-xs font-mono select-none flex-nowrap min-w-0">
+      {/* Bottom Transport Controls: SSOT with LiveMonitor */}
+      <div className="absolute bottom-0 left-0 right-0 z-30 bg-studio-panel/95 border-t border-studio-border px-2.5 py-1.5 flex items-center justify-between gap-2.5 text-xs font-mono select-none flex-nowrap min-w-0">
         {/* Left: Media Transport Controls */}
         <div className="flex items-center gap-1 shrink-0">
           <button
