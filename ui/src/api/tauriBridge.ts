@@ -919,7 +919,8 @@ export const tauriBridge = {
     outputDir: string,
     preset: string,
     codec: string,
-    target1080p: boolean
+    target1080p: boolean,
+    paramHash?: string
   ): Promise<string> {
     const tauri = getTauriInternals();
     if (tauri) {
@@ -929,12 +930,14 @@ export const tauriBridge = {
         preset,
         codec,
         target1080p,
+        paramHash,
       });
     }
     const stem = inputPath.split(/[/\\\\]/).pop()?.split('.')[0] || 'restored';
     const ext = codec.toLowerCase() === 'prores' ? 'mov' : codec.toLowerCase() === 'ffv1' ? 'mkv' : 'mp4';
     const suffix = target1080p ? '_1080p' : '';
-    return `${outputDir}/${stem}_${preset.toLowerCase()}${suffix}.${ext}`;
+    const hashSuffix = paramHash ? `_${paramHash}` : '';
+    return `${outputDir}/${stem}_${preset.toLowerCase()}${suffix}${hashSuffix}.${ext}`;
   },
 
   async planRestorationJob(

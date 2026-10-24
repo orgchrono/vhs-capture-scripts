@@ -55,7 +55,7 @@ const SplitStreamViewport: React.FC<SplitStreamViewportProps> = ({
 export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
   source = '',
   onClose,
-  initialMode = 'stream',
+  initialMode = 'freeze',
 }) => {
   const { t } = useTranslation();
   const {
@@ -124,7 +124,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
     { skip: !hasMedia || isStreamActive }
   );
 
-  const totalDuration = frameData?.duration && frameData.duration > 0 ? frameData.duration : 3600;
+  const totalDuration = frameData?.duration && frameData.duration > 0 ? frameData.duration : 0;
   const progressPct = totalDuration > 0
     ? Math.min(100, Math.max(0, (timestamp / totalDuration) * 100)).toFixed(1)
     : '0.0';
@@ -135,7 +135,6 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
       interval = setInterval(() => {
         setTimestamp((prev) => {
           const next = prev >= totalDuration ? 0 : Math.round((prev + 1) * 10) / 10;
-          setPreviewTimestamp(next);
           return next;
         });
       }, 1000);
@@ -143,19 +142,19 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [activePlaying, setPreviewTimestamp, totalDuration]);
+  }, [activePlaying, totalDuration]);
 
   const handlePointerMove = useCallback(
     (clientX: number) => {
       if (!containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
+      if (rect.width <= 0) return;
       const x = clientX - rect.left;
       const pct = Math.max(0, Math.min(100, (x / rect.width) * 100));
       const rounded = Math.round(pct);
       setSplitPos(rounded);
-      setSplitPosition(rounded);
     },
-    [setSplitPosition]
+    []
   );
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -179,6 +178,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
     const onMouseUp = () => {
       if (isDragging) {
         setIsDragging(false);
+        setSplitPosition(splitPos);
       }
     };
     const onTouchMove = (e: TouchEvent) => {
@@ -189,6 +189,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
     const onTouchEnd = () => {
       if (isDragging) {
         setIsDragging(false);
+        setSplitPosition(splitPos);
       }
     };
 
@@ -205,7 +206,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
       window.removeEventListener('touchmove', onTouchMove);
       window.removeEventListener('touchend', onTouchEnd);
     };
-  }, [isDragging, handlePointerMove]);
+  }, [isDragging, handlePointerMove, splitPos, setSplitPosition]);
 
   const handleSplitChange = (val: number) => {
     const safe = Math.max(0, Math.min(100, val));
@@ -249,34 +250,27 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
   };
 
   const handleTimelineInput = (newTime: number) => {
-    const safeTime = Math.max(0, Math.min(totalDuration, newTime));
+    const maxLimit = totalDuration > 0 ? totalDuration : 3600;
+    const safeTime = Math.max(0, Math.min(maxLimit, newTime));
     setTimestamp(safeTime);
-    setPreviewTimestamp(safeTime);
   };
 
   const handleTimelineCommit = () => {
+    setPreviewTimestamp(timestamp);
     setStreamAnchor(timestamp);
     setStreamKey((prev) => prev + 1);
   };
 
-  const [prevFrameData, setPrevFrameData] = useState(frameData);
-  const [cachedImages, setCachedImages] = useState<{ raw?: string; processed?: string }>({
-    raw: frameData?.raw_image,
-    processed: frameData?.processed_image,
-  });
-
-  if (frameData !== prevFrameData) {
-    setPrevFrameData(frameData);
-    if (frameData?.raw_image || frameData?.processed_image) {
-      setCachedImages({
-        raw: frameData.raw_image || cachedImages.raw,
-        processed: frameData.processed_image || cachedImages.processed,
-      });
-    }
+  const cachedImagesRef = useRef<{ raw?: string; processed?: string }>({});
+  if (frameData?.raw_image) {
+    cachedImagesRef.current.raw = frameData.raw_image;
+  }
+  if (frameData?.processed_image) {
+    cachedImagesRef.current.processed = frameData.processed_image;
   }
 
-  const rawImg = frameData?.raw_image || cachedImages.raw;
-  const procImg = frameData?.processed_image || cachedImages.processed;
+  const rawImg = frameData?.raw_image || cachedImagesRef.current.raw;
+  const procImg = frameData?.processed_image || cachedImagesRef.current.processed;
 
   const splitStreamUrl = `/api/monitor/stream-proxy?mode=split&source=${encodeURIComponent(source)}&fps=15&timestamp=${streamAnchor}&k=${streamKey}`;
 
@@ -578,9 +572,9 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           <input
             type="range"
             min={0}
-            max={totalDuration}
+            max={totalDuration > 0 ? totalDuration : Math.max(3600, timestamp)}
             step={1}
-            value={effectiveTimestamp}
+            value={totalDuration > 0 ? Math.min(totalDuration, effectiveTimestamp) : effectiveTimestamp}
             disabled={!hasMedia}
             onChange={(e) => handleTimelineInput(Number(e.target.value))}
             onMouseUp={handleTimelineCommit}

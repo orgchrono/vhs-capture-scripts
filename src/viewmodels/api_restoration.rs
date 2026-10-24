@@ -566,6 +566,19 @@ fn handle_comparison_frame(req: &ApiRequest) -> ApiResponse {
 
     let p = Path::new(&resolved_source);
     let ffmpeg_bin = resolve_executable_path("ffmpeg", None, None);
+    let ffprobe_bin = resolve_executable_path("ffprobe", None, None);
+
+    let probed_duration = if !resolved_source.is_empty() && p.is_file() {
+        if let Some(ref probe_bin) = ffprobe_bin {
+            crate::infrastructure::probe::probe_media_file(&resolved_source, &probe_bin.to_string_lossy())
+                .map(|p| p.duration)
+                .unwrap_or(0.0)
+        } else {
+            0.0
+        }
+    } else {
+        0.0
+    };
 
     if !resolved_source.is_empty()
         && is_safe_media_path(&resolved_source, &dirs.roots())
@@ -664,7 +677,7 @@ fn handle_comparison_frame(req: &ApiRequest) -> ApiResponse {
                     return ApiResponse::ok(&json!({
                         "status": "ok",
                         "timestamp": timestamp,
-                        "duration": 3600.0,
+                        "duration": probed_duration,
                         "raw_image": raw_b64,
                         "processed_image": proc_b64,
                         "width": 640,
@@ -678,7 +691,7 @@ fn handle_comparison_frame(req: &ApiRequest) -> ApiResponse {
     ApiResponse::ok(&json!({
         "status": "ok",
         "timestamp": timestamp,
-        "duration": 0.0,
+        "duration": probed_duration,
         "raw_image": "",
         "processed_image": "",
         "width": 640,

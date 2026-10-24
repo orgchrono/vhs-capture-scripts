@@ -223,6 +223,7 @@ pub fn ipc_resolve_final_output_path(
     preset: String,
     codec: String,
     target_1080p: bool,
+    param_hash: Option<String>,
 ) -> String {
     let preset_val = parse_preset(&preset);
     let codec_val = crate::viewmodels::job_request_vm::map_output_codec(&codec).unwrap_or(OutputCodec::H264);
@@ -232,6 +233,7 @@ pub fn ipc_resolve_final_output_path(
         preset_val,
         codec_val,
         target_1080p,
+        param_hash.as_deref(),
     )
 }
 
@@ -647,6 +649,19 @@ pub fn ipc_get_comparison_frame(
 
     let p = Path::new(&resolved_source);
     let ffmpeg_bin = crate::infrastructure::toolchain::resolve_executable_path("ffmpeg", None, None);
+    let ffprobe_bin = crate::infrastructure::toolchain::resolve_executable_path("ffprobe", None, None);
+
+    let probed_duration = if !resolved_source.is_empty() && p.is_file() {
+        if let Some(ref probe_bin) = ffprobe_bin {
+            crate::infrastructure::probe::probe_media_file(&resolved_source, &probe_bin.to_string_lossy())
+                .map(|p| p.duration)
+                .unwrap_or(0.0)
+        } else {
+            0.0
+        }
+    } else {
+        0.0
+    };
 
     if !resolved_source.is_empty()
         && crate::infrastructure::security::is_safe_media_path(&resolved_source, &dirs.roots())
@@ -728,7 +743,7 @@ pub fn ipc_get_comparison_frame(
                     return json!({
                         "status": "ok",
                         "timestamp": ts,
-                        "duration": 3600.0,
+                        "duration": probed_duration,
                         "raw_image": raw_b64,
                         "processed_image": proc_b64,
                         "width": 640,
@@ -742,7 +757,7 @@ pub fn ipc_get_comparison_frame(
     json!({
         "status": "ok",
         "timestamp": ts,
-        "duration": 0.0,
+        "duration": probed_duration,
         "raw_image": "",
         "processed_image": "",
         "width": 640,

@@ -133,17 +133,29 @@ async function main(): Promise<void> {
   logger.info('Running Linters and Quality Gates (Parallelized)...');
 
   const startTime: number = Date.now();
-  // UI steps can safely run concurrently in parallel
-  const uiSteps = steps.filter(
-    (s) => !s.command.startsWith('cargo') && s.name !== 'i18n Parity (10 Locales)'
+  // UI steps (linters, strict types, unit tests) can safely run concurrently in parallel
+  const concurrentUiSteps = steps.filter(
+    (s) =>
+      !s.command.startsWith('cargo') &&
+      s.name !== 'i18n Parity (10 Locales)' &&
+      s.name !== 'Playwright (E2E React)'
   );
+  const playwrightStep = steps.find((s) => s.name === 'Playwright (E2E React)');
+
   // Rust steps share the target/ lock directory and must run sequentially
   const rustSteps = steps.filter(
     (s) => s.command.startsWith('cargo') || s.name === 'i18n Parity (10 Locales)'
   );
 
   const [uiResults, rustResults] = await Promise.all([
-    Promise.all(uiSteps.map((s) => runStep(s))),
+    (async () => {
+      const concurrentResults = await Promise.all(concurrentUiSteps.map((s) => runStep(s)));
+      if (playwrightStep) {
+        const pwResult = await runStep(playwrightStep);
+        return [...concurrentResults, pwResult];
+      }
+      return concurrentResults;
+    })(),
     (async () => {
       const res: StepResult[] = [];
       for (const step of rustSteps) {

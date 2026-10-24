@@ -81,7 +81,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
     { skip: !selectedFile || isActive || isPlaying }
   );
 
-  const totalDuration = frameData?.duration && frameData.duration > 0 ? frameData.duration : 3600;
+  const totalDuration = frameData?.duration && frameData.duration > 0 ? frameData.duration : 0;
   const progressPct = totalDuration > 0
     ? Math.min(100, Math.max(0, (currentTimestamp / totalDuration) * 100)).toFixed(1)
     : '0.0';
@@ -108,7 +108,9 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
   };
 
   const handleTimelineInput = (newTime: number) => {
-    const safeTime = Math.max(0, Math.min(totalDuration, newTime));
+    const safeTime = totalDuration > 0
+      ? Math.max(0, Math.min(totalDuration, newTime))
+      : Math.max(0, newTime);
     setPreviewTimestamp(safeTime);
   };
 
@@ -337,11 +339,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
         </div>
       )}
 
-      {/* Broadcast CRT Scanlines & Vignette */}
-      <div 
-        aria-hidden="true" 
-        className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.35)_50%)] bg-[length:100%_4px] opacity-25" 
-      />
+      {/* Broadcast CRT Subtle Vignette */}
       <div 
         aria-hidden="true" 
         className="pointer-events-none absolute inset-0 z-10 shadow-[inset_0_0_60px_rgba(0,0,0,0.85)]" 
@@ -436,13 +434,14 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
             <input
               type="range"
               min={0}
-              max={totalDuration}
+              max={totalDuration > 0 ? totalDuration : Math.max(100, currentTimestamp)}
               step={1}
-              value={currentTimestamp}
+              value={totalDuration > 0 ? Math.min(totalDuration, currentTimestamp) : currentTimestamp}
+              disabled={!selectedFile}
               onChange={(e) => handleTimelineInput(Number(e.target.value))}
               onMouseUp={handleTimelineCommit}
               onTouchEnd={handleTimelineCommit}
-              className="w-full h-1.5 bg-studio-surface rounded-lg appearance-none cursor-pointer accent-amber-400"
+              className="w-full h-1.5 bg-studio-surface rounded-lg appearance-none cursor-pointer accent-amber-400 disabled:opacity-40 disabled:cursor-not-allowed"
               aria-label={t('monitor.timeline_scrubber')}
               title={t('monitor.timeline_scrubber')}
               data-testid="live-timeline-scrubber"

@@ -177,8 +177,9 @@ pub fn ipc_resolve_final_output_path(
     preset: RestorationPreset,
     codec: OutputCodec,
     target_1080p: bool,
+    param_hash: Option<&str>,
 ) -> String {
-    resolve_final_output_path(input_path, output_dir, preset, codec, target_1080p)
+    resolve_final_output_path(input_path, output_dir, preset, codec, target_1080p, param_hash)
         .to_string_lossy()
         .to_string()
 }
