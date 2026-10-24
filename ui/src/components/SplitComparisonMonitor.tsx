@@ -281,24 +281,21 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
       aria-label={t('monitor.split_title')}
       data-testid="split-comparison-monitor"
     >
-      {/* Top Header Bar (SSOT with LiveMonitor) */}
-      <div className="absolute top-2.5 left-2.5 right-2.5 z-30 flex items-center justify-between pointer-events-auto gap-2 flex-nowrap min-w-0 overflow-hidden">
+      {/* Top Header Bar: Dedicated broadcast toolbar that never overlaps video or labels */}
+      <div className="w-full bg-studio-panel/95 border-b border-studio-border px-2.5 py-1.5 z-30 flex items-center justify-between gap-1.5 text-xs font-mono select-none flex-nowrap min-w-0 shrink-0">
         {/* Left: Monitor Title & Split Percentage Badge */}
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={onClose}
-            className="bg-black/85 hover:bg-studio-surface backdrop-blur-md px-2.5 py-1 rounded-sm text-[10px] font-mono text-slate-300 hover:text-white border border-studio-border hover:border-amber-400/50 shadow-sm flex items-center gap-1.5 shrink-0 whitespace-nowrap cursor-pointer transition"
-            title={t('monitor.split_close')}
-            aria-label={t('monitor.split_close')}
+        <div className="flex items-center gap-1.5 shrink-0 min-w-0">
+          <span
+            className="bg-black/60 px-2 py-0.5 rounded-xs text-[10px] font-mono text-slate-300 border border-studio-border flex items-center gap-1.5 shrink-0 whitespace-nowrap"
             data-testid="split-title-badge-btn"
           >
             <Layers className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <span className="font-bold text-slate-200">{t('monitor.split_title')}</span>
-            <span className="text-slate-400 border-l border-studio-border pl-1.5 tabular-nums inline-block min-w-[34px] text-center font-mono">
+            <span className="font-bold text-slate-200 hidden sm:inline">{t('monitor.split_title')}</span>
+            <span className="font-bold text-slate-200 inline sm:hidden">{t('monitor.split_view')}</span>
+            <span className="text-amber-300 font-bold border-l border-studio-border pl-1.5 tabular-nums">
               {splitPos}%
             </span>
-          </button>
+          </span>
 
           {/* Real-time Live indicator in header when active */}
           {isRestoring && (
@@ -311,15 +308,15 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
         </div>
 
         {/* Right: Controls & Actions (Split Presets, View Mode & Close) */}
-        <div className="flex items-center gap-1.5 ml-auto shrink-0">
+        <div className="flex items-center gap-1.5 ml-auto shrink-0 flex-nowrap">
           {/* Quick Split Presets */}
-          <div className="flex items-center gap-0.5 bg-black/85 backdrop-blur-md p-0.5 rounded-sm border border-studio-border text-[9px] font-mono shadow-sm shrink-0">
+          <div className="flex items-center gap-0.5 bg-black/60 p-0.5 rounded-xs border border-studio-border text-[9px] font-mono shadow-xs shrink-0">
             {SPLIT_PRESETS.map((p) => (
               <button
                 key={p}
                 type="button"
                 onClick={() => handlePresetSelect(p)}
-                className={`w-7 h-5 flex items-center justify-center rounded-xs transition-colors cursor-pointer border ${
+                className={`w-6 sm:w-7 h-5 flex items-center justify-center rounded-xs transition-colors cursor-pointer border ${
                   splitPos === p
                     ? 'bg-amber-500/25 text-amber-300 font-semibold border-amber-400/50'
                     : 'text-slate-400 hover:text-slate-200 border-transparent'
@@ -334,7 +331,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           </div>
 
           {/* Sub-Screen / View Mode Selector */}
-          <div className="flex items-center gap-0.5 bg-black/85 backdrop-blur-md p-0.5 rounded-sm border border-studio-border shadow-sm shrink-0">
+          <div className="flex items-center gap-0.5 bg-black/60 p-0.5 rounded-xs border border-studio-border shadow-xs shrink-0">
             <button
               type="button"
               onClick={() => handleModeChange('stream')}
@@ -369,13 +366,12 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-2 h-6 flex items-center gap-1 bg-black/85 hover:bg-red-950/40 backdrop-blur-md text-slate-300 hover:text-red-200 rounded-sm border border-studio-border hover:border-red-800/60 shadow-sm transition cursor-pointer shrink-0 font-mono text-[10px]"
+              className="w-6 h-6 flex items-center justify-center bg-black/60 hover:bg-red-950/50 text-slate-300 hover:text-red-200 rounded-xs border border-studio-border hover:border-red-800/60 shadow-xs transition cursor-pointer shrink-0"
               title={t('monitor.split_close')}
               aria-label={t('monitor.split_close')}
               data-testid="split-close-btn"
             >
               <X className="w-3.5 h-3.5 text-red-400 shrink-0" />
-              <span className="hidden sm:inline">{t('monitor.split_close')}</span>
             </button>
           )}
         </div>
@@ -383,7 +379,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
 
       {/* Main Split Image Viewer with Interactive Sliding Curtain */}
       <div
-        className="relative w-full flex-1 overflow-hidden flex items-center justify-center bg-slate-950 p-2 sm:p-3"
+        className="relative w-full flex-1 overflow-hidden flex items-center justify-center bg-slate-950 p-2 sm:p-3 min-h-0"
         data-testid="split-slider-container"
       >
         {/* Centered 16:9 Video Canvas Viewport: strictly bounds the split curtain and divider line */}
