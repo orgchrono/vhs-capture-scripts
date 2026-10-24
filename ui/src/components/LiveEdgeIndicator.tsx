@@ -5,12 +5,14 @@ export interface LiveEdgeIndicatorProps {
   isAtLiveEdge: boolean;
   onJumpToLive: () => void;
   testId?: string;
+  compact?: boolean;
 }
 
 export const LiveEdgeIndicator: React.FC<LiveEdgeIndicatorProps> = ({
   isAtLiveEdge,
   onJumpToLive,
   testId = 'live-indicator-badge',
+  compact = false,
 }) => {
   const { t } = useTranslation();
 
@@ -36,7 +38,7 @@ export const LiveEdgeIndicator: React.FC<LiveEdgeIndicatorProps> = ({
       data-testid={testId === 'live-indicator-badge' ? 'jump-to-live-btn' : 'split-jump-to-live-btn'}
     >
       <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
-      <span>{t('monitor.return_live_view')}</span>
+      <span>{compact ? t('monitor.live_badge') : t('monitor.return_live_view')}</span>
     </button>
   );
 };

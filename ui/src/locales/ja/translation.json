@@ -101,7 +101,10 @@
     "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)",
     "live_badge": "ライブ",
     "jump_to_live": "ライブ位置に戻る",
-    "return_live_view": "リアルタイムモニターに戻る"
+    "return_live_view": "リアルタイムモニターに戻る",
+    "split_wipe": "ワイプ分割",
+    "split_dual": "左右比較 (デュアル)",
+    "split_title_short": "A/B"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",

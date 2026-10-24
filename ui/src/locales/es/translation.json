@@ -101,7 +101,10 @@
     "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)",
     "live_badge": "EN VIVO",
     "jump_to_live": "Volver al Punto Actual (En Vivo)",
-    "return_live_view": "Volver al Monitor en Tiempo Real"
+    "return_live_view": "Volver al Monitor en Tiempo Real",
+    "split_wipe": "División Wipe",
+    "split_dual": "Lado a Lado (Dual)",
+    "split_title_short": "A/B"
   },
   "files": {
     "input_file_label": "Archivo de Entrada (media/raw/)",

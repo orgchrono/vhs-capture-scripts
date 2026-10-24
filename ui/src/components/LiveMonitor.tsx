@@ -251,6 +251,18 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
             <Layers className="w-3.5 h-3.5 text-amber-400 shrink-0" />
             <span className="shrink-0 whitespace-nowrap">{t('monitor.split_title')}</span>
           </button>
+
+          {isRestoring && (
+            <LiveEdgeIndicator
+              isAtLiveEdge={isAtLiveEdge}
+              onJumpToLive={() => {
+                handleTimelineInput(liveSec);
+                handleTimelineCommit();
+              }}
+              compact={true}
+              testId="live-header-indicator"
+            />
+          )}
         </div>
 
         <div className="flex items-center gap-1.5 ml-auto shrink-0 flex-nowrap">

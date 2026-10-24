@@ -101,7 +101,10 @@
     "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)",
     "live_badge": "ПРЯМОЙ ЭФИР",
     "jump_to_live": "Вернуться к прямому эфиру",
-    "return_live_view": "Вернуться к монитору реального времени"
+    "return_live_view": "Вернуться к монитору реального времени",
+    "split_wipe": "Разделение шторкой",
+    "split_dual": "Бок о бок (Dual)",
+    "split_title_short": "A/B"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
