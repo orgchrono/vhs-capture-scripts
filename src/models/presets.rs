@@ -19,6 +19,7 @@ pub enum RestorationPreset {
 #[serde(rename_all = "snake_case")]
 pub enum Deinterlacer {
     Bwdif,
+    Yadif,
     Qtgmc,
     QtgmcFast,
     QtgmcSlow,

@@ -35,12 +35,13 @@ export const API_ENDPOINTS = {
 } as const;
 
 export const DEINTERLACER_OPTIONS: { value: DeinterlacerType; label: string }[] = [
-  { value: 'bwdif', label: 'BWDIF (Fast / Low CPU)' },
   { value: 'qtgmc', label: 'QTGMC Standard (High Quality)' },
   { value: 'qtgmc_fast', label: 'QTGMC Fast (Balanced)' },
   { value: 'qtgmc_slow', label: 'QTGMC Slow (Maximum Quality)' },
-  { value: 'nnedi', label: 'NNEDI3 (Directional Upscale)' },
+  { value: 'bwdif', label: 'BWDIF (Fast / Low CPU)' },
+  { value: 'yadif', label: 'YADIF (Classic FFmpeg Bob)' },
   { value: 'znedi3', label: 'ZNEDI3 (Optimized Variant)' },
+  { value: 'nnedi', label: 'NNEDI3 (Directional Upscale)' },
   { value: 'none', label: 'None (Progressive / Telecine)' },
 ];
 
