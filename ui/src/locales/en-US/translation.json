@@ -162,7 +162,8 @@
     "hotplug_active_label": "Hotplug Active",
     "hotplug_tooltip": "Continuous automatic scanning for disks and USB adapters active",
     "hotplug_disabled_label": "Hotplug Paused",
-    "hotplug_disabled_tooltip": "Automatic scanning paused in preferences"
+    "hotplug_disabled_tooltip": "Automatic scanning paused in preferences",
+    "qc_report_button": "QC Report"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
@@ -582,5 +583,20 @@
     "compiling": "Compiling {tool} -> {output}...",
     "compiled_success": "Successfully compiled {tool} ({size} bytes, SHA-256: {hash}...)",
     "compiled_failed": "Failed compiling {tool}:\n{error}"
+  },
+  "qc": {
+    "modal_title": "Broadcast Quality Control & Defect Report",
+    "loading": "Generating technical inspection...",
+    "no_report": "No inspection report available for this media.",
+    "broadcast_compliant": "Broadcast Compliant (BT.601 / EBU R103)",
+    "broadcast_illegal": "Gamut Excursions Detected",
+    "dropouts_mitigated": "Dropouts Mitigated",
+    "source_capture": "Source Capture (RAW)",
+    "restored_master": "Restored Master",
+    "copy_markdown": "Copy Markdown Report",
+    "copied": "Copied to clipboard!",
+    "download_json": "Download JSON Data",
+    "open_report_tooltip": "Inspect Quality Control & Defect Report",
+    "close": "Close"
   }
 }

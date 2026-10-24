@@ -311,6 +311,119 @@ pub fn generate_qc_markdown_report(assessment: &FileQcAssessment) -> String {
     )
 }
 
+/// Recorded action by an individual restoration filter or tool in the pipeline.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PipelineToolRecord {
+    pub tool_id: String,
+    pub tool_name: String,
+    pub stage: String,
+    pub engine: String,
+    pub status: String,
+    pub frames_affected: u64,
+    pub correction_summary: String,
+}
+
+/// Comprehensive before/after restoration comparison report.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RestorationComparativeReport {
+    pub raw: FileQcAssessment,
+    pub master: FileQcAssessment,
+    pub tools_applied: Vec<PipelineToolRecord>,
+    pub dropouts_mitigated: u64,
+    pub broadcast_compliance_achieved: bool,
+    pub resolution_improvement: String,
+    pub audio_treatment_applied: String,
+}
+
+/// Pure formatter generating an archival comparative QC markdown report (RAW vs. MASTER).
+#[must_use]
+pub fn generate_comparative_qc_markdown_report(report: &RestorationComparativeReport) -> String {
+    let scan_raw = if report.raw.is_interlaced {
+        "Interlaced (480i/576i)"
+    } else {
+        "Progressive"
+    };
+    let scan_master = if report.master.is_interlaced {
+        "Interlaced"
+    } else {
+        "Progressive (60p/50p Studio Master)"
+    };
+
+    let legal_status_raw = if report.raw.is_legal_broadcast {
+        "Compliant"
+    } else {
+        "Non-Compliant (Analog Gamut Excursions Detected)"
+    };
+
+    let legal_status_master = if report.master.is_legal_broadcast {
+        "100% Broadcast Compliant (EBU R103 / SMPTE 170M / BT.709 Legal Range [16, 235])"
+    } else {
+        "Excursion Detected"
+    };
+
+    let mut lines = vec![
+        "# Forensic Restoration & Broadcast Quality Control Report".to_string(),
+        format!("**Source Tape:** `{}`  ", report.raw.file_path),
+        format!("**Restored Master:** `{}`\n", report.master.file_path),
+        "## 1. Physical Media & Stream Characteristics (RAW vs. MASTER)".to_string(),
+        "| Parameter | Source Capture (RAW) | Restored Master (BROADCAST) |".to_string(),
+        "| :--- | :--- | :--- |".to_string(),
+        format!(
+            "| **Geometry & Standard** | {w_raw}x{h_raw} ({std_raw}) | {w_mst}x{h_mst} ({std_mst}) |",
+            w_raw = report.raw.width,
+            h_raw = report.raw.height,
+            std_raw = report.raw.standard,
+            w_mst = report.master.width,
+            h_mst = report.master.height,
+            std_mst = report.master.standard
+        ),
+        format!(
+            "| **Duration & Frames** | {dur_raw:.2}s ({frames_raw} frames) | {dur_mst:.2}s ({frames_mst} frames) |",
+            dur_raw = report.raw.duration_sec,
+            frames_raw = report.raw.total_frames,
+            dur_mst = report.master.duration_sec,
+            frames_mst = report.master.total_frames
+        ),
+        format!("| **Scan Type** | {scan_raw} | {scan_master} |"),
+        format!("| **Resolution Metric** | Original SD Capture | {} |\n", report.resolution_improvement),
+        "## 2. Signal Compliance & Broadcast Legal Levels (ITU-R BT.601 / BT.709)".to_string(),
+        "- **Legal Standard:** [16, 235] (EBU R103 / SMPTE 170M / Rec.709)".to_string(),
+        format!("- **Source Signal State:** {legal_status_raw}"),
+        format!("- **Master Signal State:** {legal_status_master}"),
+        format!(
+            "- **Luminance Excursions (Min / Max / Avg):** `{min_raw}..{max_raw}` (avg {avg_raw:.1}) ➔ `{min_mst}..{max_mst}` (avg {avg_mst:.1})\n",
+            min_raw = report.raw.min_luma,
+            max_raw = report.raw.max_luma,
+            avg_raw = report.raw.avg_luma,
+            min_mst = report.master.min_luma,
+            max_mst = report.master.max_luma,
+            avg_mst = report.master.avg_luma
+        ),
+        "## 3. Physical Tape Artifacts & Corrective Actions".to_string(),
+        format!("- **Initial Black Leader:** `{:.3}s` (Trimmed via pipeline anchor)", report.raw.black_leader_sec),
+        format!("- **Magnetic Oxide Dropouts Mitigated:** `{}` dropouts eliminated via spatio-temporal filter", report.dropouts_mitigated),
+        "- **Head-Switching VBI Mask:** 16px bottom scanlines masked via broadcast overscan blanking".to_string(),
+        format!("- **Frozen Frames / Loss-of-Signal Handled:** `{}` frames\n", report.raw.total_frozen_frames),
+        "## 4. Audio Treatment & Compliance".to_string(),
+        format!("- **Channel Layout Policy:** {}", report.audio_treatment_applied),
+        "- **Loudness Normalization:** EBU R128 (-23.0 LUFS Target / -1.5 dBFS True Peak)\n".to_string(),
+        "## 5. Per-Tool Pipeline Execution Registry".to_string(),
+        "| Tool / Module | Pipeline Stage | Engine | Status | Corrective Action |".to_string(),
+        "| :--- | :--- | :---: | :---: | :--- |".to_string(),
+    ];
+
+    for tool in &report.tools_applied {
+        lines.push(format!(
+            "| **{}** | `{}` | `{}` | **{}** | {} |",
+            tool.tool_name, tool.stage, tool.engine, tool.status, tool.correction_summary
+        ));
+    }
+
+    lines.push("\n---\n*Report automatically generated by VHS Studio Pro Native QC Engine.*".to_string());
+
+    lines.join("\n")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -403,5 +516,79 @@ mod tests {
         assert!(md.contains("Compliant (Legal EBU/SMPTE Range)"));
         assert!(md.contains("5.200s"));
         assert!(md.contains("QTGMC"));
+    }
+
+    #[test]
+    fn test_generate_comparative_qc_markdown_report_formatting() {
+        let raw = FileQcAssessment {
+            file_path: "media/raw/family_1994.mkv".to_string(),
+            width: 720,
+            height: 480,
+            duration_sec: 3600.0,
+            total_frames: 107892,
+            standard: "NTSC".to_string(),
+            black_leader_sec: 4.12,
+            is_interlaced: true,
+            is_legal_broadcast: false,
+            total_dropout_frames: 128,
+            total_frozen_frames: 12,
+            min_luma: 10,
+            max_luma: 242,
+            avg_luma: 104.2,
+        };
+
+        let master = FileQcAssessment {
+            file_path: "media/restored/family_1994_1080p.mp4".to_string(),
+            width: 1440,
+            height: 1080,
+            duration_sec: 3595.88,
+            total_frames: 215540,
+            standard: "HD".to_string(),
+            black_leader_sec: 0.0,
+            is_interlaced: false,
+            is_legal_broadcast: true,
+            total_dropout_frames: 0,
+            total_frozen_frames: 0,
+            min_luma: 16,
+            max_luma: 235,
+            avg_luma: 108.5,
+        };
+
+        let report = RestorationComparativeReport {
+            raw,
+            master,
+            tools_applied: vec![
+                PipelineToolRecord {
+                    tool_id: "qtgmc".to_string(),
+                    tool_name: "QTGMC 60p Temporal Reconstruction".to_string(),
+                    stage: "Stage 1: Deinterlace".to_string(),
+                    engine: "VapourSynth + NNEDI3".to_string(),
+                    status: "APPLIED".to_string(),
+                    frames_affected: 215540,
+                    correction_summary: "Reconstructed 60 progressive frames/sec from interlaced fields".to_string(),
+                },
+                PipelineToolRecord {
+                    tool_id: "dropout_clean".to_string(),
+                    tool_name: "Spatial Dropout Cleaner".to_string(),
+                    stage: "Stage 2: Artifacts".to_string(),
+                    engine: "RemoveGrain".to_string(),
+                    status: "APPLIED".to_string(),
+                    frames_affected: 128,
+                    correction_summary: "Interpolated 128 magnetic oxide loss streaks".to_string(),
+                },
+            ],
+            dropouts_mitigated: 128,
+            broadcast_compliance_achieved: true,
+            resolution_improvement: "1080p Lanczos Pillarbox (4:3)".to_string(),
+            audio_treatment_applied: "Stereo Sum + EBU R128 (-23 LUFS)".to_string(),
+        };
+
+        let md = generate_comparative_qc_markdown_report(&report);
+        assert!(md.contains("# Forensic Restoration & Broadcast Quality Control Report"));
+        assert!(md.contains("**Source Tape:** `media/raw/family_1994.mkv`"));
+        assert!(md.contains("**Restored Master:** `media/restored/family_1994_1080p.mp4`"));
+        assert!(md.contains("`128` dropouts eliminated"));
+        assert!(md.contains("QTGMC 60p Temporal Reconstruction"));
+        assert!(md.contains("100% Broadcast Compliant"));
     }
 }

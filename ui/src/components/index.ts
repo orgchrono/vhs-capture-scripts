@@ -13,5 +13,7 @@ export { AppPreferencesModal } from './AppPreferencesModal';
 export { PanasonicIngestCard } from './PanasonicIngestCard';
 export { RestorationConflictModal } from './RestorationConflictModal';
 export { SystemTelemetryCard } from './SystemTelemetryCard';
+export { TapeLibraryCard } from './TapeLibraryCard';
+export { QcReportModal } from './QcReportModal';
 
 

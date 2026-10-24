@@ -162,7 +162,8 @@
     "hotplug_active_label": "Hotplug Activo",
     "hotplug_tooltip": "Escaneo automático continuo de discos y adaptadores USB activo",
     "hotplug_disabled_label": "Hotplug Pausado",
-    "hotplug_disabled_tooltip": "Escaneo automático pausado en preferencias"
+    "hotplug_disabled_tooltip": "Escaneo automático pausado en preferencias",
+    "qc_report_button": "Informe QC"
   },
   "app": {
     "drop_title": "Suelte su cinta de video aquí",
@@ -582,5 +583,20 @@
     "compiling": "Compiling {tool} -> {output}...",
     "compiled_success": "Successfully compiled {tool} ({size} bytes, SHA-256: {hash}...)",
     "compiled_failed": "Failed compiling {tool}:\n{error}"
+  },
+  "qc": {
+    "modal_title": "Control de Calidad de Transmisión e Informe de Defectos",
+    "loading": "Generando inspección técnica...",
+    "no_report": "No hay informe de inspección disponible para este medio.",
+    "broadcast_compliant": "Conforme a Emisión (BT.601 / EBU R103)",
+    "broadcast_illegal": "Excursiones de Gama Detectadas",
+    "dropouts_mitigated": "Dropouts Mitigados",
+    "source_capture": "Captura de Origen (RAW)",
+    "restored_master": "Master Restaurado",
+    "copy_markdown": "Copiar Informe Markdown",
+    "copied": "¡Copiado al portapapeles!",
+    "download_json": "Descargar Datos JSON",
+    "open_report_tooltip": "Inspeccionar Control de Calidad e Informe de Defectos",
+    "close": "Cerrar"
   }
 }

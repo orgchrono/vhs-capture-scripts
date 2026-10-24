@@ -162,7 +162,8 @@
     "hotplug_active_label": "Hotplug Ativo",
     "hotplug_tooltip": "Varredura automática contínua de discos e adaptadores USB ativada",
     "hotplug_disabled_label": "Hotplug Pausado",
-    "hotplug_disabled_tooltip": "Varredura automática pausada nas preferências"
+    "hotplug_disabled_tooltip": "Varredura automática pausada nas preferências",
+    "qc_report_button": "Laudo QC"
   },
   "app": {
     "drop_title": "Solte sua Fita de Vídeo Aqui",
@@ -582,5 +583,20 @@
     "compiling": "Compilando {tool} -> {output}...",
     "compiled_success": "Sucesso na compilação de {tool} ({size} bytes, SHA-256: {hash}...)",
     "compiled_failed": "Falha na compilação de {tool}:\n{error}"
+  },
+  "qc": {
+    "modal_title": "Laudo de Controle de Qualidade & Defeitos",
+    "loading": "Gerando inspeção técnica...",
+    "no_report": "Nenhum laudo de inspeção disponível para esta mídia.",
+    "broadcast_compliant": "Conforme com Padrão Broadcast (BT.601 / EBU R103)",
+    "broadcast_illegal": "Excursões de Gamut Detectadas",
+    "dropouts_mitigated": "Dropouts Mitigados",
+    "source_capture": "Captura Original (RAW)",
+    "restored_master": "Master Restaurado",
+    "copy_markdown": "Copiar Laudo Markdown",
+    "copied": "Copiado para a área de transferência!",
+    "download_json": "Baixar Dados JSON",
+    "open_report_tooltip": "Inspecionar Laudo de Controle de Qualidade e Defeitos",
+    "close": "Fechar"
   }
 }

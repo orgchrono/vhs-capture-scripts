@@ -162,7 +162,8 @@
     "hotplug_active_label": "التوصيل الساخن نشط",
     "hotplug_tooltip": "المسح التلقائي المستمر للأقراص ومحولات USB نشط",
     "hotplug_disabled_label": "التوصيل الساخن متوقف مؤقتًا",
-    "hotplug_disabled_tooltip": "المسح التلقائي متوقف مؤقتًا في التفضيلات"
+    "hotplug_disabled_tooltip": "المسح التلقائي متوقف مؤقتًا في التفضيلات",
+    "qc_report_button": "تقرير الجودة"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
@@ -582,5 +583,20 @@
     "compiling": "Compiling {tool} -> {output}...",
     "compiled_success": "Successfully compiled {tool} ({size} bytes, SHA-256: {hash}...)",
     "compiled_failed": "Failed compiling {tool}:\n{error}"
+  },
+  "qc": {
+    "modal_title": "مراقبة جودة البث وتقرير العيوب",
+    "loading": "جارٍ إنشاء الفحص الفني...",
+    "no_report": "لا يوجد تقرير فحص متاح لهذا الملف.",
+    "broadcast_compliant": "متوافق مع معايير البث (BT.601 / EBU R103)",
+    "broadcast_illegal": "تم اكتشاف تجاوزات في النطاق اللوني",
+    "dropouts_mitigated": "الانقطاعات المعالجة",
+    "source_capture": "المصدر الأصلي (RAW)",
+    "restored_master": "النسخة الرئيسية المستعادة",
+    "copy_markdown": "نسخ تقرير Markdown",
+    "copied": "تم النسخ إلى الحافظة!",
+    "download_json": "تنزيل بيانات JSON",
+    "open_report_tooltip": "فحص مراقبة الجودة وتقرير العيوب",
+    "close": "إغلاق"
   }
 }

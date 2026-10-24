@@ -162,7 +162,8 @@
     "hotplug_active_label": "ホットプラグ有効",
     "hotplug_tooltip": "ディスクおよびUSBアダプターの常時自動検出が有効です",
     "hotplug_disabled_label": "ホットプラグ一時停止",
-    "hotplug_disabled_tooltip": "設定で自動検出が一時停止されています"
+    "hotplug_disabled_tooltip": "設定で自動検出が一時停止されています",
+    "qc_report_button": "QCレポート"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
@@ -582,5 +583,20 @@
     "compiling": "Compiling {tool} -> {output}...",
     "compiled_success": "Successfully compiled {tool} ({size} bytes, SHA-256: {hash}...)",
     "compiled_failed": "Failed compiling {tool}:\n{error}"
+  },
+  "qc": {
+    "modal_title": "放送品質管理＆欠陥レポート",
+    "loading": "技術検査を生成中...",
+    "no_report": "このメディアの検査レポートはありません。",
+    "broadcast_compliant": "放送基準準拠 (BT.601 / EBU R103)",
+    "broadcast_illegal": "色域の超過を検出",
+    "dropouts_mitigated": "解消されたドロップアウト",
+    "source_capture": "ソース録画 (RAW)",
+    "restored_master": "復元マスター",
+    "copy_markdown": "Markdownレポートをコピー",
+    "copied": "クリップボードにコピーしました！",
+    "download_json": "JSONデータをダウンロード",
+    "open_report_tooltip": "品質管理＆欠陥レポートを検査",
+    "close": "閉じる"
   }
 }

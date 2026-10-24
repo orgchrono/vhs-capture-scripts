@@ -162,7 +162,8 @@
     "hotplug_active_label": "Hotplug Aktiv",
     "hotplug_tooltip": "Kontinuierlicher automatischer Scan nach Datenträgern und USB-Adaptern aktiv",
     "hotplug_disabled_label": "Hotplug Pausiert",
-    "hotplug_disabled_tooltip": "Automatische Suche in den Einstellungen pausiert"
+    "hotplug_disabled_tooltip": "Automatische Suche in den Einstellungen pausiert",
+    "qc_report_button": "QC-Bericht"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
@@ -582,5 +583,20 @@
     "compiling": "Compiling {tool} -> {output}...",
     "compiled_success": "Successfully compiled {tool} ({size} bytes, SHA-256: {hash}...)",
     "compiled_failed": "Failed compiling {tool}:\n{error}"
+  },
+  "qc": {
+    "modal_title": "Broadcast-Qualitätskontrolle & Fehlerbericht",
+    "loading": "Erstelle technische Inspektion...",
+    "no_report": "Kein Inspektionsbericht für dieses Medium verfügbar.",
+    "broadcast_compliant": "Broadcast-konform (BT.601 / EBU R103)",
+    "broadcast_illegal": "Gamut-Überschreitungen erkannt",
+    "dropouts_mitigated": "Behobene Dropouts",
+    "source_capture": "Originalaufnahme (RAW)",
+    "restored_master": "Restaurierter Master",
+    "copy_markdown": "Markdown-Bericht kopieren",
+    "copied": "In die Zwischenablage kopiert!",
+    "download_json": "JSON-Daten herunterladen",
+    "open_report_tooltip": "Qualitätskontrolle & Fehlerbericht prüfen",
+    "close": "Schließen"
   }
 }
