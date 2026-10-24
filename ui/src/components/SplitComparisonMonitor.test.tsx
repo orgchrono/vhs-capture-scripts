@@ -154,4 +154,35 @@ describe('SplitComparisonMonitor Component', () => {
     expect(timeInfo).toBeInTheDocument();
     expect(timeInfo.textContent).toMatch(/\d{2}:\d{2}:\d{2} \/ \d{2}:\d{2}:\d{2} \(\d+\.\d+%\)/);
   });
+
+  it('switches between wipe and dual side-by-side layout modes', () => {
+    renderComponent();
+
+    // Default is wipe mode with divider line and presets
+    expect(screen.getByTestId('split-divider-line')).toBeInTheDocument();
+    expect(screen.getByTestId('split-preset-50-btn')).toBeInTheDocument();
+
+    // Switch to Dual layout mode
+    const dualBtn = screen.getByTestId('split-layout-dual-btn');
+    fireEvent.click(dualBtn);
+
+    // In dual mode, divider line and presets are hidden (50/50 fixed split)
+    expect(screen.queryByTestId('split-divider-line')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('split-preset-50-btn')).not.toBeInTheDocument();
+
+    // Switch back to Wipe layout mode
+    const wipeBtn = screen.getByTestId('split-layout-wipe-btn');
+    fireEvent.click(wipeBtn);
+
+    expect(screen.getByTestId('split-divider-line')).toBeInTheDocument();
+    expect(screen.getByTestId('split-preset-50-btn')).toBeInTheDocument();
+  });
+
+  it('eliminates central collision text behind the handle', () => {
+    const { container } = renderComponent();
+
+    // Verify there is no centered text colliding with the handle
+    const centeredText = container.querySelectorAll('.text-slate-600.font-mono.text-xs');
+    expect(centeredText.length).toBe(0);
+  });
 });

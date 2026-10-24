@@ -101,7 +101,10 @@
     "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)",
     "live_badge": "直播",
     "jump_to_live": "回到实时进度",
-    "return_live_view": "返回实时监控"
+    "return_live_view": "返回实时监控",
+    "split_wipe": "划像分割",
+    "split_dual": "并排双屏",
+    "split_title_short": "A/B"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",

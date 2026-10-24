@@ -101,7 +101,10 @@
     "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)",
     "live_badge": "مباشر",
     "jump_to_live": "الانتقال إلى البث المباشر",
-    "return_live_view": "العودة إلى شاشة الوقت الفعلي"
+    "return_live_view": "العودة إلى شاشة الوقت الفعلي",
+    "split_wipe": "تقسيم المسح",
+    "split_dual": "جنباً إلى جنب (مزدوج)",
+    "split_title_short": "A/B"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",

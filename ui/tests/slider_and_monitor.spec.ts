@@ -97,6 +97,14 @@ test.describe('Split Comparison & Timeline Slider E2E Study', () => {
       });
     });
 
+    await page.route('**/api/monitor/stream-proxy**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'image/png',
+        body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64'),
+      });
+    });
+
     await page.addInitScript(() => {
       window.localStorage.setItem('vhs_studio_eula_accepted', 'true');
       window.sessionStorage.setItem('vhs_studio_eula_session_accepted', 'true');
@@ -194,7 +202,22 @@ test.describe('Split Comparison & Timeline Slider E2E Study', () => {
     // Take screenshot of split comparison monitor for visual inspection
     await monitor.screenshot({ path: 'test-results/split-comparison-refined.png' });
 
-    // 6. Test Close Split Monitor
+    // 6. Test Layout Switch (Dual side-by-side mode)
+    const dualBtn = page.getByTestId('split-layout-dual-btn');
+    await expect(dualBtn).toBeVisible();
+    await dualBtn.click();
+
+    // In dual mode, divider line is hidden
+    await expect(dividerLine).not.toBeVisible();
+    await monitor.screenshot({ path: 'test-results/split-comparison-dual.png' });
+
+    // Switch back to Wipe mode
+    const wipeBtn = page.getByTestId('split-layout-wipe-btn');
+    await expect(wipeBtn).toBeVisible();
+    await wipeBtn.click();
+    await expect(dividerLine).toBeVisible();
+
+    // 7. Test Close Split Monitor
     const closeBtn = page.getByTestId('split-close-btn');
     await expect(closeBtn).toBeVisible();
     await closeBtn.click();

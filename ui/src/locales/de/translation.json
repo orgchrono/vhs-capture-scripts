@@ -101,7 +101,10 @@
     "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)",
     "live_badge": "LIVE",
     "jump_to_live": "Zur Live-Position springen",
-    "return_live_view": "Zurück zum Echtzeit-Monitor"
+    "return_live_view": "Zurück zum Echtzeit-Monitor",
+    "split_wipe": "Wipe-Teilung",
+    "split_dual": "Nebeneinander (Dual)",
+    "split_title_short": "A/B"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
