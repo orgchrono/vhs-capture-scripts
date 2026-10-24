@@ -47,6 +47,7 @@ fn build_cli_job_request(
         apply_audio_notch_hum: true,
         apply_loudness_norm: true,
         start_sec: 0.0,
+        base_start_sec: None,
         duration_sec: None,
         overrides: RestorationOverrides::default(),
     }
@@ -457,6 +458,12 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
                         }
                         if let Some(luma) = target_obj.get("avg_luma").and_then(serde_json::Value::as_f64) {
                             base.avg_luma = luma as f32;
+                        }
+                        if let Some(min_l) = target_obj.get("min_luma").and_then(serde_json::Value::as_u64) {
+                            base.min_luma = min_l as u8;
+                        }
+                        if let Some(max_l) = target_obj.get("max_luma").and_then(serde_json::Value::as_u64) {
+                            base.max_luma = max_l as u8;
                         }
                         if let Some(legal) = target_obj.get("is_legal_broadcast").and_then(serde_json::Value::as_bool) {
                             base.is_legal_broadcast = legal;

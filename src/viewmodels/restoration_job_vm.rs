@@ -94,6 +94,7 @@ mod tests {
             apply_audio_notch_hum: false,
             apply_loudness_norm: false,
             start_sec: 0.0,
+            base_start_sec: None,
             duration_sec: None,
             overrides: Default::default(),
         };

@@ -118,6 +118,9 @@ pub fn map_restoration_payload(params: &Value, input_path: &str, default_output_
         .get("duration_sec")
         .or_else(|| params.get("duration"))
         .and_then(Value::as_f64);
+    let base_start_sec = params
+        .get("base_start_sec")
+        .and_then(Value::as_f64);
 
     let request = RestorationJobRequest {
         input_path: input_path.to_string(),
@@ -130,6 +133,7 @@ pub fn map_restoration_payload(params: &Value, input_path: &str, default_output_
         apply_audio_notch_hum: audio_treatment,
         apply_loudness_norm: audio_treatment,
         start_sec,
+        base_start_sec,
         duration_sec,
         overrides: RestorationOverrides {
             crf: params
