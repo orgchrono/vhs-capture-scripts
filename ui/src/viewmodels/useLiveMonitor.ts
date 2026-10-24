@@ -23,7 +23,8 @@ export function useLiveMonitor(): UseLiveMonitorResult {
   const { isCapturing } = useStudioStore();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isActive, setIsActive] = useState<boolean>(false);
+  const [isStreamActive, setIsStreamActive] = useState<boolean>(false);
+  const isActive = isCapturing && isStreamActive;
 
   const { data: obsStats } = useGetObsStatsQuery(undefined, {
     pollingInterval: 1000,
@@ -33,6 +34,10 @@ export function useLiveMonitor(): UseLiveMonitorResult {
 
   useEffect(() => {
     let activeStream: MediaStream | null = null;
+
+    if (!isCapturing) {
+      return;
+    }
 
     const startMonitor = async () => {
       try {
@@ -64,19 +69,20 @@ export function useLiveMonitor(): UseLiveMonitorResult {
 
         if (videoRef.current) {
           videoRef.current.srcObject = activeStream;
-          setIsActive(true);
+          setIsStreamActive(true);
           setError(null);
         }
       } catch (err: unknown) {
         logger.error('Failed to start Live Monitor:', err);
         setError(t('monitor.camera_not_detected'));
-        setIsActive(false);
+        setIsStreamActive(false);
       }
     };
 
     startMonitor();
 
     return () => {
+      setIsStreamActive(false);
       if (activeStream) {
         activeStream.getTracks().forEach((track) => track.stop());
       }
@@ -84,7 +90,7 @@ export function useLiveMonitor(): UseLiveMonitorResult {
         .unwrap()
         .catch((err) => logger.error('Failed to stop virtual camera:', err));
     };
-  }, [toggleVirtualCam, t]);
+  }, [isCapturing, toggleVirtualCam, t]);
 
   return {
     videoRef,

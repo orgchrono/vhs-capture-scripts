@@ -8,6 +8,7 @@ export interface TelemetryData {
   readonly eta: string;
   readonly speed: string;
   readonly isStreaming: boolean;
+  readonly currentSeconds: number;
 }
 
 export interface StageDefinition {
@@ -27,6 +28,7 @@ const IDLE_TELEMETRY: TelemetryData = {
   eta: '--:--:--',
   speed: '0.0x',
   isStreaming: false,
+  currentSeconds: 0,
 };
 
 export const getPresetLabels = (t: (key: string) => string): Record<string, string> => ({
@@ -152,6 +154,11 @@ export const createTelemetryParser = () => {
       ? `${rawSpeed}x`
       : '1.0x';
 
+    const currentSeconds =
+      totalFrames > 0 && currentFrames > 0 && fps > 0
+        ? Math.round((currentFrames / fps) * 10) / 10
+        : 0;
+
     return {
       stage: detectedStage,
       stageNameKey: matchedStageDef.key,
@@ -162,6 +169,7 @@ export const createTelemetryParser = () => {
       eta,
       speed,
       isStreaming: true,
+      currentSeconds,
     };
   };
 };

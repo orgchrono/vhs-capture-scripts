@@ -98,7 +98,10 @@
     "split_play": "播放对比",
     "split_pause": "暂停对比",
     "split_preset": "设置分割为 {{percent}}%",
-    "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)"
+    "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)",
+    "live_badge": "直播",
+    "jump_to_live": "回到实时进度",
+    "return_live_view": "返回实时监控"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",

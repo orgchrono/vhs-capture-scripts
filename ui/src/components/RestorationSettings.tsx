@@ -429,7 +429,7 @@ export const RestorationSettings: React.FC = () => {
                   </div>
                   {hardwareProfile && (
                     <span
-                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-sm border font-mono ${hardwareProfile.tier >= TIER_CONFIG.ULTRA_MIN
+                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-sm border font-mono whitespace-nowrap shrink-0 ${hardwareProfile.tier >= TIER_CONFIG.ULTRA_MIN
                         ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/40'
                         : hardwareProfile.tier === TIER_CONFIG.BALANCED
                           ? 'bg-slate-800 text-slate-200 border-slate-700'
@@ -500,7 +500,7 @@ export const RestorationSettings: React.FC = () => {
                         <div className="space-y-0.5 pr-2">
                           <div className="flex items-center gap-2">
                             <label className="text-xs font-medium text-slate-200 font-mono">{t('ai.deepfilter_label')}</label>
-                            <span className="text-[9px] bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded-sm font-mono">
+                            <span className="text-[9px] bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded-sm font-mono whitespace-nowrap shrink-0">
                               {t('ai.realtime_cpu')}
                             </span>
                           </div>
@@ -523,7 +523,7 @@ export const RestorationSettings: React.FC = () => {
                         <div className="space-y-0.5 pr-2">
                           <div className="flex items-center gap-2">
                             <label className="text-xs font-medium text-slate-200 font-mono">{t('ai.dropout_label')}</label>
-                            <span className="text-[9px] bg-slate-800 text-slate-300 border border-studio-border px-1.5 py-0.5 rounded-sm font-mono">
+                            <span className="text-[9px] bg-slate-800 text-slate-300 border border-studio-border px-1.5 py-0.5 rounded-sm font-mono whitespace-nowrap shrink-0">
                               {t('ai.fast_cpu')}
                             </span>
                           </div>
@@ -546,7 +546,7 @@ export const RestorationSettings: React.FC = () => {
                         <div className="space-y-0.5 pr-2">
                           <div className="flex items-center gap-2">
                             <label className="text-xs font-medium text-slate-200 font-mono">{t('ai.rife_label')}</label>
-                            <span className="text-[9px] bg-amber-950/60 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded-sm font-mono">
+                            <span className="text-[9px] bg-amber-950/60 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded-sm font-mono whitespace-nowrap shrink-0">
                               {hardwareProfile?.gpu?.vulkan_available ? t('ai.vulkan_speed') : t('ai.slow_cpu')}
                             </span>
                           </div>
@@ -570,7 +570,7 @@ export const RestorationSettings: React.FC = () => {
                           <div className="space-y-0.5">
                             <div className="flex items-center gap-2">
                               <label className="text-xs font-medium text-slate-200 font-mono">{t('ai.upscaler_label')}</label>
-                              <span className="text-[9px] bg-amber-950/60 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded-sm font-mono">
+                              <span className="text-[9px] bg-amber-950/60 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded-sm font-mono whitespace-nowrap shrink-0">
                                 {hardwareProfile && hardwareProfile.tier <= TIER_CONFIG.BASIC ? t('ai.intensive') : t('ai.moderate')}
                               </span>
                             </div>
@@ -614,7 +614,7 @@ export const RestorationSettings: React.FC = () => {
                         <div className="space-y-0.5 pr-2">
                           <div className="flex items-center gap-2">
                             <label className="text-xs font-medium text-slate-200 font-mono">{t('ai.face_restore_label')}</label>
-                            <span className="text-[9px] bg-rose-950/60 text-rose-300 border border-rose-500/30 px-1.5 py-0.5 rounded-sm font-mono">
+                            <span className="text-[9px] bg-rose-950/60 text-rose-300 border border-rose-500/30 px-1.5 py-0.5 rounded-sm font-mono whitespace-nowrap shrink-0">
                               {hardwareProfile && hardwareProfile.tier <= TIER_CONFIG.BASIC ? t('ai.high_load') : t('ai.moderate')}
                             </span>
                           </div>

@@ -13,6 +13,7 @@ pub const AUDIO_NOTCH_ATTENUATION_DB: i32 = -30;
 pub const DEFAULT_AUDIO_DENOISE_NR_DB: f32 = 12.0;
 pub const DEFAULT_AUDIO_DENOISE_NF_DB: f32 = -50.0;
 
+pub const FILTER_DEDOT: &str = "dedot=m=dotcrawl+rainbows";
 pub const FILTER_CHROMA_SHIFT: &str = "chromashift=cbh=-1:cbv=1:crh=-1:crv=1";
 pub const FILTER_DENOISE: &str = "hqdn3d=2.0:1.5:3.0:2.5";
 pub const FILTER_DEINT_BWDIF_BOB: &str = "bwdif=mode=1:parity=-1:deint=1";
@@ -105,7 +106,7 @@ pub fn build_video_filtergraph(spec: &VideoFilterSpec) -> String {
     }
 
     if spec.apply_comb_filter {
-        filters.push("dedot=m=comb".to_string());
+        filters.push(FILTER_DEDOT.to_string());
     }
 
     if spec.apply_chroma_shift {
@@ -323,7 +324,7 @@ mod tests {
 
         let vf = build_video_filtergraph(&spec);
         assert!(vf.contains("drawbox=y=ih-8"));
-        assert!(vf.contains("dedot=m=comb"));
+        assert!(vf.contains(FILTER_DEDOT));
         assert!(vf.contains(FILTER_CHROMA_SHIFT));
         assert!(vf.contains(FILTER_DENOISE));
         assert!(vf.contains(FILTER_DEINT_BWDIF_BOB));

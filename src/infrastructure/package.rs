@@ -299,7 +299,24 @@ fn execute_install_command(program: &str, args: &[&str]) -> Result<String, Strin
 
 /// Installs Python libraries required for QTGMC (vapoursynth, havsfunc, vsutil, vapoursynth-ffms2).
 pub fn install_qtgmc_python_packages() -> Result<String, String> {
-    let py = crate::infrastructure::toolchain::resolve_executable_path("python", None, None)
+    let vspipe_py = crate::infrastructure::toolchain::resolve_executable_path("vspipe", None, None)
+        .and_then(|vp| vp.parent().map(|p| p.to_path_buf()))
+        .and_then(|scripts| scripts.parent().map(|p| p.to_path_buf()))
+        .and_then(|root| {
+            let exe = if cfg!(windows) {
+                root.join("python.exe")
+            } else {
+                root.join("bin").join("python3")
+            };
+            if exe.is_file() {
+                Some(exe)
+            } else {
+                None
+            }
+        });
+
+    let py = vspipe_py
+        .or_else(|| crate::infrastructure::toolchain::resolve_executable_path("python", None, None))
         .or_else(|| crate::infrastructure::toolchain::resolve_executable_path("python3", None, None))
         .or_else(|| crate::infrastructure::toolchain::resolve_executable_path("py", None, None))
         .map(|p| p.to_string_lossy().to_string())
@@ -315,12 +332,13 @@ pub fn install_qtgmc_python_packages() -> Result<String, String> {
             "havsfunc",
             "vsutil",
             "vapoursynth-ffms2",
+            "vsrepo",
         ])
         .output()
         .map_err(|e| format!("failed to spawn pip with '{py}': {e}"))?;
 
     if output.status.success() {
-        Ok(format!("{py} -m pip install vapoursynth havsfunc vsutil vapoursynth-ffms2"))
+        Ok(format!("{py} -m pip install vapoursynth havsfunc vsutil vapoursynth-ffms2 vsrepo"))
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
         let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
@@ -331,6 +349,7 @@ pub fn install_qtgmc_python_packages() -> Result<String, String> {
 
 pub fn install_vapoursynth_toolchain() -> Result<String, String> {
     let mut log_msgs = Vec::new();
+    println!("[QTGMC SETUP] Step 1/3: Checking/Installing system VapourSynth package...");
 
     // 1. Install or update system VapourSynth package
     let sys_res = (|| {
@@ -373,7 +392,8 @@ pub fn install_vapoursynth_toolchain() -> Result<String, String> {
         log_msgs.push(msg);
     }
 
-    // 2. Install Python dependencies (havsfunc, vsutil, ffms2)
+    // 2. Install Python dependencies (havsfunc, vsutil, ffms2, vsrepo)
+    println!("[QTGMC SETUP] Step 2/3: Installing Python QTGMC packages...");
     match install_qtgmc_python_packages() {
         Ok(msg) => log_msgs.push(msg),
         Err(e) => {
@@ -383,7 +403,10 @@ pub fn install_vapoursynth_toolchain() -> Result<String, String> {
         }
     }
 
+    println!("[QTGMC SETUP] Step 3/3: Validating QTGMC installation...");
     crate::infrastructure::toolchain::invalidate_qtgmc_cache();
+    let viable = crate::infrastructure::toolchain::is_qtgmc_viable();
+    println!("[QTGMC SETUP] QTGMC Viability status: {viable}");
 
     if log_msgs.is_empty() {
         Err("No package manager or python environment available to provision VapourSynth".to_string())

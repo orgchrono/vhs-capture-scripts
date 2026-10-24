@@ -174,12 +174,18 @@ fn handle_action(req: &ApiRequest, ctx: &AppContext) -> ApiResponse {
                     "status": "ok",
                     "message": "obs_already_installed"
                 }))
+            } else if ctx.process.is_running() {
+                ApiResponse::error(400, "A process is already running. Wait for completion.")
             } else {
-                match install_obs_toolchain() {
-                    Ok(cmd) => ApiResponse::ok(&json!({
+                let current_exe = match std::env::current_exe() {
+                    Ok(exe) => exe,
+                    Err(e) => return ApiResponse::error(500, &format!("Could not determine executable path: {e}")),
+                };
+                let args = vec!["setup-obs".to_string()];
+                match ctx.process.start(&current_exe, &args) {
+                    Ok(()) => ApiResponse::ok(&json!({
                         "status": "ok",
-                        "message": "obs_install_started",
-                        "command": cmd
+                        "message": "obs_install_started"
                     })),
                     Err(e) => ApiResponse::error(500, &e),
                 }
@@ -508,11 +514,16 @@ fn handle_install_qtgmc(ctx: &AppContext) -> ApiResponse {
         return ApiResponse::error(400, "A process is already running. Wait for completion.");
     }
 
-    match install_vapoursynth_toolchain() {
-        Ok(cmd) => ApiResponse::ok(&json!({
+    let current_exe = match std::env::current_exe() {
+        Ok(exe) => exe,
+        Err(e) => return ApiResponse::error(500, &format!("Could not determine executable path: {e}")),
+    };
+
+    let args = vec!["setup-qtgmc".to_string()];
+    match ctx.process.start(&current_exe, &args) {
+        Ok(()) => ApiResponse::ok(&json!({
             "status": "ok",
-            "message": "vapoursynth_install_started",
-            "command": cmd
+            "message": "vapoursynth_install_started"
         })),
         Err(e) => ApiResponse::error(500, &e),
     }
@@ -533,6 +544,18 @@ fn handle_comparison_frame(req: &ApiRequest) -> ApiResponse {
         .query("chroma_fix")
         .map(|c| c != "false")
         .unwrap_or(true);
+    let comb_filter = req
+        .query("comb_filter")
+        .map(|c| c != "false")
+        .unwrap_or(false);
+    let overscan = req
+        .query("overscan")
+        .map(|o| o != "false")
+        .unwrap_or(false);
+    let dropout = req
+        .query("dropout")
+        .map(|d| d != "false")
+        .unwrap_or(false);
 
     let dirs = media_dirs();
     let resolved_source = if !source.is_empty() {
@@ -571,19 +594,31 @@ fn handle_comparison_frame(req: &ApiRequest) -> ApiResponse {
                 "pipe:1",
             ]);
 
-            // Processed preview filter chain
-            let deint_filter = if deinterlacer.to_ascii_lowercase().contains("bwdif") {
-                "bwdif=mode=0"
-            } else {
-                "yadif=mode=0"
-            };
-            let mut filters = vec![deint_filter.to_string()];
-            if denoise {
-                filters.push("hqdn3d=1.5:1.5:6:6".to_string());
+            // Faithful pipeline filter chain matching chosen restoration specs
+            let mut filters = Vec::new();
+            if overscan {
+                filters.push("drawbox=y=ih-16:color=black:width=iw:height=16:t=fill".to_string());
+            }
+            if dropout {
+                filters.push("removegrain=m=1".to_string());
+            }
+            if comb_filter {
+                filters.push("dedot=m=dotcrawl+rainbows".to_string());
             }
             if chroma_fix {
-                filters.push("eq=saturation=1.1:contrast=1.05".to_string());
+                filters.push("chromashift=cbh=2:cbv=1:crh=2:crv=1:edge=smear".to_string());
             }
+            if denoise {
+                filters.push("hqdn3d=4.0:3.0:6.0:4.5".to_string());
+            }
+            let deint_filter = if deinterlacer.to_ascii_lowercase().contains("bwdif") {
+                "bwdif=mode=0:parity=-1:deint=1"
+            } else if deinterlacer.to_ascii_lowercase().contains("yadif") {
+                "yadif=mode=0:parity=-1:deint=1"
+            } else {
+                "bwdif=mode=0:parity=-1:deint=1"
+            };
+            filters.push(deint_filter.to_string());
             filters.push("scale=640:360".to_string());
             let proc_vf = filters.join(",");
 
@@ -673,8 +708,6 @@ fn handle_live_frame() -> ApiResponse {
         "frame": ""
     }))
 }
-
-use crate::infrastructure::package::{install_obs_toolchain, install_vapoursynth_toolchain};
 
 #[cfg(test)]
 mod tests {

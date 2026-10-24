@@ -98,7 +98,10 @@
     "split_play": "Vergleich abspielen",
     "split_pause": "Vergleich pausieren",
     "split_preset": "Teilung auf {{percent}}% setzen",
-    "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)"
+    "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)",
+    "live_badge": "LIVE",
+    "jump_to_live": "Zur Live-Position springen",
+    "return_live_view": "Zurück zum Echtzeit-Monitor"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",

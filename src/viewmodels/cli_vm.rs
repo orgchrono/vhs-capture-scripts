@@ -960,21 +960,27 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         "setup-qtgmc" => {
-            println!("Starting automated VapourSynth + QTGMC setup...");
+            println!("[QTGMC SETUP] Starting automated VapourSynth + QTGMC setup...");
             match crate::infrastructure::package::install_vapoursynth_toolchain() {
-                Ok(cmd) => println!("Toolchain installation started successfully: {cmd}"),
+                Ok(cmd) => {
+                    println!("[QTGMC SETUP] Toolchain setup completed successfully: {cmd}");
+                    std::process::exit(0);
+                }
                 Err(err) => {
-                    eprintln!("Error installing VapourSynth: {err}");
+                    eprintln!("[QTGMC SETUP ERROR] Error installing VapourSynth toolchain: {err}");
                     std::process::exit(1);
                 }
             }
         }
         "setup-obs" => {
-            println!("Starting automated OBS Studio setup...");
+            println!("[OBS SETUP] Starting automated OBS Studio setup...");
             match crate::infrastructure::package::install_obs_toolchain() {
-                Ok(cmd) => println!("OBS Studio installation started successfully: {cmd}"),
+                Ok(cmd) => {
+                    println!("[OBS SETUP] OBS Studio setup completed successfully: {cmd}");
+                    std::process::exit(0);
+                }
                 Err(err) => {
-                    eprintln!("Error installing OBS Studio: {err}");
+                    eprintln!("[OBS SETUP ERROR] Error installing OBS Studio: {err}");
                     std::process::exit(1);
                 }
             }

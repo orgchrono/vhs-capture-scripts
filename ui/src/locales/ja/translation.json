@@ -98,7 +98,10 @@
     "split_play": "比較を再生",
     "split_pause": "比較を一時停止",
     "split_preset": "分割を{{percent}}%に設定",
-    "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)"
+    "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)",
+    "live_badge": "ライブ",
+    "jump_to_live": "ライブ位置に戻る",
+    "return_live_view": "リアルタイムモニターに戻る"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",

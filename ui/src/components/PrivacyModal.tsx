@@ -18,7 +18,7 @@ interface PrivacyModalProps {
 }
 
 export const PrivacyModal: React.FC<PrivacyModalProps> = ({
-  isOpen: propIsOpen = false,
+  isOpen: propIsOpen,
   onClose,
 }) => {
   const [internalOpen, setInternalOpen] = useState<boolean>(() => {
@@ -27,7 +27,7 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({
   });
   const { t } = useTranslation();
 
-  const isModalOpen = propIsOpen || internalOpen;
+  const isModalOpen = propIsOpen !== undefined ? propIsOpen : internalOpen;
 
   const handleAccept = () => {
     localStorage.setItem('vhs_studio_eula_accepted', 'true');

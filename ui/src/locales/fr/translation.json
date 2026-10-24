@@ -98,7 +98,10 @@
     "split_play": "Lire le comparateur",
     "split_pause": "Mettre en pause le comparateur",
     "split_preset": "Régler la séparation sur {{percent}}%",
-    "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)"
+    "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)",
+    "live_badge": "EN DIRECT",
+    "jump_to_live": "Retour au direct",
+    "return_live_view": "Retour au moniteur en temps réel"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
