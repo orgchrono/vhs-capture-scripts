@@ -784,6 +784,11 @@ pub fn run_desktop_app() {
     std::thread::sleep(std::time::Duration::from_millis(150));
 
     tauri::Builder::default()
+        .on_window_event(|_window, event| {
+            if let tauri::WindowEvent::CloseRequested { .. } = event {
+                std::process::exit(0);
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             // System & Hardware
             ipc_assess_hardware,

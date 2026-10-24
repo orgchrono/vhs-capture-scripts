@@ -452,6 +452,7 @@
     "panasonic_extract_error": "[PANASONIC INGEST] Fehler bei Extraktion: {{error}}",
     "restore_paused": "[WIEDERHERSTELLUNG] Wiederherstellungsprozess pausiert.",
     "restore_resumed": "[WIEDERHERSTELLUNG] Wiederherstellungsprozess fortgesetzt.",
+    "pipeline_hash": "[PIPELINE] Parameter validiert. Integritäts-Hash: {{hash}}",
     "restore_aborted": "[WIEDERHERSTELLUNG] Prozess und Signal sicher abgebrochen.",
     "panasonic_tree_loading": "[PANASONIC INGEST] Lade Sitzungen und Aufnahmebaum von: {{path}}",
     "panasonic_tree_loaded": "[PANASONIC INGEST] Baum geladen: {{count}} Titel erkannt.",

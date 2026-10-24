@@ -23,7 +23,7 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({
 }) => {
   const [internalOpen, setInternalOpen] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
-    return !localStorage.getItem('vhs_studio_eula_accepted');
+    return sessionStorage.getItem('vhs_studio_eula_session_accepted') !== 'true';
   });
   const { t } = useTranslation();
 
@@ -31,11 +31,13 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({
 
   const handleAccept = () => {
     localStorage.setItem('vhs_studio_eula_accepted', 'true');
+    sessionStorage.setItem('vhs_studio_eula_session_accepted', 'true');
     setInternalOpen(false);
     onClose?.();
   };
 
   const handleDismiss = () => {
+    sessionStorage.setItem('vhs_studio_eula_session_accepted', 'true');
     setInternalOpen(false);
     onClose?.();
   };

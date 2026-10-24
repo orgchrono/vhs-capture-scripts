@@ -152,13 +152,31 @@ export function useStudioViewModel() {
             input_path: store.selectedFile,
             output_dir: 'restored',
             preset: store.mode,
-            codec: store.outputCodec,
+            output_codec: store.outputCodec,
             target_1080p: store.resolution !== 'original',
             crf: store.crf,
+            custom_deinterlacer: store.deinterlacer,
+            audio_policy: store.audioMode,
+            apply_audio_notch_hum: store.audioTreatment,
+            apply_loudness_norm: store.audioTreatment,
+            overrides: {
+              crf: store.crf,
+              chroma_fix: store.chromaFix,
+              denoise: store.denoise,
+              comb_filter: store.combFilter,
+              overscan_blanking: store.overscanBlanking,
+              dropout_clean: store.dropoutClean,
+              audio_offset_sec: store.audioOffset,
+            },
             ...overrideParams,
           },
           probed
         );
+        const finalPath = typeof planned?.final_output_path === 'string' ? planned.final_output_path : '';
+        const hashMatch = finalPath.match(/_([a-f0-9]{8})\.[a-z0-9]+$/i);
+        if (hashMatch) {
+          addLog(t('logs.pipeline_hash', { hash: hashMatch[1] }));
+        }
         a11yAudio.playStageStart();
         setIsRestoring(true);
         addLog(overrideParams?.resume ? t('logs.restore_resumed') : t('logs.restore_started'));

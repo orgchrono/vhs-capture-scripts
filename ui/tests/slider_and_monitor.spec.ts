@@ -97,7 +97,10 @@ test.describe('Split Comparison & Timeline Slider E2E Study', () => {
       });
     });
 
-    await page.addInitScript(() => window.localStorage.setItem('vhs_studio_eula_accepted', 'true'));
+    await page.addInitScript(() => {
+      window.localStorage.setItem('vhs_studio_eula_accepted', 'true');
+      window.sessionStorage.setItem('vhs_studio_eula_session_accepted', 'true');
+    });
     await page.goto('http://localhost:5173/');
     await expect(page.locator('h1', { hasText: 'VHS Studio Pro' })).toBeVisible({ timeout: 10000 });
   });

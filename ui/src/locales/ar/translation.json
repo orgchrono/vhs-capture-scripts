@@ -452,6 +452,7 @@
     "panasonic_extract_error": "[PANASONIC INGEST] خطأ أثناء الاستخراج: {{error}}",
     "restore_paused": "[استعادة] تم إيقاف عملية الاستعادة مؤقتًا.",
     "restore_resumed": "[استعادة] تم استئناف عملية الاستعادة.",
+    "pipeline_hash": "[PIPELINE] تم التحقق من المعلمات. تجزئة السلامة: {{hash}}",
     "restore_aborted": "[استعادة] تم إنهاء العملية والإشارة بأمان.",
     "panasonic_tree_loading": "[PANASONIC INGEST] جاري تحميل الجلسات وشجرة التسجيلات من: {{path}}",
     "panasonic_tree_loaded": "[PANASONIC INGEST] تم تحميل الشجرة: تم اكتشاف {{count}} عنوان/عناوين.",

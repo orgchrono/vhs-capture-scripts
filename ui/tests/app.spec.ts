@@ -45,8 +45,11 @@ test.describe('VHS Studio Pro E2E', () => {
   });
 
   test('Complete Capture Flow E2E', async ({ page }) => {
-    // Clear localStorage to force EULA modal
-    await page.addInitScript(() => window.localStorage.clear());
+    // Clear storage to force EULA modal
+    await page.addInitScript(() => {
+      window.localStorage.clear();
+      window.sessionStorage.clear();
+    });
     await page.goto('http://localhost:5173/');
 
     // 1. Accept EULA

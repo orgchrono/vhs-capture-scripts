@@ -87,7 +87,10 @@ test.describe('VHS Studio Visual Inspection & Screenshots', () => {
   test('Capture Full Studio Screenshots', async ({ page }) => {
     test.setTimeout(90000);
     await page.setViewportSize({ width: 1600, height: 950 });
-    await page.addInitScript(() => window.localStorage.setItem('vhs_studio_eula_accepted', 'true'));
+    await page.addInitScript(() => {
+      window.localStorage.setItem('vhs_studio_eula_accepted', 'true');
+      window.sessionStorage.setItem('vhs_studio_eula_session_accepted', 'true');
+    });
     await page.goto('http://localhost:5173/');
 
     // Wait for main UI to settle

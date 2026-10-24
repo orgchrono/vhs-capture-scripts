@@ -30,11 +30,23 @@ import {
   useGetPreferencesQuery,
   useGetIncompleteJobsQuery,
   useHandleIncompleteJobMutation,
+  useLazyCheckExistingRestorationQuery,
 } from './api/studioRtkApi'
 import type { IncompleteJob } from './types'
 import { LAYOUT_CONFIG } from './lib/constants'
 
 const telemetryParser = createTelemetryParser()
+
+interface ConflictTarget {
+  job_id: string
+  source_file: string
+  output_file: string
+  output_size_bytes: number
+  can_resume?: boolean
+  progress_percent?: number
+  last_modified?: string
+  status?: string
+}
 
 const StudioMain: React.FC<{
   onOpenPrivacy?: () => void
@@ -87,7 +99,9 @@ const StudioMain: React.FC<{
     pollingInterval: isRestoring ? 1500 : 3000,
   })
   const [handleJobAction] = useHandleIncompleteJobMutation()
-  const [conflictJob, setConflictJob] = useState<IncompleteJob | null>(null)
+  const [triggerCheckExisting] = useLazyCheckExistingRestorationQuery()
+  const [conflictJob, setConflictJob] = useState<IncompleteJob | ConflictTarget | null>(null)
+  const [conflictType, setConflictType] = useState<'partial' | 'completed'>('partial')
   const [isConflictModalOpen, setIsConflictModalOpen] = useState(false)
 
   useEffect(() => {
@@ -127,7 +141,7 @@ const StudioMain: React.FC<{
     }
   }
 
-  const onStart = () => {
+  const onStart = async () => {
     if (!selectedFile) {
       toast.error(t('toast.no_file_title'), {
         description: t('toast.no_file_desc'),
@@ -137,8 +151,31 @@ const StudioMain: React.FC<{
 
     if (incompleteJobForSelected) {
       setConflictJob(incompleteJobForSelected)
+      setConflictType('partial')
       setIsConflictModalOpen(true)
       return
+    }
+
+    try {
+      const existing = await triggerCheckExisting({ source: selectedFile }).unwrap()
+      if (existing?.has_existing) {
+        const isCompleted = existing.type === 'completed'
+        setConflictJob({
+          job_id: `${existing.type || 'existing'}_${selectedFile}`,
+          source_file: selectedFile,
+          output_file: existing.file_path || '',
+          output_size_bytes: existing.size_bytes || 0,
+          can_resume: existing.can_resume ?? !isCompleted,
+          progress_percent: existing.progress_percent ?? (isCompleted ? 100 : 0),
+          last_modified: existing.last_modified || '',
+          status: isCompleted ? 'completed' : 'incomplete',
+        })
+        setConflictType(isCompleted ? 'completed' : 'partial')
+        setIsConflictModalOpen(true)
+        return
+      }
+    } catch {
+      // Proceed safely if existing restoration check query is unfulfilled
     }
 
     executeStartRestoration(false)
@@ -152,13 +189,13 @@ const StudioMain: React.FC<{
 
   const handleOverwriteFromConflict = async () => {
     const target = conflictJob || incompleteJobForSelected
-    if (target) {
+    if (target && target.status !== 'completed') {
       try {
         await handleJobAction({
           output_path: target.output_file,
           action: 'discard',
         }).unwrap()
-        refetchIncomplete()
+        void refetchIncomplete()
       } catch {
         // ignore discard error
       }
@@ -397,7 +434,7 @@ const StudioMain: React.FC<{
       {conflictJob && (
         <RestorationConflictModal
           isOpen={isConflictModalOpen}
-          conflictType="partial"
+          conflictType={conflictType}
           fileName={
             conflictJob.source_file
               ? conflictJob.source_file.split(/[/\\]/).pop() || conflictJob.source_file
@@ -421,7 +458,7 @@ const StudioMain: React.FC<{
 export default function App() {
   const [privacyOpen, setPrivacyOpen] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
-    return !localStorage.getItem('vhs_studio_eula_accepted')
+    return sessionStorage.getItem('vhs_studio_eula_session_accepted') !== 'true'
   })
   const [preferencesOpen, setPreferencesOpen] = useState(false)
   const { data: serverPrefs } = useGetPreferencesQuery()

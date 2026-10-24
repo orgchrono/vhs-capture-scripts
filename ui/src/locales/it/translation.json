@@ -452,6 +452,7 @@
     "panasonic_extract_error": "[PANASONIC INGEST] Errore durante l'estrazione: {{error}}",
     "restore_paused": "[RESTAURO] Processo di restauro in pausa.",
     "restore_resumed": "[RESTAURO] Processo di restauro ripreso.",
+    "pipeline_hash": "[PIPELINE] Parametri convalidati. Hash di integrità: {{hash}}",
     "restore_aborted": "[RESTAURO] Processo e segnale interrotti in sicurezza.",
     "panasonic_tree_loading": "[PANASONIC INGEST] Caricamento sessioni e albero registrazioni da: {{path}}",
     "panasonic_tree_loaded": "[PANASONIC INGEST] Albero caricato: {{count}} titolo/i rilevato/i.",
