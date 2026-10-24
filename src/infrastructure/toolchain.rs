@@ -284,7 +284,8 @@ pub fn is_qtgmc_viable() -> bool {
         "import vapoursynth as vs\n",
         "from vapoursynth import core\n",
         "import havsfunc as haf\n",
-        "clip = core.std.BlankClip(format=vs.YUV420P8, width=64, height=64, length=1)\n",
+        "clip = core.std.BlankClip(format=vs.YUV420P8, width=64, height=64, length=5)\n",
+        "clip = core.std.SetFrameProps(clip, _FieldBased=2, _SceneChangePrev=0, _SceneChangeNext=0)\n",
         "clip = haf.QTGMC(clip, Preset='Fast', TFF=True)\n",
         "clip.set_output()\n"
     );
@@ -317,7 +318,7 @@ pub fn invalidate_qtgmc_cache() {
 /// Checks whether VapourSynth (vspipe) is installed and accessible.
 #[must_use]
 pub fn is_vapoursynth_available() -> bool {
-    is_qtgmc_viable()
+    resolve_executable_path("vspipe", None, None).is_some()
 }
 
 /// Checks whether OBS Studio is installed.

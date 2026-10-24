@@ -11,14 +11,14 @@ use crate::infrastructure::http_codec::{
     parse_request_head,
 };
 use crate::infrastructure::security::{is_safe_media_path, verify_api_request, SecurityVerdict};
-use crate::models::constants::{DEFAULT_STREAM_PROXY_FPS, MAX_HTTP_BODY_BYTES, UI_DIST_REL_PATH};
+use crate::models::constants::{DEFAULT_STREAM_PROXY_FPS, MAX_HTTP_BODY_BYTES};
 use crate::viewmodels::api_router::{dispatch_api_request_with_context, ApiRequest, ApiResponse};
 use crate::viewmodels::api_support::media_dirs;
 use serde_json::json;
 use std::fs;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
@@ -400,7 +400,7 @@ fn handle_connection(mut stream: TcpStream, ctx: &AppContext) {
         req.path.trim_start_matches('/')
     };
 
-    let dist_root = PathBuf::from(UI_DIST_REL_PATH);
+    let dist_root = crate::infrastructure::paths::resolve_ui_dist_dir();
     let asset_path = dist_root.join(rel_asset);
 
     if asset_path.is_file() {

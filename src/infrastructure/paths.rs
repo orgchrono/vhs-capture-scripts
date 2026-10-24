@@ -41,6 +41,29 @@ pub fn thumbnail_cache_dir() -> PathBuf {
     studio_dir().join(THUMBNAIL_CACHE_DIR_NAME)
 }
 
+/// Resolves the UI distribution directory for static asset serving.
+/// Checks local working directory, next to current executable, and release bundle paths.
+#[must_use]
+pub fn resolve_ui_dist_dir() -> PathBuf {
+    let local = PathBuf::from(crate::models::constants::UI_DIST_REL_PATH);
+    if local.join("index.html").is_file() {
+        return local;
+    }
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(parent) = exe_path.parent() {
+            let exe_rel = parent.join(crate::models::constants::UI_DIST_REL_PATH);
+            if exe_rel.join("index.html").is_file() {
+                return exe_rel;
+            }
+            let direct_dist = parent.join("dist");
+            if direct_dist.join("index.html").is_file() {
+                return direct_dist;
+            }
+        }
+    }
+    local
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

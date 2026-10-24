@@ -73,6 +73,9 @@ except Exception:
     except Exception:
         clip = core.bs.VideoSource(source=r"{clean_input}")
 
+field_val = 2 if {tff_str} else 1
+clip = core.std.SetFrameProps(clip, _FieldBased=field_val, _SceneChangePrev=0, _SceneChangeNext=0)
+
 {comb_str}clip = haf.QTGMC(
     clip,
     Preset="{preset}",
@@ -133,6 +136,7 @@ mod tests {
         assert!(script.contains("TFF=True"));
         assert!(script.contains("FPSDivisor=1"));
         assert!(script.contains("EdiMode=\"NNEDI3\""));
+        assert!(script.contains("_FieldBased=field_val"));
     }
 
     #[test]

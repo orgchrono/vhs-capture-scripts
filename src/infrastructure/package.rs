@@ -332,13 +332,15 @@ pub fn install_qtgmc_python_packages() -> Result<String, String> {
             "havsfunc",
             "vsutil",
             "vapoursynth-ffms2",
+            "vapoursynth-mvtools",
+            "vapoursynth-scenechange",
             "vsrepo",
         ])
         .output()
         .map_err(|e| format!("failed to spawn pip with '{py}': {e}"))?;
 
     if output.status.success() {
-        Ok(format!("{py} -m pip install vapoursynth havsfunc vsutil vapoursynth-ffms2 vsrepo"))
+        Ok(format!("{py} -m pip install vapoursynth havsfunc vsutil vapoursynth-ffms2 vapoursynth-mvtools vapoursynth-scenechange vsrepo"))
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
         let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();

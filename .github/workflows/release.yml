@@ -76,8 +76,14 @@ jobs:
     - name: Stage Release Binary
       shell: bash
       run: |
-        mkdir -p dist
-        cp -f target/release/${{ matrix.binary_name }} dist/${{ matrix.target_binary }}
+        mkdir -p dist/bundle
+        cp -f target/release/${{ matrix.binary_name }} dist/bundle/${{ matrix.target_binary }}
+        mkdir -p dist/bundle/ui/dist
+        cp -rf ui/dist/* dist/bundle/ui/dist/
+        if [ -d "tools" ]; then
+          mkdir -p dist/bundle/tools
+          cp -rf tools/* dist/bundle/tools/ || true
+        fi
 
     - name: Authenticode Sign Executable (Windows)
       if: runner.os == 'Windows' && env.WINDOWS_CERT_PFX_BASE64 != ''
@@ -89,7 +95,7 @@ jobs:
         $certBytes = [Convert]::FromBase64String($env:WINDOWS_CERT_PFX_BASE64)
         $certPath = Join-Path $env:RUNNER_TEMP "codesign.pfx"
         [IO.File]::WriteAllBytes($certPath, $certBytes)
-        signtool sign /f $certPath /p $env:WINDOWS_CERT_PASSWORD /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 "dist/${{ matrix.target_binary }}"
+        signtool sign /f $certPath /p $env:WINDOWS_CERT_PASSWORD /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 "dist/bundle/${{ matrix.target_binary }}"
         Remove-Item $certPath -Force
 
     - name: Codesign Binary (macOS)
@@ -97,27 +103,27 @@ jobs:
       env:
         MACOS_CODESIGN_IDENTITY: ${{ secrets.MACOS_CODESIGN_IDENTITY }}
       run: |
-        codesign --force --options runtime --timestamp --sign "$MACOS_CODESIGN_IDENTITY" "dist/${{ matrix.target_binary }}"
+        codesign --force --options runtime --timestamp --sign "$MACOS_CODESIGN_IDENTITY" "dist/bundle/${{ matrix.target_binary }}"
 
     - name: Compress Archive (Windows)
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        Compress-Archive -Path "dist/${{ matrix.target_binary }}" -DestinationPath "dist/${{ matrix.archive_name }}" -Force
+        Compress-Archive -Path "dist/bundle/*" -DestinationPath "dist/${{ matrix.archive_name }}" -Force
 
     - name: Compress Archive (Linux)
       if: runner.os == 'Linux'
       run: |
-        cd dist
-        tar -czvf "${{ matrix.archive_name }}" "${{ matrix.target_binary }}"
-        cd ..
+        cd dist/bundle
+        tar -czvf "../${{ matrix.archive_name }}" *
+        cd ../..
 
     - name: Compress Archive (macOS)
       if: runner.os == 'macOS'
       run: |
-        cd dist
-        zip -r "${{ matrix.archive_name }}" "${{ matrix.target_binary }}"
-        cd ..
+        cd dist/bundle
+        zip -r "../${{ matrix.archive_name }}" *
+        cd ../..
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
