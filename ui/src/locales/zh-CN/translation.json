@@ -452,6 +452,7 @@
     "panasonic_extract_error": "[PANASONIC INGEST] 提取过程出错: {{error}}",
     "restore_paused": "[恢复] 恢复进程已暂停。",
     "restore_resumed": "[恢复] 恢复进程已继续。",
+    "pipeline_hash": "[PIPELINE] 参数已验证。完整性哈希: {{hash}}",
     "restore_aborted": "[恢复] 进程与信号已安全中止。",
     "panasonic_tree_loading": "[PANASONIC INGEST] 正在从 {{path}} 加载录制会话和结构树",
     "panasonic_tree_loaded": "[PANASONIC INGEST] 结构树已载入: 检测到 {{count}} 个标题。",

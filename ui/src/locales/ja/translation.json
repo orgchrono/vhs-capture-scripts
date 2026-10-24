@@ -452,6 +452,7 @@
     "panasonic_extract_error": "[PANASONIC INGEST] 抽出中エラー: {{error}}",
     "restore_paused": "[復元] 復元プロセスが一時停止されました。",
     "restore_resumed": "[復元] 復元プロセスが再開されました。",
+    "pipeline_hash": "[PIPELINE] パラメータが検証されました。整合性ハッシュ: {{hash}}",
     "restore_aborted": "[復元] プロセスとシグナルが安全に中断されました。",
     "panasonic_tree_loading": "[PANASONIC INGEST] セッションおよび録画ツリーを読み込み中: {{path}}",
     "panasonic_tree_loaded": "[PANASONIC INGEST] ツリーを読み込みました: {{count}} 件のタイトルを検出。",

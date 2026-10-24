@@ -39,8 +39,11 @@ if "%1"=="--lint" (
 
 echo [*] Starting VHS Studio Pro (Native Desktop Suite with WebView2)...
 cargo run -- %*
-if %ERRORLEVEL% NEQ 0 (
+set APP_EXIT=!ERRORLEVEL!
+if !APP_EXIT! NEQ 0 if !APP_EXIT! NEQ -1 if !APP_EXIT! NEQ 3221225786 if !APP_EXIT! NEQ 130 (
     echo.
-    echo [WARNING] Process exited with code %ERRORLEVEL%.
+    echo [WARNING] Process exited with code !APP_EXIT!.
     pause
+    exit /b !APP_EXIT!
 )
+exit /b 0

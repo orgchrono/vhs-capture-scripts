@@ -452,6 +452,7 @@
     "panasonic_extract_error": "[PANASONIC INGEST] Ошибка при извлечении: {{error}}",
     "restore_paused": "[ВОССТАНОВЛЕНИЕ] Процесс восстановления приостановлен.",
     "restore_resumed": "[ВОССТАНОВЛЕНИЕ] Процесс восстановления возобновлен.",
+    "pipeline_hash": "[PIPELINE] Параметры проверены. Хэш целостности: {{hash}}",
     "restore_aborted": "[ВОССТАНОВЛЕНИЕ] Процесс и сигнал безопасно прерваны.",
     "panasonic_tree_loading": "[PANASONIC INGEST] Загрузка сессий и дерева записей из: {{path}}",
     "panasonic_tree_loaded": "[PANASONIC INGEST] Дерево загружено: обнаружено {{count}} записей.",

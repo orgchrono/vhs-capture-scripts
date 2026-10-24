@@ -15,7 +15,10 @@ test.describe('VHS Studio Config & Monitoring', () => {
   });
 
   test('Verify all configuration modules load', async ({ page }) => {
-    await page.addInitScript(() => window.localStorage.setItem('vhs_studio_eula_accepted', 'true'));
+    await page.addInitScript(() => {
+      window.localStorage.setItem('vhs_studio_eula_accepted', 'true');
+      window.sessionStorage.setItem('vhs_studio_eula_session_accepted', 'true');
+    });
     await page.goto('http://localhost:5173/');
 
     await expect(page.locator('text=Motor de Processamento')).toBeVisible();
