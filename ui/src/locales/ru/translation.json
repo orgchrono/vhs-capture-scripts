@@ -597,6 +597,7 @@
     "copied": "Скопировано в буфер обмена!",
     "download_json": "Скачать данные JSON",
     "open_report_tooltip": "Проверить контроль качества и отчет о дефектах",
-    "close": "Закрыть"
+    "close": "Закрыть",
+    "default_standard": "BT.601 / NTSC"
   }
 }

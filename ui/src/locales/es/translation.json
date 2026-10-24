@@ -597,6 +597,7 @@
     "copied": "¡Copiado al portapapeles!",
     "download_json": "Descargar Datos JSON",
     "open_report_tooltip": "Inspeccionar Control de Calidad e Informe de Defectos",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "default_standard": "BT.601 / NTSC"
   }
 }

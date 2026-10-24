@@ -597,6 +597,7 @@
     "copied": "Copiato negli appunti!",
     "download_json": "Scarica Dati JSON",
     "open_report_tooltip": "Ispeziona Controllo Qualità e Rapporto Difetti",
-    "close": "Chiudi"
+    "close": "Chiudi",
+    "default_standard": "BT.601 / NTSC"
   }
 }

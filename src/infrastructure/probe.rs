@@ -295,6 +295,139 @@ pub fn probe_media_file(file_path: &str, ffprobe_binary: &str) -> Result<MediaPr
     parse_ffprobe_json(&json_text, file_path)
 }
 
+/// Samples video frames using FFmpeg to evaluate physical tape signal and broadcast compliance.
+pub fn assess_media_file_qc(
+    file_path: &str,
+    ffprobe_binary: &str,
+    ffmpeg_binary: &str,
+) -> Result<crate::domain::qc::FileQcAssessment, String> {
+    let probe = probe_media_file(file_path, ffprobe_binary)?;
+    if probe.width == 0 || probe.height == 0 {
+        return Err("Invalid probe dimensions".to_string());
+    }
+
+    let mut cmd = create_silent_command(Path::new(ffmpeg_binary));
+    cmd.args([
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-i",
+        file_path,
+        "-vf",
+        "fps=1",
+        "-vframes",
+        "10",
+        "-f",
+        "rawvideo",
+        "-pix_fmt",
+        "yuv420p",
+        "pipe:1",
+    ]);
+
+    let output = cmd
+        .output()
+        .map_err(|e| format!("Failed to spawn FFmpeg QC sampler: {e}"))?;
+    let stdout = output.stdout;
+
+    let w = probe.width as usize;
+    let h = probe.height as usize;
+    let y_size = w * h;
+    let u_size = (w / 2) * (h / 2);
+    let v_size = u_size;
+    let frame_size = y_size + u_size + v_size;
+
+    let mut reports = Vec::new();
+    let mut black_leader_count = 0;
+    let mut past_leader = false;
+
+    if frame_size > 0 && stdout.len() >= frame_size {
+        for chunk in stdout.chunks_exact(frame_size) {
+            let y_plane = &chunk[..y_size];
+            let u_plane = &chunk[y_size..y_size + u_size];
+            let v_plane = &chunk[y_size + u_size..];
+
+            let rep = crate::domain::qc::inspect_frame_qc(y_plane, u_plane, v_plane, w, h);
+            if !past_leader {
+                if rep.luma.mean_luma < 20.0 {
+                    black_leader_count += 1;
+                } else {
+                    past_leader = true;
+                }
+            }
+            reports.push(rep);
+        }
+    }
+
+    let black_leader_sec = black_leader_count as f64;
+
+    Ok(crate::domain::qc::aggregate_frame_qc_reports(
+        &reports,
+        file_path.to_string(),
+        probe.width,
+        probe.height,
+        probe.duration,
+        probe.total_frames,
+        probe.standard,
+        probe.is_interlaced,
+        black_leader_sec,
+    ))
+}
+
+/// Samples 3 seconds of audio to automatically detect channel layout and recommend channel policy.
+pub fn detect_audio_policy(
+    input_path: &str,
+    start_sec: f64,
+    ffmpeg_binary: &str,
+) -> crate::domain::pipeline::AudioChannelPolicy {
+    let mut cmd = create_silent_command(Path::new(ffmpeg_binary));
+    let ss_str = format!("{start_sec:.3}");
+    cmd.args([
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-ss",
+        &ss_str,
+        "-t",
+        "3",
+        "-i",
+        input_path,
+        "-vn",
+        "-ac",
+        "2",
+        "-ar",
+        "48000",
+        "-f",
+        "f32le",
+        "pipe:1",
+    ]);
+
+    let output = match cmd.output() {
+        Ok(o) => o,
+        Err(_) => return crate::domain::pipeline::AudioChannelPolicy::Stereo,
+    };
+
+    let bytes = output.stdout;
+    if bytes.len() < 8 {
+        return crate::domain::pipeline::AudioChannelPolicy::Stereo;
+    }
+
+    let samples: Vec<f32> = bytes
+        .chunks_exact(4)
+        .map(|c| f32::from_le_bytes([c[0], c[1], c[2], c[3]]))
+        .collect();
+
+    let report = crate::domain::audio::analyze_interleaved_stereo(&samples);
+    match report.recommended_action {
+        crate::domain::audio::AudioRepairAction::DuplicateLeftToRight => {
+            crate::domain::pipeline::AudioChannelPolicy::MonoLeft
+        }
+        crate::domain::audio::AudioRepairAction::DuplicateRightToLeft => {
+            crate::domain::pipeline::AudioChannelPolicy::MonoRight
+        }
+        _ => crate::domain::pipeline::AudioChannelPolicy::Stereo,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

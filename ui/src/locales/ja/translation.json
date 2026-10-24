@@ -597,6 +597,7 @@
     "copied": "クリップボードにコピーしました！",
     "download_json": "JSONデータをダウンロード",
     "open_report_tooltip": "品質管理＆欠陥レポートを検査",
-    "close": "閉じる"
+    "close": "閉じる",
+    "default_standard": "BT.601 / NTSC"
   }
 }

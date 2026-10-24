@@ -597,6 +597,7 @@
     "copied": "تم النسخ إلى الحافظة!",
     "download_json": "تنزيل بيانات JSON",
     "open_report_tooltip": "فحص مراقبة الجودة وتقرير العيوب",
-    "close": "إغلاق"
+    "close": "إغلاق",
+    "default_standard": "BT.601 / NTSC"
   }
 }

@@ -181,7 +181,13 @@ pub fn plan_restoration_job(
         OutputCodec::Hevc => VideoEncoder::Libx265,
     };
 
-    let audio_policy = request.audio_policy.unwrap_or(AudioChannelPolicy::Stereo);
+    let audio_policy = request.audio_policy.unwrap_or_else(|| {
+        crate::infrastructure::probe::detect_audio_policy(
+            &request.input_path,
+            request.start_sec,
+            ffmpeg_binary,
+        )
+    });
 
     let pipeline_spec = PipelineSpec {
         input_path: request.input_path.clone(),
@@ -484,6 +490,43 @@ fn spawn_stderr_drain(stderr: Option<std::process::ChildStderr>) -> Option<std::
     })
 }
 
+fn write_checkpoint(planned: &PlannedRestoration, status: &str, kept_frames: u64, elapsed: f64) {
+    let fps = if elapsed > 0.0 {
+        kept_frames as f64 / elapsed
+    } else {
+        0.0
+    };
+    let chk = crate::domain::recovery::CheckpointData {
+        status: status.to_string(),
+        source: Some(planned.input_path.clone()),
+        destination: Some(planned.final_output_path.clone()),
+        total_frames: Some(kept_frames),
+        kept_frames: Some(kept_frames),
+        frozen_frames: Some(0),
+        dropped_frames: Some(0),
+        total_expected_frames: Some(planned.expected_frames),
+        elapsed_seconds: Some(elapsed),
+        fps: Some(fps),
+    };
+    let clean_base = planned
+        .final_output_path
+        .strip_suffix(".part")
+        .unwrap_or(&planned.final_output_path);
+    let chk_path = format!("{clean_base}.checkpoint.json");
+    if let Ok(json_str) = serde_json::to_string_pretty(&chk) {
+        let _ = fs::write(chk_path, json_str);
+    }
+}
+
+fn remove_checkpoint(planned: &PlannedRestoration) {
+    let clean_base = planned
+        .final_output_path
+        .strip_suffix(".part")
+        .unwrap_or(&planned.final_output_path);
+    let chk_path = format!("{clean_base}.checkpoint.json");
+    let _ = fs::remove_file(chk_path);
+}
+
 /// Real-time native execution of a planned restoration pipeline.
 /// Spawns silent subprocesses, pipes VSPipe into FFmpeg if QTGMC is requested,
 /// streams telemetry line-by-line into `ProgressAccumulator`, supports clean
@@ -502,6 +545,9 @@ pub fn execute_restoration_job(
             fs::create_dir_all(parent).map_err(|e| format!("Failed to create output dir: {e}"))?;
         }
     }
+
+    // Persist initial checkpoint
+    write_checkpoint(planned, "in_progress", 0, 0.0);
 
     // 2. Write VSPipe QTGMC script if active
     if planned.is_qtgmc_active {
@@ -591,6 +637,14 @@ pub fn execute_restoration_job(
                     if let Some(l) = listener {
                         l.on_progress(&accumulator);
                     }
+                    if accumulator.current_frame > 0 && accumulator.current_frame % 500 == 0 {
+                        write_checkpoint(
+                            planned,
+                            "in_progress",
+                            accumulator.current_frame,
+                            start_time.elapsed().as_secs_f64(),
+                        );
+                    }
                 }
 
                 if let Some(flag) = cancel_flag {
@@ -609,6 +663,12 @@ pub fn execute_restoration_job(
                 if let Some(ref mut vs) = vspipe_child {
                     let _ = vs.kill();
                 }
+                write_checkpoint(
+                    planned,
+                    "failed",
+                    accumulator.current_frame,
+                    start_time.elapsed().as_secs_f64(),
+                );
                 cleanup_part_and_vpy(planned);
                 return Err(format!("I/O error reading FFmpeg progress: {e}"));
             }
@@ -626,6 +686,7 @@ pub fn execute_restoration_job(
     let elapsed = start_time.elapsed().as_secs_f64();
 
     if was_cancelled {
+        write_checkpoint(planned, "cancelled", accumulator.current_frame, elapsed);
         cleanup_part_and_vpy(planned);
         return Ok(build_restoration_summary(
             planned,
@@ -638,6 +699,7 @@ pub fn execute_restoration_job(
     }
 
     if !status.success() {
+        write_checkpoint(planned, "failed", accumulator.current_frame, elapsed);
         let vs_err = vspipe_stderr_drain
             .and_then(|handle| handle.join().ok())
             .unwrap_or_default();
@@ -701,8 +763,9 @@ pub fn execute_restoration_job(
         }
     }
 
-    // Clean up temporary VPY script
+    // Clean up temporary VPY script and completed checkpoint
     cleanup_vpy_only(planned);
+    remove_checkpoint(planned);
 
     // 6. Compute Cryptographic SHA-256 Fixity
     let sha256 = compute_file_sha256_hex(Path::new(&planned.final_output_path))
@@ -737,62 +800,60 @@ fn emit_restoration_qc_reports(planned: &PlannedRestoration, _accumulator: &Prog
     .map(|p| p.to_string_lossy().to_string())
     .unwrap_or_else(|| "ffprobe".to_string());
 
-    let raw_probe = crate::infrastructure::probe::probe_media_file(&raw_path, &ffprobe_bin).ok();
-    let master_probe = crate::infrastructure::probe::probe_media_file(&master_path, &ffprobe_bin).ok();
+    let ffmpeg_bin = crate::infrastructure::toolchain::resolve_executable_path(
+        "ffmpeg",
+        cwd.as_deref(),
+        home,
+    )
+    .map(|p| p.to_string_lossy().to_string())
+    .unwrap_or_else(|| "ffmpeg".to_string());
 
-    let raw_assessment = crate::domain::qc::FileQcAssessment {
-        file_path: raw_path.clone(),
-        width: raw_probe.as_ref().map(|p| p.width).unwrap_or(720),
-        height: raw_probe.as_ref().map(|p| p.height).unwrap_or(480),
-        duration_sec: raw_probe.as_ref().map(|p| p.duration).unwrap_or(0.0),
-        total_frames: raw_probe.as_ref().map(|p| p.total_frames).unwrap_or(0),
-        standard: raw_probe
-            .as_ref()
-            .map(|p| p.standard.clone())
-            .unwrap_or_else(|| "NTSC".to_string()),
-        black_leader_sec: 0.0,
-        is_interlaced: raw_probe.as_ref().map(|p| p.is_interlaced).unwrap_or(true),
-        is_legal_broadcast: false,
-        total_dropout_frames: 45,
-        total_frozen_frames: 0,
-        min_luma: 10,
-        max_luma: 242,
-        avg_luma: 106.0,
-    };
+    let raw_assessment = crate::infrastructure::probe::assess_media_file_qc(&raw_path, &ffprobe_bin, &ffmpeg_bin)
+        .unwrap_or_else(|_| {
+            let p = crate::infrastructure::probe::probe_media_file(&raw_path, &ffprobe_bin).ok();
+            crate::domain::qc::FileQcAssessment {
+                file_path: raw_path.clone(),
+                width: p.as_ref().map(|x| x.width).unwrap_or(720),
+                height: p.as_ref().map(|x| x.height).unwrap_or(480),
+                duration_sec: p.as_ref().map(|x| x.duration).unwrap_or(0.0),
+                total_frames: p.as_ref().map(|x| x.total_frames).unwrap_or(0),
+                standard: p.as_ref().map(|x| x.standard.clone()).unwrap_or_else(|| "NTSC".to_string()),
+                black_leader_sec: 0.0,
+                is_interlaced: p.as_ref().map(|x| x.is_interlaced).unwrap_or(true),
+                is_legal_broadcast: false,
+                total_dropout_frames: 0,
+                total_frozen_frames: 0,
+                min_luma: 16,
+                max_luma: 235,
+                avg_luma: 110.0,
+            }
+        });
 
     let is_master_1080p = planned.plan.video_filtergraph.contains("1080");
-    let master_assessment = crate::domain::qc::FileQcAssessment {
-        file_path: master_path.clone(),
-        width: master_probe
-            .as_ref()
-            .map(|p| p.width)
-            .unwrap_or(if is_master_1080p { 1440 } else { 720 }),
-        height: master_probe
-            .as_ref()
-            .map(|p| p.height)
-            .unwrap_or(if is_master_1080p { 1080 } else { 480 }),
-        duration_sec: master_probe
-            .as_ref()
-            .map(|p| p.duration)
-            .unwrap_or(raw_assessment.duration_sec),
-        total_frames: master_probe
-            .as_ref()
-            .map(|p| p.total_frames)
-            .unwrap_or(raw_assessment.total_frames * 2),
-        standard: if is_master_1080p {
-            "HD".to_string()
-        } else {
-            raw_assessment.standard.clone()
-        },
-        black_leader_sec: 0.0,
-        is_interlaced: false,
-        is_legal_broadcast: true,
-        total_dropout_frames: 0,
-        total_frozen_frames: 0,
-        min_luma: 16,
-        max_luma: 235,
-        avg_luma: 108.5,
-    };
+    let master_assessment = crate::infrastructure::probe::assess_media_file_qc(&master_path, &ffprobe_bin, &ffmpeg_bin)
+        .unwrap_or_else(|_| {
+            let p = crate::infrastructure::probe::probe_media_file(&master_path, &ffprobe_bin).ok();
+            crate::domain::qc::FileQcAssessment {
+                file_path: master_path.clone(),
+                width: p.as_ref().map(|x| x.width).unwrap_or(if is_master_1080p { 1440 } else { 720 }),
+                height: p.as_ref().map(|x| x.height).unwrap_or(if is_master_1080p { 1080 } else { 480 }),
+                duration_sec: p.as_ref().map(|x| x.duration).unwrap_or(raw_assessment.duration_sec),
+                total_frames: p.as_ref().map(|x| x.total_frames).unwrap_or(raw_assessment.total_frames * 2),
+                standard: if is_master_1080p { "HD".to_string() } else { raw_assessment.standard.clone() },
+                black_leader_sec: 0.0,
+                is_interlaced: false,
+                is_legal_broadcast: true,
+                total_dropout_frames: 0,
+                total_frozen_frames: 0,
+                min_luma: 16,
+                max_luma: 235,
+                avg_luma: 110.0,
+            }
+        });
+
+    let dropouts_mitigated = raw_assessment
+        .total_dropout_frames
+        .saturating_sub(master_assessment.total_dropout_frames);
 
     let mut tools = Vec::new();
     if planned.is_qtgmc_active {
@@ -824,7 +885,7 @@ fn emit_restoration_qc_reports(planned: &PlannedRestoration, _accumulator: &Prog
             stage: "Stage 2: Oxide Loss & Dropouts".to_string(),
             engine: "RemoveGrain".to_string(),
             status: "APPLIED".to_string(),
-            frames_affected: 45,
+            frames_affected: dropouts_mitigated,
             correction_summary: "Eliminated horizontal tape dropouts and oxide streaks".to_string(),
         });
     }
@@ -857,7 +918,7 @@ fn emit_restoration_qc_reports(planned: &PlannedRestoration, _accumulator: &Prog
         raw: raw_assessment,
         master: master_assessment,
         tools_applied: tools,
-        dropouts_mitigated: 45,
+        dropouts_mitigated,
         broadcast_compliance_achieved: true,
         resolution_improvement: if is_master_1080p {
             "1080p Lanczos Pillarbox 4:3 (BT.709)"
@@ -884,6 +945,14 @@ fn emit_restoration_qc_reports(planned: &PlannedRestoration, _accumulator: &Prog
     let _ = fs::write(&md_path1, &md);
     let _ = fs::write(&json_path2, &json_str);
     let _ = fs::write(&md_path2, &md);
+
+    // Also persist for raw source file so UI querying the raw tape finds the comparative report immediately
+    let raw_source = planned.input_path.clone();
+    let raw_stem = raw_source.rsplit_once('.').map(|(s, _)| s).unwrap_or(&raw_source);
+    let _ = fs::write(format!("{raw_source}_qc_report.json"), &json_str);
+    let _ = fs::write(format!("{raw_source}_defect_report.md"), &md);
+    let _ = fs::write(format!("{raw_stem}_qc_report.json"), &json_str);
+    let _ = fs::write(format!("{raw_stem}_defect_report.md"), &md);
 }
 
 fn cleanup_vpy_only(planned: &PlannedRestoration) {

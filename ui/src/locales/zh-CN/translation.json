@@ -597,6 +597,7 @@
     "copied": "已复制到剪贴板！",
     "download_json": "下载 JSON 数据",
     "open_report_tooltip": "检查质量控制与缺陷报告",
-    "close": "关闭"
+    "close": "关闭",
+    "default_standard": "BT.601 / NTSC"
   }
 }
