@@ -380,50 +380,64 @@ pub fn assess_media_file_qc(
     ))
 }
 
-/// Samples 3 seconds of audio to automatically detect channel layout and recommend channel policy.
+/// Samples audio across representative windows to automatically detect channel layout and recommend channel policy.
 pub fn detect_audio_policy(
     input_path: &str,
     start_sec: f64,
+    duration_sec: f64,
     ffmpeg_binary: &str,
 ) -> crate::domain::pipeline::AudioChannelPolicy {
-    let mut cmd = create_silent_command(Path::new(ffmpeg_binary));
-    let ss_str = format!("{start_sec:.3}");
-    cmd.args([
-        "-hide_banner",
-        "-loglevel",
-        "error",
-        "-ss",
-        &ss_str,
-        "-t",
-        "3",
-        "-i",
-        input_path,
-        "-vn",
-        "-ac",
-        "2",
-        "-ar",
-        "48000",
-        "-f",
-        "f32le",
-        "pipe:1",
-    ]);
+    let mut offsets = Vec::new();
+    if duration_sec > 30.0 {
+        // Multi-window sampling: 15% (early after head/leader), 50% (middle), 80% (late)
+        offsets.push((start_sec + duration_sec * 0.15).max(start_sec));
+        offsets.push((start_sec + duration_sec * 0.50).max(start_sec));
+        offsets.push((start_sec + duration_sec * 0.80).max(start_sec));
+    } else {
+        offsets.push(start_sec);
+    }
 
-    let output = match cmd.output() {
-        Ok(o) => o,
-        Err(_) => return crate::domain::pipeline::AudioChannelPolicy::Stereo,
-    };
+    let mut all_samples = Vec::new();
+    for offset in offsets {
+        let mut cmd = create_silent_command(Path::new(ffmpeg_binary));
+        let ss_str = format!("{offset:.3}");
+        cmd.args([
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-ss",
+            &ss_str,
+            "-t",
+            "2",
+            "-i",
+            input_path,
+            "-vn",
+            "-ac",
+            "2",
+            "-ar",
+            "48000",
+            "-f",
+            "f32le",
+            "pipe:1",
+        ]);
 
-    let bytes = output.stdout;
-    if bytes.len() < 8 {
+        if let Ok(output) = cmd.output() {
+            let bytes = output.stdout;
+            if bytes.len() >= 8 {
+                let samples: Vec<f32> = bytes
+                    .chunks_exact(4)
+                    .map(|c| f32::from_le_bytes([c[0], c[1], c[2], c[3]]))
+                    .collect();
+                all_samples.extend(samples);
+            }
+        }
+    }
+
+    if all_samples.is_empty() {
         return crate::domain::pipeline::AudioChannelPolicy::Stereo;
     }
 
-    let samples: Vec<f32> = bytes
-        .chunks_exact(4)
-        .map(|c| f32::from_le_bytes([c[0], c[1], c[2], c[3]]))
-        .collect();
-
-    let report = crate::domain::audio::analyze_interleaved_stereo(&samples);
+    let report = crate::domain::audio::analyze_interleaved_stereo(&all_samples);
     match report.recommended_action {
         crate::domain::audio::AudioRepairAction::DuplicateLeftToRight => {
             crate::domain::pipeline::AudioChannelPolicy::MonoLeft

@@ -196,6 +196,7 @@ pub fn plan_restoration_job(
         crate::infrastructure::probe::detect_audio_policy(
             &request.input_path,
             request.start_sec,
+            probe.duration,
             ffmpeg_binary,
         )
     });
