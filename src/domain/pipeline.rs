@@ -161,9 +161,9 @@ pub fn build_video_filtergraph(spec: &PipelineSpec) -> String {
         filters.push("drawbox=y=ih-16:color=black:width=iw:height=16:t=fill".to_string());
     }
 
-    // 7. Post-deinterlace: Preserves exact 4:3 broadcast aspect ratio inside 1920x1080 frame with Lanczos interpolation
+    // 7. Post-deinterlace: Preserves exact 4:3 broadcast aspect ratio inside 1920x1080 frame with Lanczos interpolation and BT.601 to BT.709 matrix
     if spec.target_1080p {
-        filters.push("scale=1440:1080:flags=lanczos,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1".to_string());
+        filters.push("scale=1440:1080:flags=lanczos:in_color_matrix=bt601:out_color_matrix=bt709,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1".to_string());
     }
 
     if filters.is_empty() {
@@ -196,7 +196,7 @@ pub fn build_post_qtgmc_video_filtergraph(spec: &PipelineSpec) -> String {
     }
 
     if spec.target_1080p {
-        filters.push("scale=1440:1080:flags=lanczos,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1".to_string());
+        filters.push("scale=1440:1080:flags=lanczos:in_color_matrix=bt601:out_color_matrix=bt709,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1".to_string());
     }
 
     if filters.is_empty() {
@@ -210,6 +210,9 @@ pub fn build_post_qtgmc_video_filtergraph(spec: &PipelineSpec) -> String {
 #[must_use]
 pub fn build_audio_filtergraph(spec: &PipelineSpec) -> String {
     let mut filters: Vec<String> = Vec::new();
+
+    // P1.2: A/V sync clock-drift compensation on long tapes (up to 6 hours EP/SLP)
+    filters.push("aresample=async=1000:min_hard_comp=0.100000:first_pts=0".to_string());
 
     match spec.audio_policy {
         AudioChannelPolicy::MonoLeft => {

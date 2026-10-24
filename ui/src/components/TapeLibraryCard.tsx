@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Folder,
   HardDrive,
@@ -10,11 +10,13 @@ import {
   AlertTriangle,
   CheckCircle2,
   Trash2,
+  FileText,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTapeLibraryViewModel } from '../viewmodels/useTapeLibraryViewModel';
 import type { RawFile } from '../types';
 import { formatMbSize } from '../lib/formatters';
+import { QcReportModal } from './QcReportModal';
 
 export interface TapeLibraryCardProps {
   files: RawFile[];
@@ -42,6 +44,7 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
     handleAction,
     isPerformingAction,
   } = useTapeLibraryViewModel({ files, onRefreshParent: onRefresh });
+  const [qcModalFile, setQcModalFile] = useState<string | null>(null);
 
   return (
     <div className="bg-studio-panel border border-studio-border rounded-md p-2.5 flex flex-col gap-2 select-none">
@@ -86,10 +89,24 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
 
       {/* Primary Dropdown Selector (Quick Tape Switcher) */}
       <div className="flex flex-col gap-1">
-        <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 font-mono">
-          <Folder className="w-3 h-3 text-slate-400" />
-          {t('files.input_file_label')}
-        </label>
+        <div className="flex items-center justify-between">
+          <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 font-mono">
+            <Folder className="w-3 h-3 text-slate-400" />
+            {t('files.input_file_label')}
+          </label>
+          {selectedFile && (
+            <button
+              type="button"
+              onClick={() => setQcModalFile(selectedFile)}
+              className="text-slate-400 hover:text-emerald-400 transition text-[10px] flex items-center gap-1 cursor-pointer hover:bg-studio-surface px-1.5 py-0.5 rounded-sm font-mono border border-studio-border"
+              title={t('files.qc_report_button')}
+              aria-label={t('files.qc_report_button')}
+            >
+              <FileText className="w-3 h-3 text-emerald-400" />
+              <span>{t('files.qc_report_button')}</span>
+            </button>
+          )}
+        </div>
         <div className="relative">
           <select
             value={selectedFile}
@@ -313,6 +330,18 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
                               {t('recovery.badge_incomplete', { pct: inc.progress_percent })}
                             </span>
                           )}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setQcModalFile(file.path);
+                            }}
+                            className="p-1 text-slate-400 hover:text-emerald-400 hover:bg-studio-panel rounded-xs transition"
+                            title={t('files.qc_report_button')}
+                            aria-label={t('files.qc_report_button')}
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
 
@@ -333,6 +362,13 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
           )}
         </div>
       )}
+
+      {/* Quality Control & Forensic Defect Modal */}
+      <QcReportModal
+        filePath={qcModalFile}
+        isOpen={Boolean(qcModalFile)}
+        onClose={() => setQcModalFile(null)}
+      />
     </div>
   );
 };

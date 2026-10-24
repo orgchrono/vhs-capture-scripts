@@ -164,7 +164,12 @@ pub fn build_stream_proxy_ffmpeg_args(spec: &StreamProxySpec, ffmpeg_bin: &str) 
         "error".to_string(),
     ];
 
-    if let Some(ref source) = spec.source_path {
+    let (input_file, use_master) = match (&spec.restored_master_path, spec.mode) {
+        (Some(master), StreamProxyMode::Processed) => (Some(master.clone()), true),
+        _ => (spec.source_path.clone(), false),
+    };
+
+    if let Some(ref input_path) = input_file {
         if spec.timestamp_sec > 0.05 {
             cmd.push("-ss".to_string());
             cmd.push(format!("{:.3}", spec.timestamp_sec));
@@ -175,11 +180,18 @@ pub fn build_stream_proxy_ffmpeg_args(spec: &StreamProxySpec, ffmpeg_bin: &str) 
             "-stream_loop".to_string(),
             "-1".to_string(),
             "-i".to_string(),
-            source.clone(),
+            input_path.clone(),
         ]);
 
         match spec.mode {
             StreamProxyMode::Raw => {
+                cmd.extend(vec![
+                    "-vf".to_string(),
+                    format!("scale={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX}:force_original_aspect_ratio=decrease,fps={fps_val}"),
+                ]);
+            }
+            StreamProxyMode::Processed if use_master => {
+                // P1.1: Master already restored! Stream directly with zero CPU filter recomputation
                 cmd.extend(vec![
                     "-vf".to_string(),
                     format!("scale={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX}:force_original_aspect_ratio=decrease,fps={fps_val}"),

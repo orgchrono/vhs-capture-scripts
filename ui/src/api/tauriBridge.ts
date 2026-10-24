@@ -1005,6 +1005,16 @@ export const tauriBridge = {
     return `# Technical Inspection & Broadcast Quality Control Report: \`${String(assessment.file_path || '')}\`\n`;
   },
 
+  async getQcReport(filePath: string): Promise<{
+    exists: boolean;
+    report_json_path?: string;
+    report_md_path?: string;
+    report: Record<string, unknown> | null;
+    markdown: string;
+  }> {
+    return studioApi.getQcReport(filePath);
+  },
+
   async startRestoration(payload: RestorationPayload): Promise<{ status: string; message?: string }> {
     return studioApi.startRestoration(payload);
   },
