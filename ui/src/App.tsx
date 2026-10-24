@@ -13,7 +13,6 @@ import {
   PrivacyModal,
   AppPreferencesModal,
   FooterStatusBar,
-  BroadcastProgressRibbon,
   RestorationConflictModal,
 } from './components'
 import { getPresetLabels, createTelemetryParser } from './lib/telemetry'
@@ -417,8 +416,6 @@ const StudioMain: React.FC<{
                         onAbort={handleAbortRestore}
                       />
                     </div>
-                    {/* High-Density Single-Line Broadcast Telemetry Ribbon */}
-                    <BroadcastProgressRibbon />
                   </ResizablePanel>
                 </>
               )}

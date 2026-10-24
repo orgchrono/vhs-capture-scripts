@@ -224,9 +224,17 @@ pub fn plan_restoration_job(
     ];
 
     if is_qtgmc {
+        let abs_input = std::path::Path::new(&request.input_path);
+        let abs_input_str = if abs_input.is_absolute() {
+            request.input_path.clone()
+        } else if let Ok(cur) = std::env::current_dir() {
+            cur.join(abs_input).to_string_lossy().to_string()
+        } else {
+            request.input_path.clone()
+        };
         let vpy_path = format!("{part_path}.qtgmc.vpy");
         let qtgmc_params = QtgmcScriptParams {
-            input_path: request.input_path.clone(),
+            input_path: abs_input_str,
             preset: "Slower".to_string(),
             field_order: if probe.field_order.to_lowercase().contains("bff") {
                 FieldOrder::Bff
@@ -288,6 +296,12 @@ pub fn plan_restoration_job(
         OutputCodec::Ffv1 => "matroska",
     };
     ffmpeg_args.extend(vec!["-f".to_string(), muxer_format.to_string()]);
+    if muxer_format == "mp4" || muxer_format == "mov" {
+        ffmpeg_args.extend(vec![
+            "-movflags".to_string(),
+            "+frag_keyframe+empty_moov+default_base_moof".to_string(),
+        ]);
+    }
     ffmpeg_args.push(part_path.clone());
 
     let raw_duration = if probe.duration > request.start_sec {
@@ -585,6 +599,9 @@ pub fn execute_restoration_job(
             .unwrap_or_default();
         if !err_text.trim().is_empty() {
             err_msg = format!("{err_msg} | Stderr: {}", err_text.trim());
+        }
+        if let Some(l) = listener {
+            l.on_log(&format!("[ERROR] {err_msg}"));
         }
         cleanup_part_and_vpy(planned);
         return Ok(build_restoration_summary(

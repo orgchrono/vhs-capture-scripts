@@ -84,9 +84,6 @@ clip = core.std.SetFrameProps(clip, _FieldBased=field_val, _SceneChangePrev=0, _
     EdiMode="NNEDI3"
 )
 
-# PREFETCH FRAMES FOR PIPELINE THROUGHPUT
-clip = clip.std.Prefetch(frames=core.num_threads * 2)
-
 clip.set_output()
 "#,
         threads = threads,

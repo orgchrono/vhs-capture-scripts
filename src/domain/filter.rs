@@ -294,7 +294,14 @@ pub fn build_muxing_cli_args(
     }
 
     if spec.output_codec == "h264" || spec.output_codec == "hevc" || spec.output_codec == "prores" {
-        cmd.extend(vec!["-movflags".to_string(), "+faststart".to_string()]);
+        if spec.output_path.ends_with(".part") {
+            cmd.extend(vec![
+                "-movflags".to_string(),
+                "+frag_keyframe+empty_moov+default_base_moof".to_string(),
+            ]);
+        } else {
+            cmd.extend(vec!["-movflags".to_string(), "+faststart".to_string()]);
+        }
     }
 
     if spec.mode != "drop" {
@@ -369,5 +376,26 @@ mod tests {
         assert!(cmd.contains(&"-c:a".to_string()));
         assert!(cmd.contains(&"pcm_s24le".to_string()));
         assert!(cmd.contains(&"+faststart".to_string()));
+    }
+
+    #[test]
+    fn test_build_muxing_cli_args_part_uses_fragmented_movflags() {
+        let spec = MuxingSpec {
+            input_path: "raw.avi".to_string(),
+            output_path: "out.mp4.part".to_string(),
+            width: 720,
+            height: 480,
+            fps: 29.97,
+            start_sec: 0.0,
+            audio_offset: 0.0,
+            duration: 10.0,
+            output_codec: "h264".to_string(),
+            encoder: None,
+            crf: 18,
+            mode: "freeze".to_string(),
+        };
+
+        let cmd = build_muxing_cli_args(&spec, "null", "", "ffmpeg");
+        assert!(cmd.contains(&"+frag_keyframe+empty_moov+default_base_moof".to_string()));
     }
 }
