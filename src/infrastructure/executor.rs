@@ -207,7 +207,7 @@ pub fn plan_restoration_job(
         duration_sec: request.duration_sec,
     };
 
-    let plan = build_pipeline_plan(pipeline_spec);
+    let plan = build_pipeline_plan(pipeline_spec.clone());
 
     let is_qtgmc = (deinterlacer == DeinterlaceFilter::Qtgmc) && vspipe_path_opt.is_some();
     let mut qtgmc_vpy_content = None;
@@ -233,6 +233,15 @@ pub fn plan_restoration_job(
             request.input_path.clone()
         };
         let vpy_path = format!("{part_path}.qtgmc.vpy");
+        let trim_start_frame = if request.start_sec > 0.05 {
+            Some((request.start_sec * probe.fps.max(1.0)).round() as usize)
+        } else {
+            None
+        };
+        let trim_length_frames = request.duration_sec.filter(|&d| d > 0.0).map(|dur| {
+            (dur * probe.fps.max(1.0)).round() as usize
+        });
+
         let qtgmc_params = QtgmcScriptParams {
             input_path: abs_input_str,
             preset: "Slower".to_string(),
@@ -245,6 +254,8 @@ pub fn plan_restoration_job(
             apply_comb_filter: comb_filter,
             thread_count: 8,
             cache_size_mb: 4000,
+            trim_start_frame,
+            trim_length_frames,
         };
 
         let content = build_qtgmc_script_content(&qtgmc_params);
@@ -253,19 +264,41 @@ pub fn plan_restoration_job(
 
         if let Some(vspipe_bin) = vspipe_path_opt {
             vspipe_cli = Some(build_vspipe_cli_args(vspipe_bin, &vpy_path));
-            // Read piped Y4M from vspipe via stdin
+            // Read piped Y4M from vspipe via stdin (Input 0)
             ffmpeg_args.extend(vec![
                 "-f".to_string(),
                 "yuv4mpegpipe".to_string(),
                 "-i".to_string(),
                 "-".to_string(),
             ]);
-            // Audio is passed separately from source video
+            // Audio is passed separately from source video (Input 1)
+            let audio_start = (request.start_sec + request.overrides.audio_offset_sec.unwrap_or(0.0)).max(0.0);
+            if audio_start > 0.05 {
+                ffmpeg_args.extend(vec![
+                    "-ss".to_string(),
+                    format!("{:.3}", audio_start),
+                ]);
+            }
+            if let Some(dur) = request.duration_sec {
+                if dur > 0.0 {
+                    ffmpeg_args.extend(vec![
+                        "-t".to_string(),
+                        format!("{:.3}", dur),
+                    ]);
+                }
+            }
             ffmpeg_args.extend(vec![
-                "-ss".to_string(),
-                format!("{:.3}", request.start_sec),
                 "-i".to_string(),
                 request.input_path.clone(),
+            ]);
+
+            // Stream mapping: Video from vspipe (0:v:0), Audio from source (1:a:0?)
+            ffmpeg_args.extend(vec![
+                "-map".to_string(),
+                "0:v:0".to_string(),
+                "-map".to_string(),
+                "1:a:0?".to_string(),
+                "-shortest".to_string(),
             ]);
         } else {
             // Fallback: direct FFmpeg execution
@@ -277,8 +310,13 @@ pub fn plan_restoration_job(
         ffmpeg_args.extend(vec!["-i".to_string(), request.input_path.clone()]);
     }
 
-    // Video filters
-    if plan.video_filtergraph != "null" {
+    // Video filters: downstream of QTGMC, apply post-deinterlace enhancements without duplicate deinterlace/comb
+    if is_qtgmc {
+        let post_vf = crate::domain::pipeline::build_post_qtgmc_video_filtergraph(&pipeline_spec);
+        if post_vf != "null" {
+            ffmpeg_args.extend(vec!["-vf".to_string(), post_vf]);
+        }
+    } else if plan.video_filtergraph != "null" {
         ffmpeg_args.extend(vec!["-vf".to_string(), plan.video_filtergraph.clone()]);
     }
 
@@ -310,7 +348,11 @@ pub fn plan_restoration_job(
         0.0
     };
     let expected_duration = request.duration_sec.unwrap_or(raw_duration);
-    let expected_frames = (expected_duration * probe.fps).round() as u64;
+    let fps_multiplier = match deinterlacer {
+        DeinterlaceFilter::Qtgmc | DeinterlaceFilter::BwdifBob | DeinterlaceFilter::Yadif => 2.0,
+        _ => 1.0,
+    };
+    let expected_frames = (expected_duration * probe.fps * fps_multiplier).round() as u64;
 
     Ok(PlannedRestoration {
         input_path: request.input_path.clone(),
@@ -603,7 +645,8 @@ pub fn execute_restoration_job(
         if let Some(l) = listener {
             l.on_log(&format!("[ERROR] {err_msg}"));
         }
-        cleanup_part_and_vpy(planned);
+        // Preserve .part file for recovery and post-mortem inspection; clean only temporary script
+        cleanup_vpy_only(planned);
         return Ok(build_restoration_summary(
             planned,
             &accumulator,
@@ -614,19 +657,42 @@ pub fn execute_restoration_job(
         ));
     }
 
-    // 5. Atomic Rename from .part to final destination
-    if let Err(e) = fs::rename(&planned.part_output_path, &planned.final_output_path) {
-        cleanup_part_and_vpy(planned);
-        return Err(format!(
-            "Failed atomic move from '{}' to '{}': {e}",
-            planned.part_output_path, planned.final_output_path
-        ));
+    // 5. Finalize output: for MP4 containers, fast remux with +faststart to consolidate moov atom
+    let is_mp4 = planned.final_output_path.to_lowercase().ends_with(".mp4");
+    let mut remux_succeeded = false;
+
+    if is_mp4 && !planned.ffmpeg_cli_args.is_empty() {
+        let mut remux_cmd = create_silent_command(Path::new(&planned.ffmpeg_cli_args[0]));
+        remux_cmd.args([
+            "-y",
+            "-i",
+            &planned.part_output_path,
+            "-c",
+            "copy",
+            "-movflags",
+            "+faststart",
+            &planned.final_output_path,
+        ]);
+        if let Ok(res) = remux_cmd.status() {
+            if res.success() {
+                remux_succeeded = true;
+                let _ = fs::remove_file(&planned.part_output_path);
+            }
+        }
+    }
+
+    if !remux_succeeded {
+        if let Err(e) = fs::rename(&planned.part_output_path, &planned.final_output_path) {
+            cleanup_part_and_vpy(planned);
+            return Err(format!(
+                "Failed atomic move from '{}' to '{}': {e}",
+                planned.part_output_path, planned.final_output_path
+            ));
+        }
     }
 
     // Clean up temporary VPY script
-    if let Some(ref vpy) = planned.qtgmc_vpy_path {
-        let _ = fs::remove_file(vpy);
-    }
+    cleanup_vpy_only(planned);
 
     // 6. Compute Cryptographic SHA-256 Fixity
     let sha256 = compute_file_sha256_hex(Path::new(&planned.final_output_path))
@@ -642,15 +708,19 @@ pub fn execute_restoration_job(
     ))
 }
 
-fn cleanup_part_and_vpy(planned: &PlannedRestoration) {
-    if Path::new(&planned.part_output_path).exists() {
-        let _ = fs::remove_file(&planned.part_output_path);
-    }
+fn cleanup_vpy_only(planned: &PlannedRestoration) {
     if let Some(ref vpy) = planned.qtgmc_vpy_path {
         if Path::new(vpy).exists() {
             let _ = fs::remove_file(vpy);
         }
     }
+}
+
+fn cleanup_part_and_vpy(planned: &PlannedRestoration) {
+    if Path::new(&planned.part_output_path).exists() {
+        let _ = fs::remove_file(&planned.part_output_path);
+    }
+    cleanup_vpy_only(planned);
 }
 
 #[cfg(test)]
@@ -759,7 +829,7 @@ mod tests {
         assert!(plan.ffmpeg_cli_args.iter().any(|arg| arg == "mp4"));
         assert!(plan.ffmpeg_cli_args.iter().any(|arg| arg == "yuv4mpegpipe"));
         assert!(plan.part_output_path.ends_with(".part"));
-        let exp_f: f64 = 60.0 * 29.97;
+        let exp_f: f64 = 60.0 * 29.97 * 2.0;
         assert_eq!(plan.expected_frames, exp_f.round() as u64);
     }
 

@@ -21,6 +21,8 @@ pub struct QtgmcScriptParams {
     pub apply_comb_filter: bool,
     pub thread_count: usize,
     pub cache_size_mb: usize,
+    pub trim_start_frame: Option<usize>,
+    pub trim_length_frames: Option<usize>,
 }
 
 impl Default for QtgmcScriptParams {
@@ -33,6 +35,8 @@ impl Default for QtgmcScriptParams {
             apply_comb_filter: false,
             thread_count: 8,
             cache_size_mb: 4000,
+            trim_start_frame: None,
+            trim_length_frames: None,
         }
     }
 }
@@ -50,6 +54,13 @@ pub fn build_qtgmc_script_content(params: &QtgmcScriptParams) -> String {
         "clip = core.tcomb.TComb(clip, mode=2, fthreshl=4, fthreshc=5, othreshl=5, othreshc=6)\n"
     } else {
         ""
+    };
+
+    let trim_str = match (params.trim_start_frame, params.trim_length_frames) {
+        (Some(first), Some(length)) => format!("clip = clip.std.Trim(first={first}, length={length})\n"),
+        (Some(first), None) => format!("clip = clip.std.Trim(first={first})\n"),
+        (None, Some(length)) => format!("clip = clip.std.Trim(first=0, length={length})\n"),
+        (None, None) => String::new(),
     };
 
     let threads = params.thread_count.max(1);
@@ -73,7 +84,7 @@ except Exception:
     except Exception:
         clip = core.bs.VideoSource(source=r"{clean_input}")
 
-field_val = 2 if {tff_str} else 1
+{trim_str}field_val = 2 if {tff_str} else 1
 clip = core.std.SetFrameProps(clip, _FieldBased=field_val, _SceneChangePrev=0, _SceneChangeNext=0)
 
 {comb_str}clip = haf.QTGMC(
@@ -89,6 +100,7 @@ clip.set_output()
         threads = threads,
         cache_mb = cache_mb,
         clean_input = clean_input,
+        trim_str = trim_str,
         comb_str = comb_str,
         preset = params.preset,
         tff_str = tff_str,
@@ -122,6 +134,8 @@ mod tests {
             apply_comb_filter: true,
             thread_count: 12,
             cache_size_mb: 4000,
+            trim_start_frame: None,
+            trim_length_frames: None,
         };
 
         let script = build_qtgmc_script_content(&params);
@@ -134,6 +148,19 @@ mod tests {
         assert!(script.contains("FPSDivisor=1"));
         assert!(script.contains("EdiMode=\"NNEDI3\""));
         assert!(script.contains("_FieldBased=field_val"));
+    }
+
+    #[test]
+    fn test_builds_qtgmc_script_with_trim() {
+        let params = QtgmcScriptParams {
+            input_path: r"C:\media\tape.avi".to_string(),
+            trim_start_frame: Some(300),
+            trim_length_frames: Some(600),
+            ..Default::default()
+        };
+
+        let script = build_qtgmc_script_content(&params);
+        assert!(script.contains("clip = clip.std.Trim(first=300, length=600)"));
     }
 
     #[test]

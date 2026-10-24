@@ -10,7 +10,7 @@
 use crate::infrastructure::app_context::AppContext;
 use crate::infrastructure::panasonic::{
     classify_panasonic_probe, detect_connected_drives, generate_panasonic_chapters,
-    PanasonicFilesystemFormat, PANASONIC_CHAPTER_INTERVAL_SEC,
+    PanasonicFilesystemFormat, PanasonicInspection, PANASONIC_CHAPTER_INTERVAL_SEC,
     PANASONIC_DEFAULT_TITLE_DURATION_SEC,
 };
 use crate::infrastructure::security::is_safe_ingest_path;
@@ -19,10 +19,11 @@ use crate::viewmodels::api_support::media_dirs;
 use crate::viewmodels::api_types::{ApiRequest, ApiResponse};
 use serde_json::{json, Value};
 use std::fs::File;
-use std::io::Read;
+use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 
 const PROBE_BUFFER_MAX_BYTES: usize = 65_536; // 64 KB probe buffer
+const PANASONIC_MEIHDFS_OFFSETS: [u64; 3] = [0x0160_0000, 0x1600_0000, 0xA400_0000];
 
 /// Handles incoming `/api/ingest/*` and `/api/panasonic/*` requests.
 #[must_use]
@@ -68,7 +69,43 @@ fn handle_inspect(req: &ApiRequest) -> ApiResponse {
         .unwrap_or("")
         .to_ascii_lowercase();
 
-    let inspection = classify_panasonic_probe(&probe_buf, file_size, &filename);
+    let mut inspection = classify_panasonic_probe(&probe_buf, file_size, &filename);
+
+    // Deep seek fallback for raw HDD dumps whose partition superblocks are located at known offsets
+    if !inspection.is_panasonic && file_size > PANASONIC_MEIHDFS_OFFSETS[0] {
+        if let Ok(mut f) = File::open(p) {
+            for &offset in &PANASONIC_MEIHDFS_OFFSETS {
+                if offset + (PROBE_BUFFER_MAX_BYTES as u64) <= file_size
+                    && f.seek(SeekFrom::Start(offset)).is_ok()
+                {
+                    let mut deep_buf = vec![0u8; PROBE_BUFFER_MAX_BYTES];
+                    if f.read_exact(&mut deep_buf).is_ok() {
+                        let deep_insp = classify_panasonic_probe(&deep_buf, file_size, &filename);
+                        if deep_insp.is_panasonic {
+                            let mut adjusted_offsets: Vec<usize> = deep_insp
+                                .detected_offsets
+                                .into_iter()
+                                .map(|o| o + (offset as usize))
+                                .collect();
+                            if adjusted_offsets.is_empty() {
+                                adjusted_offsets.push(offset as usize);
+                            }
+                            inspection = PanasonicInspection {
+                                detected_offsets: adjusted_offsets,
+                                ..deep_insp
+                            };
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let has_meihdfs = resolve_executable_path("extract_meihdfs", None, None).is_some();
+    let has_dvd_vr = resolve_executable_path("dvd-vr", None, None).is_some();
+    let has_ffmpeg = resolve_executable_path("ffmpeg", None, None).is_some();
+    let toolchain_available = has_meihdfs || has_dvd_vr || has_ffmpeg;
 
     let extractor_binary = if inspection.format == PanasonicFilesystemFormat::DvdVr {
         resolve_executable_path("dvd-vr", None, None)
@@ -85,7 +122,7 @@ fn handle_inspect(req: &ApiRequest) -> ApiResponse {
         "format_label": inspection.format_label,
         "details": format!("{:?}", inspection.format),
         "can_extract": inspection.can_extract,
-        "toolchain_available": true,
+        "toolchain_available": toolchain_available,
         "extractor_binary": extractor_binary.to_string_lossy(),
         "source_size_bytes": file_size,
         "detected_offsets": inspection.detected_offsets,
@@ -301,6 +338,34 @@ fn execute_panasonic_extraction(
     let output = cmd
         .output()
         .map_err(|e| format!("Extraction tool spawn error: {e}"))?;
+
+    // Stage 2: If extract_meihdfs was run, inspect output directory for DVD_RTAV VR_MANGR.IFO and VR_MOVIE.VRO.
+    // If dvd-vr tool is available, split the raw continuous .VRO into individual program titles.
+    if bin_name.contains("extract_meihdfs") {
+        if let Some(dvd_vr_bin) = resolve_executable_path("dvd-vr", None, None) {
+            let possible_dirs = [out_p.join("DVD_RTAV"), out_p.to_path_buf()];
+            for dir in &possible_dirs {
+                let ifo_candidates = ["VR_MANGR.IFO", "vr_mangr.ifo"];
+                let vro_candidates = ["VR_MOVIE.VRO", "vr_movie.vro"];
+
+                let ifo = ifo_candidates.iter().map(|n| dir.join(n)).find(|p| p.exists());
+                let vro = vro_candidates.iter().map(|n| dir.join(n)).find(|p| p.exists());
+
+                if let (Some(ifo_path), Some(vro_path)) = (ifo, vro) {
+                    let mut dvd_vr_cmd = create_silent_command(&dvd_vr_bin);
+                    dvd_vr_cmd.args([
+                        "-n",
+                        "[ts]-[label]#[pgm]",
+                        &ifo_path.to_string_lossy(),
+                        &vro_path.to_string_lossy(),
+                    ]);
+                    dvd_vr_cmd.current_dir(out_p);
+                    let _ = dvd_vr_cmd.output();
+                    break;
+                }
+            }
+        }
+    }
 
     let mut extracted_files = Vec::new();
     if let Ok(entries) = std::fs::read_dir(out_p) {

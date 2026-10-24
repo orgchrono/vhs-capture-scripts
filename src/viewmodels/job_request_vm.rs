@@ -55,13 +55,15 @@ pub fn map_deinterlacer(value: &str) -> Option<DeinterlaceFilter> {
     }
 }
 
-/// Maps legacy audio aliases (`mono`, `left_only`, `right_only`) to the channel policy.
+/// Maps legacy audio aliases (`mono`, `left_only`, `right_only`, `mono_sum`) to the channel policy.
 #[must_use]
 pub fn map_audio_policy(value: &str) -> Option<AudioChannelPolicy> {
     match value {
         "stereo" => Some(AudioChannelPolicy::Stereo),
         "mono_l" | "mono" | "left_only" => Some(AudioChannelPolicy::MonoLeft),
         "mono_r" | "right_only" => Some(AudioChannelPolicy::MonoRight),
+        "mono_sum" | "sum" => Some(AudioChannelPolicy::MonoSum),
+        "passthrough" => Some(AudioChannelPolicy::Passthrough),
         _ => None,
     }
 }
@@ -106,6 +108,17 @@ fn collect_unsupported(params: &Value) -> Vec<String> {
 #[must_use]
 pub fn map_restoration_payload(params: &Value, input_path: &str, default_output_dir: &str) -> MappedJob {
     let audio_treatment = flag(params, "audio_treatment").unwrap_or(true);
+    let start_sec = params
+        .get("start_sec")
+        .or_else(|| params.get("start"))
+        .or_else(|| params.get("seek"))
+        .and_then(Value::as_f64)
+        .unwrap_or(0.0);
+    let duration_sec = params
+        .get("duration_sec")
+        .or_else(|| params.get("duration"))
+        .and_then(Value::as_f64);
+
     let request = RestorationJobRequest {
         input_path: input_path.to_string(),
         output_dir: resolve_output_dir(text(params, "output"), default_output_dir),
@@ -116,8 +129,8 @@ pub fn map_restoration_payload(params: &Value, input_path: &str, default_output_
         audio_policy: text(params, "audio_mode").and_then(map_audio_policy),
         apply_audio_notch_hum: audio_treatment,
         apply_loudness_norm: audio_treatment,
-        start_sec: 0.0,
-        duration_sec: None,
+        start_sec,
+        duration_sec,
         overrides: RestorationOverrides {
             crf: params
                 .get("crf")
@@ -165,6 +178,7 @@ mod tests {
         assert_eq!(map_deinterlacer("auto"), None);
         assert_eq!(map_audio_policy("left_only"), Some(AudioChannelPolicy::MonoLeft));
         assert_eq!(map_audio_policy("right_only"), Some(AudioChannelPolicy::MonoRight));
+        assert_eq!(map_audio_policy("mono_sum"), Some(AudioChannelPolicy::MonoSum));
         assert_eq!(map_audio_policy("auto"), None);
         assert_eq!(map_output_codec("prores"), Some(OutputCodec::ProRes));
         assert_eq!(map_output_codec("av1"), None);
@@ -175,12 +189,15 @@ mod tests {
         let params = json!({
             "deinterlacer": "bwdif", "audio_mode": "mono", "no_1080p": true, "crf": 21,
             "denoise": true, "chroma_fix": false, "audio_offset": 0.25,
+            "start_sec": 12.5, "duration_sec": 60.0,
             "output": "D:/out/result.mp4", "output_codec": "hevc"
         });
         let mapped = map_restoration_payload(&params, "in.mkv", "media/restored");
         let r = mapped.request;
         assert_eq!(r.input_path, "in.mkv");
         assert_eq!(r.output_dir, "D:/out");
+        assert_eq!(r.start_sec, 12.5);
+        assert_eq!(r.duration_sec, Some(60.0));
         assert!(!r.target_1080p);
         assert_eq!(r.custom_deinterlacer, Some(DeinterlaceFilter::BwdifBob));
         assert_eq!(r.audio_policy, Some(AudioChannelPolicy::MonoLeft));
