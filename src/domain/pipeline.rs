@@ -129,11 +129,9 @@ pub fn build_video_filtergraph(spec: &PipelineSpec) -> String {
         DeinterlaceFilter::BwdifSingle => {
             filters.push("bwdif=mode=0:parity=-1:deint=1".to_string());
         }
-        DeinterlaceFilter::Znedi3 => {
-            filters.push("znedi3=field=1".to_string());
-        }
-        DeinterlaceFilter::Nnedi3 => {
-            filters.push("nnedi=deint=1".to_string());
+        DeinterlaceFilter::Znedi3 | DeinterlaceFilter::Nnedi3 => {
+            // In native FFmpeg context without VapourSynth C-plugin, use SIMD directional bwdif bob
+            filters.push("bwdif=mode=1:parity=-1:deint=1".to_string());
         }
         DeinterlaceFilter::Yadif => {
             filters.push("yadif=mode=1:parity=-1:deint=1".to_string());
@@ -163,7 +161,7 @@ pub fn build_video_filtergraph(spec: &PipelineSpec) -> String {
 
     // 7. Post-deinterlace: Preserves exact 4:3 broadcast aspect ratio inside 1920x1080 frame with Lanczos interpolation and BT.601 to BT.709 matrix
     if spec.target_1080p {
-        filters.push("scale=1440:1080:flags=lanczos:in_color_matrix=bt601:out_color_matrix=bt709,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1".to_string());
+        filters.push("scale=1440:1080:flags=lanczos,colormatrix=bt601:bt709,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1".to_string());
     }
 
     // 8. Post-deinterlace: Broadcast legalizer (EBU R103 / SMPTE 170M gamut compliance)
@@ -200,7 +198,7 @@ pub fn build_post_qtgmc_video_filtergraph(spec: &PipelineSpec) -> String {
     }
 
     if spec.target_1080p {
-        filters.push("scale=1440:1080:flags=lanczos:in_color_matrix=bt601:out_color_matrix=bt709,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1".to_string());
+        filters.push("scale=1440:1080:flags=lanczos,colormatrix=bt601:bt709,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1".to_string());
     }
 
     // Broadcast legalizer (EBU R103 / SMPTE 170M gamut compliance)

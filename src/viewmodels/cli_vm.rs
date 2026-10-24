@@ -14,7 +14,7 @@ use crate::domain::fixity::compute_sha256_hex;
 use crate::domain::qtgmc::{build_qtgmc_script_content, FieldOrder, QtgmcScriptParams};
 use crate::infrastructure::executor::{RestorationJobRequest, RestorationOverrides};
 use crate::infrastructure::hardware::detect_system_ram_gb;
-use crate::infrastructure::panasonic::classify_panasonic_probe;
+use crate::infrastructure::panasonic::inspect_panasonic_file;
 use crate::models::constants::MEDIA_RESTORED_REL_PATH;
 use crate::models::presets::RestorationPreset;
 use crate::viewmodels::restoration_job_vm::{plan_restoration_request, run_restoration_request};
@@ -212,19 +212,13 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
                     std::process::exit(1);
                 }
             };
-            let mut file = fs::File::open(path_str)?;
-            let mut probe_bytes = vec![0_u8; 65536];
-            let read_bytes = file.read(&mut probe_bytes)?;
-            probe_bytes.truncate(read_bytes);
-
-            let metadata = fs::metadata(path_str)?;
-            let filename = Path::new(path_str)
-                .file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or("")
-                .to_lowercase();
-
-            let inspection = classify_panasonic_probe(&probe_bytes, metadata.len(), &filename);
+            let (inspection, _) = match inspect_panasonic_file(Path::new(path_str)) {
+                Ok(res) => res,
+                Err(e) => {
+                    eprintln!("Error inspecting Panasonic media '{path_str}': {e}");
+                    std::process::exit(1);
+                }
+            };
             println!("{}", serde_json::to_string_pretty(&inspection)?);
         }
         "qtgmc-script" => {

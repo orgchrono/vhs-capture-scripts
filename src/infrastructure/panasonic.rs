@@ -5,10 +5,16 @@
 
 use crate::models::constants::PANASONIC_FIRMWARE_SERVICE_IMAGE_SIZE_BYTES;
 use serde::{Deserialize, Serialize};
+use std::fs::File;
+use std::io::{Read, Seek, SeekFrom};
+use std::path::Path;
 
 pub const PANASONIC_CHAPTER_INTERVAL_SEC: f64 = 900.0; // 15-minute standard chapters
 pub const PANASONIC_DEFAULT_TITLE_DURATION_SEC: f64 = 3600.0;
 pub const PANASONIC_FIRMWARE_SIZE_BYTES: u64 = PANASONIC_FIRMWARE_SERVICE_IMAGE_SIZE_BYTES; // 100MB DMR-EH55 service image
+
+pub const PANASONIC_MEIHDFS_OFFSETS: [u64; 3] = [0x0160_0000, 0x1600_0000, 0xA400_0000];
+pub const PANASONIC_PROBE_BUFFER_MAX_BYTES: usize = 65_536;
 
 pub const SIG_MEIHDFS_V2: &[u8] = b"MEIHDFS-V2.0";
 pub const SIG_MEIHDFS_V1: &[u8] = b"MEIHDFS-V1.0";
@@ -205,6 +211,62 @@ pub fn classify_panasonic_probe(
         detected_offsets: vec![],
         estimated_titles: 0,
     }
+}
+
+/// Inspect a file or disk image on host, including deep-seek offset scans
+/// for MEIHDFS partition superblocks at standard Panasonic offsets (0x0160_0000, 0x1600_0000, 0xA400_0000).
+pub fn inspect_panasonic_file(path: &Path) -> Result<(PanasonicInspection, u64), String> {
+    if !path.exists() {
+        return Err(format!("Source path '{}' does not exist.", path.display()));
+    }
+
+    let metadata = path
+        .metadata()
+        .map_err(|e| format!("Failed to read metadata for '{}': {e}", path.display()))?;
+    let file_size = metadata.len();
+
+    let mut file = File::open(path)
+        .map_err(|e| format!("Failed to open file '{}': {e}", path.display()))?;
+    let mut probe_buf = vec![0u8; PANASONIC_PROBE_BUFFER_MAX_BYTES.min(file_size.max(1) as usize)];
+    let _ = file.read_exact(&mut probe_buf);
+
+    let filename = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+
+    let mut inspection = classify_panasonic_probe(&probe_buf, file_size, &filename);
+
+    // Deep seek fallback for raw HDD dumps whose partition superblocks are located at known offsets
+    if !inspection.is_panasonic && file_size > PANASONIC_MEIHDFS_OFFSETS[0] {
+        for &offset in &PANASONIC_MEIHDFS_OFFSETS {
+            if offset < file_size && file.seek(SeekFrom::Start(offset)).is_ok() {
+                let to_read = (PANASONIC_PROBE_BUFFER_MAX_BYTES as u64).min(file_size - offset) as usize;
+                let mut deep_buf = vec![0u8; to_read];
+                if file.read_exact(&mut deep_buf).is_ok() {
+                    let deep_insp = classify_panasonic_probe(&deep_buf, file_size, &filename);
+                    if deep_insp.is_panasonic {
+                        let mut adjusted_offsets: Vec<usize> = deep_insp
+                            .detected_offsets
+                            .into_iter()
+                            .map(|o| o + (offset as usize))
+                            .collect();
+                        if adjusted_offsets.is_empty() {
+                            adjusted_offsets.push(offset as usize);
+                        }
+                        inspection = PanasonicInspection {
+                            detected_offsets: adjusted_offsets,
+                            ..deep_insp
+                        };
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    Ok((inspection, file_size))
 }
 
 /// Pure chapter marker generator formatting HH:MM:SS timestamps.
@@ -530,5 +592,37 @@ mod tests {
         assert!(!drives[1].is_panasonic);
         assert_eq!(drives[1].bus_type, "NVMe");
         assert_eq!(drives[1].format, "UNKNOWN");
+    }
+
+    #[test]
+    fn test_inspect_panasonic_file_not_found() {
+        let dummy_path = Path::new("non_existent_panasonic_dump_12345.img");
+        let res = inspect_panasonic_file(dummy_path);
+        assert!(res.is_err());
+    }
+
+    #[test]
+    fn test_inspect_panasonic_file_deep_seek() {
+        use std::io::Write;
+        let temp_dir = std::env::temp_dir();
+        let test_file = temp_dir.join(format!("test_panasonic_deep_{}.img", std::process::id()));
+
+        // Create file and seek to PANASONIC_MEIHDFS_OFFSETS[0]
+        let offset = PANASONIC_MEIHDFS_OFFSETS[0];
+        let mut f = File::create(&test_file).expect("Failed to create temp test file");
+        f.seek(SeekFrom::Start(offset)).expect("Failed to seek");
+        f.write_all(SIG_MEIHDFS_V2).expect("Failed to write signature");
+        // Write enough trailing bytes to satisfy buffer read
+        f.write_all(&vec![0u8; 1024]).expect("Failed to write padding");
+        drop(f);
+
+        let res = inspect_panasonic_file(&test_file);
+        let _ = std::fs::remove_file(&test_file);
+
+        let (insp, size) = res.expect("inspect_panasonic_file should succeed");
+        assert!(insp.is_panasonic);
+        assert_eq!(insp.format, PanasonicFilesystemFormat::MeihdfsV2);
+        assert_eq!(insp.detected_offsets, vec![offset as usize]);
+        assert!(size >= offset);
     }
 }

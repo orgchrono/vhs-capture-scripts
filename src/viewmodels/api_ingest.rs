@@ -9,7 +9,7 @@
 
 use crate::infrastructure::app_context::AppContext;
 use crate::infrastructure::panasonic::{
-    classify_panasonic_probe, detect_connected_drives, generate_panasonic_chapters,
+    detect_connected_drives, generate_panasonic_chapters, inspect_panasonic_file,
     PanasonicFilesystemFormat, PanasonicInspection, PANASONIC_CHAPTER_INTERVAL_SEC,
     PANASONIC_DEFAULT_TITLE_DURATION_SEC,
 };
@@ -18,12 +18,7 @@ use crate::infrastructure::toolchain::{create_silent_command, resolve_executable
 use crate::viewmodels::api_support::media_dirs;
 use crate::viewmodels::api_types::{ApiRequest, ApiResponse};
 use serde_json::{json, Value};
-use std::fs::File;
-use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
-
-const PROBE_BUFFER_MAX_BYTES: usize = 65_536; // 64 KB probe buffer
-const PANASONIC_MEIHDFS_OFFSETS: [u64; 3] = [0x0160_0000, 0x1600_0000, 0xA400_0000];
 
 /// Handles incoming `/api/ingest/*` and `/api/panasonic/*` requests.
 #[must_use]
@@ -56,51 +51,10 @@ fn handle_inspect(req: &ApiRequest) -> ApiResponse {
         return ApiResponse::error(404, "Source path does not exist on host.");
     }
 
-    let file_size = p.metadata().map(|m| m.len()).unwrap_or(0);
-    let mut probe_buf = vec![0u8; PROBE_BUFFER_MAX_BYTES.min(file_size.max(1) as usize)];
-
-    if let Ok(mut f) = File::open(p) {
-        let _ = f.read_exact(&mut probe_buf);
-    }
-
-    let filename = p
-        .file_name()
-        .and_then(|n| n.to_str())
-        .unwrap_or("")
-        .to_ascii_lowercase();
-
-    let mut inspection = classify_panasonic_probe(&probe_buf, file_size, &filename);
-
-    // Deep seek fallback for raw HDD dumps whose partition superblocks are located at known offsets
-    if !inspection.is_panasonic && file_size > PANASONIC_MEIHDFS_OFFSETS[0] {
-        if let Ok(mut f) = File::open(p) {
-            for &offset in &PANASONIC_MEIHDFS_OFFSETS {
-                if offset + (PROBE_BUFFER_MAX_BYTES as u64) <= file_size
-                    && f.seek(SeekFrom::Start(offset)).is_ok()
-                {
-                    let mut deep_buf = vec![0u8; PROBE_BUFFER_MAX_BYTES];
-                    if f.read_exact(&mut deep_buf).is_ok() {
-                        let deep_insp = classify_panasonic_probe(&deep_buf, file_size, &filename);
-                        if deep_insp.is_panasonic {
-                            let mut adjusted_offsets: Vec<usize> = deep_insp
-                                .detected_offsets
-                                .into_iter()
-                                .map(|o| o + (offset as usize))
-                                .collect();
-                            if adjusted_offsets.is_empty() {
-                                adjusted_offsets.push(offset as usize);
-                            }
-                            inspection = PanasonicInspection {
-                                detected_offsets: adjusted_offsets,
-                                ..deep_insp
-                            };
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-    }
+    let (inspection, file_size) = match inspect_panasonic_file(p) {
+        Ok(res) => res,
+        Err(err) => return ApiResponse::error(500, &err),
+    };
 
     let has_meihdfs = resolve_executable_path("extract_meihdfs", None, None).is_some();
     let has_dvd_vr = resolve_executable_path("dvd-vr", None, None).is_some();
@@ -142,24 +96,33 @@ fn handle_tree(req: &ApiRequest) -> ApiResponse {
     }
 
     let p = Path::new(&source_path);
-    let file_size = if p.exists() {
-        p.metadata().map(|m| m.len()).unwrap_or(0)
+    let (inspection, file_size) = if p.exists() {
+        inspect_panasonic_file(p).unwrap_or_else(|_| {
+            (
+                PanasonicInspection {
+                    is_panasonic: false,
+                    format: PanasonicFilesystemFormat::Unknown,
+                    format_label: "UNKNOWN".to_string(),
+                    can_extract: false,
+                    detected_offsets: vec![],
+                    estimated_titles: 0,
+                },
+                0,
+            )
+        })
     } else {
-        0
+        (
+            PanasonicInspection {
+                is_panasonic: false,
+                format: PanasonicFilesystemFormat::Unknown,
+                format_label: "UNKNOWN".to_string(),
+                can_extract: false,
+                detected_offsets: vec![],
+                estimated_titles: 0,
+            },
+            0,
+        )
     };
-
-    let mut probe_buf = vec![0u8; PROBE_BUFFER_MAX_BYTES.min(file_size.max(1) as usize)];
-    if let Ok(mut f) = File::open(p) {
-        let _ = f.read_exact(&mut probe_buf);
-    }
-
-    let filename = p
-        .file_name()
-        .and_then(|n| n.to_str())
-        .unwrap_or("")
-        .to_ascii_lowercase();
-
-    let inspection = classify_panasonic_probe(&probe_buf, file_size, &filename);
 
     // 1. Check if files are already extracted in raw_dir
     let mut extracted_titles = Vec::new();
