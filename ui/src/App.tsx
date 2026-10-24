@@ -81,10 +81,16 @@ const StudioMain: React.FC<{
   const [isDragOver, setIsDragOver] = useState(false)
   const shouldReduceMotion = useReducedMotion()
 
-  const { data: incompleteData, refetch: refetchIncomplete } = useGetIncompleteJobsQuery()
+  const { data: incompleteData, refetch: refetchIncomplete } = useGetIncompleteJobsQuery(undefined, {
+    pollingInterval: isRestoring ? 1500 : 3000,
+  })
   const [handleJobAction] = useHandleIncompleteJobMutation()
   const [conflictJob, setConflictJob] = useState<IncompleteJob | null>(null)
   const [isConflictModalOpen, setIsConflictModalOpen] = useState(false)
+
+  useEffect(() => {
+    void refetchIncomplete()
+  }, [selectedFile, refetchIncomplete])
 
   const incompleteJobForSelected = selectedFile
     ? incompleteData?.incomplete_jobs?.find((j) => {
@@ -92,8 +98,11 @@ const StudioMain: React.FC<{
         const jNorm = (j.source_file || '').replace(/\\/g, '/').toLowerCase()
         const sBase = sNorm.split('/').pop()?.split('.')[0] || ''
         const jBase = jNorm.split('/').pop()?.split('.')[0] || ''
-        const jId = j.job_id.toLowerCase()
-        return (sNorm && jNorm && sNorm === jNorm) || (sBase && (sBase === jBase || jId.includes(sBase)))
+        if (sNorm && jNorm && sNorm === jNorm) return true
+        if (sBase && jBase && sBase === jBase) return true
+        const outNorm = (j.output_file || '').replace(/\\/g, '/').toLowerCase()
+        const outBase = outNorm.split('/').pop()?.split('.')[0] || ''
+        return Boolean(sBase && (outBase === sBase || outBase.startsWith(`${sBase}_`)))
       })
     : undefined
 

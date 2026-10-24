@@ -98,8 +98,8 @@ pub fn get_ffmpeg_install_command(mgr: &PackageManager) -> Option<Vec<String>> {
         ]),
         PackageManager::Zypper => Some(vec![
             "zypper".to_string(),
-            "--non-interactive".to_string(),
             "install".to_string(),
+            "-y".to_string(),
             "ffmpeg".to_string(),
         ]),
         PackageManager::Apk => Some(vec![
@@ -122,7 +122,7 @@ pub fn has_ffmpeg_encoder(encoders_output: &str, encoder_name: &str) -> bool {
     for line in encoders_output.lines() {
         let parts: Vec<&str> = line.split_whitespace().collect();
         if parts.len() >= 2 {
-            // First column is flags (e.g. "V....."), second is encoder identifier
+            // First column is flags (e.g. "V....."), second is codec identifier
             if parts[1].eq_ignore_ascii_case(target) {
                 return true;
             }
@@ -149,6 +149,283 @@ pub fn has_ffmpeg_filter(filters_output: &str, filter_name: &str) -> bool {
         }
     }
     false
+}
+
+/// Pure resolver of VapourSynth installation arguments for given package manager.
+#[must_use]
+pub fn get_vapoursynth_install_command(mgr: &PackageManager) -> Option<Vec<String>> {
+    match mgr {
+        PackageManager::Winget => Some(vec![
+            "winget".to_string(),
+            "install".to_string(),
+            "--id".to_string(),
+            "VapourSynth.VapourSynth".to_string(),
+            "-e".to_string(),
+            "--accept-package-agreements".to_string(),
+            "--accept-source-agreements".to_string(),
+        ]),
+        PackageManager::Choco => Some(vec![
+            "choco".to_string(),
+            "install".to_string(),
+            "vapoursynth".to_string(),
+            "-y".to_string(),
+        ]),
+        PackageManager::Brew => Some(vec![
+            "brew".to_string(),
+            "install".to_string(),
+            "vapoursynth".to_string(),
+        ]),
+        PackageManager::AptGet => Some(vec![
+            "apt-get".to_string(),
+            "install".to_string(),
+            "-y".to_string(),
+            "vapoursynth".to_string(),
+        ]),
+        PackageManager::Dnf => Some(vec![
+            "dnf".to_string(),
+            "install".to_string(),
+            "-y".to_string(),
+            "vapoursynth".to_string(),
+        ]),
+        PackageManager::Yum => Some(vec![
+            "yum".to_string(),
+            "install".to_string(),
+            "-y".to_string(),
+            "vapoursynth".to_string(),
+        ]),
+        PackageManager::Pacman => Some(vec![
+            "pacman".to_string(),
+            "-S".to_string(),
+            "--noconfirm".to_string(),
+            "vapoursynth".to_string(),
+        ]),
+        PackageManager::Zypper => Some(vec![
+            "zypper".to_string(),
+            "install".to_string(),
+            "-y".to_string(),
+            "vapoursynth".to_string(),
+        ]),
+        PackageManager::Apk => Some(vec![
+            "apk".to_string(),
+            "add".to_string(),
+            "vapoursynth".to_string(),
+        ]),
+        PackageManager::Unknown => None,
+    }
+}
+
+/// Pure resolver of OBS Studio installation arguments for given package manager.
+#[must_use]
+pub fn get_obs_install_command(mgr: &PackageManager) -> Option<Vec<String>> {
+    match mgr {
+        PackageManager::Winget => Some(vec![
+            "winget".to_string(),
+            "install".to_string(),
+            "--id".to_string(),
+            "OBSProject.OBSStudio".to_string(),
+            "-e".to_string(),
+            "--accept-package-agreements".to_string(),
+            "--accept-source-agreements".to_string(),
+        ]),
+        PackageManager::Choco => Some(vec![
+            "choco".to_string(),
+            "install".to_string(),
+            "obs-studio".to_string(),
+            "-y".to_string(),
+        ]),
+        PackageManager::Brew => Some(vec![
+            "brew".to_string(),
+            "install".to_string(),
+            "--cask".to_string(),
+            "obs".to_string(),
+        ]),
+        PackageManager::AptGet => Some(vec![
+            "apt-get".to_string(),
+            "install".to_string(),
+            "-y".to_string(),
+            "obs-studio".to_string(),
+        ]),
+        PackageManager::Dnf => Some(vec![
+            "dnf".to_string(),
+            "install".to_string(),
+            "-y".to_string(),
+            "obs-studio".to_string(),
+        ]),
+        PackageManager::Yum => Some(vec![
+            "yum".to_string(),
+            "install".to_string(),
+            "-y".to_string(),
+            "obs-studio".to_string(),
+        ]),
+        PackageManager::Pacman => Some(vec![
+            "pacman".to_string(),
+            "-S".to_string(),
+            "--noconfirm".to_string(),
+            "obs-studio".to_string(),
+        ]),
+        PackageManager::Zypper => Some(vec![
+            "zypper".to_string(),
+            "install".to_string(),
+            "-y".to_string(),
+            "obs-studio".to_string(),
+        ]),
+        PackageManager::Apk => Some(vec![
+            "apk".to_string(),
+            "add".to_string(),
+            "obs-studio".to_string(),
+        ]),
+        PackageManager::Unknown => None,
+    }
+}
+
+fn command_available(name: &str) -> bool {
+    crate::infrastructure::toolchain::resolve_executable_path(name, None, None).is_some()
+}
+
+fn execute_install_command(program: &str, args: &[&str]) -> Result<String, String> {
+    let output = std::process::Command::new(program)
+        .args(args)
+        .output()
+        .map_err(|e| format!("failed to execute '{program}': {e}"))?;
+    if output.status.success() {
+        Ok(format!("{program} {}", args.join(" ")))
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        let detail = if !stderr.is_empty() { stderr } else { stdout };
+        Err(format!("{program} failed: {detail}"))
+    }
+}
+
+/// Installs Python libraries required for QTGMC (vapoursynth, havsfunc, vsutil, vapoursynth-ffms2).
+pub fn install_qtgmc_python_packages() -> Result<String, String> {
+    let py = crate::infrastructure::toolchain::resolve_executable_path("python", None, None)
+        .or_else(|| crate::infrastructure::toolchain::resolve_executable_path("python3", None, None))
+        .or_else(|| crate::infrastructure::toolchain::resolve_executable_path("py", None, None))
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_else(|| "python".to_string());
+
+    let output = std::process::Command::new(&py)
+        .args([
+            "-m",
+            "pip",
+            "install",
+            "--upgrade",
+            "vapoursynth",
+            "havsfunc",
+            "vsutil",
+            "vapoursynth-ffms2",
+        ])
+        .output()
+        .map_err(|e| format!("failed to spawn pip with '{py}': {e}"))?;
+
+    if output.status.success() {
+        Ok(format!("{py} -m pip install vapoursynth havsfunc vsutil vapoursynth-ffms2"))
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        let detail = if !stderr.is_empty() { stderr } else { stdout };
+        Err(format!("pip install failed: {detail}"))
+    }
+}
+
+pub fn install_vapoursynth_toolchain() -> Result<String, String> {
+    let mut log_msgs = Vec::new();
+
+    // 1. Install or update system VapourSynth package
+    let sys_res = (|| {
+        if cfg!(target_os = "windows") {
+            if command_available("winget") {
+                return execute_install_command(
+                    "winget",
+                    &[
+                        "install",
+                        "--id",
+                        "VapourSynth.VapourSynth",
+                        "-e",
+                        "--accept-package-agreements",
+                        "--accept-source-agreements",
+                    ],
+                );
+            }
+            if command_available("choco") {
+                return execute_install_command("choco", &["install", "vapoursynth", "-y"]);
+            }
+        } else if cfg!(target_os = "macos") {
+            if command_available("brew") {
+                return execute_install_command("brew", &["install", "vapoursynth"]);
+            }
+        } else {
+            if command_available("apt-get") {
+                return execute_install_command("apt-get", &["install", "-y", "vapoursynth", "python3-vapoursynth"]);
+            }
+            if command_available("dnf") {
+                return execute_install_command("dnf", &["install", "-y", "vapoursynth", "python3-vapoursynth"]);
+            }
+            if command_available("pacman") {
+                return execute_install_command("pacman", &["-S", "--noconfirm", "vapoursynth"]);
+            }
+        }
+        Err("no supported VapourSynth installer command found on host".to_string())
+    })();
+
+    if let Ok(msg) = sys_res {
+        log_msgs.push(msg);
+    }
+
+    // 2. Install Python dependencies (havsfunc, vsutil, ffms2)
+    match install_qtgmc_python_packages() {
+        Ok(msg) => log_msgs.push(msg),
+        Err(e) => {
+            if log_msgs.is_empty() {
+                return Err(format!("VapourSynth setup failed: {e}"));
+            }
+        }
+    }
+
+    crate::infrastructure::toolchain::invalidate_qtgmc_cache();
+
+    if log_msgs.is_empty() {
+        Err("No package manager or python environment available to provision VapourSynth".to_string())
+    } else {
+        Ok(log_msgs.join(" && "))
+    }
+}
+
+pub fn install_obs_toolchain() -> Result<String, String> {
+    if cfg!(target_os = "windows") {
+        if command_available("winget") {
+            return execute_install_command(
+                "winget",
+                &[
+                    "install",
+                    "--id",
+                    "OBSProject.OBSStudio",
+                    "-e",
+                    "--accept-package-agreements",
+                    "--accept-source-agreements",
+                ],
+            );
+        }
+        if command_available("choco") {
+            return execute_install_command("choco", &["install", "obs-studio", "-y"]);
+        }
+    } else if cfg!(target_os = "macos") {
+        if command_available("brew") {
+            return execute_install_command("brew", &["install", "--cask", "obs"]);
+        }
+    } else {
+        if command_available("apt-get") {
+            return execute_install_command("apt-get", &["install", "-y", "obs-studio"]);
+        }
+        if command_available("dnf") {
+            return execute_install_command("dnf", &["install", "-y", "obs-studio"]);
+        }
+        if command_available("pacman") {
+            return execute_install_command("pacman", &["-S", "--noconfirm", "obs-studio"]);
+        }
+    }
+    Err("no supported OBS installer command found on host".to_string())
 }
 
 #[cfg(test)]

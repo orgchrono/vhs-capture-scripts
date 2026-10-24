@@ -3,11 +3,12 @@
 //! Provides zero-copy signature scanning, filesystem classification (MEIHDFS-V1.0, MEIHDFS-V2.0,
 //! DVD-VR, MPEG2-PS), drive hardware heuristics, and deterministic chapter marker generation.
 
+use crate::models::constants::PANASONIC_FIRMWARE_SERVICE_IMAGE_SIZE_BYTES;
 use serde::{Deserialize, Serialize};
 
 pub const PANASONIC_CHAPTER_INTERVAL_SEC: f64 = 900.0; // 15-minute standard chapters
 pub const PANASONIC_DEFAULT_TITLE_DURATION_SEC: f64 = 3600.0;
-pub const PANASONIC_FIRMWARE_SIZE_BYTES: u64 = 104_857_600; // 100MB DMR-EH55 service image
+pub const PANASONIC_FIRMWARE_SIZE_BYTES: u64 = PANASONIC_FIRMWARE_SERVICE_IMAGE_SIZE_BYTES; // 100MB DMR-EH55 service image
 
 pub const SIG_MEIHDFS_V2: &[u8] = b"MEIHDFS-V2.0";
 pub const SIG_MEIHDFS_V1: &[u8] = b"MEIHDFS-V1.0";

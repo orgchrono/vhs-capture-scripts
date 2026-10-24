@@ -26,29 +26,29 @@ export function useCaptureViewModel(): UseCaptureViewModelResult {
 
   const handleStartCapture = async () => {
     try {
-      addLog(t('log.obs_capture_requesting'));
+      addLog(t('logs.obs_capture_requesting'));
       const res = await startCaptureTrigger().unwrap();
       if (res.status === 'started' || res.status === 'ok') {
         setIsCapturing(true);
-        addLog(t('log.obs_capture_started'));
+        addLog(t('logs.obs_capture_started'));
         toast.success(t('toast.capture_started_title'), {
           description: t('toast.capture_started_desc'),
         });
       } else {
         const msg = res.message || t('toast.capture_failed_title', { defaultValue: 'Capture start failed' });
-        addLog(t('log.obs_warning_prefix', { message: msg }));
+        addLog(t('logs.obs_warning_prefix', { message: msg }));
         toast.warning(msg);
       }
     } catch (e: unknown) {
-      const errMsg = getErrorMessage(e, t('log.obs_not_connected'));
-      addLog(t('log.obs_capture_error', { error: errMsg }));
+      const errMsg = getErrorMessage(e, t('logs.obs_not_connected'));
+      addLog(t('logs.obs_capture_error', { error: errMsg }));
       toast.error(errMsg);
     }
   };
 
   const handleStopCapture = async () => {
     try {
-      addLog(t('log.obs_capture_stopping'));
+      addLog(t('logs.obs_capture_stopping'));
       const res = await stopCaptureTrigger().unwrap();
       setIsCapturing(false);
       addLog(t('toast.capture_stopped_desc'));
@@ -57,12 +57,12 @@ export function useCaptureViewModel(): UseCaptureViewModelResult {
       });
       if (res.path) {
         setSelectedFile(res.path);
-        addLog(t('log.obs_capture_saved', { path: res.path }));
+        addLog(t('logs.obs_capture_saved', { path: res.path }));
       }
     } catch (e: unknown) {
       setIsCapturing(false);
       const errMsg = getErrorMessage(e, t('toast.capture_failed_title', { defaultValue: 'Capture stop failed' }));
-      addLog(t('log.obs_capture_error', { error: errMsg }));
+      addLog(t('logs.obs_capture_error', { error: errMsg }));
       toast.error(errMsg);
     }
   };

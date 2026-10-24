@@ -210,7 +210,8 @@
     "crf_smaller": "Smaller File (28)",
     "tab_presets": "预设模式",
     "reset_default": "恢复默认值",
-    "tabs_aria_label": "Abas de Configuração"
+    "tabs_aria_label": "Abas de Configuração",
+    "output_codec_hint": "最终视频的输出编码格式与压缩模式。"
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",

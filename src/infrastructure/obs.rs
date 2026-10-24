@@ -283,6 +283,24 @@ pub fn evaluate_capture_trigger(
     }
 }
 
+/// Spawns the local OBS Studio process in background / minimized to tray (optionally with `--startvirtualcam`).
+pub fn launch_obs(start_virtualcam: bool) -> Result<(), String> {
+    let obs_bin = crate::infrastructure::toolchain::resolve_executable_path("obs", None, None)
+        .or_else(|| crate::infrastructure::toolchain::resolve_executable_path("obs64", None, None))
+        .ok_or_else(|| "OBS Studio binary not found on host.".to_string())?;
+
+    let mut cmd = std::process::Command::new(&obs_bin);
+    cmd.arg("--minimize-to-tray");
+    if start_virtualcam {
+        cmd.arg("--startvirtualcam");
+    }
+    if let Some(parent) = obs_bin.parent() {
+        cmd.current_dir(parent);
+    }
+    cmd.spawn().map_err(|e| format!("Failed to spawn OBS Studio: {e}"))?;
+    Ok(())
+}
+
 
 #[cfg(test)]
 mod tests {

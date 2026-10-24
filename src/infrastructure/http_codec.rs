@@ -244,6 +244,21 @@ pub fn format_sse_event(data: &str) -> String {
     format!("data: {data}\n\n")
 }
 
+/// Response head opening an unbounded `multipart/x-mixed-replace; boundary=frame`.
+#[must_use]
+pub fn format_stream_proxy_head(allow_origin: Option<&str>) -> Vec<u8> {
+    format!(
+        "HTTP/1.1 200 OK\r\n\
+         Content-Type: multipart/x-mixed-replace; boundary=frame\r\n\
+         Cache-Control: no-cache, no-store, must-revalidate\r\n\
+         Pragma: no-cache\r\n\
+         Expires: 0\r\n\
+         {}Connection: close\r\n\r\n",
+        cors_headers(allow_origin)
+    )
+    .into_bytes()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

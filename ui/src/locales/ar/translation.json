@@ -210,7 +210,8 @@
     "crf_smaller": "Smaller File (28)",
     "tab_presets": "الوضع",
     "reset_default": "إعادة الضبط إلى الافتراضي",
-    "tabs_aria_label": "Abas de Configuração"
+    "tabs_aria_label": "Abas de Configuração",
+    "output_codec_hint": "تنسيق الترميز وضغط الفيديو النهائي."
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",

@@ -100,6 +100,24 @@ pub const MEDIA_RAW_REL_PATH: &str = "media/raw";
 /// Relative path to restored master media directory.
 pub const MEDIA_RESTORED_REL_PATH: &str = "media/restored";
 
+/// Panasonic DMR-EH55 Service Bootloader / HDD replacement image size (100 MiB / 104,857,600 bytes).
+pub const PANASONIC_FIRMWARE_SERVICE_IMAGE_SIZE_BYTES: u64 = 104_857_600;
+
+/// Panasonic Firmware .FRM update optical disc image size (3 MiB / 3,145,728 bytes).
+pub const PANASONIC_FIRMWARE_UPDATE_SIZE_BYTES: u64 = 3_145_728;
+
+/// Default frame rate for real-time MJPEG browser monitoring stream proxy.
+pub const DEFAULT_STREAM_PROXY_FPS: u32 = 15;
+
+/// Preview video resolution width for MJPEG monitor streaming.
+pub const STREAM_PROXY_WIDTH_PX: u32 = 640;
+
+/// Preview video resolution height for MJPEG monitor streaming.
+pub const STREAM_PROXY_HEIGHT_PX: u32 = 360;
+
+/// Quality level (q:v) for FFmpeg MJPEG streaming encoder (lower is higher quality, 8 is optimal for preview).
+pub const STREAM_PROXY_JPEG_QUALITY: u32 = 8;
+
 /// Canonical list of all 10 mandatory supported i18n locale codes.
 pub const SUPPORTED_LOCALES: [&str; 10] = [
     "pt-BR", "en-US", "es", "fr", "de", "it", "ja", "ar", "ru", "zh-CN",

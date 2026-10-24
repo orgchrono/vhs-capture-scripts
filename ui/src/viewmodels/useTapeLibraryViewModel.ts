@@ -22,7 +22,7 @@ export function useTapeLibraryViewModel({ files, onRefreshParent }: UseTapeLibra
   const handleSelectTape = (file: RawFile) => {
     if (selectedFile === file.path) return;
     setSelectedFile(file.path);
-    addLog(t('log.tape_loaded', { name: file.name }));
+    addLog(t('logs.tape_loaded', { name: file.name }));
     toast.success(t('toast.file_loaded_title'), {
       description: `${file.name} (${formatMbSize(file.size_mb)})`,
     });

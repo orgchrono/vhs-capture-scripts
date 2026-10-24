@@ -1,13 +1,17 @@
 import React, { useEffect } from 'react'
 import { Cpu, Film, Sparkles, Wrench, Globe, Eye, Video, Type, PanelLeft, PanelBottom, ShieldCheck, Settings } from 'lucide-react'
 import { Button } from './ui/button'
-import type { SystemStatus } from '../types'
+import type { OutputCodec, SystemStatus } from '../types'
 import { useTranslation } from 'react-i18next'
 import { SUPPORTED_LANGUAGES } from '../i18n'
 import { usePreferencesStore } from '../store/usePreferencesStore'
+import { useAppDispatch, useAppSelector } from '../store'
+import { setOutputCodec } from '../store/studioSlice'
 
 interface HeaderProps {
   status?: SystemStatus
+  outputCodec?: OutputCodec
+  onSelectOutputCodec?: (codec: OutputCodec) => void
   onInstallQtgmc: () => void
   isInstallingQtgmc: boolean
   isInstallingObs?: boolean
@@ -22,6 +26,8 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   status,
+  outputCodec,
+  onSelectOutputCodec,
   onInstallQtgmc,
   isInstallingQtgmc,
   isInstallingObs,
@@ -35,6 +41,17 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const prefs = usePreferencesStore();
+  const dispatch = useAppDispatch();
+  const reduxCodec = useAppSelector((state) => state.studio.outputCodec);
+  const activeCodec = outputCodec ?? reduxCodec;
+
+  const handleCodecChange = (newCodec: OutputCodec) => {
+    if (onSelectOutputCodec) {
+      onSelectOutputCodec(newCodec);
+    } else {
+      dispatch(setOutputCodec(newCodec));
+    }
+  };
 
   useEffect(() => {
     if (prefs.highContrast) {
@@ -178,19 +195,28 @@ export const Header: React.FC<HeaderProps> = ({
 
         <div className="w-px h-5 bg-studio-border mx-0.5 hidden sm:block shrink-0" />
 
-        {/* Hardware Status Tally Indicators */}
-        <div className="hidden md:flex items-center gap-2 bg-studio-surface border border-studio-border px-2.5 py-1 rounded-sm text-xs h-8 shrink-0 whitespace-nowrap">
+        {/* Hardware Status & Encoder Selector Tally */}
+        <div className="hidden md:flex items-center gap-1.5 bg-studio-surface border border-studio-border px-2.5 py-1 rounded-sm text-xs h-8 shrink-0 whitespace-nowrap">
           <Cpu className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           <span className="text-slate-400 text-[10px] font-mono uppercase shrink-0 whitespace-nowrap">ENC:</span>
-          <strong className="text-white font-mono uppercase text-[11px] shrink-0 whitespace-nowrap truncate max-w-[180px]">
-            {status
-              ? `${status.encoder}${
-                  status.hardware?.ram?.total_gb !== undefined
-                    ? ` • ${status.hardware.ram.total_gb.toFixed(2)}`
-                    : ''
-                }`
-              : t('status.detecting')}
-          </strong>
+          <select
+            value={activeCodec}
+            onChange={(e) => handleCodecChange(e.target.value as OutputCodec)}
+            aria-label={t('settings.output_codec_label')}
+            title={t('settings.output_codec_label')}
+            data-testid="header-codec-select"
+            className="bg-transparent text-amber-400 text-[11px] font-mono font-bold uppercase focus:outline-none cursor-pointer pr-1"
+          >
+            <option value="h264" className="bg-studio-panel text-slate-200">H.264</option>
+            <option value="hevc" className="bg-studio-panel text-slate-200">HEVC</option>
+            <option value="prores" className="bg-studio-panel text-slate-200">ProRes</option>
+            <option value="ffv1" className="bg-studio-panel text-slate-200">FFV1</option>
+          </select>
+          {status?.hardware?.ram?.total_gb !== undefined && (
+            <span className="text-slate-500 font-mono text-[10px] shrink-0">
+              • {status.hardware.ram.total_gb.toFixed(1)}GB
+            </span>
+          )}
         </div>
 
         <div className="hidden sm:flex items-center gap-2 bg-studio-surface border border-studio-border px-2.5 py-1 rounded-sm text-xs h-8 shrink-0 whitespace-nowrap">

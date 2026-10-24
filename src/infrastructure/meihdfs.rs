@@ -3,9 +3,10 @@
 //! Replaces external C binary shelling and regex parsing with memory-safe,
 //! zero-copy slice inspection over raw disk/partition probe buffers.
 
+use crate::models::constants::PANASONIC_FIRMWARE_UPDATE_SIZE_BYTES;
 use serde::{Deserialize, Serialize};
 
-pub const PANASONIC_FIRMWARE_SIZE_BYTES: u64 = 3_145_728;
+pub const PANASONIC_FIRMWARE_SIZE_BYTES: u64 = PANASONIC_FIRMWARE_UPDATE_SIZE_BYTES;
 pub const MEIHDFS_MAGIC: &[u8] = b"MEIHDFS";
 pub const DVD_RTAV_MAGIC: &[u8] = b"DVD_RTAV";
 pub const DVD_VR_IFO_MAGIC: &[u8] = b"DVD_RTR_VMG";

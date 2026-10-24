@@ -26,7 +26,7 @@ fn list_media(dir: &Path) -> Vec<Value> {
     scan_media_directory(dir)
         .unwrap_or_default()
         .into_iter()
-        .map(|f| json!({ "name": f.name, "path": f.path, "size_mb": round_to(f.size_mb, 2) }))
+        .map(|f| json!({ "name": f.name, "path": f.path, "size_mb": round_to(f.size_mb, 2), "thumbnail_url": format!("/api/media/thumbnail?path={}", f.path) }))
         .collect()
 }
 

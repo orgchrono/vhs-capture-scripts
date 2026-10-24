@@ -210,7 +210,8 @@
     "crf_smaller": "Smaller File (28)",
     "tab_presets": "Modo",
     "reset_default": "Restablecer valor predeterminado",
-    "tabs_aria_label": "Abas de Configuração"
+    "tabs_aria_label": "Abas de Configuração",
+    "output_codec_hint": "Formato de codificación y compresión del vídeo final."
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",

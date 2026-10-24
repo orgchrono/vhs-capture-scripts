@@ -5,4 +5,5 @@ pub mod constants;
 pub mod media;
 pub mod preferences;
 pub mod presets;
+pub mod recovery;
 pub mod timestamp;
