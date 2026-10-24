@@ -307,6 +307,13 @@ pub fn assess_media_file_qc(
     }
 
     let mut cmd = create_silent_command(Path::new(ffmpeg_binary));
+    let fps_filter = if probe.duration > 30.0 {
+        let interval = (probe.duration / 10.0).max(1.0);
+        format!("fps=1/{interval:.4}")
+    } else {
+        "fps=1".to_string()
+    };
+
     cmd.args([
         "-hide_banner",
         "-loglevel",
@@ -314,7 +321,7 @@ pub fn assess_media_file_qc(
         "-i",
         file_path,
         "-vf",
-        "fps=1",
+        &fps_filter,
         "-vframes",
         "10",
         "-f",

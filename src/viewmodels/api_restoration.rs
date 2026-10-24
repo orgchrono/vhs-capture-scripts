@@ -410,21 +410,25 @@ fn handle_incomplete_action(req: &ApiRequest, ctx: &AppContext) -> ApiResponse {
             }
 
             let source_str = payload.source.unwrap_or_default();
+            let clean_base = payload.output_path.strip_suffix(".part").unwrap_or(&payload.output_path);
+            let chk_cand = PathBuf::from(format!("{clean_base}.checkpoint.json"));
+            let mut resume_start_sec = 0.0;
+
             let resolved_source = if !source_str.is_empty() {
                 resolve_media_input(&source_str, &dirs).unwrap_or(source_str)
-            } else {
-                let clean_base = payload.output_path.strip_suffix(".part").unwrap_or(&payload.output_path);
-                let chk_cand = PathBuf::from(format!("{clean_base}.checkpoint.json"));
-                if chk_cand.is_file() {
-                    let content = fs::read_to_string(&chk_cand).unwrap_or_default();
-                    if let Ok(data) = serde_json::from_str::<CheckpointData>(&content) {
-                        data.source.unwrap_or_default()
-                    } else {
-                        String::new()
-                    }
+            } else if chk_cand.is_file() {
+                let content = fs::read_to_string(&chk_cand).unwrap_or_default();
+                if let Ok(data) = serde_json::from_str::<CheckpointData>(&content) {
+                    let kept = data.kept_frames.unwrap_or(0);
+                    let fps = data.fps.unwrap_or(29.97).max(1.0);
+                    resume_start_sec = crate::domain::recovery::compute_resumption_start_sec(0.0, kept, fps);
+                    let src = data.source.unwrap_or_default();
+                    resolve_media_input(&src, &dirs).unwrap_or(src)
                 } else {
                     String::new()
                 }
+            } else {
+                String::new()
             };
 
             if resolved_source.is_empty() || !Path::new(&resolved_source).exists() {
@@ -434,7 +438,9 @@ fn handle_incomplete_action(req: &ApiRequest, ctx: &AppContext) -> ApiResponse {
             let default_output = dirs.restored.to_string_lossy().to_string();
             let resume_payload = json!({
                 "input": resolved_source,
-                "output": payload.output_path
+                "output": payload.output_path,
+                "start_sec": resume_start_sec,
+                "start": resume_start_sec
             });
             let mapped = map_restoration_payload(&resume_payload, &resolved_source, &default_output);
 
@@ -701,8 +707,6 @@ fn handle_comparison_frame(req: &ApiRequest) -> ApiResponse {
             if denoise {
                 filters.push("hqdn3d=4.0:3.0:6.0:4.5".to_string());
             }
-            filters.push("unsharp=5:5:1.0:5:5:0.0".to_string());
-            filters.push("eq=contrast=1.12:brightness=0.01:saturation=1.18".to_string());
             if overscan {
                 filters.push("drawbox=y=ih-16:color=black:width=iw:height=16:t=fill".to_string());
             }

@@ -669,7 +669,7 @@ pub fn execute_restoration_job(
                     accumulator.current_frame,
                     start_time.elapsed().as_secs_f64(),
                 );
-                cleanup_part_and_vpy(planned);
+                cleanup_vpy_only(planned);
                 return Err(format!("I/O error reading FFmpeg progress: {e}"));
             }
         }
@@ -687,7 +687,7 @@ pub fn execute_restoration_job(
 
     if was_cancelled {
         write_checkpoint(planned, "cancelled", accumulator.current_frame, elapsed);
-        cleanup_part_and_vpy(planned);
+        cleanup_vpy_only(planned);
         return Ok(build_restoration_summary(
             planned,
             &accumulator,
@@ -914,19 +914,55 @@ fn emit_restoration_qc_reports(planned: &PlannedRestoration, _accumulator: &Prog
         });
     }
 
+    if planned.plan.video_filtergraph.contains("limiter") {
+        tools.push(crate::domain::qc::PipelineToolRecord {
+            tool_id: "broadcast_legalizer".to_string(),
+            tool_name: "EBU R103 / SMPTE 170M Broadcast Signal Legalizer".to_string(),
+            stage: "Stage 5: Signal Compliance".to_string(),
+            engine: "FFmpeg Limiter".to_string(),
+            status: "APPLIED".to_string(),
+            frames_affected: master_assessment.total_frames,
+            correction_summary: "Clamped luma to [16, 235] and chroma to [16, 240] broadcast legal gamuts".to_string(),
+        });
+    }
+
+    let audio_treatment_applied = if planned.plan.audio_filtergraph == "anull" {
+        "Passthrough (Original Audio)".to_string()
+    } else {
+        let mut parts = Vec::new();
+        if planned.plan.audio_filtergraph.contains("aresample") {
+            parts.push("Clock-Drift Compensation".to_string());
+        }
+        if planned.plan.audio_filtergraph.contains("loudnorm") {
+            parts.push("EBU R128 (-23 LUFS)".to_string());
+        }
+        if planned.plan.audio_filtergraph.contains("anequalizer") {
+            parts.push("60Hz Hum Filter".to_string());
+        }
+        if planned.plan.audio_filtergraph.contains("pan=stereo") {
+            parts.push("Channel Alignment".to_string());
+        }
+        if parts.is_empty() {
+            "Audio Processing".to_string()
+        } else {
+            parts.join(" + ")
+        }
+    };
+
+    let compliance_achieved = master_assessment.is_legal_broadcast;
     let comparative = crate::domain::qc::RestorationComparativeReport {
         raw: raw_assessment,
         master: master_assessment,
         tools_applied: tools,
         dropouts_mitigated,
-        broadcast_compliance_achieved: true,
+        broadcast_compliance_achieved: compliance_achieved,
         resolution_improvement: if is_master_1080p {
             "1080p Lanczos Pillarbox 4:3 (BT.709)"
         } else {
             "SD Standard (Original)"
         }
         .to_string(),
-        audio_treatment_applied: "Clock-Drift Compensation + EBU R128 (-23 LUFS)".to_string(),
+        audio_treatment_applied,
     };
 
     let md = crate::domain::qc::generate_comparative_qc_markdown_report(&comparative);

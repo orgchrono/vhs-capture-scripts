@@ -326,39 +326,50 @@ pub fn encode_ws_client_text_frame(payload: &[u8]) -> Vec<u8> {
 
 /// Reads and unmasks a server-to-client frame per RFC 6455.
 pub fn read_ws_server_frame<R: std::io::Read>(reader: &mut R) -> Result<Vec<u8>, String> {
-    let mut header = [0u8; 2];
-    reader.read_exact(&mut header).map_err(|e| e.to_string())?;
-    let masked = (header[1] & 0x80) != 0;
-    let mut len = (header[1] & 0x7F) as usize;
+    loop {
+        let mut header = [0u8; 2];
+        reader.read_exact(&mut header).map_err(|e| e.to_string())?;
+        let opcode = header[0] & 0x0F;
+        let masked = (header[1] & 0x80) != 0;
+        let mut len = (header[1] & 0x7F) as usize;
 
-    if len == 126 {
-        let mut ext = [0u8; 2];
-        reader.read_exact(&mut ext).map_err(|e| e.to_string())?;
-        len = u16::from_be_bytes(ext) as usize;
-    } else if len == 127 {
-        let mut ext = [0u8; 8];
-        reader.read_exact(&mut ext).map_err(|e| e.to_string())?;
-        len = u64::from_be_bytes(ext) as usize;
-    }
+        if len == 126 {
+            let mut ext = [0u8; 2];
+            reader.read_exact(&mut ext).map_err(|e| e.to_string())?;
+            len = u16::from_be_bytes(ext) as usize;
+        } else if len == 127 {
+            let mut ext = [0u8; 8];
+            reader.read_exact(&mut ext).map_err(|e| e.to_string())?;
+            len = u64::from_be_bytes(ext) as usize;
+        }
 
-    let mask = if masked {
-        let mut m = [0u8; 4];
-        reader.read_exact(&mut m).map_err(|e| e.to_string())?;
-        Some(m)
-    } else {
-        None
-    };
+        let mask = if masked {
+            let mut m = [0u8; 4];
+            reader.read_exact(&mut m).map_err(|e| e.to_string())?;
+            Some(m)
+        } else {
+            None
+        };
 
-    let mut payload = vec![0u8; len];
-    reader.read_exact(&mut payload).map_err(|e| e.to_string())?;
+        let mut payload = vec![0u8; len];
+        reader.read_exact(&mut payload).map_err(|e| e.to_string())?;
 
-    if let Some(m) = mask {
-        for (i, b) in payload.iter_mut().enumerate() {
-            *b ^= m[i % 4];
+        if let Some(m) = mask {
+            for (i, b) in payload.iter_mut().enumerate() {
+                *b ^= m[i % 4];
+            }
+        }
+
+        match opcode {
+            0x1 | 0x2 => return Ok(payload),
+            0x8 => return Err("WebSocket connection closed by server".to_string()),
+            0x9 | 0xA => {
+                // Ignore Ping or Pong control frames and read next data frame
+                continue;
+            }
+            _ => continue,
         }
     }
-
-    Ok(payload)
 }
 
 /// Real-time client executing an OBS Studio WebSocket v5 RPC call.

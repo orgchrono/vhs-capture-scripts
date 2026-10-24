@@ -200,13 +200,13 @@ pub fn build_stream_proxy_ffmpeg_args(spec: &StreamProxySpec, ffmpeg_bin: &str) 
             StreamProxyMode::Processed => {
                 cmd.extend(vec![
                     "-vf".to_string(),
-                    format!("bwdif=mode=1:parity=-1:deint=1,chromashift=cbh=2:cbv=1:crh=2:crv=1,hqdn3d=4.0:3.0:6.0:4.5,unsharp=5:5:1.0:5:5:0.0,eq=contrast=1.12:brightness=0.01:saturation=1.18,scale={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX}:force_original_aspect_ratio=decrease,fps={fps_val}"),
+                    format!("bwdif=mode=1:parity=-1:deint=1,chromashift=cbh=2:cbv=1:crh=2:crv=1,hqdn3d=4.0:3.0:6.0:4.5,scale={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX}:force_original_aspect_ratio=decrease,fps={fps_val}"),
                 ]);
             }
             StreamProxyMode::Split => {
                 cmd.extend(vec![
                     "-filter_complex".to_string(),
-                    format!("[0:v]split=2[raw_in][proc_in];[raw_in]scale={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX}:force_original_aspect_ratio=decrease,fps={fps_val}[raw_out];[proc_in]bwdif=mode=1:parity=-1:deint=1,chromashift=cbh=2:cbv=1:crh=2:crv=1,hqdn3d=4.0:3.0:6.0:4.5,unsharp=5:5:1.0:5:5:0.0,eq=contrast=1.12:brightness=0.01:saturation=1.18,scale={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX}:force_original_aspect_ratio=decrease,fps={fps_val}[proc_out];[raw_out][proc_out]hstack=inputs=2[out]"),
+                    format!("[0:v]split=2[raw_in][proc_in];[raw_in]scale={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX}:force_original_aspect_ratio=decrease,fps={fps_val}[raw_out];[proc_in]bwdif=mode=1:parity=-1:deint=1,chromashift=cbh=2:cbv=1:crh=2:crv=1,hqdn3d=4.0:3.0:6.0:4.5,scale={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX}:force_original_aspect_ratio=decrease,fps={fps_val}[proc_out];[raw_out][proc_out]hstack=inputs=2[out]"),
                     "-map".to_string(),
                     "[out]".to_string(),
                 ]);
