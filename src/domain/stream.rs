@@ -165,6 +165,11 @@ pub fn build_stream_proxy_ffmpeg_args(spec: &StreamProxySpec, ffmpeg_bin: &str) 
     ];
 
     if let Some(ref source) = spec.source_path {
+        let input_file = match (spec.mode, spec.restored_master_path.as_deref()) {
+            (StreamProxyMode::Processed, Some(master)) => master,
+            _ => source.as_str(),
+        };
+
         if spec.timestamp_sec > 0.05 {
             cmd.push("-ss".to_string());
             cmd.push(format!("{:.3}", spec.timestamp_sec));
@@ -175,7 +180,7 @@ pub fn build_stream_proxy_ffmpeg_args(spec: &StreamProxySpec, ffmpeg_bin: &str) 
             "-stream_loop".to_string(),
             "-1".to_string(),
             "-i".to_string(),
-            source.clone(),
+            input_file.to_string(),
         ]);
 
         match spec.mode {
@@ -186,10 +191,17 @@ pub fn build_stream_proxy_ffmpeg_args(spec: &StreamProxySpec, ffmpeg_bin: &str) 
                 ]);
             }
             StreamProxyMode::Processed => {
-                cmd.extend(vec![
-                    "-vf".to_string(),
-                    format!("bwdif=mode=1:parity=-1:deint=1,hqdn3d=2.0:1.5:3.0:2.5,chromashift=cbh=-1:cbv=1:crh=-1:crv=1,scale={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX}:force_original_aspect_ratio=decrease,fps={fps_val}"),
-                ]);
+                if spec.restored_master_path.is_some() {
+                    cmd.extend(vec![
+                        "-vf".to_string(),
+                        format!("scale={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX}:force_original_aspect_ratio=decrease,fps={fps_val}"),
+                    ]);
+                } else {
+                    cmd.extend(vec![
+                        "-vf".to_string(),
+                        format!("bwdif=mode=1:parity=-1:deint=1,hqdn3d=4.0:3.0:6.0:4.5,chromashift=cbh=2:cbv=1:crh=2:crv=1,unsharp=5:5:1.0:5:5:0.0,eq=contrast=1.12:brightness=0.01:saturation=1.18,scale={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX}:force_original_aspect_ratio=decrease,fps={fps_val}"),
+                    ]);
+                }
             }
             StreamProxyMode::Split => {
                 if let Some(ref master) = spec.restored_master_path {
@@ -204,14 +216,14 @@ pub fn build_stream_proxy_ffmpeg_args(spec: &StreamProxySpec, ffmpeg_bin: &str) 
                         "-i".to_string(),
                         master.clone(),
                         "-filter_complex".to_string(),
-                        format!("[0:v]scale={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX},fps={fps_val}[raw_out];[1:v]scale={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX},fps={fps_val}[proc_out];[raw_out][proc_out]hstack=inputs=2[out]"),
+                        format!("[0:v]scale={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX}:force_original_aspect_ratio=decrease,fps={fps_val}[raw_out];[1:v]scale={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX}:force_original_aspect_ratio=decrease,fps={fps_val}[proc_out];[raw_out][proc_out]hstack=inputs=2[out]"),
                         "-map".to_string(),
                         "[out]".to_string(),
                     ]);
                 } else {
                     cmd.extend(vec![
                         "-filter_complex".to_string(),
-                        format!("[0:v]split=2[raw_in][proc_in];[raw_in]scale={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX},fps={fps_val}[raw_out];[proc_in]bwdif=mode=1:parity=-1:deint=1,hqdn3d=2.0:1.5:3.0:2.5,chromashift=cbh=-1:cbv=1:crh=-1:crv=1,scale={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX},fps={fps_val}[proc_out];[raw_out][proc_out]hstack=inputs=2[out]"),
+                        format!("[0:v]split=2[raw_in][proc_in];[raw_in]scale={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX}:force_original_aspect_ratio=decrease,fps={fps_val}[raw_out];[proc_in]bwdif=mode=1:parity=-1:deint=1,hqdn3d=4.0:3.0:6.0:4.5,chromashift=cbh=2:cbv=1:crh=2:crv=1,unsharp=5:5:1.0:5:5:0.0,eq=contrast=1.12:brightness=0.01:saturation=1.18,scale={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX}:force_original_aspect_ratio=decrease,fps={fps_val}[proc_out];[raw_out][proc_out]hstack=inputs=2[out]"),
                         "-map".to_string(),
                         "[out]".to_string(),
                     ]);

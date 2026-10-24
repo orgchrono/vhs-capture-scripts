@@ -49,8 +49,8 @@ describe('SplitComparisonMonitor Component', () => {
 
     expect(rawStream).toBeInTheDocument();
     expect(procStream).toBeInTheDocument();
-    expect(rawStream.src).toContain('/api/monitor/stream-proxy?mode=split');
-    expect(procStream.src).toContain('/api/monitor/stream-proxy?mode=split');
+    expect(rawStream.src).toContain('/api/monitor/stream-proxy?mode=raw');
+    expect(procStream.src).toContain('/api/monitor/stream-proxy?mode=processed');
   });
 
   it('switches between live stream and freeze frame modes', () => {

@@ -599,7 +599,7 @@ fn handle_comparison_frame(req: &ApiRequest) -> ApiResponse {
                 "-frames:v",
                 "1",
                 "-vf",
-                "scale=640:360",
+                "scale=640:480:force_original_aspect_ratio=decrease",
                 "-f",
                 "image2",
                 "-c:v",
@@ -607,54 +607,95 @@ fn handle_comparison_frame(req: &ApiRequest) -> ApiResponse {
                 "pipe:1",
             ]);
 
-            // Faithful pipeline filter chain matching chosen restoration specs
-            let mut filters = Vec::new();
-            if overscan {
-                filters.push("drawbox=y=ih-16:color=black:width=iw:height=16:t=fill".to_string());
-            }
-            if dropout {
-                filters.push("removegrain=m=1".to_string());
-            }
-            if comb_filter {
-                filters.push("dedot=m=dotcrawl+rainbows".to_string());
-            }
-            if chroma_fix {
-                filters.push("chromashift=cbh=2:cbv=1:crh=2:crv=1:edge=smear".to_string());
-            }
-            if denoise {
-                filters.push("hqdn3d=4.0:3.0:6.0:4.5".to_string());
-            }
-            let deint_filter = if deinterlacer.to_ascii_lowercase().contains("bwdif") {
-                "bwdif=mode=0:parity=-1:deint=1"
-            } else if deinterlacer.to_ascii_lowercase().contains("yadif") {
-                "yadif=mode=0:parity=-1:deint=1"
-            } else {
-                "bwdif=mode=0:parity=-1:deint=1"
+            // Check if a fully restored master file already exists on disk
+            let restored_master = {
+                let search_dirs = [dirs.restored.clone(), dirs.work.clone()];
+                let raw_dirs = [dirs.raw.clone(), dirs.media.clone()];
+                let check = crate::infrastructure::job_recovery::check_existing_restoration(
+                    Path::new(&resolved_source),
+                    &search_dirs,
+                    &raw_dirs,
+                    &dirs.restored,
+                );
+                if check.has_existing && check.r#type.as_deref() == Some("completed") {
+                    check.file_path
+                } else {
+                    None
+                }
             };
-            filters.push(deint_filter.to_string());
-            filters.push("scale=640:360".to_string());
-            let proc_vf = filters.join(",");
 
             let mut proc_cmd =
                 crate::infrastructure::toolchain::create_silent_command(&ffmpeg);
-            proc_cmd.args([
-                "-hide_banner",
-                "-loglevel",
-                "error",
-                "-ss",
-                &format!("{timestamp:.3}"),
-                "-i",
-                &resolved_source,
-                "-frames:v",
-                "1",
-                "-vf",
-                &proc_vf,
-                "-f",
-                "image2",
-                "-c:v",
-                "mjpeg",
-                "pipe:1",
-            ]);
+
+            if let Some(ref master_file) = restored_master {
+                proc_cmd.args([
+                    "-hide_banner",
+                    "-loglevel",
+                    "error",
+                    "-ss",
+                    &format!("{timestamp:.3}"),
+                    "-i",
+                    master_file,
+                    "-frames:v",
+                    "1",
+                    "-vf",
+                    "scale=640:480:force_original_aspect_ratio=decrease",
+                    "-f",
+                    "image2",
+                    "-c:v",
+                    "mjpeg",
+                    "pipe:1",
+                ]);
+            } else {
+                // Faithful pipeline filter chain matching chosen restoration specs with contrast & edge definition
+                let mut filters = Vec::new();
+                if overscan {
+                    filters.push("drawbox=y=ih-16:color=black:width=iw:height=16:t=fill".to_string());
+                }
+                if dropout {
+                    filters.push("removegrain=m=1".to_string());
+                }
+                if comb_filter {
+                    filters.push("dedot=m=dotcrawl+rainbows".to_string());
+                }
+                if chroma_fix {
+                    filters.push("chromashift=cbh=2:cbv=1:crh=2:crv=1:edge=smear".to_string());
+                }
+                if denoise {
+                    filters.push("hqdn3d=4.0:3.0:6.0:4.5".to_string());
+                }
+                let deint_filter = if deinterlacer.to_ascii_lowercase().contains("bwdif") {
+                    "bwdif=mode=0:parity=-1:deint=1"
+                } else if deinterlacer.to_ascii_lowercase().contains("yadif") {
+                    "yadif=mode=0:parity=-1:deint=1"
+                } else {
+                    "bwdif=mode=0:parity=-1:deint=1"
+                };
+                filters.push(deint_filter.to_string());
+                filters.push("unsharp=5:5:1.0:5:5:0.0".to_string());
+                filters.push("eq=contrast=1.12:brightness=0.01:saturation=1.18".to_string());
+                filters.push("scale=640:480:force_original_aspect_ratio=decrease".to_string());
+                let proc_vf = filters.join(",");
+
+                proc_cmd.args([
+                    "-hide_banner",
+                    "-loglevel",
+                    "error",
+                    "-ss",
+                    &format!("{timestamp:.3}"),
+                    "-i",
+                    &resolved_source,
+                    "-frames:v",
+                    "1",
+                    "-vf",
+                    &proc_vf,
+                    "-f",
+                    "image2",
+                    "-c:v",
+                    "mjpeg",
+                    "pipe:1",
+                ]);
+            }
 
             let raw_out = raw_cmd.output().ok();
             let proc_out = proc_cmd.output().ok();
