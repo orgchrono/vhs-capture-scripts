@@ -140,7 +140,6 @@ pub fn plan_restoration_job(
     let deinterlacer = request.custom_deinterlacer.unwrap_or(match preset_conf.deinterlacer {
         Deinterlacer::Qtgmc | Deinterlacer::QtgmcFast | Deinterlacer::QtgmcSlow => DeinterlaceFilter::Qtgmc,
         Deinterlacer::Bwdif => DeinterlaceFilter::BwdifBob,
-        Deinterlacer::Yadif => DeinterlaceFilter::Yadif,
         Deinterlacer::Znedi3 => DeinterlaceFilter::Znedi3,
         Deinterlacer::Nnedi => DeinterlaceFilter::Nnedi3,
         Deinterlacer::None => DeinterlaceFilter::None,

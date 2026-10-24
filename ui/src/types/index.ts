@@ -80,7 +80,7 @@ export interface SystemStatus {
 
 export type RestorationPreset = 'gold' | 'speed' | 'tbc_hold' | 'ai_master' | 'custom';
 export type VideoMode = 'double' | 'single' | 'freeze' | 'passthrough' | 'drop';
-export type DeinterlacerType = 'qtgmc_fast' | 'qtgmc_slow' | 'qtgmc' | 'bwdif' | 'yadif' | 'znedi3' | 'nnedi' | 'none';
+export type DeinterlacerType = 'qtgmc_fast' | 'qtgmc_slow' | 'qtgmc' | 'bwdif' | 'znedi3' | 'nnedi' | 'none';
 export type AudioMode = 'auto' | 'stereo' | 'mono_l' | 'mono_r' | 'mono' | 'left_only' | 'right_only';
 export type OutputCodec = 'h264' | 'hevc' | 'prores' | 'ffv1';
 export type ResolutionMode = '1080p' | 'original';
