@@ -10,10 +10,10 @@ UI Layer detected. MVVM mapping strictness enforced: ui/src (View), src/viewmode
 SSOT config files recognized: ["vhs_advanced_config.toml","Cargo.toml","ui/package.json"]
 ```
 
-## ✅ Dependencies (Cargo, NPM) & Security [PASS]
+## ⚠️ Dependencies (Cargo, NPM) & Security [WARN]
 ```text
 Cargo dependencies and crates compile cleanly.
-NPM dependencies are secure.
+NPM audit completed with warnings or review needed.
 ```
 
 ## ✅ Security (Zero Hardcoded Credentials) [PASS]
