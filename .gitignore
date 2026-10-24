@@ -46,6 +46,7 @@ media/work/*
 media/output/*
 !media/output/.gitkeep
 media/restored/
+restored/
 test-results/
 
 # Tools
