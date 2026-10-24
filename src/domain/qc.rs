@@ -239,6 +239,81 @@ pub fn inspect_frame_qc(
     }
 }
 
+/// Pure function aggregating sampled frame QC reports into an overall file assessment.
+#[must_use]
+#[allow(clippy::too_many_arguments)]
+pub fn aggregate_frame_qc_reports(
+    reports: &[FrameQcReport],
+    file_path: String,
+    width: u32,
+    height: u32,
+    duration_sec: f64,
+    total_frames: u64,
+    standard: String,
+    is_interlaced: bool,
+    black_leader_sec: f64,
+) -> FileQcAssessment {
+    if reports.is_empty() {
+        return FileQcAssessment {
+            file_path,
+            width,
+            height,
+            duration_sec,
+            total_frames,
+            standard,
+            black_leader_sec,
+            is_interlaced,
+            is_legal_broadcast: true,
+            total_dropout_frames: 0,
+            total_frozen_frames: 0,
+            min_luma: BT601_LEGAL_LUMA_MIN,
+            max_luma: BT601_LEGAL_LUMA_MAX,
+            avg_luma: 110.0,
+        };
+    }
+
+    let min_l = reports
+        .iter()
+        .map(|r| r.luma.min_luma)
+        .min()
+        .unwrap_or(BT601_LEGAL_LUMA_MIN);
+    let max_l = reports
+        .iter()
+        .map(|r| r.luma.max_luma)
+        .max()
+        .unwrap_or(BT601_LEGAL_LUMA_MAX);
+    let avg_l = reports.iter().map(|r| r.luma.mean_luma).sum::<f32>() / (reports.len() as f32);
+
+    let dropout_samples = reports
+        .iter()
+        .filter(|r| r.dropout_lines_detected > 0)
+        .count() as u64;
+    let estimated_dropouts = if !reports.is_empty() && total_frames > 0 {
+        ((dropout_samples as f64 / reports.len() as f64) * (total_frames as f64)).round() as u64
+    } else {
+        dropout_samples
+    };
+
+    let all_legal = reports.iter().all(|r| r.is_legal_broadcast);
+
+    FileQcAssessment {
+        file_path,
+        width,
+        height,
+        duration_sec,
+        total_frames,
+        standard,
+        black_leader_sec,
+        is_interlaced,
+        is_legal_broadcast: all_legal,
+        total_dropout_frames: estimated_dropouts,
+        total_frozen_frames: 0,
+        min_luma: min_l,
+        max_luma: max_l,
+        avg_luma: avg_l,
+    }
+}
+
 /// Comprehensive tape file QC inspection summary.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct FileQcAssessment {

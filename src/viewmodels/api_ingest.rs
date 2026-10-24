@@ -368,14 +368,19 @@ fn execute_panasonic_extraction(
     }
 
     let mut extracted_files = Vec::new();
-    if let Ok(entries) = std::fs::read_dir(out_p) {
-        for entry in entries.flatten() {
-            let p = entry.path();
-            if p.is_file() {
-                if let Some(ext) = p.extension().and_then(|e| e.to_str()) {
-                    let ext_l = ext.to_ascii_lowercase();
-                    if matches!(ext_l.as_str(), "mpg" | "vro" | "vob" | "mp4" | "mkv" | "ts") {
-                        extracted_files.push(p.to_string_lossy().to_string());
+    let mut dirs_to_scan = vec![out_p.to_path_buf()];
+    while let Some(dir) = dirs_to_scan.pop() {
+        if let Ok(entries) = std::fs::read_dir(&dir) {
+            for entry in entries.flatten() {
+                let p = entry.path();
+                if p.is_dir() {
+                    dirs_to_scan.push(p);
+                } else if p.is_file() {
+                    if let Some(ext) = p.extension().and_then(|e| e.to_str()) {
+                        let ext_l = ext.to_ascii_lowercase();
+                        if matches!(ext_l.as_str(), "mpg" | "vro" | "vob" | "mp4" | "mkv" | "ts") {
+                            extracted_files.push(p.to_string_lossy().to_string());
+                        }
                     }
                 }
             }

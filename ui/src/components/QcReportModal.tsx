@@ -196,7 +196,7 @@ export const QcReportModal: React.FC<QcReportModalProps> = ({
                       {t('files.format_label')}
                     </div>
                     <div className="font-bold text-xs text-slate-200 truncate">
-                      {String(masterData?.standard || rawData?.standard || 'BT.601 / NTSC')}
+                      {String(masterData?.standard || rawData?.standard || t('qc.default_standard'))}
                     </div>
                   </div>
                 </div>

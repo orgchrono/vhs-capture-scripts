@@ -597,6 +597,7 @@
     "copied": "Copié dans le presse-papiers !",
     "download_json": "Télécharger les Données JSON",
     "open_report_tooltip": "Inspecter le Contrôle Qualité et le Rapport de Défauts",
-    "close": "Fermer"
+    "close": "Fermer",
+    "default_standard": "BT.601 / NTSC"
   }
 }

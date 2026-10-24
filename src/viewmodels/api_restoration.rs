@@ -497,10 +497,39 @@ fn handle_qc_report(req: &ApiRequest) -> ApiResponse {
         None
     };
 
-    if let Some(j_path) = resolved_json {
+    let raw_file_stem = Path::new(&target)
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or_default();
+    let (cand_restored_json, cand_restored_md) = if resolved_json.is_none() && !raw_file_stem.is_empty() {
+        let mut r_json = None;
+        let mut r_md = None;
+        if let Ok(entries) = fs::read_dir(&dirs.restored) {
+            for entry in entries.flatten() {
+                let p = entry.path();
+                let fname = p.file_name().and_then(|n| n.to_str()).unwrap_or_default();
+                if fname.starts_with(raw_file_stem) && fname.ends_with("_qc_report.json") {
+                    r_json = Some(p.to_string_lossy().to_string());
+                    let cand_md = p.with_file_name(fname.replace("_qc_report.json", "_defect_report.md"));
+                    if cand_md.is_file() {
+                        r_md = Some(cand_md.to_string_lossy().to_string());
+                    }
+                    break;
+                }
+            }
+        }
+        (r_json, r_md)
+    } else {
+        (None, None)
+    };
+
+    let final_json = resolved_json.or(cand_restored_json);
+    let final_md = resolved_md.or(cand_restored_md);
+
+    if let Some(j_path) = final_json {
         let report_content = fs::read_to_string(&j_path).unwrap_or_default();
         let report_data: Value = serde_json::from_str(&report_content).unwrap_or_else(|_| json!({}));
-        let md_text = resolved_md
+        let md_text = final_md
             .and_then(|m| fs::read_to_string(m).ok())
             .unwrap_or_default();
 
@@ -519,25 +548,11 @@ fn handle_qc_report(req: &ApiRequest) -> ApiResponse {
         let ffprobe_bin = resolve_executable_path("ffprobe", None, None)
             .map(|p| p.to_string_lossy().to_string())
             .unwrap_or_else(|| "ffprobe".to_string());
+        let ffmpeg_bin = resolve_executable_path("ffmpeg", None, None)
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|| "ffmpeg".to_string());
 
-        if let Ok(probe) = crate::infrastructure::probe::probe_media_file(&target, &ffprobe_bin) {
-            let assessment = crate::domain::qc::FileQcAssessment {
-                file_path: target.clone(),
-                width: probe.width,
-                height: probe.height,
-                duration_sec: probe.duration,
-                total_frames: probe.total_frames,
-                standard: probe.standard.clone(),
-                black_leader_sec: 0.0,
-                is_interlaced: probe.is_interlaced,
-                is_legal_broadcast: true,
-                total_dropout_frames: 0,
-                total_frozen_frames: 0,
-                min_luma: 16,
-                max_luma: 235,
-                avg_luma: 110.0,
-            };
-
+        if let Ok(assessment) = crate::infrastructure::probe::assess_media_file_qc(&target, &ffprobe_bin, &ffmpeg_bin) {
             let md = crate::domain::qc::generate_qc_markdown_report(&assessment);
             let report_val = serde_json::to_value(&assessment).unwrap_or_else(|_| json!({}));
 
@@ -669,16 +684,16 @@ fn handle_comparison_frame(req: &ApiRequest) -> ApiResponse {
             let mut proc_cmd =
                 crate::infrastructure::toolchain::create_silent_command(&ffmpeg);
 
-            // Faithful pipeline filter chain matching chosen restoration specs with contrast & edge definition
+            // Faithful pipeline filter chain matching chosen restoration specs in strict physical order
             let mut filters = Vec::new();
-            if overscan {
-                filters.push("drawbox=y=ih-16:color=black:width=iw:height=16:t=fill".to_string());
+            if comb_filter {
+                filters.push("dedot=m=dotcrawl+rainbows".to_string());
+            }
+            if !deinterlacer.eq_ignore_ascii_case("none") {
+                filters.push("bwdif=mode=0:parity=-1:deint=1".to_string());
             }
             if dropout {
                 filters.push("removegrain=m=1".to_string());
-            }
-            if comb_filter {
-                filters.push("dedot=m=dotcrawl+rainbows".to_string());
             }
             if chroma_fix {
                 filters.push("chromashift=cbh=2:cbv=1:crh=2:crv=1:edge=smear".to_string());
@@ -686,16 +701,11 @@ fn handle_comparison_frame(req: &ApiRequest) -> ApiResponse {
             if denoise {
                 filters.push("hqdn3d=4.0:3.0:6.0:4.5".to_string());
             }
-            let deint_filter = if deinterlacer.to_ascii_lowercase().contains("bwdif") {
-                "bwdif=mode=0:parity=-1:deint=1"
-            } else if deinterlacer.to_ascii_lowercase().contains("yadif") {
-                "yadif=mode=0:parity=-1:deint=1"
-            } else {
-                "bwdif=mode=0:parity=-1:deint=1"
-            };
-            filters.push(deint_filter.to_string());
             filters.push("unsharp=5:5:1.0:5:5:0.0".to_string());
             filters.push("eq=contrast=1.12:brightness=0.01:saturation=1.18".to_string());
+            if overscan {
+                filters.push("drawbox=y=ih-16:color=black:width=iw:height=16:t=fill".to_string());
+            }
             filters.push("scale=640:480:force_original_aspect_ratio=decrease".to_string());
             let proc_vf = filters.join(",");
 

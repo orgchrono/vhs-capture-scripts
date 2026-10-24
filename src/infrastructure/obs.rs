@@ -449,11 +449,22 @@ pub fn execute_obs_rpc_command(
         .map_err(|e| format!("Failed to send Identify frame: {e}"))?;
 
     // Read Op 2 (Identified)
-    let identified_bytes = read_ws_server_frame(&mut stream)?;
-    let identified: serde_json::Value = serde_json::from_slice(&identified_bytes)
-        .map_err(|e| format!("Invalid Identified JSON from OBS: {e}"))?;
-    if identified.get("op").and_then(serde_json::Value::as_u64) != Some(2) {
-        return Err(format!("OBS authentication failed: {identified}"));
+    loop {
+        let identified_bytes = read_ws_server_frame(&mut stream)?;
+        let identified: serde_json::Value = serde_json::from_slice(&identified_bytes)
+            .map_err(|e| format!("Invalid Identified JSON from OBS: {e}"))?;
+        let op = identified
+            .get("op")
+            .and_then(serde_json::Value::as_u64)
+            .unwrap_or(0);
+        if op == 2 {
+            break;
+        } else if op == 5 {
+            // Discard asynchronous OBS event received during handshake
+            continue;
+        } else {
+            return Err(format!("OBS authentication failed: {identified}"));
+        }
     }
 
     // 4. Send Op 6 (Request)
@@ -465,9 +476,19 @@ pub fn execute_obs_rpc_command(
         .map_err(|e| format!("Failed to send Request frame: {e}"))?;
 
     // Read Op 7 (RequestResponse)
-    let resp_bytes = read_ws_server_frame(&mut stream)?;
-    let resp: serde_json::Value = serde_json::from_slice(&resp_bytes)
-        .map_err(|e| format!("Invalid RequestResponse JSON from OBS: {e}"))?;
+    let resp = loop {
+        let resp_bytes = read_ws_server_frame(&mut stream)?;
+        let parsed: serde_json::Value = serde_json::from_slice(&resp_bytes)
+            .map_err(|e| format!("Invalid RequestResponse JSON from OBS: {e}"))?;
+        let op = parsed
+            .get("op")
+            .and_then(serde_json::Value::as_u64)
+            .unwrap_or(0);
+        if op == 7 {
+            break parsed;
+        }
+        // Discard Op 5 (Event) or heartbeat frames while awaiting RequestResponse
+    };
 
     if let Some(d) = resp.get("d") {
         let request_status = d.get("requestStatus");

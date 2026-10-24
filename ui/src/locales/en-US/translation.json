@@ -597,6 +597,7 @@
     "copied": "Copied to clipboard!",
     "download_json": "Download JSON Data",
     "open_report_tooltip": "Inspect Quality Control & Defect Report",
-    "close": "Close"
+    "close": "Close",
+    "default_standard": "BT.601 / NTSC"
   }
 }

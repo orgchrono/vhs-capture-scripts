@@ -211,20 +211,31 @@ pub fn build_post_qtgmc_video_filtergraph(spec: &PipelineSpec) -> String {
 pub fn build_audio_filtergraph(spec: &PipelineSpec) -> String {
     let mut filters: Vec<String> = Vec::new();
 
-    // P1.2: A/V sync clock-drift compensation on long tapes (up to 6 hours EP/SLP)
-    filters.push("aresample=async=1000:min_hard_comp=0.100000:first_pts=0".to_string());
+    // Audio offset compensation relative to video
+    if spec.audio_offset_sec > 0.001 {
+        let delay_ms = (spec.audio_offset_sec * 1000.0).round() as u64;
+        filters.push(format!("adelay=delays={delay_ms}|{delay_ms}:all=1"));
+    } else if spec.audio_offset_sec < -0.001 {
+        let trim_sec = (-spec.audio_offset_sec).abs();
+        filters.push(format!("atrim=start={trim_sec:.3},asetpts=PTS-STARTPTS"));
+    }
 
-    match spec.audio_policy {
-        AudioChannelPolicy::MonoLeft => {
-            filters.push("pan=stereo|c0=c0|c1=c0".to_string());
+    if spec.audio_policy != AudioChannelPolicy::Passthrough {
+        // P1.2: A/V sync clock-drift compensation on long tapes (up to 6 hours EP/SLP)
+        filters.push("aresample=async=1000:min_hard_comp=0.100000:first_pts=0".to_string());
+
+        match spec.audio_policy {
+            AudioChannelPolicy::MonoLeft => {
+                filters.push("pan=stereo|c0=c0|c1=c0".to_string());
+            }
+            AudioChannelPolicy::MonoRight => {
+                filters.push("pan=stereo|c0=c1|c1=c1".to_string());
+            }
+            AudioChannelPolicy::MonoSum => {
+                filters.push("pan=stereo|c0=0.5*c0+0.5*c1|c1=0.5*c0+0.5*c1".to_string());
+            }
+            AudioChannelPolicy::Stereo | AudioChannelPolicy::Passthrough => {}
         }
-        AudioChannelPolicy::MonoRight => {
-            filters.push("pan=stereo|c0=c1|c1=c1".to_string());
-        }
-        AudioChannelPolicy::MonoSum => {
-            filters.push("pan=stereo|c0=0.5*c0+0.5*c1|c1=0.5*c0+0.5*c1".to_string());
-        }
-        AudioChannelPolicy::Stereo | AudioChannelPolicy::Passthrough => {}
     }
 
     if spec.apply_audio_notch_hum {
@@ -393,19 +404,54 @@ pub fn build_audio_args(output_codec: OutputCodec) -> Vec<String> {
     }
 }
 
+/// Pure functional resolver for broadcast color primaries and VUI metadata.
+#[must_use]
+pub fn build_vui_args(target_1080p: bool, height: u32) -> Vec<String> {
+    if target_1080p {
+        vec![
+            "-color_primaries".to_string(),
+            "bt709".to_string(),
+            "-color_trc".to_string(),
+            "bt709".to_string(),
+            "-colorspace".to_string(),
+            "bt709".to_string(),
+        ]
+    } else if height > 500 {
+        // PAL 576i / 576p standard (BT.470BG)
+        vec![
+            "-color_primaries".to_string(),
+            "bt470bg".to_string(),
+            "-color_trc".to_string(),
+            "bt470bg".to_string(),
+            "-colorspace".to_string(),
+            "bt470bg".to_string(),
+        ]
+    } else {
+        // NTSC 480i / 480p standard (SMPTE 170M)
+        vec![
+            "-color_primaries".to_string(),
+            "smpte170m".to_string(),
+            "-color_trc".to_string(),
+            "smpte170m".to_string(),
+            "-colorspace".to_string(),
+            "smpte170m".to_string(),
+        ]
+    }
+}
+
 /// Constructs a complete, deterministic, immutable pipeline execution plan.
 #[must_use]
 pub fn build_pipeline_plan(spec: PipelineSpec) -> PipelinePlan {
     let video_vf = build_video_filtergraph(&spec);
     let audio_af = build_audio_filtergraph(&spec);
-    let enc_args = build_encoder_args(spec.output_codec, spec.encoder, spec.crf);
+    let mut enc_args = build_encoder_args(spec.output_codec, spec.encoder, spec.crf);
+    enc_args.extend(build_vui_args(spec.target_1080p, spec.height));
     let aud_args = build_audio_args(spec.output_codec);
 
     let mut timing = Vec::new();
-    let effective_audio_start = (spec.start_sec + spec.audio_offset_sec).max(0.0);
-    if effective_audio_start > 0.05 {
+    if spec.start_sec > 0.05 {
         timing.push("-ss".to_string());
-        timing.push(format!("{:.3}", effective_audio_start));
+        timing.push(format!("{:.3}", spec.start_sec));
     }
     if let Some(dur) = spec.duration_sec {
         if dur > 0.0 {
@@ -499,8 +545,33 @@ mod tests {
         let plan = build_pipeline_plan(spec);
         assert!(plan.video_filtergraph.contains("chromashift"));
         assert!(plan.audio_filtergraph.contains("loudnorm"));
+        assert!(plan.audio_filtergraph.contains("atrim=start=0.050"));
+        assert!(plan.encoder_args.contains(&"bt709".to_string()));
         assert_eq!(plan.output_path, "media/restored/tape_1080p.mp4");
         assert_eq!(plan.input_timing_args[0], "-ss");
-        assert_eq!(plan.input_timing_args[1], "66.483");
+        assert_eq!(plan.input_timing_args[1], "66.533");
+    }
+
+    #[test]
+    fn test_audio_passthrough_clean_returns_anull() {
+        let mut spec = dummy_spec();
+        spec.audio_policy = AudioChannelPolicy::Passthrough;
+        spec.apply_audio_notch_hum = false;
+        spec.apply_loudness_norm = false;
+        spec.audio_offset_sec = 0.0;
+        let af = build_audio_filtergraph(&spec);
+        assert_eq!(af, "anull");
+    }
+
+    #[test]
+    fn test_vui_args_bt709_and_smpte170m() {
+        let vui_hd = build_vui_args(true, 480);
+        assert_eq!(vui_hd[1], "bt709");
+
+        let vui_ntsc = build_vui_args(false, 480);
+        assert_eq!(vui_ntsc[1], "smpte170m");
+
+        let vui_pal = build_vui_args(false, 576);
+        assert_eq!(vui_pal[1], "bt470bg");
     }
 }

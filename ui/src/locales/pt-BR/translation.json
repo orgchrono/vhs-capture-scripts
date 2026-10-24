@@ -597,6 +597,7 @@
     "copied": "Copiado para a área de transferência!",
     "download_json": "Baixar Dados JSON",
     "open_report_tooltip": "Inspecionar Laudo de Controle de Qualidade e Defeitos",
-    "close": "Fechar"
+    "close": "Fechar",
+    "default_standard": "BT.601 / NTSC"
   }
 }

@@ -597,6 +597,7 @@
     "copied": "In die Zwischenablage kopiert!",
     "download_json": "JSON-Daten herunterladen",
     "open_report_tooltip": "Qualitätskontrolle & Fehlerbericht prüfen",
-    "close": "Schließen"
+    "close": "Schließen",
+    "default_standard": "BT.601 / NTSC"
   }
 }
