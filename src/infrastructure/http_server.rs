@@ -11,7 +11,7 @@ use crate::infrastructure::http_codec::{
     parse_request_head,
 };
 use crate::infrastructure::security::{is_safe_media_path, verify_api_request, SecurityVerdict};
-use crate::models::constants::{DEFAULT_STREAM_PROXY_FPS, MAX_HTTP_BODY_BYTES};
+use crate::models::constants::{DEFAULT_STREAM_PROXY_FPS, HTTP_READ_TIMEOUT_SECS, MAX_HTTP_BODY_BYTES};
 use crate::viewmodels::api_router::{dispatch_api_request_with_context, ApiRequest, ApiResponse};
 use crate::viewmodels::api_support::media_dirs;
 use serde_json::json;
@@ -43,6 +43,7 @@ pub fn launch_default_browser(url: &str) {
 
 /// Reads a complete HTTP/1.1 request head + body (respecting `Content-Length`).
 fn read_complete_request(stream: &mut TcpStream) -> Result<Vec<u8>, ()> {
+    let _ = stream.set_read_timeout(Some(Duration::from_secs(HTTP_READ_TIMEOUT_SECS)));
     let mut buffer = Vec::with_capacity(4096);
     let mut chunk = [0u8; 4096];
 
@@ -92,6 +93,7 @@ fn handle_sse_stream(
     ctx: &AppContext,
     allow_origin: Option<&str>,
 ) -> Result<(), ()> {
+    let _ = stream.set_read_timeout(None);
     let head = format_sse_head(allow_origin);
     stream.write_all(&head).map_err(|_| ())?;
 
@@ -148,6 +150,7 @@ fn handle_stream_proxy(
     target: &str,
     allow_origin: Option<&str>,
 ) -> Result<(), ()> {
+    let _ = stream.set_read_timeout(None);
     let source_param =
         crate::infrastructure::http_codec::query_param(target, "source").unwrap_or_default();
     let mode_param =

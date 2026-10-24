@@ -245,7 +245,14 @@ pub fn build_audio_filtergraph(spec: &PipelineSpec) -> String {
     }
 
     if spec.apply_audio_notch_hum {
-        filters.push("dcshift=shift=0,anequalizer=c0 f=60 w=5 g=-30|c1 f=60 w=5 g=-30".to_string());
+        let is_pal = (spec.height == 576 || spec.height == 288)
+            || (spec.fps >= 24.9 && spec.fps <= 25.1)
+            || (spec.fps >= 49.9 && spec.fps <= 50.1);
+        let hum_f = if is_pal { 50 } else { 60 };
+        let hum_2nd = hum_f * 2;
+        filters.push(format!(
+            "dcshift=shift=0,anequalizer=c0 f={hum_f} w=4 g=-30|c1 f={hum_f} w=4 g=-30,anequalizer=c0 f={hum_2nd} w=4 g=-20|c1 f={hum_2nd} w=4 g=-20"
+        ));
     }
 
     if spec.apply_loudness_norm {

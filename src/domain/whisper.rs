@@ -102,6 +102,26 @@ pub fn build_audio_extract_args(
     ]
 }
 
+/// Pure resolver disambiguating detected speech language with an explicit default language.
+#[must_use]
+pub fn disambiguate_speech_language_with_default(
+    detected_lang: &str,
+    prob: f32,
+    has_speech: bool,
+    default_lang: &str,
+) -> (String, bool) {
+    let def = if default_lang.trim().is_empty() {
+        "pt"
+    } else {
+        default_lang.trim()
+    };
+    if !has_speech || prob < 0.70 {
+        (def.to_ascii_lowercase(), true)
+    } else {
+        (detected_lang.trim().to_ascii_lowercase(), false)
+    }
+}
+
 /// Pure resolver disambiguating detected speech language to prevent tape noise hallucinations.
 #[must_use]
 pub fn disambiguate_speech_language(
@@ -109,11 +129,7 @@ pub fn disambiguate_speech_language(
     prob: f32,
     has_speech: bool,
 ) -> (String, bool) {
-    if !has_speech || prob < 0.70 {
-        ("pt".to_string(), true)
-    } else {
-        (detected_lang.trim().to_ascii_lowercase(), false)
-    }
+    disambiguate_speech_language_with_default(detected_lang, prob, has_speech, "pt")
 }
 
 #[cfg(test)]
@@ -193,5 +209,11 @@ mod tests {
         let (lang_no, ambig_no) = disambiguate_speech_language("en", 0.90, false);
         assert_eq!(lang_no, "pt");
         assert!(ambig_no);
+
+        // Custom default language
+        let (lang_custom, ambig_custom) =
+            disambiguate_speech_language_with_default("ja", 0.40, true, "en");
+        assert_eq!(lang_custom, "en");
+        assert!(ambig_custom);
     }
 }

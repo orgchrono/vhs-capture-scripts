@@ -6,22 +6,22 @@
 
 use serde::{Deserialize, Serialize};
 
-pub const OVERSCAN_BLANKING_HEIGHT_PX: u32 = 8;
-pub const AUDIO_NOTCH_HUM_FREQ_HZ: u32 = 60;
-pub const AUDIO_NOTCH_WIDTH_HZ: u32 = 2;
+pub const OVERSCAN_BLANKING_HEIGHT_PX: u32 = 16;
+pub const AUDIO_NOTCH_HUM_FREQ_HZ_NTSC: u32 = 60;
+pub const AUDIO_NOTCH_HUM_FREQ_HZ_PAL: u32 = 50;
+pub const AUDIO_NOTCH_WIDTH_HZ: u32 = 4;
 pub const AUDIO_NOTCH_ATTENUATION_DB: i32 = -30;
 pub const DEFAULT_AUDIO_DENOISE_NR_DB: f32 = 12.0;
 pub const DEFAULT_AUDIO_DENOISE_NF_DB: f32 = -50.0;
 
 pub const FILTER_DEDOT: &str = "dedot=m=dotcrawl+rainbows";
-pub const FILTER_CHROMA_SHIFT: &str = "chromashift=cbh=-1:cbv=1:crh=-1:crv=1";
-pub const FILTER_DENOISE: &str = "hqdn3d=2.0:1.5:3.0:2.5";
+pub const FILTER_CHROMA_SHIFT: &str = "chromashift=cbh=2:cbv=1:crh=2:crv=1:edge=smear";
+pub const FILTER_DENOISE: &str = "hqdn3d=4.0:3.0:6.0:4.5";
 pub const FILTER_DEINT_BWDIF_BOB: &str = "bwdif=mode=1:parity=-1:deint=1";
 pub const FILTER_DEINT_BWDIF_SINGLE: &str = "bwdif=mode=0:parity=-1:deint=1";
-pub const FILTER_DEINT_ZNEDI3: &str = "znedi3=weights=nnedi3_weights.bin:field=af";
-pub const FILTER_DEINT_NNEDI: &str = "nnedi=weights=nnedi3_weights.bin:field=af";
 pub const FILTER_DEINT_YADIF: &str = "yadif=mode=1:parity=-1:deint=1";
-pub const FILTER_UPSCALE_1080P: &str = "scale=1440:1080:flags=lanczos,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:black";
+pub const FILTER_UPSCALE_1080P: &str = "scale=1440:1080:flags=lanczos,colormatrix=bt601:bt709,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1";
+pub const FILTER_BROADCAST_LIMITER: &str = "limiter=min=16:max=235:planes=1,limiter=min=16:max=240:planes=6";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VideoFilterSpec {
@@ -50,9 +50,11 @@ impl Default for VideoFilterSpec {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AudioFilterSpec {
-    pub audio_mode: String, // "auto", "stereo", "mono_l", "mono_r"
+    pub audio_mode: String, // "auto", "stereo", "mono_l", "mono_r", "mono_sum"
     pub audio_treatment: bool,
     pub ai_audio_denoise: bool,
+    #[serde(default)]
+    pub is_pal: bool,
 }
 
 impl Default for AudioFilterSpec {
@@ -61,6 +63,7 @@ impl Default for AudioFilterSpec {
             audio_mode: "auto".to_string(),
             audio_treatment: true,
             ai_audio_denoise: false,
+            is_pal: false,
         }
     }
 }
@@ -85,10 +88,8 @@ pub struct MuxingSpec {
 #[must_use]
 pub fn resolve_deinterlace_filter(deinterlacer: &str) -> &'static str {
     match deinterlacer {
-        "bwdif" => FILTER_DEINT_BWDIF_BOB,
+        "bwdif" | "znedi3" | "nnedi3" | "nnedi" => FILTER_DEINT_BWDIF_BOB,
         "bwdif_single" => FILTER_DEINT_BWDIF_SINGLE,
-        "znedi3" | "nnedi3" => FILTER_DEINT_ZNEDI3,
-        "nnedi" => FILTER_DEINT_NNEDI,
         "yadif" => FILTER_DEINT_YADIF,
         _ => "",
     }
@@ -103,6 +104,7 @@ pub fn resolve_deinterlace_filter(deinterlacer: &str) -> &'static str {
 /// 5. Temporal denoise (clean spatio-temporal progressive moments)
 /// 6. Overscan blanking mask
 /// 7. 1080p Pillarbox upscale
+/// 8. Broadcast legalizer (EBU R103 / SMPTE 170M)
 #[must_use]
 pub fn build_video_filtergraph(spec: &VideoFilterSpec) -> String {
     let mut filters: Vec<String> = Vec::new();
@@ -145,6 +147,9 @@ pub fn build_video_filtergraph(spec: &VideoFilterSpec) -> String {
         filters.push(FILTER_UPSCALE_1080P.to_string());
     }
 
+    // 8. Post-deinterlace: Broadcast legalizer (EBU R103 / SMPTE 170M gamut compliance)
+    filters.push(FILTER_BROADCAST_LIMITER.to_string());
+
     if filters.is_empty() {
         "null".to_string()
     } else {
@@ -161,11 +166,19 @@ pub fn build_audio_filtergraph(spec: &AudioFilterSpec) -> String {
         filters.push("pan=stereo|c0=c0|c1=c0".to_string());
     } else if spec.audio_mode == "mono_r" {
         filters.push("pan=stereo|c0=c1|c1=c1".to_string());
+    } else if spec.audio_mode == "mono_sum" {
+        filters.push("pan=stereo|c0=0.5*c0+0.5*c1|c1=0.5*c0+0.5*c1".to_string());
     }
 
     if spec.audio_treatment {
+        let hum_f = if spec.is_pal {
+            AUDIO_NOTCH_HUM_FREQ_HZ_PAL
+        } else {
+            AUDIO_NOTCH_HUM_FREQ_HZ_NTSC
+        };
+        let hum_2nd = hum_f * 2;
         filters.push(format!(
-            "dcshift=shift=0,anequalizer=c0 f={AUDIO_NOTCH_HUM_FREQ_HZ} w={AUDIO_NOTCH_WIDTH_HZ} g={AUDIO_NOTCH_ATTENUATION_DB}|c1 f={AUDIO_NOTCH_HUM_FREQ_HZ} w={AUDIO_NOTCH_WIDTH_HZ} g={AUDIO_NOTCH_ATTENUATION_DB}"
+            "dcshift=shift=0,anequalizer=c0 f={hum_f} w={AUDIO_NOTCH_WIDTH_HZ} g={AUDIO_NOTCH_ATTENUATION_DB}|c1 f={hum_f} w={AUDIO_NOTCH_WIDTH_HZ} g={AUDIO_NOTCH_ATTENUATION_DB},anequalizer=c0 f={hum_2nd} w={AUDIO_NOTCH_WIDTH_HZ} g=-20|c1 f={hum_2nd} w={AUDIO_NOTCH_WIDTH_HZ} g=-20"
         ));
     }
 
@@ -349,12 +362,13 @@ mod tests {
         };
 
         let vf = build_video_filtergraph(&spec);
-        assert!(vf.contains("drawbox=y=ih-8"));
+        assert!(vf.contains("drawbox=y=ih-16"));
         assert!(vf.contains(FILTER_DEDOT));
         assert!(vf.contains(FILTER_CHROMA_SHIFT));
         assert!(vf.contains(FILTER_DENOISE));
         assert!(vf.contains(FILTER_DEINT_BWDIF_BOB));
         assert!(vf.contains(FILTER_UPSCALE_1080P));
+        assert!(vf.contains(FILTER_BROADCAST_LIMITER));
     }
 
     #[test]
@@ -363,12 +377,27 @@ mod tests {
             audio_mode: "mono_l".to_string(),
             audio_treatment: true,
             ai_audio_denoise: true,
+            is_pal: false,
         };
 
         let af = build_audio_filtergraph(&spec);
         assert!(af.contains("pan=stereo|c0=c0|c1=c0"));
         assert!(af.contains("anequalizer=c0 f=60"));
         assert!(af.contains("afftdn=nr=12.0"));
+    }
+
+    #[test]
+    fn test_build_audio_filtergraph_pal_notch() {
+        let spec = AudioFilterSpec {
+            audio_mode: "stereo".to_string(),
+            audio_treatment: true,
+            ai_audio_denoise: false,
+            is_pal: true,
+        };
+
+        let af = build_audio_filtergraph(&spec);
+        assert!(af.contains("anequalizer=c0 f=50"));
+        assert!(af.contains("f=100"));
     }
 
     #[test]
