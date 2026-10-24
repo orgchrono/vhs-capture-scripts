@@ -299,11 +299,11 @@ pub fn plan_restoration_job(
                 "-".to_string(),
             ]);
             // Audio is passed separately from source video (Input 1)
-            let audio_start = (request.start_sec + request.overrides.audio_offset_sec.unwrap_or(0.0)).max(0.0);
-            if audio_start > 0.05 {
+            // audio_offset_sec is handled strictly in build_audio_filtergraph via adelay/atrim
+            if request.start_sec > 0.05 {
                 ffmpeg_args.extend(vec![
                     "-ss".to_string(),
-                    format!("{:.3}", audio_start),
+                    format!("{:.3}", request.start_sec),
                 ]);
             }
             if let Some(dur) = request.duration_sec {
@@ -783,7 +783,7 @@ pub fn execute_restoration_job(
         }
     }
 
-    if !remux_succeeded && is_mp4 && !planned.ffmpeg_cli_args.is_empty() {
+    if !remux_succeeded && (is_mp4 || is_mov) && !planned.ffmpeg_cli_args.is_empty() {
         let mut remux_cmd = create_silent_command(Path::new(&planned.ffmpeg_cli_args[0]));
         remux_cmd.args([
             "-y",

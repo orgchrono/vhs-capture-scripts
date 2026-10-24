@@ -193,6 +193,7 @@ test.describe('Split Comparison & Timeline Slider E2E Study', () => {
 
     // Fill timestamp
     await timelineInput.fill('45');
+    await timelineInput.dispatchEvent('pointerup');
     await timelineInput.dispatchEvent('mouseup');
 
     const timelineInfo = page.getByTestId('split-timeline-info');

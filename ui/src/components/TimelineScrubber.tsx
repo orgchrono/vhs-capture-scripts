@@ -38,8 +38,10 @@ export const TimelineScrubber: React.FC<TimelineScrubberProps> = ({
         value={totalDuration > 0 ? Math.min(totalDuration, currentTimestamp) : currentTimestamp}
         disabled={disabled}
         onPointerDown={onScrubStart}
+        onMouseDown={onScrubStart}
         onChange={(e) => onScrubChange(Number(e.target.value))}
         onPointerUp={onScrubCommit}
+        onMouseUp={onScrubCommit}
         onKeyUp={onScrubCommit}
         className="w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-amber-400 disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 transition-all"
         style={{
