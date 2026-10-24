@@ -18,10 +18,11 @@ import { usePreferencesStore } from '../store/usePreferencesStore';
 import { SplitComparisonMonitor } from './SplitComparisonMonitor';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import type { SystemHealth } from '../types';
-import { formatBitrate, formatDuration } from '../lib/formatters';
+import { formatBitrate } from '../lib/formatters';
 import { useGetComparisonFrameQuery } from '../api/studioRtkApi';
 import { createTelemetryParser } from '../lib/telemetry';
 import { LiveEdgeIndicator } from './LiveEdgeIndicator';
+import { TimelineScrubber } from './TimelineScrubber';
 
 export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => {
   const { t } = useTranslation();
@@ -52,8 +53,15 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
 
   const liveSec = telemetry.currentSeconds;
   const rawTimestamp = previewTimestamp ?? 5.0;
-  const isAtLiveEdge = !isRestoring || Math.abs(rawTimestamp - liveSec) <= 2.0;
-  const currentTimestamp = isRestoring && isAtLiveEdge && liveSec > 0 ? liveSec : rawTimestamp;
+  const [isScrubbing, setIsScrubbing] = useState<boolean>(false);
+  const [scrubTimestamp, setScrubTimestamp] = useState<number>(rawTimestamp);
+  const displayTime = isScrubbing ? scrubTimestamp : rawTimestamp;
+  const isAtLiveEdge = !isRestoring || Math.abs(displayTime - liveSec) <= 2.0;
+  const currentTimestamp = isScrubbing
+    ? scrubTimestamp
+    : isRestoring && isAtLiveEdge && liveSec > 0
+    ? liveSec
+    : rawTimestamp;
 
   const [debouncedTimestamp, setDebouncedTimestamp] = useState<number>(currentTimestamp);
   useEffect(() => {
@@ -100,22 +108,26 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
     };
   }, [isPlaying, selectedFile, isActive, isRestoring, currentTimestamp, totalDuration, setPreviewTimestamp]);
 
+  const maxSeekLimit = totalDuration > 0 ? totalDuration : 3600;
+
   const handleSeek = (delta: number) => {
-    const nextTime = Math.max(0, Math.min(totalDuration, currentTimestamp + delta));
+    const current = isScrubbing ? scrubTimestamp : currentTimestamp;
+    const nextTime = Math.max(0, Math.min(maxSeekLimit, current + delta));
     setPreviewTimestamp(nextTime);
+    setScrubTimestamp(nextTime);
     setStreamAnchor(nextTime);
     setStreamKey((k) => k + 1);
   };
 
   const handleTimelineInput = (newTime: number) => {
-    const safeTime = totalDuration > 0
-      ? Math.max(0, Math.min(totalDuration, newTime))
-      : Math.max(0, newTime);
+    const safeTime = Math.max(0, Math.min(maxSeekLimit, newTime));
+    setScrubTimestamp(safeTime);
     setPreviewTimestamp(safeTime);
   };
 
   const handleTimelineCommit = () => {
-    setStreamAnchor(currentTimestamp);
+    const target = isScrubbing ? scrubTimestamp : currentTimestamp;
+    setStreamAnchor(target);
     setStreamKey((k) => k + 1);
   };
 
@@ -296,14 +308,12 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
             />
           ) : isPlaying ? (
             <img
-              key={`live-stream-${streamKey}`}
               src={`/api/monitor/stream-proxy?mode=processed&source=${encodeURIComponent(selectedFile)}&fps=15&timestamp=${streamAnchor}&k=${streamKey}`}
               alt={t('monitor.rendering_preview')}
               className="w-full h-full object-contain"
             />
           ) : (
             <img
-              key={`live-frame-${debouncedTimestamp}`}
               src={frameData?.processed_image || frameData?.raw_image || liveFrameSrc || thumbnailUrl}
               alt={t('monitor.rendering_preview')}
               className="w-full h-full object-contain opacity-90 transition-all duration-300"
@@ -430,33 +440,26 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
             />
           )}
 
-          <div className="flex-1 min-w-0 flex items-center gap-2.5">
-            <input
-              type="range"
-              min={0}
-              max={totalDuration > 0 ? totalDuration : Math.max(100, currentTimestamp)}
-              step={1}
-              value={totalDuration > 0 ? Math.min(totalDuration, currentTimestamp) : currentTimestamp}
-              disabled={!selectedFile}
-              onChange={(e) => handleTimelineInput(Number(e.target.value))}
-              onMouseUp={handleTimelineCommit}
-              onTouchEnd={handleTimelineCommit}
-              className="w-full h-1.5 bg-studio-surface rounded-lg appearance-none cursor-pointer accent-amber-400 disabled:opacity-40 disabled:cursor-not-allowed"
-              aria-label={t('monitor.timeline_scrubber')}
-              title={t('monitor.timeline_scrubber')}
-              data-testid="live-timeline-scrubber"
-            />
-            <span
-              className="text-[10px] text-slate-300 font-mono tabular-nums shrink-0 bg-studio-surface/90 px-2 py-0.5 rounded-xs border border-studio-border whitespace-nowrap"
-              data-testid="live-timeline-info"
-            >
-              {t('monitor.split_timeline_info', {
-                current: formatDuration(currentTimestamp),
-                total: formatDuration(totalDuration),
-                percent: progressPct,
-              })}
-            </span>
-          </div>
+          <TimelineScrubber
+            currentTimestamp={currentTimestamp}
+            totalDuration={totalDuration}
+            progressPct={progressPct}
+            disabled={!selectedFile}
+            onScrubStart={() => {
+              setIsScrubbing(true);
+              setScrubTimestamp(currentTimestamp);
+            }}
+            onScrubChange={(val) => {
+              setScrubTimestamp(val);
+              setPreviewTimestamp(val);
+            }}
+            onScrubCommit={() => {
+              setIsScrubbing(false);
+              handleTimelineCommit();
+            }}
+            inputTestId="live-timeline-scrubber"
+            infoTestId="live-timeline-info"
+          />
         </div>
       ) : (
         <div className="absolute bottom-2.5 right-2.5 z-20 flex items-center pointer-events-auto">
