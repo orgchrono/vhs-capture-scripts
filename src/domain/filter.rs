@@ -262,6 +262,10 @@ pub fn build_muxing_cli_args(
                 "3".to_string(),
                 "-g".to_string(),
                 "1".to_string(),
+                "-slices".to_string(),
+                "16".to_string(),
+                "-slicecrc".to_string(),
+                "1".to_string(),
                 "-pix_fmt".to_string(),
                 "yuv420p".to_string(),
             ]);

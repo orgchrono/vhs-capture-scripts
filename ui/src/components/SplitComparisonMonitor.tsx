@@ -163,7 +163,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | undefined;
-    if (activePlaying) {
+    if (activePlaying && totalDuration > 0) {
       interval = setInterval(() => {
         setTimestamp((prev) => {
           const next = prev >= totalDuration ? 0 : Math.round((prev + 1) * 10) / 10;
