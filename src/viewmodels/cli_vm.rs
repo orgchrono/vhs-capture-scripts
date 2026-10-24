@@ -400,6 +400,14 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
             .map(|p| p.to_string_lossy().to_string())
             .unwrap_or_else(|| "ffprobe".to_string());
 
+            let ffmpeg_bin = crate::infrastructure::toolchain::resolve_executable_path(
+                "ffmpeg",
+                cwd.as_deref(),
+                home,
+            )
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|| "ffmpeg".to_string());
+
             let probe =
                 match crate::infrastructure::probe::probe_media_file(input_path, &ffprobe_bin) {
                     Ok(p) => p,
@@ -409,54 +417,72 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
                     }
                 };
 
-            let mut assessment = crate::domain::qc::FileQcAssessment {
-                file_path: input_path.clone(),
-                width: probe.width,
-                height: probe.height,
-                duration_sec: probe.duration,
-                total_frames: probe.total_frames,
-                standard: probe.standard.clone(),
-                black_leader_sec: 0.0,
-                is_interlaced: probe.is_interlaced,
-                is_legal_broadcast: true,
-                total_dropout_frames: 0,
-                total_frozen_frames: 0,
-                min_luma: 16,
-                max_luma: 235,
-                avg_luma: 110.0,
-            };
-
-            if Path::new(&qc_json_path).is_file() {
+            let assessment = if Path::new(&qc_json_path).is_file() {
+                let mut base = crate::domain::qc::FileQcAssessment {
+                    file_path: input_path.clone(),
+                    width: probe.width,
+                    height: probe.height,
+                    duration_sec: probe.duration,
+                    total_frames: probe.total_frames,
+                    standard: probe.standard.clone(),
+                    black_leader_sec: 0.0,
+                    is_interlaced: probe.is_interlaced,
+                    is_legal_broadcast: true,
+                    total_dropout_frames: 0,
+                    total_frozen_frames: 0,
+                    min_luma: 16,
+                    max_luma: 235,
+                    avg_luma: 110.0,
+                };
                 if let Ok(c) = fs::read_to_string(&qc_json_path) {
                     if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&c) {
-                        if let Some(bl) =
-                            parsed.get("black_leader_sec").and_then(serde_json::Value::as_f64)
-                        {
-                            assessment.black_leader_sec = bl;
+                        let target_obj = if let Some(raw_obj) = parsed.get("raw") {
+                            if input_path.contains("_restored") {
+                                parsed.get("master").unwrap_or(raw_obj)
+                            } else {
+                                raw_obj
+                            }
+                        } else {
+                            &parsed
+                        };
+
+                        if let Some(bl) = target_obj.get("black_leader_sec").and_then(serde_json::Value::as_f64) {
+                            base.black_leader_sec = bl;
                         }
-                        if let Some(dropouts) =
-                            parsed.get("total_dropout_frames").and_then(serde_json::Value::as_u64)
-                        {
-                            assessment.total_dropout_frames = dropouts;
+                        if let Some(dropouts) = target_obj.get("total_dropout_frames").and_then(serde_json::Value::as_u64) {
+                            base.total_dropout_frames = dropouts;
                         }
-                        if let Some(frozen) =
-                            parsed.get("total_frozen_frames").and_then(serde_json::Value::as_u64)
-                        {
-                            assessment.total_frozen_frames = frozen;
+                        if let Some(frozen) = target_obj.get("total_frozen_frames").and_then(serde_json::Value::as_u64) {
+                            base.total_frozen_frames = frozen;
                         }
-                        if let Some(luma) =
-                            parsed.get("avg_luma").and_then(serde_json::Value::as_f64)
-                        {
-                            assessment.avg_luma = luma as f32;
+                        if let Some(luma) = target_obj.get("avg_luma").and_then(serde_json::Value::as_f64) {
+                            base.avg_luma = luma as f32;
                         }
-                        if let Some(legal) =
-                            parsed.get("is_legal_broadcast").and_then(serde_json::Value::as_bool)
-                        {
-                            assessment.is_legal_broadcast = legal;
+                        if let Some(legal) = target_obj.get("is_legal_broadcast").and_then(serde_json::Value::as_bool) {
+                            base.is_legal_broadcast = legal;
                         }
                     }
                 }
-            }
+                base
+            } else {
+                crate::infrastructure::probe::assess_media_file_qc(input_path, &ffprobe_bin, &ffmpeg_bin)
+                    .unwrap_or_else(|_| crate::domain::qc::FileQcAssessment {
+                        file_path: input_path.clone(),
+                        width: probe.width,
+                        height: probe.height,
+                        duration_sec: probe.duration,
+                        total_frames: probe.total_frames,
+                        standard: probe.standard.clone(),
+                        black_leader_sec: 0.0,
+                        is_interlaced: probe.is_interlaced,
+                        is_legal_broadcast: true,
+                        total_dropout_frames: 0,
+                        total_frozen_frames: 0,
+                        min_luma: 16,
+                        max_luma: 235,
+                        avg_luma: 110.0,
+                    })
+            };
 
             let report = crate::domain::qc::generate_qc_markdown_report(&assessment);
             println!("{report}");
