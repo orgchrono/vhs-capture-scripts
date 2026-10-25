@@ -13,6 +13,7 @@ use std::time::Instant;
 
 use serde::{Deserialize, Serialize};
 
+use crate::archive::{generate_bag_info_txt, generate_full_premis_v3_xml, PremisAgent, PremisEvent};
 use crate::fixity::compute_file_sha256_hex;
 use crate::media::{get_part_path, seconds_to_timecode};
 use crate::pipeline::{
@@ -243,7 +244,32 @@ pub fn plan_restoration_job(
         duration_sec: request.duration_sec,
     };
 
-    let plan = build_pipeline_plan(pipeline_spec.clone());
+    let mut plan = build_pipeline_plan(pipeline_spec.clone());
+
+    let cwd = std::env::current_dir().ok();
+    let home_str = std::env::var("USERPROFILE").or_else(|_| std::env::var("HOME")).ok();
+    let home = home_str.as_ref().map(Path::new);
+    let codeformer_installed = crate::infrastructure::toolchain::resolve_executable_path(
+        "codeformer",
+        cwd.as_deref(),
+        home,
+    )
+    .is_some();
+
+    if ov.ai_face_restore == Some(true) && !codeformer_installed {
+        let fidelity = ov.ai_face_fidelity.unwrap_or(0.7);
+        let face_filter = crate::domain::ai::build_face_restoration_filter(fidelity);
+        if plan.video_filtergraph.contains(",limiter=") {
+            plan.video_filtergraph =
+                plan.video_filtergraph.replace(",limiter=", &format!(",{face_filter},limiter="));
+        } else if plan.video_filtergraph.starts_with("limiter=") {
+            plan.video_filtergraph = format!("{face_filter},{}", plan.video_filtergraph);
+        } else if plan.video_filtergraph == "null" {
+            plan.video_filtergraph = face_filter.clone();
+        } else {
+            plan.video_filtergraph.push_str(&format!(",{face_filter}"));
+        }
+    }
 
     let is_qtgmc = (deinterlacer == DeinterlaceFilter::Qtgmc) && vspipe_path_opt.is_some();
     let mut qtgmc_vpy_content = None;
@@ -359,7 +385,20 @@ pub fn plan_restoration_job(
 
     // Video filters: downstream of QTGMC, apply post-deinterlace enhancements without duplicate deinterlace/comb
     if is_qtgmc {
-        let post_vf = crate::domain::pipeline::build_post_qtgmc_video_filtergraph(&pipeline_spec);
+        let mut post_vf = crate::domain::pipeline::build_post_qtgmc_video_filtergraph(&pipeline_spec);
+        if ov.ai_face_restore == Some(true) && !codeformer_installed {
+            let fidelity = ov.ai_face_fidelity.unwrap_or(0.7);
+            let face_filter = crate::domain::ai::build_face_restoration_filter(fidelity);
+            if post_vf.contains(",limiter=") {
+                post_vf = post_vf.replace(",limiter=", &format!(",{face_filter},limiter="));
+            } else if post_vf.starts_with("limiter=") {
+                post_vf = format!("{face_filter},{post_vf}");
+            } else if post_vf == "null" {
+                post_vf = face_filter;
+            } else {
+                post_vf.push_str(&format!(",{face_filter}"));
+            }
+        }
         if post_vf != "null" {
             ffmpeg_args.extend(vec!["-vf".to_string(), post_vf]);
         }
@@ -557,25 +596,32 @@ fn write_checkpoint(planned: &PlannedRestoration, status: &str, kept_frames: u64
 }
 
 fn update_live_restoration_frame(input_path: &str, current_sec: f64) {
-    let dirs = crate::viewmodels::api_support::media_dirs();
-    let live_frame_path = dirs.work.join("live_frame.jpg");
-    if let Some(ffmpeg) = crate::infrastructure::toolchain::resolve_executable_path("ffmpeg", None, None) {
-        let sec_str = format!("{:.2}", current_sec.max(0.0));
-        let _ = crate::infrastructure::toolchain::create_silent_command(&ffmpeg)
-            .args([
-                "-ss",
-                &sec_str,
-                "-i",
-                input_path,
-                "-frames:v",
-                "1",
-                "-q:v",
-                "3",
-                "-y",
-                &live_frame_path.to_string_lossy(),
-            ])
-            .status();
-    }
+    let input_path = input_path.to_string();
+    std::thread::spawn(move || {
+        let dirs = crate::viewmodels::api_support::media_dirs();
+        let live_frame_path = dirs.work.join("live_frame.jpg");
+        if let Some(ffmpeg) =
+            crate::infrastructure::toolchain::resolve_executable_path("ffmpeg", None, None)
+        {
+            let sec_str = format!("{:.2}", current_sec.max(0.0));
+            let _ = crate::infrastructure::toolchain::create_silent_command(&ffmpeg)
+                .args([
+                    "-ss",
+                    &sec_str,
+                    "-i",
+                    &input_path,
+                    "-vf",
+                    "bwdif=mode=0:parity=-1:deint=1",
+                    "-frames:v",
+                    "1",
+                    "-q:v",
+                    "3",
+                    "-y",
+                    &live_frame_path.to_string_lossy(),
+                ])
+                .status();
+        }
+    });
 }
 
 fn remove_checkpoint(planned: &PlannedRestoration) {
@@ -685,6 +731,13 @@ pub fn execute_restoration_job(
     let mut line_buf = String::new();
     let mut was_cancelled = false;
 
+    let job_start_sec = planned
+        .request_json
+        .as_deref()
+        .and_then(|j| serde_json::from_str::<RestorationJobRequest>(j).ok())
+        .map(|r| r.start_sec)
+        .unwrap_or(0.0);
+
     loop {
         line_buf.clear();
         match reader.read_line(&mut line_buf) {
@@ -706,7 +759,8 @@ pub fn execute_restoration_job(
                             accumulator.current_frame,
                             start_time.elapsed().as_secs_f64(),
                         );
-                        update_live_restoration_frame(&planned.input_path, snapshot.out_time_seconds);
+                        let current_sec = job_start_sec + snapshot.out_time_seconds;
+                        update_live_restoration_frame(&planned.input_path, current_sec);
                     }
                 }
 
@@ -878,6 +932,9 @@ pub fn execute_restoration_job(
 
     // 8. Generate Archival QC Report & Defect/Improvement Matrix
     emit_restoration_qc_reports(planned, &accumulator);
+
+    // 9. Generate OAIS SIP/AIP Preservation Sidecars (PREMIS v3, BagIt bag-info, manifest-sha256)
+    let _ = emit_oais_archival_sidecars(planned, &sha256);
 
     Ok(build_restoration_summary(
         planned,
@@ -1096,6 +1153,137 @@ fn emit_restoration_qc_reports(planned: &PlannedRestoration, _accumulator: &Prog
     let _ = fs::write(format!("{raw_stem}_defect_report.md"), &md);
 }
 
+fn emit_oais_archival_sidecars(
+    planned: &PlannedRestoration,
+    master_sha256: &str,
+) -> std::io::Result<()> {
+    let master_path = Path::new(&planned.final_output_path);
+    let master_size = fs::metadata(master_path).map(|m| m.len()).unwrap_or(0);
+    let source_path = Path::new(&planned.input_path);
+    let source_sha256 = compute_file_sha256_hex(source_path).unwrap_or_default();
+
+    let base_out = planned.final_output_path.clone();
+    let stem_path = base_out.rsplit_once('.').map(|(s, _)| s).unwrap_or(&base_out);
+
+    let now = crate::models::timestamp::now_iso8601();
+    let date_only = now.split('T').next().unwrap_or(&now).to_string();
+
+    let mut events = vec![PremisEvent {
+        event_id: format!("evt-ingest-{}", now.replace([':', '-'], "")),
+        event_type: "ingestion".to_string(),
+        event_datetime: now.clone(),
+        event_detail: format!("Native digital ingest of {}", planned.input_path),
+        event_outcome: "success".to_string(),
+        linking_agent_id: "agent-vhs-studio-pro".to_string(),
+    }];
+
+    if planned.is_qtgmc_active {
+        events.push(PremisEvent {
+            event_id: format!("evt-deint-{}", now.replace([':', '-'], "")),
+            event_type: "deinterlacing".to_string(),
+            event_datetime: now.clone(),
+            event_detail: "QTGMC 60p motion compensated temporal reconstruction".to_string(),
+            event_outcome: "success".to_string(),
+            linking_agent_id: "agent-vhs-studio-pro".to_string(),
+        });
+    } else {
+        events.push(PremisEvent {
+            event_id: format!("evt-deint-{}", now.replace([':', '-'], "")),
+            event_type: "deinterlacing".to_string(),
+            event_datetime: now.clone(),
+            event_detail: format!("Deinterlacing filter: {}", planned.plan.video_filtergraph),
+            event_outcome: "success".to_string(),
+            linking_agent_id: "agent-vhs-studio-pro".to_string(),
+        });
+    }
+
+    if planned.plan.audio_filtergraph != "anull" {
+        events.push(PremisEvent {
+            event_id: format!("evt-audio-{}", now.replace([':', '-'], "")),
+            event_type: "audio restoration".to_string(),
+            event_datetime: now.clone(),
+            event_detail: format!("Audio filtergraph: {}", planned.plan.audio_filtergraph),
+            event_outcome: "success".to_string(),
+            linking_agent_id: "agent-vhs-studio-pro".to_string(),
+        });
+    }
+
+    events.push(PremisEvent {
+        event_id: format!("evt-fixity-{}", now.replace([':', '-'], "")),
+        event_type: "fixity check".to_string(),
+        event_datetime: now,
+        event_detail: format!(
+            "Cryptographic SHA-256 fixity calculation for {}",
+            planned.final_output_path
+        ),
+        event_outcome: "success".to_string(),
+        linking_agent_id: "agent-vhs-studio-pro".to_string(),
+    });
+
+    let agents = vec![PremisAgent {
+        agent_id: "agent-vhs-studio-pro".to_string(),
+        agent_name: "VHS Studio Pro Native Engine v2.1.0".to_string(),
+        agent_type: "software".to_string(),
+    }];
+
+    let master_file_name = Path::new(&planned.final_output_path)
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy();
+    let source_file_name = Path::new(&planned.input_path)
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy();
+
+    // 1. Generate PREMIS v3 XML
+    let premis_xml = generate_full_premis_v3_xml(
+        &source_file_name,
+        &source_sha256,
+        &master_file_name,
+        master_size,
+        master_sha256,
+        &events,
+        &agents,
+    );
+    let premis_path = format!("{stem_path}_premis.xml");
+    fs::write(&premis_path, &premis_xml)?;
+
+    // 2. Generate BagIt bag-info.txt
+    let bag_info = generate_bag_info_txt(
+        "VHS Studio Pro Archival Lab",
+        "OAIS Archival Master Package",
+        master_size,
+        1,
+        &date_only,
+    );
+    let bag_info_path = format!("{stem_path}_bag-info.txt");
+    fs::write(&bag_info_path, &bag_info)?;
+
+    // 3. Generate manifest-sha256.txt
+    let premis_sha256 = compute_file_sha256_hex(Path::new(&premis_path)).unwrap_or_default();
+    let bag_info_sha256 = compute_file_sha256_hex(Path::new(&bag_info_path)).unwrap_or_default();
+    let master_file_name = Path::new(&planned.final_output_path)
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy();
+    let premis_file_name = Path::new(&premis_path)
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy();
+    let bag_info_file_name = Path::new(&bag_info_path)
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy();
+
+    let manifest_content = format!(
+        "{master_sha256}  {master_file_name}\n{premis_sha256}  {premis_file_name}\n{bag_info_sha256}  {bag_info_file_name}\n"
+    );
+    let manifest_path = format!("{stem_path}_manifest-sha256.txt");
+    fs::write(&manifest_path, &manifest_content)?;
+
+    Ok(())
+}
+
 fn execute_neural_post_chain(
     master_path: &str,
     planned: &PlannedRestoration,
@@ -1112,6 +1300,10 @@ fn execute_neural_post_chain(
     };
 
     let ov = &req.overrides;
+    let ext = Path::new(master_path)
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("mp4");
 
     // 1. Real-ESRGAN / Real-CUGAN Neural Upscaler
     if ov.ai_upscaler == Some(true) {
@@ -1143,7 +1335,7 @@ fn execute_neural_post_chain(
                     "[AI-POST] Executing Real-ESRGAN neural upscaler (model: {model_name})..."
                 ));
             }
-            let intermediate_output = format!("{master_path}.esrgan.tmp.mp4");
+            let intermediate_output = format!("{master_path}.esrgan.tmp.{ext}");
             let params = crate::domain::ai::RealEsrganParams {
                 input_path: master_path.to_string(),
                 output_path: intermediate_output.clone(),
@@ -1191,7 +1383,7 @@ fn execute_neural_post_chain(
                     fidelity
                 ));
             }
-            let intermediate_output = format!("{master_path}.codeformer.tmp.mp4");
+            let intermediate_output = format!("{master_path}.codeformer.tmp.{ext}");
             let params = crate::domain::ai::CodeFormerParams {
                 input_path: master_path.to_string(),
                 output_path: intermediate_output.clone(),
@@ -1244,7 +1436,7 @@ fn execute_neural_post_chain(
             if let Some(l) = listener {
                 l.on_log("[AI-POST] Executing RIFE neural frame interpolation to 60fps...");
             }
-            let intermediate_output = format!("{master_path}.rife.tmp.mp4");
+            let intermediate_output = format!("{master_path}.rife.tmp.{ext}");
             let params = crate::domain::ai::RifeParams {
                 input_path: master_path.to_string(),
                 output_path: intermediate_output.clone(),
@@ -1620,5 +1812,93 @@ mod tests {
 
         let captured = logs.lock().unwrap().clone();
         assert!(captured.iter().any(|msg| msg.contains("[AI-POST]")));
+    }
+
+    #[test]
+    fn test_plan_restoration_job_ai_face_restore_filter_injection() {
+        let req = RestorationJobRequest {
+            input_path: "tape.mkv".to_string(),
+            output_dir: "restored".to_string(),
+            preset: RestorationPreset::Gold,
+            target_1080p: false,
+            output_codec: None,
+            custom_deinterlacer: Some(DeinterlaceFilter::None),
+            audio_policy: None,
+            apply_audio_notch_hum: false,
+            apply_loudness_norm: false,
+            apply_ai_audio_denoise: false,
+            apply_azimuth_correction: false,
+            start_sec: 0.0,
+            base_start_sec: None,
+            duration_sec: Some(5.0),
+            overrides: RestorationOverrides {
+                ai_face_restore: Some(true),
+                ai_face_fidelity: Some(0.8),
+                ..Default::default()
+            },
+        };
+        let probe = dummy_probe();
+        let planned = plan_restoration_job(&req, &probe, None, "ffmpeg.exe").unwrap();
+        assert!(planned.plan.video_filtergraph.contains("cas="));
+        assert!(planned.plan.video_filtergraph.contains("unsharp="));
+        assert!(planned.plan.video_filtergraph.contains("limiter="));
+    }
+
+    #[test]
+    fn test_emit_oais_archival_sidecars() {
+        let temp_dir = std::env::temp_dir().join(format!("vhs_test_oais_sidecars_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&temp_dir);
+        fs::create_dir_all(&temp_dir).expect("create temp dir");
+
+        let input_file = temp_dir.join("raw_tape.mkv");
+        let master_file = temp_dir.join("master_tape.mov");
+        fs::write(&input_file, b"RAW_SOURCE_DATA").expect("write input");
+        fs::write(&master_file, b"ARCHIVAL_MASTER_DATA").expect("write master");
+
+        let planned = PlannedRestoration {
+            input_path: input_file.to_string_lossy().to_string(),
+            final_output_path: master_file.to_string_lossy().to_string(),
+            part_output_path: format!("{}.part", master_file.to_string_lossy()),
+            plan: PipelinePlan {
+                video_filtergraph: "bwdif=mode=1".to_string(),
+                audio_filtergraph: "anull".to_string(),
+                encoder_args: vec![],
+                audio_args: vec![],
+                input_timing_args: vec![],
+                output_path: master_file.to_string_lossy().to_string(),
+            },
+            is_qtgmc_active: false,
+            qtgmc_vpy_content: None,
+            qtgmc_vpy_path: None,
+            ffmpeg_cli_args: vec![],
+            vspipe_cli_args: None,
+            expected_frames: 100,
+            expected_duration_sec: 10.0,
+            request_json: None,
+        };
+
+        emit_oais_archival_sidecars(&planned, "master_hash_123456").expect("emit sidecars");
+
+        let premis_file = temp_dir.join("master_tape_premis.xml");
+        let bag_info_file = temp_dir.join("master_tape_bag-info.txt");
+        let manifest_file = temp_dir.join("master_tape_manifest-sha256.txt");
+
+        assert!(premis_file.is_file());
+        assert!(bag_info_file.is_file());
+        assert!(manifest_file.is_file());
+
+        let premis_content = fs::read_to_string(&premis_file).unwrap();
+        assert!(premis_content.contains("<objectIdentifierValue>master_tape.mov</objectIdentifierValue>"));
+        assert!(premis_content.contains("master_hash_123456"));
+
+        let bag_info_content = fs::read_to_string(&bag_info_file).unwrap();
+        assert!(bag_info_content.contains("Source-Organization: VHS Studio Pro Archival Lab"));
+
+        let manifest_content = fs::read_to_string(&manifest_file).unwrap();
+        assert!(manifest_content.contains("master_hash_123456  master_tape.mov"));
+        assert!(manifest_content.contains("master_tape_premis.xml"));
+        assert!(manifest_content.contains("master_tape_bag-info.txt"));
+
+        let _ = fs::remove_dir_all(&temp_dir);
     }
 }

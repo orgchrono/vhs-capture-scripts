@@ -4,13 +4,16 @@
 
 use std::env;
 use std::fs;
-use std::io::{self, Read};
+use std::io;
 use std::path::Path;
 
+use serde::{Deserialize, Serialize};
+
 use crate::domain::archive::{
-    generate_bagit_declaration, generate_bagit_manifest, ArchivalFileEntry,
+    generate_bag_info_txt, generate_bagit_declaration, generate_bagit_manifest,
+    generate_full_premis_v3_xml, ArchivalFileEntry, PremisAgent, PremisEvent,
 };
-use crate::domain::fixity::compute_sha256_hex;
+use crate::domain::fixity::compute_file_sha256_hex;
 use crate::domain::qtgmc::{build_qtgmc_script_content, FieldOrder, QtgmcScriptParams};
 use crate::infrastructure::executor::{RestorationJobRequest, RestorationOverrides};
 use crate::infrastructure::hardware::detect_system_ram_gb;
@@ -81,6 +84,7 @@ pub fn print_usage() {
     println!("  probe-panasonic <PATH>     Inspect Panasonic DVR / MEIHDFS / DVD-VR header");
     println!("  qtgmc-script <INPUT>       Generate high-performance VapourSynth QTGMC script");
     println!("  bagit-manifest <DIR>       Generate RFC 8493 BagIt manifest for target directory");
+    println!("  oais-package <DIR> [O] [D] Package directory into OAIS SIP/AIP with BagIt and PREMIS");
     println!("  timecode <SECONDS>         Format seconds as broadcast timecode HH:MM:SS.mmm");
     println!(
         "  install-ffmpeg <MGR>       Display package manager installation command for FFmpeg"
@@ -146,10 +150,8 @@ pub fn collect_entries(
                     .unwrap_or(&path)
                     .to_string_lossy()
                     .to_string();
-                let mut f = fs::File::open(&path)?;
-                let mut buf = Vec::new();
-                f.read_to_end(&mut buf)?;
-                let hex = compute_sha256_hex(&buf);
+                let hex = crate::domain::fixity::compute_file_sha256_hex(&path)
+                    .map_err(io::Error::other)?;
                 let meta = fs::metadata(&path)?;
                 entries.push(ArchivalFileEntry {
                     relative_path: rel,
@@ -160,6 +162,147 @@ pub fn collect_entries(
         }
     }
     Ok(())
+}
+
+/// Summary report for an OAIS SIP/AIP archival directory package.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct OaisPackageSummary {
+    pub package_path: String,
+    pub total_files: usize,
+    pub total_bytes: u64,
+    pub manifest_file: String,
+    pub bag_info_file: String,
+    pub premis_file: String,
+}
+
+/// Packages a target directory into an OAIS SIP/AIP package with BagIt RFC 8493 and PREMIS v3 metadata.
+pub fn package_oais_directory(
+    target_dir: &Path,
+    source_org: &str,
+    description: &str,
+) -> Result<OaisPackageSummary, Box<dyn std::error::Error>> {
+    if !target_dir.is_dir() {
+        return Err(format!("'{}' is not a directory.", target_dir.display()).into());
+    }
+
+    let mut entries = Vec::new();
+    collect_entries(target_dir, target_dir, &mut entries)?;
+
+    // Filter out metadata sidecars if re-packaging to avoid recursive self-hashing
+    entries.retain(|e| {
+        let name = Path::new(&e.relative_path)
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or_default();
+        name != "manifest-sha256.txt"
+            && name != "bagit.txt"
+            && name != "bag-info.txt"
+            && name != "premis.xml"
+    });
+
+    let total_bytes: u64 = entries.iter().map(|e| e.size_bytes).sum();
+    let total_files = entries.len();
+
+    // 1. Generate BagIt declaration
+    let bagit_path = target_dir.join("bagit.txt");
+    fs::write(&bagit_path, generate_bagit_declaration())?;
+
+    // 2. Generate BagIt manifest
+    let manifest_path = target_dir.join("manifest-sha256.txt");
+    let mut manifest_content = String::new();
+    for entry in &entries {
+        let clean_path = entry.relative_path.replace('\\', "/");
+        manifest_content.push_str(&format!("{}  {}\n", entry.sha256_hex, clean_path));
+    }
+    fs::write(&manifest_path, &manifest_content)?;
+
+    // 3. Generate BagIt bag-info.txt
+    let now = crate::models::timestamp::now_iso8601();
+    let date_only = now.split('T').next().unwrap_or(&now);
+    let bag_info_content = generate_bag_info_txt(
+        source_org,
+        description,
+        total_bytes,
+        total_files,
+        date_only,
+    );
+    let bag_info_path = target_dir.join("bag-info.txt");
+    fs::write(&bag_info_path, &bag_info_content)?;
+
+    // 4. Generate PREMIS v3 XML
+    let (master_name, master_size, master_sha) = entries
+        .iter()
+        .max_by_key(|e| e.size_bytes)
+        .map(|e| (e.relative_path.clone(), e.size_bytes, e.sha256_hex.clone()))
+        .unwrap_or_else(|| ("master_media".to_string(), 0, String::new()));
+
+    let source_entry = entries
+        .iter()
+        .find(|e| {
+            let lower = e.relative_path.to_lowercase();
+            lower.contains("source") || lower.contains("raw")
+        })
+        .or_else(|| entries.first());
+
+    let (source_name, source_sha) = match source_entry {
+        Some(e) => (e.relative_path.clone(), e.sha256_hex.clone()),
+        None => (master_name.clone(), master_sha.clone()),
+    };
+
+    let events = vec![
+        PremisEvent {
+            event_id: format!("evt-ingest-{}", now.replace([':', '-'], "")),
+            event_type: "ingestion".to_string(),
+            event_datetime: now.clone(),
+            event_detail: format!("OAIS SIP/AIP packaging for {source_org}: {description}"),
+            event_outcome: "success".to_string(),
+            linking_agent_id: "agent-vhs-studio-pro".to_string(),
+        },
+        PremisEvent {
+            event_id: format!("evt-fixity-{}", now.replace([':', '-'], "")),
+            event_type: "fixity check".to_string(),
+            event_datetime: now,
+            event_detail: format!(
+                "Cryptographic SHA-256 fixity calculation across {total_files} package files"
+            ),
+            event_outcome: "success".to_string(),
+            linking_agent_id: "agent-vhs-studio-pro".to_string(),
+        },
+    ];
+
+    let agents = vec![
+        PremisAgent {
+            agent_id: "agent-vhs-studio-pro".to_string(),
+            agent_name: "VHS Studio Pro Native Engine v2.1.0".to_string(),
+            agent_type: "software".to_string(),
+        },
+        PremisAgent {
+            agent_id: "agent-org".to_string(),
+            agent_name: source_org.to_string(),
+            agent_type: "organization".to_string(),
+        },
+    ];
+
+    let premis_content = generate_full_premis_v3_xml(
+        &source_name,
+        &source_sha,
+        &master_name,
+        master_size,
+        &master_sha,
+        &events,
+        &agents,
+    );
+    let premis_path = target_dir.join("premis.xml");
+    fs::write(&premis_path, &premis_content)?;
+
+    Ok(OaisPackageSummary {
+        package_path: target_dir.to_string_lossy().to_string(),
+        total_files,
+        total_bytes,
+        manifest_file: manifest_path.to_string_lossy().to_string(),
+        bag_info_file: bag_info_path.to_string_lossy().to_string(),
+        premis_file: premis_path.to_string_lossy().to_string(),
+    })
 }
 
 /// Dispatches command line arguments to the appropriate ViewModel/service.
@@ -200,10 +343,8 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
                     std::process::exit(1);
                 }
             };
-            let mut file = fs::File::open(path_str)?;
-            let mut buffer = Vec::new();
-            file.read_to_end(&mut buffer)?;
-            let digest = compute_sha256_hex(&buffer);
+            let digest = compute_file_sha256_hex(Path::new(path_str))
+                .map_err(io::Error::other)?;
             println!("{digest}  {path_str}");
         }
         "probe-panasonic" => {
@@ -266,6 +407,34 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
             collect_entries(dir, dir, &mut entries)?;
             let manifest = generate_bagit_manifest(&entries);
             println!("{manifest}");
+        }
+        "oais-package" => {
+            let dir_str = match args.get(2) {
+                Some(d) => d,
+                None => {
+                    eprintln!(
+                        "Error: Missing directory argument. Usage: vhs-studio oais-package <TARGET_DIR> [ORGANIZATION] [DESCRIPTION]"
+                    );
+                    std::process::exit(1);
+                }
+            };
+            let org = args
+                .get(3)
+                .map(String::as_str)
+                .unwrap_or("VHS Studio Archival Lab");
+            let desc = args
+                .get(4)
+                .map(String::as_str)
+                .unwrap_or("OAIS SIP/AIP Preserved Video Package");
+
+            let summary = match package_oais_directory(Path::new(dir_str), org, desc) {
+                Ok(s) => s,
+                Err(e) => {
+                    eprintln!("Error packaging OAIS directory '{dir_str}': {e}");
+                    std::process::exit(1);
+                }
+            };
+            println!("{}", serde_json::to_string_pretty(&summary)?);
         }
         "timecode" => {
             let sec_str = match args.get(2) {
@@ -1057,4 +1226,49 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_package_oais_directory_workflow() {
+        let temp_dir = std::env::temp_dir().join(format!("vhs_test_oais_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&temp_dir);
+        fs::create_dir_all(&temp_dir).expect("create temp dir");
+
+        let test_file = temp_dir.join("tape_master.mkv");
+        fs::write(&test_file, b"DUMMY_ARCHIVAL_CONTAINER_PAYLOAD").expect("write test file");
+
+        let summary = package_oais_directory(
+            &temp_dir,
+            "National Archives Audiovisual Lab",
+            "Family VHS Archival Master 1994",
+        )
+        .expect("package directory");
+
+        assert_eq!(summary.total_files, 1);
+        assert_eq!(summary.total_bytes, 32);
+
+        let manifest_path = temp_dir.join("manifest-sha256.txt");
+        assert!(manifest_path.exists());
+        let manifest_content = fs::read_to_string(&manifest_path).unwrap();
+        assert!(manifest_content.contains("tape_master.mkv"));
+
+        let bag_info_path = temp_dir.join("bag-info.txt");
+        assert!(bag_info_path.exists());
+        let bag_info_content = fs::read_to_string(&bag_info_path).unwrap();
+        assert!(bag_info_content.contains("Source-Organization: National Archives Audiovisual Lab"));
+        assert!(bag_info_content.contains("Payload-Oxum: 32.1"));
+
+        let premis_path = temp_dir.join("premis.xml");
+        assert!(premis_path.exists());
+        let premis_content = fs::read_to_string(&premis_path).unwrap();
+        assert!(premis_content.contains("<objectIdentifierValue>tape_master.mkv</objectIdentifierValue>"));
+        assert!(premis_content.contains("<eventType>ingestion</eventType>"));
+        assert!(premis_content.contains("<eventType>fixity check</eventType>"));
+
+        let _ = fs::remove_dir_all(&temp_dir);
+    }
 }

@@ -84,6 +84,7 @@ const steps: LintStep[] = [
 
 function runStep(step: LintStep): Promise<StepResult> {
   return new Promise((resolve) => {
+    logger.info(`[Step Start] ${step.name}...`);
     const isWindows: boolean = process.platform === 'win32';
     let child: ChildProcess;
 
@@ -110,15 +111,31 @@ function runStep(step: LintStep): Promise<StepResult> {
       output += d.toString();
     });
 
-    child.on('close', (code: number | null) => {
+    let settled = false;
+    const finish = (code: number | null) => {
+      if (settled) return;
+      settled = true;
+      const passed = code === 0;
+      logger.info(`[Step Finish] ${step.name} -> ${passed ? 'PASSED' : 'FAILED'}`);
       resolve({
         step,
-        passed: code === 0,
+        passed,
         output,
       });
+    };
+
+    child.on('close', (code: number | null) => {
+      finish(code);
+    });
+
+    child.on('exit', (code: number | null) => {
+      setTimeout(() => finish(code), 250);
     });
 
     child.on('error', (err: Error) => {
+      if (settled) return;
+      settled = true;
+      logger.error(`[Step Error] ${step.name}: ${err.message}`);
       resolve({
         step,
         passed: false,
