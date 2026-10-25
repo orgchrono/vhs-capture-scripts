@@ -676,7 +676,7 @@ mod tests {
         let _ = fs::write(&chk_path, serde_json::to_string(&chk_json).unwrap());
 
         // Scan
-        let jobs = scan_incomplete_jobs(&[restored_dir.clone()], &[raw_dir.clone()]);
+        let jobs = scan_incomplete_jobs(std::slice::from_ref(&restored_dir), std::slice::from_ref(&raw_dir));
         assert_eq!(jobs.len(), 1);
         assert_eq!(jobs[0].job_id, "home_movie_restored");
         assert_eq!(jobs[0].processed_frames, 1000);
@@ -684,7 +684,7 @@ mod tests {
         assert!(jobs[0].can_resume);
 
         // Check existing
-        let check = check_existing_restoration(&raw_tape, &[restored_dir.clone()], &[raw_dir.clone()], &restored_dir);
+        let check = check_existing_restoration(&raw_tape, std::slice::from_ref(&restored_dir), std::slice::from_ref(&raw_dir), &restored_dir);
         assert!(check.has_existing);
         assert_eq!(check.r#type, Some("partial".to_string()));
 

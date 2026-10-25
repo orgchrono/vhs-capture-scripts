@@ -12,6 +12,24 @@ pub const DEFAULT_API_PORT: u16 = 8088;
 /// Default OBS Studio WebSocket v5 port.
 pub const DEFAULT_OBS_WS_PORT: u16 = 4455;
 
+/// OBS auto-watcher polling interval in milliseconds (250 ms).
+pub const OBS_WATCHER_POLL_INTERVAL_MS: u64 = 250;
+
+/// Minimum signal duration in seconds to trigger auto-start recording (100 ms).
+pub const OBS_WATCHER_START_CONFIRM_SEC: f64 = 0.10;
+
+/// Blank / blue screen silence duration in seconds to trigger auto-stop recording (3.5 seconds).
+pub const OBS_WATCHER_STOP_BLANK_CONFIRM_SEC: f64 = 3.50;
+
+/// Quiet scene duration in seconds before stopping recording (scene protection, 25.0 seconds).
+pub const OBS_WATCHER_STOP_QUIET_SCENE_SEC: f64 = 25.0;
+
+/// Screenshot thumbnail width in pixels for OBS auto-watcher frame analysis.
+pub const OBS_WATCHER_THUMBNAIL_WIDTH_PX: u32 = 16;
+
+/// Screenshot thumbnail height in pixels for OBS auto-watcher frame analysis.
+pub const OBS_WATCHER_THUMBNAIL_HEIGHT_PX: u32 = 12;
+
 /// Default streaming chunk size (8 MiB) for multipart cloud uploads.
 pub const DEFAULT_UPLOAD_CHUNK_BYTES: u64 = 8 * 1024 * 1024;
 

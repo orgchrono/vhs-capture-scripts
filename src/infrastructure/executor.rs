@@ -382,7 +382,11 @@ pub fn plan_restoration_job(
     };
     let expected_duration = request.duration_sec.unwrap_or(raw_duration);
     let fps_multiplier = match deinterlacer {
-        DeinterlaceFilter::Qtgmc | DeinterlaceFilter::BwdifBob | DeinterlaceFilter::Yadif => 2.0,
+        DeinterlaceFilter::Qtgmc
+        | DeinterlaceFilter::BwdifBob
+        | DeinterlaceFilter::Znedi3
+        | DeinterlaceFilter::Nnedi3
+        | DeinterlaceFilter::Yadif => 2.0,
         _ => 1.0,
     };
     let expected_frames = (expected_duration * probe.fps * fps_multiplier).round() as u64;

@@ -156,7 +156,7 @@ mod tests {
 
     #[test]
     fn classifies_blackout_frame() {
-        let blackout = vec![128_u8, 16_u8, 128_u8, 16_u8].repeat(1024);
+        let blackout = [128_u8, 16_u8, 128_u8, 16_u8].repeat(1024);
         let metrics = classify_uyvy422_frame(&blackout, 4);
         assert_eq!(metrics.classification, SignalState::Blackout);
     }
@@ -164,7 +164,7 @@ mod tests {
     #[test]
     fn classifies_vcr_bluescreen_dropout() {
         // High U (blue chroma >= 155), low V (<= 115), flat luma variance
-        let bluescreen = vec![200_u8, 70_u8, 90_u8, 70_u8].repeat(1024);
+        let bluescreen = [200_u8, 70_u8, 90_u8, 70_u8].repeat(1024);
         let metrics = classify_uyvy422_frame(&bluescreen, 4);
         assert_eq!(metrics.classification, SignalState::BlueScreenDropout);
     }
@@ -177,7 +177,7 @@ mod tests {
             let y1 = ((i * 73) % 200 + 30) as u8;
             active.extend_from_slice(&[128, y0, 128, y1]);
         }
-        let blackout = vec![128_u8, 16_u8, 128_u8, 16_u8].repeat(1024);
+        let blackout = [128_u8, 16_u8, 128_u8, 16_u8].repeat(1024);
 
         let counters = TbcHoldCounters::new();
         let (c1, out1, m1) = evaluate_tbc_frame(counters, &active, None);
