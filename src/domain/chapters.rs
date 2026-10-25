@@ -94,11 +94,14 @@ fn format_ms_to_webvtt(ms: u64) -> String {
 #[must_use]
 pub fn format_ms_to_smpte_timecode(ms: u64, fps: f64) -> String {
     let effective_fps = if fps > 0.0 { fps } else { 29.97 };
-    let total_sec = ms as f64 / 1000.0;
-    let total_frames = (total_sec * effective_fps).round() as u64;
     let fps_base = effective_fps.round().max(1.0) as u64;
-    let frames = total_frames % fps_base;
-    let total_seconds = total_frames / fps_base;
+    let mut total_seconds = ms / 1000;
+    let sub_sec_ms = ms % 1000;
+    let mut frames = (((sub_sec_ms as f64) / 1000.0) * (fps_base as f64)).round() as u64;
+    if frames >= fps_base {
+        frames = 0;
+        total_seconds += 1;
+    }
     let secs = total_seconds % 60;
     let mins = (total_seconds / 60) % 60;
     let hours = total_seconds / 3600;
@@ -204,5 +207,12 @@ Scene Number,Frame Number (Start),Timecode (Start),Seconds (Start),Frame Number 
         assert!(csv.starts_with("#,Timecode In,Timecode Out,Name,Color,Notes\n"));
         assert!(csv.contains("1,00:00:00:00,00:00:01:00,Take 1,Blue,Scene transition detected by VHS Studio Pro\n"));
         assert!(csv.contains("2,00:00:01:01,00:00:02:00,Take 2,Blue,Scene transition detected by VHS Studio Pro\n"));
+    }
+
+    #[test]
+    fn test_smpte_timecode_zero_drift_1_hour() {
+        assert_eq!(format_ms_to_smpte_timecode(3_600_000, 29.97), "01:00:00:00");
+        assert_eq!(format_ms_to_smpte_timecode(20_000, 29.97), "00:00:20:00");
+        assert_eq!(format_ms_to_smpte_timecode(7_200_000, 29.97), "02:00:00:00");
     }
 }

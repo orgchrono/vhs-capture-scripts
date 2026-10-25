@@ -46,4 +46,10 @@ describe('BroadcastScopes Component', () => {
     fireEvent.click(screen.getByTestId('close-scopes-btn'));
     expect(handleClose).toHaveBeenCalledTimes(1);
   });
+
+  it('renders dynamic LUFS audio meter values accurately', () => {
+    render(<BroadcastScopes lufsLeft={-18.5} lufsRight={-21.2} />);
+    expect(screen.getByText('-18.5 LUFS')).toBeInTheDocument();
+    expect(screen.getByText('-21.2 LUFS')).toBeInTheDocument();
+  });
 });

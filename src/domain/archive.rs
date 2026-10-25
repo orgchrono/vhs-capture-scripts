@@ -12,6 +12,25 @@ pub struct ArchivalFileEntry {
     pub size_bytes: u64,
 }
 
+/// PREMIS v3 event record documenting digital preservation actions and custody transitions.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PremisEvent {
+    pub event_id: String,
+    pub event_type: String, // e.g., "ingestion", "deinterlacing", "restoration_filtering", "fixity check"
+    pub event_datetime: String,
+    pub event_detail: String,
+    pub event_outcome: String, // e.g., "success"
+    pub linking_agent_id: String,
+}
+
+/// PREMIS v3 agent record representing hardware, software, or organizations performing archival actions.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PremisAgent {
+    pub agent_id: String,
+    pub agent_name: String, // e.g., "VHS Studio Pro Native Engine v2.1.0"
+    pub agent_type: String, // e.g., "software"
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TapeSidecarMetadata {
     pub version: String,
@@ -64,6 +83,132 @@ pub fn generate_premis_v3_xml(
 </premis>
 "#
     )
+}
+
+/// Pure BagIt `bag-info.txt` generator complying with RFC 8493.
+#[must_use]
+pub fn generate_bag_info_txt(
+    source_organization: &str,
+    external_description: &str,
+    payload_oxum_bytes: u64,
+    file_count: usize,
+    bagging_date: &str,
+) -> String {
+    format!(
+        "Bag-Software-Agent: VHS Studio Pro v2.1.0\nBagging-Date: {bagging_date}\nSource-Organization: {source_organization}\nExternal-Description: {external_description}\nPayload-Oxum: {payload_oxum_bytes}.{file_count}\n"
+    )
+}
+
+/// Pure PREMIS v3 XML generator representing complete OAIS derivation relationship, events, and agents.
+#[must_use]
+pub fn generate_full_premis_v3_xml(
+    source_file: &str,
+    source_sha256: &str,
+    master_file: &str,
+    master_size: u64,
+    master_sha256: &str,
+    events: &[PremisEvent],
+    agents: &[PremisAgent],
+) -> String {
+    let mut xml = String::from(
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<premis xmlns="http://www.loc.gov/premis/v3" version="3.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+"#,
+    );
+
+    // Source Object
+    xml.push_str(&format!(
+        r#"  <object xsi:type="file">
+    <objectIdentifier>
+      <objectIdentifierType>local</objectIdentifierType>
+      <objectIdentifierValue>{source_file}</objectIdentifierValue>
+    </objectIdentifier>
+    <objectCharacteristics>
+      <fixity>
+        <messageDigestAlgorithm>SHA-256</messageDigestAlgorithm>
+        <messageDigest>{source_sha256}</messageDigest>
+      </fixity>
+    </objectCharacteristics>
+    <originalName>{source_file}</originalName>
+  </object>
+"#
+    ));
+
+    // Master Object (with derivation relationship to source)
+    xml.push_str(&format!(
+        r#"  <object xsi:type="file">
+    <objectIdentifier>
+      <objectIdentifierType>local</objectIdentifierType>
+      <objectIdentifierValue>{master_file}</objectIdentifierValue>
+    </objectIdentifier>
+    <objectCharacteristics>
+      <size>{master_size}</size>
+      <fixity>
+        <messageDigestAlgorithm>SHA-256</messageDigestAlgorithm>
+        <messageDigest>{master_sha256}</messageDigest>
+      </fixity>
+    </objectCharacteristics>
+    <originalName>{master_file}</originalName>
+    <relationship>
+      <relationshipType>derivation</relationshipType>
+      <relationshipSubType>has source</relationshipSubType>
+      <relatedObjectIdentifier>
+        <relatedObjectIdentifierType>local</relatedObjectIdentifierType>
+        <relatedObjectIdentifierValue>{source_file}</relatedObjectIdentifierValue>
+      </relatedObjectIdentifier>
+    </relationship>
+  </object>
+"#
+    ));
+
+    // Preservation Events
+    for ev in events {
+        xml.push_str(&format!(
+            r#"  <event>
+    <eventIdentifier>
+      <eventIdentifierType>local</eventIdentifierType>
+      <eventIdentifierValue>{}</eventIdentifierValue>
+    </eventIdentifier>
+    <eventType>{}</eventType>
+    <eventDateTime>{}</eventDateTime>
+    <eventDetailInformation>
+      <eventDetail>{}</eventDetail>
+    </eventDetailInformation>
+    <eventOutcomeInformation>
+      <eventOutcome>{}</eventOutcome>
+    </eventOutcomeInformation>
+    <linkingAgentIdentifier>
+      <linkingAgentIdentifierType>local</linkingAgentIdentifierType>
+      <linkingAgentIdentifierValue>{}</linkingAgentIdentifierValue>
+    </linkingAgentIdentifier>
+    <linkingObjectIdentifier>
+      <linkingObjectIdentifierType>local</linkingObjectIdentifierType>
+      <linkingObjectIdentifierValue>{master_file}</linkingObjectIdentifierValue>
+    </linkingObjectIdentifier>
+  </event>
+"#,
+            ev.event_id, ev.event_type, ev.event_datetime, ev.event_detail, ev.event_outcome, ev.linking_agent_id
+        ));
+    }
+
+    // Preservation Agents
+    for ag in agents {
+        xml.push_str(&format!(
+            r#"  <agent>
+    <agentIdentifier>
+      <agentIdentifierType>local</agentIdentifierType>
+      <agentIdentifierValue>{}</agentIdentifierValue>
+    </agentIdentifier>
+    <agentName>{}</agentName>
+    <agentType>{}</agentType>
+  </agent>
+"#,
+            ag.agent_id, ag.agent_name, ag.agent_type
+        ));
+    }
+
+    xml.push_str("</premis>\n");
+    xml
 }
 
 /// Pure tape sidecar metadata JSON generator.
@@ -164,6 +309,70 @@ mod tests {
         assert!(!evaluate_321_compliance(2, 2, true));
         // Not enough media diversity
         assert!(!evaluate_321_compliance(3, 1, true));
+    }
+
+    #[test]
+    fn test_generate_bag_info_txt() {
+        let txt = generate_bag_info_txt(
+            "Library of Congress AV Preservation",
+            "Archival Master Tape Package",
+            104857600,
+            3,
+            "2026-10-25",
+        );
+        assert!(txt.contains("Source-Organization: Library of Congress AV Preservation"));
+        assert!(txt.contains("External-Description: Archival Master Tape Package"));
+        assert!(txt.contains("Payload-Oxum: 104857600.3"));
+        assert!(txt.contains("Bagging-Date: 2026-10-25"));
+    }
+
+    #[test]
+    fn test_generate_full_premis_v3_xml() {
+        let events = vec![
+            PremisEvent {
+                event_id: "evt-001".to_string(),
+                event_type: "ingestion".to_string(),
+                event_datetime: "2026-10-25T00:00:00Z".to_string(),
+                event_detail: "Capture ingest from Panasonic AG-7750".to_string(),
+                event_outcome: "success".to_string(),
+                linking_agent_id: "agent-001".to_string(),
+            },
+            PremisEvent {
+                event_id: "evt-002".to_string(),
+                event_type: "deinterlacing".to_string(),
+                event_datetime: "2026-10-25T00:10:00Z".to_string(),
+                event_detail: "QTGMC 60p motion compensated reconstruction".to_string(),
+                event_outcome: "success".to_string(),
+                linking_agent_id: "agent-001".to_string(),
+            },
+        ];
+
+        let agents = vec![
+            PremisAgent {
+                agent_id: "agent-001".to_string(),
+                agent_name: "VHS Studio Pro Native Engine v2.1.0".to_string(),
+                agent_type: "software".to_string(),
+            },
+        ];
+
+        let xml = generate_full_premis_v3_xml(
+            "tape_raw.mkv",
+            "1111222233334444",
+            "tape_master.mkv",
+            50000000,
+            "5555666677778888",
+            &events,
+            &agents,
+        );
+
+        assert!(xml.contains("<objectIdentifierValue>tape_raw.mkv</objectIdentifierValue>"));
+        assert!(xml.contains("<messageDigest>1111222233334444</messageDigest>"));
+        assert!(xml.contains("<objectIdentifierValue>tape_master.mkv</objectIdentifierValue>"));
+        assert!(xml.contains("<relationshipType>derivation</relationshipType>"));
+        assert!(xml.contains("<relationshipSubType>has source</relationshipSubType>"));
+        assert!(xml.contains("<eventType>ingestion</eventType>"));
+        assert!(xml.contains("<eventType>deinterlacing</eventType>"));
+        assert!(xml.contains("<agentName>VHS Studio Pro Native Engine v2.1.0</agentName>"));
     }
 }
 

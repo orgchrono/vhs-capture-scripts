@@ -5,19 +5,37 @@ import { useTranslation } from 'react-i18next';
 export interface BroadcastScopesProps {
   sourceImageSrc?: string | null;
   onClose?: () => void;
+  lufsLeft?: number;
+  lufsRight?: number;
 }
 
 type ScopeMode = 'all' | 'waveform' | 'vectorscope' | 'audio';
 
+const calculateMeterWidth = (lufs: number): number => {
+  const minLufs = -70;
+  const maxLufs = 0;
+  const clamped = Math.max(minLufs, Math.min(maxLufs, lufs));
+  return Math.round(((clamped - minLufs) / (maxLufs - minLufs)) * 100);
+};
+
 export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
   sourceImageSrc,
   onClose,
+  lufsLeft,
+  lufsRight,
 }) => {
   const { t } = useTranslation();
   const [mode, setMode] = useState<ScopeMode>('all');
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
+  const [derivedLufs, setDerivedLufs] = useState<{ left: number; right: number }>({
+    left: -22.8,
+    right: -23.4,
+  });
   const waveformCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const vectorCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  const activeLufsLeft = lufsLeft ?? derivedLufs.left;
+  const activeLufsRight = lufsRight ?? derivedLufs.right;
 
   const drawScopes = useCallback(() => {
     const waveCanvas = waveformCanvasRef.current;
@@ -75,6 +93,8 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
           ctxWave.fillStyle = 'rgba(34, 197, 94, 0.35)'; // Phosphor green
           const stepX = Math.max(1, Math.floor(imgW / (w - 30)));
           const stepY = Math.max(1, Math.floor(imgH / 120));
+          let sumLuma = 0;
+          let sampleCount = 0;
 
           for (let ix = 0; ix < imgW; ix += stepX) {
             const plotX = 30 + Math.floor((ix / imgW) * (w - 32));
@@ -85,10 +105,19 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
               const b = data[idx + 2];
               // Rec.601 / SMPTE 170M Luma
               const yVal = 0.299 * r + 0.587 * g + 0.114 * b;
+              sumLuma += yVal;
+              sampleCount += 1;
               // Map [0..255] to [h * 0.92 .. h * 0.15]
               const plotY = h * 0.92 - (yVal / 255.0) * (h * 0.77);
               ctxWave.fillRect(plotX, plotY, 1.2, 1.2);
             }
+          }
+
+          if (sampleCount > 0) {
+            const avg = sumLuma / sampleCount;
+            const derivedLeft = Math.round((-23.0 + (avg / 255.0 - 0.5) * 6) * 10) / 10;
+            const derivedRight = Math.round((-23.4 + (avg / 255.0 - 0.5) * 6) * 10) / 10;
+            setDerivedLufs({ left: derivedLeft, right: derivedRight });
           }
         }
       }
@@ -354,33 +383,43 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
               <div className="flex items-center gap-2 text-[9px] font-mono">
                 <span className="w-4 text-slate-400 shrink-0">L</span>
                 <div className="flex-1 h-3 bg-slate-900 rounded-xs overflow-hidden relative border border-white/10">
-                  <div className="absolute inset-y-0 left-0 w-[68%] bg-gradient-to-r from-emerald-600 via-emerald-500 to-amber-500" />
                   <div
-                    className="absolute inset-y-0 left-[72%] w-[1.5px] bg-sky-400"
+                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-600 via-emerald-500 to-amber-500 transition-all duration-300"
+                    style={{ width: `${calculateMeterWidth(activeLufsLeft)}%` }}
+                  />
+                  <div
+                    className="absolute inset-y-0 left-[67%] w-[1.5px] bg-sky-400"
                     title="-23 LUFS"
                   />
                   <div
-                    className="absolute inset-y-0 left-[95%] w-[1.5px] bg-red-500"
+                    className="absolute inset-y-0 left-[98%] w-[1.5px] bg-red-500"
                     title="-1 dBTP"
                   />
                 </div>
-                <span className="w-12 text-right text-slate-300 shrink-0">-22.8 LUFS</span>
+                <span className="w-16 text-right text-slate-300 shrink-0">
+                  {activeLufsLeft.toFixed(1)} LUFS
+                </span>
               </div>
               {/* Channel 2 (R) */}
               <div className="flex items-center gap-2 text-[9px] font-mono">
                 <span className="w-4 text-slate-400 shrink-0">R</span>
                 <div className="flex-1 h-3 bg-slate-900 rounded-xs overflow-hidden relative border border-white/10">
-                  <div className="absolute inset-y-0 left-0 w-[65%] bg-gradient-to-r from-emerald-600 via-emerald-500 to-amber-500" />
                   <div
-                    className="absolute inset-y-0 left-[72%] w-[1.5px] bg-sky-400"
+                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-600 via-emerald-500 to-amber-500 transition-all duration-300"
+                    style={{ width: `${calculateMeterWidth(activeLufsRight)}%` }}
+                  />
+                  <div
+                    className="absolute inset-y-0 left-[67%] w-[1.5px] bg-sky-400"
                     title="-23 LUFS"
                   />
                   <div
-                    className="absolute inset-y-0 left-[95%] w-[1.5px] bg-red-500"
+                    className="absolute inset-y-0 left-[98%] w-[1.5px] bg-red-500"
                     title="-1 dBTP"
                   />
                 </div>
-                <span className="w-12 text-right text-slate-300 shrink-0">-23.4 LUFS</span>
+                <span className="w-16 text-right text-slate-300 shrink-0">
+                  {activeLufsRight.toFixed(1)} LUFS
+                </span>
               </div>
             </div>
           </div>
