@@ -15,6 +15,7 @@ pub const DEFAULT_AUDIO_DENOISE_NR_DB: f32 = 12.0;
 pub const DEFAULT_AUDIO_DENOISE_NF_DB: f32 = -50.0;
 
 pub const FILTER_DEDOT: &str = "dedot=m=dotcrawl+rainbows";
+pub const FILTER_DROPOUT_CLEAN: &str = "removegrain=m=1,tmedian=radius=1";
 pub const FILTER_CHROMA_SHIFT: &str = "chromashift=cbh=2:cbv=1:crh=2:crv=1:edge=smear";
 pub const FILTER_DENOISE: &str = "hqdn3d=4.0:3.0:6.0:4.5";
 pub const FILTER_DEINT_BWDIF_BOB: &str = "bwdif=mode=1:parity=-1:deint=1";
@@ -120,9 +121,9 @@ pub fn build_video_filtergraph(spec: &VideoFilterSpec) -> String {
         filters.push(deint.to_string());
     }
 
-    // 3. Post-deinterlace: Spatial grain/dropout removal
+    // 3. Post-deinterlace: Spatial grain/dropout removal with temporal line hold (Software TBC)
     if spec.apply_dropout_clean {
-        filters.push("removegrain=m=1".to_string());
+        filters.push(FILTER_DROPOUT_CLEAN.to_string());
     }
 
     // 4. Post-deinterlace: Chroma phase alignment
@@ -217,7 +218,7 @@ pub fn build_muxing_cli_args(
         "-".to_string(),
     ];
 
-    let a_start_sec = (spec.start_sec + spec.audio_offset).max(0.0);
+    let a_start_sec = spec.start_sec.max(0.0);
     if a_start_sec > 0.05 {
         cmd.extend(vec!["-ss".to_string(), format!("{a_start_sec:.3}")]);
     }
@@ -299,14 +300,8 @@ pub fn build_muxing_cli_args(
     }
 
     // Color metadata
-    cmd.extend(vec![
-        "-color_primaries".to_string(),
-        "smpte170m".to_string(),
-        "-color_trc".to_string(),
-        "bt709".to_string(),
-        "-colorspace".to_string(),
-        "smpte170m".to_string(),
-    ]);
+    let is_1080p = spec.height >= 1080;
+    cmd.extend(crate::domain::pipeline::build_vui_args(is_1080p, spec.height));
 
     // Audio codec
     if spec.output_codec == "prores" || spec.output_codec == "ffv1" {

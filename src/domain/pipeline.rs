@@ -83,6 +83,8 @@ pub struct PipelineSpec {
     pub audio_policy: AudioChannelPolicy,
     pub apply_audio_notch_hum: bool,
     pub apply_loudness_norm: bool,
+    #[serde(default)]
+    pub apply_ai_audio_denoise: bool,
     pub start_sec: f64,
     pub audio_offset_sec: f64,
     pub duration_sec: Option<f64>,
@@ -139,9 +141,9 @@ pub fn build_video_filtergraph(spec: &PipelineSpec) -> String {
         DeinterlaceFilter::None => {}
     }
 
-    // 3. Post-deinterlace: Spatial grain/dropout removal
+    // 3. Post-deinterlace: Spatial grain/dropout removal with temporal line hold (Software TBC)
     if spec.apply_dropout_clean {
-        filters.push("removegrain=m=1".to_string());
+        filters.push("removegrain=m=1,tmedian=radius=1".to_string());
     }
 
     // 4. Post-deinterlace: Chroma phase alignment (VHS color smear correction)
@@ -182,7 +184,7 @@ pub fn build_post_qtgmc_video_filtergraph(spec: &PipelineSpec) -> String {
     let mut filters: Vec<String> = Vec::new();
 
     if spec.apply_dropout_clean {
-        filters.push("removegrain=m=1".to_string());
+        filters.push("removegrain=m=1,tmedian=radius=1".to_string());
     }
 
     if spec.apply_chroma_fix {
@@ -258,6 +260,11 @@ pub fn build_audio_filtergraph(spec: &PipelineSpec) -> String {
     if spec.apply_loudness_norm {
         // EBU R128 integrated loudness normalization
         filters.push("loudnorm=I=-23:LRA=7:tp=-1.5".to_string());
+    }
+
+    if spec.apply_ai_audio_denoise {
+        // AI / FFT speech and background noise reduction
+        filters.push("afftdn=nr=12.0:nf=-50.0:tn=1".to_string());
     }
 
     if filters.is_empty() {
@@ -511,6 +518,7 @@ mod tests {
             audio_policy: AudioChannelPolicy::MonoLeft,
             apply_audio_notch_hum: true,
             apply_loudness_norm: true,
+            apply_ai_audio_denoise: false,
             start_sec: 66.533,
             audio_offset_sec: -0.05,
             duration_sec: Some(1200.0),
@@ -590,5 +598,17 @@ mod tests {
 
         let vui_pal = build_vui_args(false, 576);
         assert_eq!(vui_pal[1], "bt470bg");
+    }
+
+    #[test]
+    fn test_tbc_dropout_clean_and_ai_audio_denoise() {
+        let mut spec = dummy_spec();
+        spec.apply_dropout_clean = true;
+        spec.apply_ai_audio_denoise = true;
+        let vf = build_video_filtergraph(&spec);
+        assert!(vf.contains("removegrain=m=1,tmedian=radius=1"));
+
+        let af = build_audio_filtergraph(&spec);
+        assert!(af.contains("afftdn=nr=12.0:nf=-50.0:tn=1"));
     }
 }

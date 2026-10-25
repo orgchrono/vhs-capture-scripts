@@ -23,6 +23,8 @@ pub struct QtgmcScriptParams {
     pub cache_size_mb: usize,
     pub trim_start_frame: Option<usize>,
     pub trim_length_frames: Option<usize>,
+    #[serde(default)]
+    pub apply_tbc_hold: bool,
 }
 
 impl Default for QtgmcScriptParams {
@@ -37,6 +39,7 @@ impl Default for QtgmcScriptParams {
             cache_size_mb: 4000,
             trim_start_frame: None,
             trim_length_frames: None,
+            apply_tbc_hold: false,
         }
     }
 }
@@ -61,6 +64,21 @@ pub fn build_qtgmc_script_content(params: &QtgmcScriptParams) -> String {
         (Some(first), None) => format!("clip = clip.std.Trim(first={first})\n"),
         (None, Some(length)) => format!("clip = clip.std.Trim(first=0, length={length})\n"),
         (None, None) => String::new(),
+    };
+
+    let tbc_hold_str = if params.apply_tbc_hold {
+        r#"
+# TBC FRAME-HOLD: FREEZE SEVERE SIGNAL DROPOUTS
+import functools
+def _tbc_eval(n, f, c):
+    if f.props.get('PlaneStatsAverage', 1.0) <= 0.0705:
+        return c[max(0, n - 1)]
+    return c[n]
+_stats = core.std.PlaneStats(clip)
+clip = core.std.FrameEval(clip, functools.partial(_tbc_eval, c=clip), prop_src=_stats)
+"#
+    } else {
+        ""
     };
 
     let threads = params.thread_count.max(1);
@@ -96,7 +114,7 @@ edi_mode = "NNEDI3" if hasattr(core, 'nnedi3') else ("znedi3" if hasattr(core, '
     FPSDivisor={fps_divisor},
     EdiMode=edi_mode
 )
-
+{tbc_hold_str}
 clip.set_output()
 "#,
         threads = threads,
@@ -106,7 +124,8 @@ clip.set_output()
         comb_str = comb_str,
         preset = params.preset,
         tff_str = tff_str,
-        fps_divisor = fps_divisor
+        fps_divisor = fps_divisor,
+        tbc_hold_str = tbc_hold_str
     )
 }
 
@@ -138,6 +157,7 @@ mod tests {
             cache_size_mb: 4000,
             trim_start_frame: None,
             trim_length_frames: None,
+            apply_tbc_hold: false,
         };
 
         let script = build_qtgmc_script_content(&params);
@@ -170,5 +190,17 @@ mod tests {
     fn test_builds_vspipe_cli_args() {
         let args = build_vspipe_cli_args("vspipe.exe", "restore.vpy");
         assert_eq!(args, vec!["vspipe.exe", "-c", "y4m", "restore.vpy", "-"]);
+    }
+
+    #[test]
+    fn test_builds_qtgmc_script_with_tbc_hold() {
+        let params = QtgmcScriptParams {
+            apply_tbc_hold: true,
+            ..Default::default()
+        };
+        let script = build_qtgmc_script_content(&params);
+        assert!(script.contains("TBC FRAME-HOLD"));
+        assert!(script.contains("PlaneStatsAverage"));
+        assert!(script.contains("FrameEval"));
     }
 }

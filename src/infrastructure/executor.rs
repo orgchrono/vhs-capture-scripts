@@ -56,6 +56,8 @@ pub struct RestorationJobRequest {
     #[serde(default)]
     pub apply_loudness_norm: bool,
     #[serde(default)]
+    pub apply_ai_audio_denoise: bool,
+    #[serde(default)]
     pub start_sec: f64,
     #[serde(default)]
     pub base_start_sec: Option<f64>,
@@ -79,6 +81,7 @@ pub struct PlannedRestoration {
     pub vspipe_cli_args: Option<Vec<String>>,
     pub expected_frames: u64,
     pub expected_duration_sec: f64,
+    pub request_json: Option<String>,
 }
 
 /// Completed restoration telemetry report.
@@ -220,6 +223,7 @@ pub fn plan_restoration_job(
         audio_policy,
         apply_audio_notch_hum: request.apply_audio_notch_hum,
         apply_loudness_norm: request.apply_loudness_norm,
+        apply_ai_audio_denoise: request.apply_ai_audio_denoise,
         start_sec: request.start_sec,
         audio_offset_sec: ov.audio_offset_sec.unwrap_or(0.0),
         duration_sec: request.duration_sec,
@@ -284,6 +288,7 @@ pub fn plan_restoration_job(
             cache_size_mb: 4000,
             trim_start_frame,
             trim_length_frames,
+            apply_tbc_hold: request.preset == RestorationPreset::TbcHold || ov.dropout_clean.unwrap_or(false),
         };
 
         let content = build_qtgmc_script_content(&qtgmc_params);
@@ -394,6 +399,7 @@ pub fn plan_restoration_job(
         vspipe_cli_args: vspipe_cli,
         expected_frames,
         expected_duration_sec: expected_duration,
+        request_json: serde_json::to_string(request).ok(),
     })
 }
 
@@ -519,6 +525,7 @@ fn write_checkpoint(planned: &PlannedRestoration, status: &str, kept_frames: u64
         total_expected_frames: Some(planned.expected_frames),
         elapsed_seconds: Some(elapsed),
         fps: Some(fps),
+        request_json: planned.request_json.clone(),
     };
     let clean_base = planned
         .final_output_path
@@ -1128,6 +1135,7 @@ mod tests {
             audio_policy: Some(AudioChannelPolicy::MonoLeft),
             apply_audio_notch_hum: true,
             apply_loudness_norm: true,
+            apply_ai_audio_denoise: false,
             start_sec: 10.0,
             base_start_sec: None,
             duration_sec: Some(60.0),
@@ -1155,6 +1163,7 @@ mod tests {
             audio_policy: Some(AudioChannelPolicy::MonoLeft),
             apply_audio_notch_hum: true,
             apply_loudness_norm: true,
+            apply_ai_audio_denoise: false,
             start_sec: 10.0,
             base_start_sec: None,
             duration_sec: Some(60.0),
@@ -1187,6 +1196,7 @@ mod tests {
             audio_policy: None,
             apply_audio_notch_hum: false,
             apply_loudness_norm: false,
+            apply_ai_audio_denoise: false,
             start_sec: 0.0,
             base_start_sec: None,
             duration_sec: Some(100.0),
@@ -1226,6 +1236,7 @@ mod tests {
             audio_policy: None,
             apply_audio_notch_hum: false,
             apply_loudness_norm: false,
+            apply_ai_audio_denoise: false,
             start_sec: 0.0,
             base_start_sec: None,
             duration_sec: Some(10.0),
@@ -1252,6 +1263,7 @@ mod tests {
             audio_policy: None,
             apply_audio_notch_hum: false,
             apply_loudness_norm: false,
+            apply_ai_audio_denoise: false,
             start_sec: 0.0,
             base_start_sec: None,
             duration_sec: Some(10.0),

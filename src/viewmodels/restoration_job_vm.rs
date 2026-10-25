@@ -93,6 +93,7 @@ mod tests {
             audio_policy: None,
             apply_audio_notch_hum: false,
             apply_loudness_norm: false,
+            apply_ai_audio_denoise: false,
             start_sec: 0.0,
             base_start_sec: None,
             duration_sec: None,

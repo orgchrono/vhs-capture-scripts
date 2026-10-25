@@ -29,6 +29,8 @@ pub struct CheckpointData {
     pub total_expected_frames: Option<u64>,
     pub elapsed_seconds: Option<f64>,
     pub fps: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub request_json: Option<String>,
 }
 
 /// Diagnostic descriptor of an interrupted or in-progress restoration job.
@@ -137,6 +139,7 @@ mod tests {
             total_expected_frames: Some(3600),
             elapsed_seconds: Some(60.2),
             fps: Some(60.0),
+            request_json: None,
         };
 
         let assess = assess_checkpoint("tape".to_string(), &data, true);
@@ -159,6 +162,7 @@ mod tests {
             total_expected_frames: Some(3600),
             elapsed_seconds: Some(120.0),
             fps: Some(60.0),
+            request_json: None,
         };
 
         let assess = assess_checkpoint("tape".to_string(), &data, true);
