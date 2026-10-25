@@ -41,6 +41,56 @@ pub fn base64_encode(data: &[u8]) -> String {
     out
 }
 
+/// Standard RFC 4648 Base64 decoder implemented in pure Rust without external dependencies.
+pub fn base64_decode(input: &str) -> Result<Vec<u8>, String> {
+    let clean: Vec<u8> = input
+        .bytes()
+        .filter(|&b| !b.is_ascii_whitespace())
+        .collect();
+    if clean.is_empty() {
+        return Ok(Vec::new());
+    }
+    if clean.len() % 4 != 0 {
+        return Err("Invalid Base64 length".to_string());
+    }
+
+    let decode_byte = |b: u8| -> Result<u8, String> {
+        match b {
+            b'A'..=b'Z' => Ok(b - b'A'),
+            b'a'..=b'z' => Ok(b - b'a' + 26),
+            b'0'..=b'9' => Ok(b - b'0' + 52),
+            b'+' => Ok(62),
+            b'/' => Ok(63),
+            _ => Err(format!("Invalid Base64 character: {b}")),
+        }
+    };
+
+    let mut out = Vec::with_capacity((clean.len() / 4) * 3);
+    for chunk in clean.chunks_exact(4) {
+        let pad_count = chunk.iter().filter(|&&b| b == b'=').count();
+        if pad_count > 2 || (pad_count > 0 && chunk[3] != b'=') || (pad_count == 2 && chunk[2] != b'=') {
+            return Err("Invalid Base64 padding".to_string());
+        }
+
+        let b0 = decode_byte(chunk[0])?;
+        let b1 = decode_byte(chunk[1])?;
+        let b2 = if chunk[2] == b'=' { 0 } else { decode_byte(chunk[2])? };
+        let b3 = if chunk[3] == b'=' { 0 } else { decode_byte(chunk[3])? };
+
+        let n = ((b0 as u32) << 18) | ((b1 as u32) << 12) | ((b2 as u32) << 6) | (b3 as u32);
+
+        out.push(((n >> 16) & 0xFF) as u8);
+        if chunk[2] != b'=' {
+            out.push(((n >> 8) & 0xFF) as u8);
+        }
+        if chunk[3] != b'=' {
+            out.push((n & 0xFF) as u8);
+        }
+    }
+
+    Ok(out)
+}
+
 /// Pure functional computation of OBS WebSocket v5 SHA-256 challenge response.
 ///
 /// Formula:
@@ -532,11 +582,12 @@ pub fn start_obs_auto_watcher(running_flag: std::sync::Arc<std::sync::atomic::At
         .spawn(move || {
             let mut active_sec = 0.0;
             let mut blank_sec = 0.0;
-            let quiet_sec = 0.0;
-            let poll_interval_sec = 0.25;
+            let mut quiet_sec = 0.0;
+            let poll_interval_sec = crate::models::constants::OBS_WATCHER_POLL_INTERVAL_MS as f64 / 1000.0;
+            let mut prev_pixels: Option<Vec<RgbPixel>> = None;
 
             while flag_clone.load(Ordering::Relaxed) {
-                std::thread::sleep(std::time::Duration::from_millis(250));
+                std::thread::sleep(std::time::Duration::from_millis(crate::models::constants::OBS_WATCHER_POLL_INTERVAL_MS));
                 if !flag_clone.load(Ordering::Relaxed) {
                     break;
                 }
@@ -546,20 +597,127 @@ pub fn start_obs_auto_watcher(running_flag: std::sync::Arc<std::sync::atomic::At
                     Err(_) => {
                         active_sec = 0.0;
                         blank_sec = 0.0;
+                        quiet_sec = 0.0;
                         continue;
                     }
                 };
 
+                // Sample visual frame from OBS program scene
+                let scene_name = execute_obs_rpc_command("GetCurrentProgramScene", None, None)
+                    .ok()
+                    .and_then(|r| r.get("currentProgramSceneName").and_then(serde_json::Value::as_str).map(|s| s.to_string()));
+
+                let screenshot_params = scene_name.map(|name| {
+                    serde_json::json!({
+                        "sourceName": name,
+                        "imageFormat": "bmp",
+                        "imageWidth": crate::models::constants::OBS_WATCHER_THUMBNAIL_WIDTH_PX,
+                        "imageHeight": crate::models::constants::OBS_WATCHER_THUMBNAIL_HEIGHT_PX,
+                    })
+                });
+
+                let visual_analysis = if let Some(params) = screenshot_params {
+                    execute_obs_rpc_command("GetSourceScreenshot", Some(params), None).ok().and_then(|resp| {
+                        let img_str = resp.get("imageData").and_then(serde_json::Value::as_str)?;
+                        let b64_str = if let Some(idx) = img_str.find(',') {
+                            &img_str[idx + 1..]
+                        } else {
+                            img_str
+                        };
+                        let decoded = base64_decode(b64_str).ok()?;
+                        if decoded.len() >= 54 && &decoded[0..2] == b"BM" {
+                            let offset = u32::from_le_bytes([decoded[10], decoded[11], decoded[12], decoded[13]]) as usize;
+                            let bpp = if decoded.len() >= 30 {
+                                u16::from_le_bytes([decoded[28], decoded[29]])
+                            } else {
+                                24
+                            };
+                            if decoded.len() > offset {
+                                let pixel_slice = &decoded[offset..];
+                                let curr_pixels: Vec<RgbPixel> = if bpp == 32 {
+                                    pixel_slice
+                                        .chunks_exact(4)
+                                        .take(192)
+                                        .map(|c| RgbPixel { r: c[2], g: c[1], b: c[0] })
+                                        .collect()
+                                } else {
+                                    pixel_slice
+                                        .chunks_exact(3)
+                                        .take(192)
+                                        .map(|c| RgbPixel { r: c[2], g: c[1], b: c[0] })
+                                        .collect()
+                                };
+                                let visual = analyze_visual_frame_rgb(&curr_pixels, prev_pixels.as_deref());
+                                prev_pixels = Some(curr_pixels);
+                                return visual;
+                            }
+                        } else if decoded.len() >= 60 {
+                            let curr_pixels: Vec<RgbPixel> = decoded
+                                .chunks_exact(3)
+                                .take(192)
+                                .map(|c| RgbPixel { r: c[0], g: c[1], b: c[2] })
+                                .collect();
+                            let visual = analyze_visual_frame_rgb(&curr_pixels, prev_pixels.as_deref());
+                            prev_pixels = Some(curr_pixels);
+                            return visual;
+                        }
+                        None
+                    })
+                } else {
+                    None
+                };
+
+                let is_muted = execute_obs_rpc_command(
+                    "GetInputMute",
+                    Some(serde_json::json!({ "inputName": "Mic/Aux" })),
+                    None,
+                )
+                .ok()
+                .and_then(|r| r.get("inputMuted").and_then(serde_json::Value::as_bool))
+                .unwrap_or(false);
+
+                let has_audio = !is_muted && visual_analysis.as_ref().map(|v| !v.is_blank).unwrap_or(false);
+                let visual_ref = visual_analysis.as_ref();
+                let visual_is_active = visual_ref.map(|v| v.is_active).unwrap_or(false);
+                let visual_is_blank = visual_ref.map(|v| v.is_blank).unwrap_or(true);
+
+                // Update signal accumulators based on continuous state
+                if !is_recording {
+                    if has_audio || visual_is_active {
+                        active_sec += poll_interval_sec;
+                    } else {
+                        active_sec = 0.0;
+                    }
+                    blank_sec = 0.0;
+                    quiet_sec = 0.0;
+                } else if !has_audio {
+                    active_sec = 0.0;
+                    if visual_is_blank {
+                        blank_sec += poll_interval_sec;
+                        quiet_sec = 0.0;
+                    } else if visual_is_active {
+                        quiet_sec += poll_interval_sec;
+                        blank_sec = 0.0;
+                    } else {
+                        blank_sec = 0.0;
+                        quiet_sec = 0.0;
+                    }
+                } else {
+                    active_sec = 0.0;
+                    blank_sec = 0.0;
+                    quiet_sec = 0.0;
+                }
+
                 let decision = evaluate_capture_trigger(
                     is_recording,
-                    true,
-                    None,
+                    has_audio,
+                    visual_ref,
                     active_sec,
                     blank_sec,
                     quiet_sec,
-                    0.10,
-                    3.50,
-                    25.0,
+                    crate::models::constants::OBS_WATCHER_START_CONFIRM_SEC,
+                    crate::models::constants::OBS_WATCHER_STOP_BLANK_CONFIRM_SEC,
+                    crate::models::constants::OBS_WATCHER_STOP_QUIET_SCENE_SEC,
                 );
 
                 match decision {
@@ -570,13 +728,10 @@ pub fn start_obs_auto_watcher(running_flag: std::sync::Arc<std::sync::atomic::At
                     CaptureTriggerDecision::StopRecording => {
                         let _ = execute_obs_rpc_command("StopRecord", None, None);
                         blank_sec = 0.0;
+                        quiet_sec = 0.0;
                     }
-                    CaptureTriggerDecision::ContinueWaiting => {
-                        active_sec += poll_interval_sec;
-                    }
-                    CaptureTriggerDecision::HoldRecording => {
-                        blank_sec = 0.0;
-                    }
+                    CaptureTriggerDecision::ContinueWaiting => {}
+                    CaptureTriggerDecision::HoldRecording => {}
                 }
             }
             flag_clone.store(false, Ordering::SeqCst);
@@ -603,6 +758,19 @@ mod tests {
         assert_eq!(base64_encode(b"foob"), "Zm9vYg==");
         assert_eq!(base64_encode(b"fooba"), "Zm9vYmE=");
         assert_eq!(base64_encode(b"foobar"), "Zm9vYmFy");
+    }
+
+    #[test]
+    fn test_base64_decode() {
+        assert_eq!(base64_decode("").unwrap(), b"");
+        assert_eq!(base64_decode("Zg==").unwrap(), b"f");
+        assert_eq!(base64_decode("Zm8=").unwrap(), b"fo");
+        assert_eq!(base64_decode("Zm9v").unwrap(), b"foo");
+        assert_eq!(base64_decode("Zm9vYg==").unwrap(), b"foob");
+        assert_eq!(base64_decode("Zm9vYmE=").unwrap(), b"fooba");
+        assert_eq!(base64_decode("Zm9vYmFy").unwrap(), b"foobar");
+        assert!(base64_decode("invalid!").is_err());
+        assert!(base64_decode("Zg=").is_err()); // invalid length
     }
 
     #[test]

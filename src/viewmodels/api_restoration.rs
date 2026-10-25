@@ -242,7 +242,7 @@ fn handle_action(req: &ApiRequest, ctx: &AppContext) -> ApiResponse {
                             let metrics = crate::domain::audio::compute_channel_metrics(&samples);
                             has_speech = !metrics.is_silent && metrics.rms_dbfs > -50.0;
                             let (disambiguated, is_ambiguous) = crate::domain::whisper::disambiguate_speech_language_with_default(
-                                if has_speech { "pt" } else { "noise" },
+                                if has_speech { target_lang } else { "noise" },
                                 if has_speech { 0.95 } else { 0.15 },
                                 has_speech,
                                 target_lang,
@@ -304,6 +304,21 @@ fn handle_action(req: &ApiRequest, ctx: &AppContext) -> ApiResponse {
                 .or_else(|| resolve_executable_path("whisper-cli", None, None));
 
             if let Some(wbin) = whisper_tool {
+                // Ensure audio extraction has completed synchronously before spawning whisper
+                let mut extract_cmd = crate::infrastructure::toolchain::create_silent_command(&ffmpeg);
+                if args.len() > 1 {
+                    extract_cmd.args(&args[1..]);
+                }
+                match extract_cmd.status() {
+                    Ok(st) if st.success() => {}
+                    Ok(st) => {
+                        return ApiResponse::error(500, &format!("FFmpeg audio extraction failed with status: {st}"));
+                    }
+                    Err(e) => {
+                        return ApiResponse::error(500, &format!("Failed to execute FFmpeg audio extraction: {e}"));
+                    }
+                }
+
                 let prog_args = vec![
                     out_wav.to_string_lossy().to_string(),
                     "--output_dir".to_string(),
@@ -551,30 +566,51 @@ fn handle_incomplete_action(req: &ApiRequest, ctx: &AppContext) -> ApiResponse {
                 let total_expected = data.total_expected_frames.unwrap_or(0);
                 if kept > 0 {
                     if let Ok(probe) = crate::infrastructure::probe::probe_media_file(&resolved_source, &ffprobe_bin) {
-                        if total_expected > 0 && probe.duration > 0.0 {
-                            resume_start_sec = ((kept as f64 / total_expected as f64) * probe.duration).clamp(0.0, probe.duration);
-                        } else if probe.fps > 0.0 {
-                            let is_double_rate = orig_job_req.as_ref().map(|r| {
-                                matches!(r.custom_deinterlacer, Some(crate::domain::pipeline::DeinterlaceFilter::Qtgmc | crate::domain::pipeline::DeinterlaceFilter::BwdifBob | crate::domain::pipeline::DeinterlaceFilter::Yadif))
-                                    || r.preset == crate::models::presets::RestorationPreset::Gold
-                                    || r.preset == crate::models::presets::RestorationPreset::AiMaster
-                            }).unwrap_or(true);
-                            let effective_fps = if is_double_rate { probe.fps * 2.0 } else { probe.fps };
-                            resume_start_sec = (kept as f64 / effective_fps).clamp(0.0, probe.duration);
-                        }
+                        let segment_duration = orig_job_req.as_ref().and_then(|r| r.duration_sec).unwrap_or(probe.duration);
+                        let is_double_rate = orig_job_req.as_ref().map(|r| {
+                            matches!(
+                                r.custom_deinterlacer,
+                                Some(
+                                    crate::domain::pipeline::DeinterlaceFilter::Qtgmc
+                                    | crate::domain::pipeline::DeinterlaceFilter::BwdifBob
+                                    | crate::domain::pipeline::DeinterlaceFilter::Znedi3
+                                    | crate::domain::pipeline::DeinterlaceFilter::Nnedi3
+                                    | crate::domain::pipeline::DeinterlaceFilter::Yadif
+                                )
+                            )
+                            || r.preset == crate::models::presets::RestorationPreset::Gold
+                            || r.preset == crate::models::presets::RestorationPreset::AiMaster
+                            || r.preset == crate::models::presets::RestorationPreset::TbcHold
+                        }).unwrap_or(true);
+                        let effective_fps = if is_double_rate { probe.fps * 2.0 } else { probe.fps };
+
+                        let elapsed_job_sec = if total_expected > 0 && segment_duration > 0.0 {
+                            ((kept as f64 / total_expected as f64) * segment_duration).min(segment_duration)
+                        } else if effective_fps > 0.0 {
+                            (kept as f64 / effective_fps).min(segment_duration)
+                        } else {
+                            0.0
+                        };
+
+                        let orig_base = orig_job_req
+                            .as_ref()
+                            .and_then(|r| r.base_start_sec)
+                            .or_else(|| orig_job_req.as_ref().map(|r| r.start_sec))
+                            .unwrap_or(0.0);
+                        resume_start_sec = (orig_base + elapsed_job_sec).clamp(0.0, probe.duration);
                     }
                 }
             }
 
             let default_output = dirs.restored.to_string_lossy().to_string();
             let final_request = if let Some(mut req) = orig_job_req {
-                let orig_base = if let Some(b) = req.base_start_sec {
-                    b
-                } else {
-                    req.start_sec
-                };
+                let orig_base = req.base_start_sec.unwrap_or(req.start_sec);
                 req.base_start_sec = Some(orig_base);
+                let elapsed_job_sec = (resume_start_sec - orig_base).max(0.0);
                 req.start_sec = resume_start_sec;
+                if let Some(orig_dur) = req.duration_sec {
+                    req.duration_sec = Some((orig_dur - elapsed_job_sec).max(0.0));
+                }
                 req
             } else {
                 let resume_payload = json!({
