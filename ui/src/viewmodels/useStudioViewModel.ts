@@ -64,6 +64,7 @@ export function useStudioViewModel() {
   const isRestoringRef = useRef(isRestoring);
   const isInstallingQtgmcRef = useRef(isInstallingQtgmc);
   const isInstallingObsRef = useRef(isInstallingObs);
+  const activeTaskRef = useRef(store.activeTask);
   const setActiveTaskRef = useRef(store.setActiveTask);
   const refetchStatusRef = useRef(refetchStatus);
   const tRef = useRef(t);
@@ -74,10 +75,11 @@ export function useStudioViewModel() {
     isRestoringRef.current = isRestoring;
     isInstallingQtgmcRef.current = isInstallingQtgmc;
     isInstallingObsRef.current = isInstallingObs;
+    activeTaskRef.current = store.activeTask;
     setActiveTaskRef.current = store.setActiveTask;
     refetchStatusRef.current = refetchStatus;
     tRef.current = t;
-  }, [addLog, setIsRestoring, isRestoring, isInstallingQtgmc, isInstallingObs, store.setActiveTask, refetchStatus, t]);
+  }, [addLog, setIsRestoring, isRestoring, isInstallingQtgmc, isInstallingObs, store.activeTask, store.setActiveTask, refetchStatus, t]);
 
   const handleTaskCompletion = useCallback((status?: { success?: boolean | null; exit_code?: number | null }) => {
     if (isRestoringRef.current) {
@@ -104,6 +106,17 @@ export function useStudioViewModel() {
     }
   }, []);
 
+  const handleLogLineProgress = useCallback((line: string) => {
+    const match = /PROGRESS:\s*(\d+)%/i.exec(line);
+    if (match && match[1]) {
+      const pct = parseInt(match[1], 10);
+      const current = activeTaskRef.current;
+      if (current && current.type !== 'idle' && current.type !== 'restore') {
+        setActiveTaskRef.current({ ...current, progressPercent: pct });
+      }
+    }
+  }, []);
+
   // Real-time Server-Sent Events (SSE) for low-latency live log streaming
   useEffect(() => {
     if (!isBusy || typeof EventSource === 'undefined') return;
@@ -115,8 +128,9 @@ export function useStudioViewModel() {
         const data = JSON.parse(event.data);
         if (data.line) {
           addLogRef.current(data.line);
+          handleLogLineProgress(data.line);
         }
-        if (data.active === false) {
+        if (data.active === false || data.running === false) {
           handleTaskCompletion(data);
           eventSource.close();
         }
@@ -128,7 +142,7 @@ export function useStudioViewModel() {
     return () => {
       eventSource.close();
     };
-  }, [isBusy]);
+  }, [isBusy, handleLogLineProgress]);
 
   // Fallback logs polling if EventSource is unavailable in environment
   const { data: logsData } = useGetLogsQuery(undefined, {
@@ -140,14 +154,17 @@ export function useStudioViewModel() {
     if (typeof EventSource === 'undefined' && logsData?.logs?.length) {
       const newLogs = logsData.logs.slice(lastPolledIndexRef.current);
       if (newLogs.length > 0) {
-        newLogs.forEach((l) => addLogRef.current(l));
+        newLogs.forEach((l) => {
+          addLogRef.current(l);
+          handleLogLineProgress(l);
+        });
         lastPolledIndexRef.current = logsData.logs.length;
       }
       if (!logsData.active) {
         handleTaskCompletion(logsData);
       }
     }
-  }, [logsData]);
+  }, [logsData, handleLogLineProgress]);
 
   const handleStartRestoration = async (overrideParams?: Partial<RestorationPayload>) => {
     if (!store.selectedFile) {
@@ -292,9 +309,23 @@ export function useStudioViewModel() {
     });
     addLog(t('logs.obs_installing'));
     try {
-      await installObsTrigger().unwrap();
-      addLog(t('logs.obs_installer_started'));
-      refetchStatus();
+      const res = await installObsTrigger().unwrap();
+      if ((res as { status: string; message?: string })?.message === 'obs_already_installed') {
+        store.setActiveTask({
+          type: 'install_obs',
+          labelKey: 'telemetry.task_install_obs',
+          progressPercent: 100,
+        });
+        addLog(t('logs.obs_installer_started'));
+        refetchStatus();
+        setTimeout(() => {
+          setIsInstallingObs(false);
+          store.setActiveTask(null);
+        }, 300);
+      } else {
+        addLog(t('logs.obs_installer_started'));
+        refetchStatus();
+      }
     } catch (e: unknown) {
       logger.error('Failed to install OBS:', getErrorMessage(e));
       setIsInstallingObs(false);
@@ -312,8 +343,22 @@ export function useStudioViewModel() {
     });
     addLog(t('logs.qtgmc_installing'));
     try {
-      await installQtgmcTrigger().unwrap();
-      addLog(t('logs.qtgmc_installer_started'));
+      const res = await installQtgmcTrigger().unwrap();
+      if ((res as { status: string; message?: string })?.message === 'vapoursynth_already_available') {
+        store.setActiveTask({
+          type: 'install_qtgmc',
+          labelKey: 'telemetry.task_install_qtgmc',
+          progressPercent: 100,
+        });
+        addLog(t('logs.qtgmc_installer_started'));
+        refetchStatus();
+        setTimeout(() => {
+          setIsInstallingQtgmc(false);
+          store.setActiveTask(null);
+        }, 300);
+      } else {
+        addLog(t('logs.qtgmc_installer_started'));
+      }
     } catch (e: unknown) {
       addLog(t('logs.qtgmc_install_error', { error: getErrorMessage(e) }));
       setIsInstallingQtgmc(false);

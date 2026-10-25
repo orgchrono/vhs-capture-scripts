@@ -164,9 +164,12 @@ pub fn build_stream_proxy_ffmpeg_args(spec: &StreamProxySpec, ffmpeg_bin: &str) 
         "error".to_string(),
     ];
 
-    let (input_file, use_master) = match (&spec.restored_master_path, spec.mode) {
-        (Some(master), StreamProxyMode::Processed) => (Some(master.clone()), true),
-        _ => (spec.source_path.clone(), false),
+    let (input_file, use_master) = if let Some(ref src) = spec.source_path {
+        (Some(src.clone()), false)
+    } else if let Some(ref master) = spec.restored_master_path {
+        (Some(master.clone()), spec.mode == StreamProxyMode::Processed)
+    } else {
+        (None, false)
     };
 
     if let Some(ref input_path) = input_file {
@@ -374,5 +377,28 @@ mod tests {
         let args_master = build_stream_proxy_ffmpeg_args(&spec_master, "ffmpeg");
         assert!(args_master.contains(&"media/raw/tape1.mp4".to_string()));
         assert!(args_master.iter().any(|a| a.contains("split=2[raw_in][proc_in]")));
+
+        // When source_path is present in Processed mode, it MUST read source_path for frame accuracy
+        let spec_proc_with_src = StreamProxySpec {
+            source_path: Some("media/raw/tape1.mp4".to_string()),
+            restored_master_path: Some("media/restored/tape1_restored.mp4".to_string()),
+            mode: StreamProxyMode::Processed,
+            fps: 15,
+            timestamp_sec: 10.0,
+        };
+        let args_proc_with_src = build_stream_proxy_ffmpeg_args(&spec_proc_with_src, "ffmpeg");
+        assert!(args_proc_with_src.contains(&"media/raw/tape1.mp4".to_string()));
+        assert!(args_proc_with_src.iter().any(|a| a.contains("bwdif=")));
+
+        // When source_path is None, fallback to restored_master_path
+        let spec_proc_fallback = StreamProxySpec {
+            source_path: None,
+            restored_master_path: Some("media/restored/tape1_restored.mp4".to_string()),
+            mode: StreamProxyMode::Processed,
+            fps: 15,
+            timestamp_sec: 10.0,
+        };
+        let args_proc_fallback = build_stream_proxy_ffmpeg_args(&spec_proc_fallback, "ffmpeg");
+        assert!(args_proc_fallback.contains(&"media/restored/tape1_restored.mp4".to_string()));
     }
 }

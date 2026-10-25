@@ -100,11 +100,25 @@ export const createTelemetryParser = () => {
     const reversedLogs = [...logs].reverse();
 
     if (activeTask && activeTask.type !== 'idle' && activeTask.type !== 'restore') {
-      const progressLine = reversedLogs.find((line) => /PROGRESS:\s*(\d+)%/i.test(line));
-      const progressMatch = progressLine ? progressLine.match(/PROGRESS:\s*(\d+)%/i) : null;
-      const explicitPercent = progressMatch
-        ? parseInt(progressMatch[1], 10)
-        : activeTask.progressPercent;
+      let explicitPercent = activeTask.progressPercent;
+      if (activeTask.type === 'install_obs' || activeTask.type === 'install_qtgmc') {
+        const marker = activeTask.type === 'install_obs' ? '[OBS SETUP]' : '[QTGMC SETUP]';
+        let markerIdx = -1;
+        for (let i = logs.length - 1; i >= 0; i--) {
+          if (logs[i].includes(marker)) {
+            markerIdx = i;
+            break;
+          }
+        }
+        if (markerIdx !== -1) {
+          const relevantLogs = logs.slice(markerIdx).reverse();
+          const progressLine = relevantLogs.find((line) => /PROGRESS:\s*(\d+)%/i.test(line));
+          const progressMatch = progressLine ? progressLine.match(/PROGRESS:\s*(\d+)%/i) : null;
+          if (progressMatch) {
+            explicitPercent = parseInt(progressMatch[1], 10);
+          }
+        }
+      }
 
       return {
         stage: 1,
