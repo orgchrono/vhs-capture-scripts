@@ -10,8 +10,7 @@ use serde_json::Value;
 use std::path::{Path, PathBuf};
 
 /// UI options that have no native engine yet; surfaced to the user instead of silently ignored.
-const UNSUPPORTED_BOOL_OPTIONS: [&str; 6] = [
-    "ai_audio_denoise",
+const UNSUPPORTED_BOOL_OPTIONS: [&str; 5] = [
     "ai_face_restore",
     "ai_rife_60fps",
     "ai_upscaler",
@@ -132,6 +131,7 @@ pub fn map_restoration_payload(params: &Value, input_path: &str, default_output_
         audio_policy: text(params, "audio_mode").and_then(map_audio_policy),
         apply_audio_notch_hum: audio_treatment,
         apply_loudness_norm: audio_treatment,
+        apply_ai_audio_denoise: flag(params, "ai_audio_denoise").unwrap_or(false),
         start_sec,
         base_start_sec,
         duration_sec,

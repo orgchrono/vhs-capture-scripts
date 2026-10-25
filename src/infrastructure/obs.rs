@@ -520,6 +520,75 @@ pub fn execute_obs_rpc_command(
     Err(format!("Unexpected response frame from OBS: {resp}"))
 }
 
+/// Background daemon worker that continuously monitors OBS capture stream and triggers Auto-Start/Auto-Stop.
+pub fn start_obs_auto_watcher(running_flag: std::sync::Arc<std::sync::atomic::AtomicBool>) {
+    use std::sync::atomic::Ordering;
+    if running_flag.swap(true, Ordering::SeqCst) {
+        return; // Already running
+    }
+    let flag_clone = running_flag.clone();
+    std::thread::Builder::new()
+        .name("obs-auto-watcher".to_string())
+        .spawn(move || {
+            let mut active_sec = 0.0;
+            let mut blank_sec = 0.0;
+            let quiet_sec = 0.0;
+            let poll_interval_sec = 0.25;
+
+            while flag_clone.load(Ordering::Relaxed) {
+                std::thread::sleep(std::time::Duration::from_millis(250));
+                if !flag_clone.load(Ordering::Relaxed) {
+                    break;
+                }
+
+                let is_recording = match execute_obs_rpc_command("GetRecordStatus", None, None) {
+                    Ok(resp) => resp.get("outputActive").and_then(serde_json::Value::as_bool).unwrap_or(false),
+                    Err(_) => {
+                        active_sec = 0.0;
+                        blank_sec = 0.0;
+                        continue;
+                    }
+                };
+
+                let decision = evaluate_capture_trigger(
+                    is_recording,
+                    true,
+                    None,
+                    active_sec,
+                    blank_sec,
+                    quiet_sec,
+                    0.10,
+                    3.50,
+                    25.0,
+                );
+
+                match decision {
+                    CaptureTriggerDecision::StartRecording => {
+                        let _ = execute_obs_rpc_command("StartRecord", None, None);
+                        active_sec = 0.0;
+                    }
+                    CaptureTriggerDecision::StopRecording => {
+                        let _ = execute_obs_rpc_command("StopRecord", None, None);
+                        blank_sec = 0.0;
+                    }
+                    CaptureTriggerDecision::ContinueWaiting => {
+                        active_sec += poll_interval_sec;
+                    }
+                    CaptureTriggerDecision::HoldRecording => {
+                        blank_sec = 0.0;
+                    }
+                }
+            }
+            flag_clone.store(false, Ordering::SeqCst);
+        })
+        .ok();
+}
+
+/// Signals the OBS auto-watcher daemon to terminate.
+pub fn stop_obs_auto_watcher(running_flag: &std::sync::atomic::AtomicBool) {
+    running_flag.store(false, std::sync::atomic::Ordering::SeqCst);
+}
+
 
 #[cfg(test)]
 mod tests {

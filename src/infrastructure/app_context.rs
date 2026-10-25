@@ -10,6 +10,8 @@ use crate::infrastructure::security::derive_session_token;
 use std::collections::hash_map::RandomState;
 use std::hash::{BuildHasher, Hasher};
 use std::path::PathBuf;
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Clone)]
@@ -18,6 +20,7 @@ pub struct AppContext {
     pub process: ProcessManager,
     pub queue: QueueStore,
     pub worker: QueueWorker,
+    pub obs_watcher_running: Arc<AtomicBool>,
 }
 
 /// Collects process-local entropy (clock, pid, randomized hasher seed) for the session token.
@@ -46,6 +49,7 @@ impl AppContext {
             process,
             queue,
             worker,
+            obs_watcher_running: Arc::new(AtomicBool::new(false)),
         }
     }
 

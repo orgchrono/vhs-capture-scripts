@@ -14,20 +14,23 @@ use serde_json::{json, Value};
 
 /// Handles incoming `/api/obs*` requests. Returns `None` if the path is not matched.
 #[must_use]
-pub fn handle_obs_route(req: &ApiRequest, _ctx: &AppContext) -> Option<ApiResponse> {
+pub fn handle_obs_route(req: &ApiRequest, ctx: &AppContext) -> Option<ApiResponse> {
     let clean_path = req.path.split('?').next().unwrap_or(req.path.as_str());
 
     match (req.method.as_str(), clean_path) {
-        ("GET", "/api/obs/stats") => Some(handle_obs_stats()),
+        ("GET", "/api/obs/stats") => Some(handle_obs_stats(ctx)),
         ("POST", "/api/obs/start") => Some(handle_obs_start()),
         ("POST", "/api/obs/stop") => Some(handle_obs_stop()),
         ("POST", "/api/obs/virtualcam") => Some(handle_obs_virtualcam(req)),
+        ("POST", "/api/obs/watcher/start") => Some(handle_obs_watcher_start(ctx)),
+        ("POST", "/api/obs/watcher/stop") => Some(handle_obs_watcher_stop(ctx)),
         _ => None,
     }
 }
 
-fn handle_obs_stats() -> ApiResponse {
+fn handle_obs_stats(ctx: &AppContext) -> ApiResponse {
     let installed = is_obs_installed();
+    let watcher_active = ctx.obs_watcher_running.load(std::sync::atomic::Ordering::Relaxed);
 
     if let Ok(data) = execute_obs_rpc_command("GetRecordStatus", None, None) {
         let active = data.get("outputActive").and_then(Value::as_bool).unwrap_or(false);
@@ -47,7 +50,8 @@ fn handle_obs_stats() -> ApiResponse {
             "fps": 60.0,
             "cpu_usage": 0.0,
             "memory_mb": 0.0,
-            "dropped_frames": 0
+            "dropped_frames": 0,
+            "watcher_active": watcher_active
         }));
     }
 
@@ -65,7 +69,8 @@ fn handle_obs_stats() -> ApiResponse {
             "fps": 0.0,
             "cpu_usage": 0.0,
             "memory_mb": 0.0,
-            "dropped_frames": 0
+            "dropped_frames": 0,
+            "watcher_active": watcher_active
         }));
     }
 
@@ -81,7 +86,8 @@ fn handle_obs_stats() -> ApiResponse {
         "fps": 60.0,
         "cpu_usage": 1.5,
         "memory_mb": 120.0,
-        "dropped_frames": 0
+        "dropped_frames": 0,
+        "watcher_active": watcher_active
     }))
 }
 
@@ -136,6 +142,24 @@ fn handle_obs_virtualcam(req: &ApiRequest) -> ApiResponse {
     }))
 }
 
+fn handle_obs_watcher_start(ctx: &AppContext) -> ApiResponse {
+    crate::infrastructure::obs::start_obs_auto_watcher(ctx.obs_watcher_running.clone());
+    ApiResponse::ok(&json!({
+        "status": "ok",
+        "message": "OBS Auto-Watcher daemon started in background.",
+        "watcher_active": true
+    }))
+}
+
+fn handle_obs_watcher_stop(ctx: &AppContext) -> ApiResponse {
+    crate::infrastructure::obs::stop_obs_auto_watcher(&ctx.obs_watcher_running);
+    ApiResponse::ok(&json!({
+        "status": "ok",
+        "message": "OBS Auto-Watcher daemon stopped.",
+        "watcher_active": false
+    }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -154,6 +178,25 @@ mod tests {
         let res = handle_obs_route(&req, &ctx).expect("matched route");
         assert_eq!(res.status_code, 200);
         assert!(res.body_json.contains("\"recording\":false"));
+        assert!(res.body_json.contains("\"watcher_active\":false"));
+
+        let start_req = ApiRequest {
+            method: "POST".to_string(),
+            path: "/api/obs/watcher/start".to_string(),
+            body_json: String::new(),
+        };
+        let start_res = handle_obs_route(&start_req, &ctx).expect("matched watcher start");
+        assert_eq!(start_res.status_code, 200);
+        assert!(start_res.body_json.contains("\"watcher_active\":true"));
+
+        let stop_req = ApiRequest {
+            method: "POST".to_string(),
+            path: "/api/obs/watcher/stop".to_string(),
+            body_json: String::new(),
+        };
+        let stop_res = handle_obs_route(&stop_req, &ctx).expect("matched watcher stop");
+        assert_eq!(stop_res.status_code, 200);
+        assert!(stop_res.body_json.contains("\"watcher_active\":false"));
 
         let vcam_req = ApiRequest {
             method: "POST".to_string(),

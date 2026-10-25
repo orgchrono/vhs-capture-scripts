@@ -46,6 +46,7 @@ fn build_cli_job_request(
         audio_policy: None,
         apply_audio_notch_hum: true,
         apply_loudness_norm: true,
+        apply_ai_audio_denoise: false,
         start_sec: 0.0,
         base_start_sec: None,
         duration_sec: None,
@@ -240,6 +241,7 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
                 cache_size_mb: 4000,
                 trim_start_frame: None,
                 trim_length_frames: None,
+                apply_tbc_hold: false,
             };
             let script = build_qtgmc_script_content(&params);
             println!("{script}");

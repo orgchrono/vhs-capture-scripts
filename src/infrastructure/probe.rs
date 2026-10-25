@@ -438,6 +438,9 @@ pub fn detect_audio_policy(
     }
 
     let report = crate::domain::audio::analyze_interleaved_stereo(&all_samples);
+    if report.detected_layout == crate::domain::audio::AudioChannelLayout::DualMono {
+        return crate::domain::pipeline::AudioChannelPolicy::MonoSum;
+    }
     match report.recommended_action {
         crate::domain::audio::AudioRepairAction::DuplicateLeftToRight => {
             crate::domain::pipeline::AudioChannelPolicy::MonoLeft
