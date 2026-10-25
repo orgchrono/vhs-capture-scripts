@@ -38,7 +38,11 @@
     "help_title": "Cross-Platform Integration:",
     "help_desc": "OBS Studio records via native DeckLink SDK on Windows, Mac, and Linux without losses. If you prefer VirtualDub2 or AmaRecTV, simply save files in media/raw/ and the app detects them immediately!",
     "start_restore": "Start Restoration",
-    "no_file": "Select a file to restore first!"
+    "no_file": "Select a file to restore first!",
+    "watcher_arm": "自动采录",
+    "watcher_armed": "已布防",
+    "watcher_armed_desc": "OBS自动守望已就绪：检测到有效信号时自动录制，信号消失后自动停止。",
+    "watcher_disarmed_desc": "OBS自动守望已撤防。"
   },
   "console": {
     "title": "Execution Console",
@@ -104,7 +108,15 @@
     "return_live_view": "返回实时监控",
     "split_wipe": "划像分割",
     "split_dual": "并排双屏",
-    "split_title_short": "A/B"
+    "split_title_short": "A/B",
+    "scopes_title": "广播级示波器",
+    "scopes_waveform": "波形图 (IRE)",
+    "scopes_vectorscope": "矢量示波器 (SMPTE)",
+    "scopes_audio": "EBU R128 响度表",
+    "scopes_tab_all": "全部",
+    "scopes_tab_waveform": "亮度 (Luma)",
+    "scopes_tab_vectorscope": "色度 (Chroma)",
+    "scopes_tab_audio": "音频"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -349,7 +361,12 @@
     "loaded_to_desk_desc": "文件 {{file}} 已准备就绪。",
     "no_titles_selected": "未选择任何标题",
     "no_titles_selected_desc": "请至少选择一个录像进行提取。",
-    "region_label": "Região"
+    "region_label": "Região",
+    "watcher_armed_title": "自动采录已就绪",
+    "watcher_armed_desc": "正在监控磁带信号以执行自动采集。",
+    "watcher_disarmed_title": "自动采录已关闭",
+    "watcher_disarmed_desc": "已停用自动采录守望。",
+    "watcher_error": "切换自动采录状态失败。"
   },
   "telemetry": {
     "title": "模拟修复母带遥测数据",
@@ -464,7 +481,10 @@
     "whisper_starting": "[WHISPER] 正在使用 {{model}} 模型开始生成字幕...",
     "whisper_background_started": "[WHISPER] 已在后台启动处理。",
     "whisper_warning": "[WHISPER 警告] {{msg}}",
-    "whisper_error": "[WHISPER 错误] {{error}}"
+    "whisper_error": "[WHISPER 错误] {{error}}",
+    "obs_watcher_armed": "[OBS] 自动守望已就绪：信号监控活动中。",
+    "obs_watcher_disarmed": "[OBS] 自动守望已撤防。",
+    "obs_watcher_error": "[OBS] 自动守望错误: {{error}}"
   },
   "recovery": {
     "title": "进行中 / 中断的项目",
@@ -599,5 +619,11 @@
     "open_report_tooltip": "检查质量控制与缺陷报告",
     "close": "关闭",
     "default_standard": "BT.601 / NTSC"
+  },
+  "common": {
+    "close": "关闭",
+    "refresh": "刷新",
+    "maximize": "最大化",
+    "minimize": "最小化"
   }
 }

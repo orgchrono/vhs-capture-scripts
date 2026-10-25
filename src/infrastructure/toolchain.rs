@@ -85,6 +85,9 @@ pub fn get_tool_search_candidates(
         candidates.push(root.join("tools").join("whisper").join("bin").join(&bin_name));
         candidates.push(root.join("tools").join("panasonic_rec").join(&bin_name));
         candidates.push(root.join("tools").join("panasonic_rec").join("bin").join(&bin_name));
+        candidates.push(root.join("tools").join("realesrgan").join(&bin_name));
+        candidates.push(root.join("tools").join("rife").join(&bin_name));
+        candidates.push(root.join("tools").join("codeformer").join(&bin_name));
         candidates.push(root.join("tools").join("ffmpeg").join("bin").join(&bin_name));
         candidates.push(root.join("tools").join("obs").join("bin").join("64bit").join(&bin_name));
     }
@@ -97,6 +100,9 @@ pub fn get_tool_search_candidates(
         candidates.push(home.join(".vhs_studio").join("tools").join("vapoursynth").join("bin").join(&bin_name));
         candidates.push(home.join(".vhs_studio").join("tools").join("whisper").join(&bin_name));
         candidates.push(home.join(".vhs_studio").join("tools").join("whisper").join("bin").join(&bin_name));
+        candidates.push(home.join(".vhs_studio").join("tools").join("realesrgan").join(&bin_name));
+        candidates.push(home.join(".vhs_studio").join("tools").join("rife").join(&bin_name));
+        candidates.push(home.join(".vhs_studio").join("tools").join("codeformer").join(&bin_name));
     }
 
     if cfg!(target_os = "windows") {

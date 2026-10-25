@@ -38,7 +38,11 @@
     "help_title": "Cross-Platform Integration:",
     "help_desc": "OBS Studio records via native DeckLink SDK on Windows, Mac, and Linux without losses. If you prefer VirtualDub2 or AmaRecTV, simply save files in media/raw/ and the app detects them immediately!",
     "start_restore": "Start Restoration",
-    "no_file": "Select a file to restore first!"
+    "no_file": "Select a file to restore first!",
+    "watcher_arm": "自動インジェスト",
+    "watcher_armed": "監視中",
+    "watcher_armed_desc": "OBSオートウォッチャー有効：信号検出で録画開始、無信号で停止。",
+    "watcher_disarmed_desc": "OBSオートウォッチャー解除。"
   },
   "console": {
     "title": "Execution Console",
@@ -104,7 +108,15 @@
     "return_live_view": "リアルタイムモニターに戻る",
     "split_wipe": "ワイプ分割",
     "split_dual": "左右比較 (デュアル)",
-    "split_title_short": "A/B"
+    "split_title_short": "A/B",
+    "scopes_title": "放送波形スコープ",
+    "scopes_waveform": "波形モニター (IRE)",
+    "scopes_vectorscope": "ベクトルスコープ (SMPTE)",
+    "scopes_audio": "EBU R128 メーター",
+    "scopes_tab_all": "すべて",
+    "scopes_tab_waveform": "輝度 (Luma)",
+    "scopes_tab_vectorscope": "色度 (Chroma)",
+    "scopes_tab_audio": "音声 (Audio)"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -349,7 +361,12 @@
     "loaded_to_desk_desc": "ファイル {{file}} の処理準備が整いました。",
     "no_titles_selected": "タイトルが選択されていません",
     "no_titles_selected_desc": "抽出する録画を少なくとも1つ選択してください。",
-    "region_label": "Região"
+    "region_label": "Região",
+    "watcher_armed_title": "自動インジェスト有効化",
+    "watcher_armed_desc": "テープ信号を監視して自動録画を開始します。",
+    "watcher_disarmed_title": "自動インジェスト解除",
+    "watcher_disarmed_desc": "自動録画監視を停止しました。",
+    "watcher_error": "オートウォッチャーの切り替えに失敗しました。"
   },
   "telemetry": {
     "title": "アナログマスタリング テレメトリ",
@@ -464,7 +481,10 @@
     "whisper_starting": "[WHISPER] {{model}} モデルによる字幕生成を開始しています...",
     "whisper_background_started": "[WHISPER] バックグラウンド処理が開始されました。",
     "whisper_warning": "[WHISPER 警告] {{msg}}",
-    "whisper_error": "[WHISPER エラー] {{error}}"
+    "whisper_error": "[WHISPER エラー] {{error}}",
+    "obs_watcher_armed": "[OBS] オートウォッチャー監視中：信号監視が有効です。",
+    "obs_watcher_disarmed": "[OBS] オートウォッチャー監視解除。",
+    "obs_watcher_error": "[OBS] オートウォッチャーエラー: {{error}}"
   },
   "recovery": {
     "title": "進行中 / 中断されたプロジェクト",
@@ -599,5 +619,11 @@
     "open_report_tooltip": "品質管理＆欠陥レポートを検査",
     "close": "閉じる",
     "default_standard": "BT.601 / NTSC"
+  },
+  "common": {
+    "close": "閉じる",
+    "refresh": "更新",
+    "maximize": "最大化",
+    "minimize": "最小化"
   }
 }

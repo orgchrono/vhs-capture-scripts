@@ -23,6 +23,7 @@ import { useGetComparisonFrameQuery } from '../api/studioRtkApi';
 import { createTelemetryParser } from '../lib/telemetry';
 import { LiveEdgeIndicator } from './LiveEdgeIndicator';
 import { TimelineScrubber } from './TimelineScrubber';
+import { BroadcastScopes } from './BroadcastScopes';
 
 export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => {
   const { t } = useTranslation();
@@ -42,6 +43,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
   } = useStudioStore();
   const { livePreviewEnabled } = usePreferencesStore();
   const [isSplitMode, setIsSplitMode] = useState(false);
+  const [showScopes, setShowScopes] = useState<boolean>(false);
   const [liveFrameSrc, setLiveFrameSrc] = useState<string | null>(null);
   const { videoRef, isActive, error, obsStats, isCapturing } = useLiveMonitor();
   const shouldReduceMotion = useReducedMotion();
@@ -250,6 +252,22 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
           >
             <Layers className="w-3.5 h-3.5 text-amber-400 shrink-0" />
             <span className="shrink-0 whitespace-nowrap">{t('monitor.split_title')}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowScopes(!showScopes)}
+            className={`px-2.5 py-1 rounded-sm text-[10px] font-mono border shadow-sm flex items-center gap-1.5 transition cursor-pointer shrink-0 whitespace-nowrap ${
+              showScopes
+                ? 'bg-sky-950/80 text-sky-300 border-sky-500/50'
+                : 'bg-black/85 hover:bg-studio-surface text-sky-400 hover:text-white border-sky-500/40 hover:border-sky-400'
+            }`}
+            title={t('monitor.scopes_title')}
+            aria-label={t('monitor.scopes_title')}
+            data-testid="toggle-scopes-btn"
+          >
+            <Activity className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+            <span className="shrink-0 whitespace-nowrap">{t('monitor.scopes_title')}</span>
           </button>
 
           {isRestoring && (
@@ -489,6 +507,14 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
         muted
         className={`relative z-0 w-full h-full object-contain transition-opacity duration-500 ${isActive ? 'opacity-100' : 'opacity-0'}`}
       />
+
+      {/* Broadcast Scopes Overlay (Waveform IRE / Vectorscope SMPTE / Audio LUFS) */}
+      {showScopes && (
+        <BroadcastScopes
+          sourceImageSrc={liveFrameSrc || frameData?.processed_image || frameData?.raw_image || thumbnailUrl || null}
+          onClose={() => setShowScopes(false)}
+        />
+      )}
     </div>
   );
 };

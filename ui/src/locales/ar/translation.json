@@ -38,7 +38,11 @@
     "help_title": "Cross-Platform Integration:",
     "help_desc": "OBS Studio records via native DeckLink SDK on Windows, Mac, and Linux without losses. If you prefer VirtualDub2 or AmaRecTV, simply save files in media/raw/ and the app detects them immediately!",
     "start_restore": "Start Restoration",
-    "no_file": "Select a file to restore first!"
+    "no_file": "Select a file to restore first!",
+    "watcher_arm": "الالتقاط التلقائي",
+    "watcher_armed": "مفعّل",
+    "watcher_armed_desc": "المراقب التلقائي لـ OBS جاهز: يبدأ التسجيل عند اكتشاف الإشارة ويتوقف عند الصمت.",
+    "watcher_disarmed_desc": "تم إيقاف المراقب التلقائي لـ OBS."
   },
   "console": {
     "title": "Execution Console",
@@ -104,7 +108,15 @@
     "return_live_view": "العودة إلى شاشة الوقت الفعلي",
     "split_wipe": "تقسيم المسح",
     "split_dual": "جنباً إلى جنب (مزدوج)",
-    "split_title_short": "A/B"
+    "split_title_short": "A/B",
+    "scopes_title": "راسمات البث",
+    "scopes_waveform": "Waveform IRE",
+    "scopes_vectorscope": "Vectorscope SMPTE",
+    "scopes_audio": "مقياس EBU R128",
+    "scopes_tab_all": "الكل",
+    "scopes_tab_waveform": "Luma",
+    "scopes_tab_vectorscope": "Chroma",
+    "scopes_tab_audio": "صوت"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -349,7 +361,12 @@
     "loaded_to_desk_desc": "الملف {{file}} جاهز للمعالجة.",
     "no_titles_selected": "لم يتم تحديد أي عنوان",
     "no_titles_selected_desc": "حدد تسجيلاً واحداً على الأقل للاستخراج.",
-    "region_label": "Região"
+    "region_label": "Região",
+    "watcher_armed_title": "تم تفعيل الالتقاط التلقائي",
+    "watcher_armed_desc": "مراقبة إشارة الشريط للتسجيل التلقائي.",
+    "watcher_disarmed_title": "تم إيقاف الالتقاط التلقائي",
+    "watcher_disarmed_desc": "تم إيقاف التسجيل التلقائي.",
+    "watcher_error": "فشل في تبديل حالة المراقب التلقائي."
   },
   "telemetry": {
     "title": "قياسات معالجة الفيديو التناظري المباشرة",
@@ -464,7 +481,10 @@
     "whisper_starting": "[WHISPER] بدء إنشاء الترجمة باستخدام نموذج {{model}}...",
     "whisper_background_started": "[WHISPER] بدأت المعالجة في الخلفية.",
     "whisper_warning": "[WHISPER تحذير] {{msg}}",
-    "whisper_error": "[WHISPER خطأ] {{error}}"
+    "whisper_error": "[WHISPER خطأ] {{error}}",
+    "obs_watcher_armed": "[OBS] المراقب التلقائي مفعّل: مراقبة الإشارة نشطة.",
+    "obs_watcher_disarmed": "[OBS] تم إيقاف المراقب التلقائي.",
+    "obs_watcher_error": "[OBS] خطأ في المراقب التلقائي: {{error}}"
   },
   "recovery": {
     "title": "المشاريع الجارية / المعلقة",
@@ -599,5 +619,11 @@
     "open_report_tooltip": "فحص مراقبة الجودة وتقرير العيوب",
     "close": "إغلاق",
     "default_standard": "BT.601 / NTSC"
+  },
+  "common": {
+    "close": "إغلاق",
+    "refresh": "تحديث",
+    "maximize": "تكبير",
+    "minimize": "تصغير"
   }
 }

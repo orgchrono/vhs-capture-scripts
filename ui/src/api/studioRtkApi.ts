@@ -128,6 +128,22 @@ export const studioRtkApi = createApi({
       invalidatesTags: ['Status', 'ObsStats'],
     }),
 
+    startObsWatcher: builder.mutation<{ status: string; message?: string; watcher_active?: boolean }, void>({
+      query: () => ({
+        url: 'api/obs/watcher/start',
+        method: 'POST',
+      }),
+      invalidatesTags: ['Status', 'ObsStats'],
+    }),
+
+    stopObsWatcher: builder.mutation<{ status: string; message?: string; watcher_active?: boolean }, void>({
+      query: () => ({
+        url: 'api/obs/watcher/stop',
+        method: 'POST',
+      }),
+      invalidatesTags: ['Status', 'ObsStats'],
+    }),
+
     toggleVirtualCam: builder.mutation<{ status: string; message?: string }, { enable: boolean }>({
       query: (body) => ({
         url: 'api/obs/virtualcam',
@@ -465,6 +481,8 @@ export const {
   useStartRestorationMutation,
   useStartObsCaptureMutation,
   useStopObsCaptureMutation,
+  useStartObsWatcherMutation,
+  useStopObsWatcherMutation,
   useToggleVirtualCamMutation,
   useInstallQtgmcMutation,
   useInstallObsMutation,

@@ -124,6 +124,7 @@ export interface ObsStats {
   fps?: number;
   cpu_usage?: number;
   memory_mb?: number;
+  watcher_active?: boolean;
 }
 
 export interface QueueJob {

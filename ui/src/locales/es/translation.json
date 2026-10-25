@@ -38,7 +38,11 @@
     "help_title": "Integración Multiplataforma:",
     "help_desc": "OBS Studio graba mediante SDK nativo DeckLink en Windows, Mac y Linux sin pérdidas.",
     "start_restore": "Iniciar Restauración",
-    "no_file": "¡Seleccione un archivo para restaurar primero!"
+    "no_file": "¡Seleccione un archivo para restaurar primero!",
+    "watcher_arm": "Auto-Ingesta",
+    "watcher_armed": "Armado",
+    "watcher_armed_desc": "Auto-Watcher OBS armado: inicia la grabación al detectar señal y se detiene en silencio.",
+    "watcher_disarmed_desc": "Auto-Watcher OBS desarmado."
   },
   "console": {
     "title": "Consola de Ejecución",
@@ -104,7 +108,15 @@
     "return_live_view": "Volver al Monitor en Tiempo Real",
     "split_wipe": "División Wipe",
     "split_dual": "Lado a Lado (Dual)",
-    "split_title_short": "A/B"
+    "split_title_short": "A/B",
+    "scopes_title": "Osciloscopios",
+    "scopes_waveform": "Waveform IRE",
+    "scopes_vectorscope": "Vectorscope SMPTE",
+    "scopes_audio": "Medidor EBU R128",
+    "scopes_tab_all": "Todos",
+    "scopes_tab_waveform": "Luma",
+    "scopes_tab_vectorscope": "Croma",
+    "scopes_tab_audio": "Audio"
   },
   "files": {
     "input_file_label": "Archivo de Entrada (media/raw/)",
@@ -349,7 +361,12 @@
     "loaded_to_desk_desc": "Archivo {{file}} listo para procesar.",
     "no_titles_selected": "Ningún Título Seleccionado",
     "no_titles_selected_desc": "Seleccione al menos una grabación para extraer.",
-    "region_label": "Região"
+    "region_label": "Região",
+    "watcher_armed_title": "Auto-Ingesta Armado",
+    "watcher_armed_desc": "Monitoreando señal de cinta para captura automática.",
+    "watcher_disarmed_title": "Auto-Ingesta Desarmado",
+    "watcher_disarmed_desc": "Captura automática desactivada.",
+    "watcher_error": "Error al cambiar estado del Auto-Watcher."
   },
   "telemetry": {
     "title": "Telemetría de Masterización Analógica",
@@ -464,7 +481,10 @@
     "whisper_starting": "[WHISPER] Iniciando generación de subtítulos con modelo {{model}}...",
     "whisper_background_started": "[WHISPER] Procesamiento iniciado en segundo plano.",
     "whisper_warning": "[WHISPER AVISO] {{msg}}",
-    "whisper_error": "[WHISPER ERROR] {{error}}"
+    "whisper_error": "[WHISPER ERROR] {{error}}",
+    "obs_watcher_armed": "[OBS] Auto-Watcher armado: vigilancia de señal activa.",
+    "obs_watcher_disarmed": "[OBS] Auto-Watcher desarmado.",
+    "obs_watcher_error": "[OBS] Error en Auto-Watcher: {{error}}"
   },
   "recovery": {
     "title": "Proyectos en Curso / Interrumpidos",
@@ -599,5 +619,11 @@
     "open_report_tooltip": "Inspeccionar Control de Calidad e Informe de Defectos",
     "close": "Cerrar",
     "default_standard": "BT.601 / NTSC"
+  },
+  "common": {
+    "close": "Cerrar",
+    "refresh": "Actualizar",
+    "maximize": "Maximizar",
+    "minimize": "Minimizar"
   }
 }

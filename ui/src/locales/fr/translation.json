@@ -38,7 +38,11 @@
     "help_title": "Cross-Platform Integration:",
     "help_desc": "OBS Studio records via native DeckLink SDK on Windows, Mac, and Linux without losses. If you prefer VirtualDub2 or AmaRecTV, simply save files in media/raw/ and the app detects them immediately!",
     "start_restore": "Start Restoration",
-    "no_file": "Select a file to restore first!"
+    "no_file": "Select a file to restore first!",
+    "watcher_arm": "Auto-Ingest",
+    "watcher_armed": "Armé",
+    "watcher_armed_desc": "Auto-Watcher OBS armé: démarre l’enregistrement sur détection de signal et s’arrête au silence.",
+    "watcher_disarmed_desc": "Auto-Watcher OBS désarmé."
   },
   "console": {
     "title": "Execution Console",
@@ -104,7 +108,15 @@
     "return_live_view": "Retour au moniteur en temps réel",
     "split_wipe": "Division Wipe",
     "split_dual": "Côte à côte (Dual)",
-    "split_title_short": "A/B"
+    "split_title_short": "A/B",
+    "scopes_title": "Oscilloscopes",
+    "scopes_waveform": "Waveform IRE",
+    "scopes_vectorscope": "Vectorscope SMPTE",
+    "scopes_audio": "Indicateur EBU R128",
+    "scopes_tab_all": "Tous",
+    "scopes_tab_waveform": "Luma",
+    "scopes_tab_vectorscope": "Chroma",
+    "scopes_tab_audio": "Audio"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -349,7 +361,12 @@
     "loaded_to_desk_desc": "Fichier {{file}} prêt pour le traitement.",
     "no_titles_selected": "Aucun Titre Sélectionné",
     "no_titles_selected_desc": "Sélectionnez au moins un enregistrement à extraire.",
-    "region_label": "Região"
+    "region_label": "Região",
+    "watcher_armed_title": "Auto-Ingest Armé",
+    "watcher_armed_desc": "Surveillance du signal de bande pour enregistrement automatique.",
+    "watcher_disarmed_title": "Auto-Ingest Désarmé",
+    "watcher_disarmed_desc": "Enregistrement automatique désactivé.",
+    "watcher_error": "Échec de modification de l’état de l’Auto-Watcher."
   },
   "telemetry": {
     "title": "Télémétrie de Restauration Analogique",
@@ -464,7 +481,10 @@
     "whisper_starting": "[WHISPER] Démarrage de la génération des sous-titres avec le modèle {{model}}...",
     "whisper_background_started": "[WHISPER] Traitement démarré en arrière-plan.",
     "whisper_warning": "[WHISPER AVERTISSEMENT] {{msg}}",
-    "whisper_error": "[WHISPER ERREUR] {{error}}"
+    "whisper_error": "[WHISPER ERREUR] {{error}}",
+    "obs_watcher_armed": "[OBS] Auto-Watcher armé: surveillance active du signal.",
+    "obs_watcher_disarmed": "[OBS] Auto-Watcher désarmé.",
+    "obs_watcher_error": "[OBS] Erreur Auto-Watcher: {{error}}"
   },
   "recovery": {
     "title": "Projets en cours / Interrompus",
@@ -599,5 +619,11 @@
     "open_report_tooltip": "Inspecter le Contrôle Qualité et le Rapport de Défauts",
     "close": "Fermer",
     "default_standard": "BT.601 / NTSC"
+  },
+  "common": {
+    "close": "Fermer",
+    "refresh": "Actualiser",
+    "maximize": "Agrandir",
+    "minimize": "Réduire"
   }
 }
