@@ -1,12 +1,12 @@
 import { Button } from "./ui/button";
 import React from 'react';
-import { Radio, Square, HelpCircle } from 'lucide-react';
+import { Radio, Square, HelpCircle, Eye } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useCaptureViewModel } from '../viewmodels/useCaptureViewModel';
 
 export const CaptureBar: React.FC = () => {
   const { t } = useTranslation();
-  const { isCapturing, handleStartCapture, handleStopCapture } = useCaptureViewModel();
+  const { isCapturing, isWatcherActive, handleStartCapture, handleStopCapture, handleToggleWatcher } = useCaptureViewModel();
 
   return (
     <div className="bg-studio-panel border border-studio-border rounded-md p-3 mb-2 flex flex-col gap-2.5">
@@ -47,6 +47,21 @@ export const CaptureBar: React.FC = () => {
             <span>{t('capture.stop_obs')}</span>
           </Button>
         )}
+
+        <Button
+          data-testid="toggle-watcher-btn"
+          onClick={handleToggleWatcher}
+          className={`h-8 px-3 font-mono font-bold text-xs uppercase tracking-wider rounded-sm border transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.99] shrink-0 ${
+            isWatcherActive
+              ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50 hover:bg-emerald-900/80'
+              : 'bg-studio-surface text-slate-300 border-studio-border hover:bg-studio-surface-hover hover:text-white'
+          }`}
+          title={isWatcherActive ? t('capture.watcher_armed_desc') : t('capture.watcher_disarmed_desc')}
+        >
+          <span className={`led-lamp shrink-0 ${isWatcherActive ? 'led-live animate-pulse' : 'led-idle'}`} />
+          <Eye className="w-3.5 h-3.5" />
+          <span>{isWatcherActive ? t('capture.watcher_armed') : t('capture.watcher_arm')}</span>
+        </Button>
 
         <div className="relative group shrink-0">
           <button

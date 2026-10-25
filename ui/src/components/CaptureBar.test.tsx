@@ -14,12 +14,15 @@ vi.mock('react-i18next', () => ({
 
 const mockStartCapture = vi.fn();
 const mockStopCapture = vi.fn();
+const mockToggleWatcher = vi.fn();
 
 vi.mock('../viewmodels/useCaptureViewModel', () => ({
   useCaptureViewModel: () => ({
     isCapturing: useStudioStore.getState().isCapturing,
+    isWatcherActive: false,
     handleStartCapture: mockStartCapture,
     handleStopCapture: mockStopCapture,
+    handleToggleWatcher: mockToggleWatcher,
   }),
 }));
 
@@ -53,5 +56,14 @@ describe('CaptureBar Component', () => {
     fireEvent.click(stopBtn);
 
     expect(mockStopCapture).toHaveBeenCalledTimes(1);
+  });
+
+  it('should toggle auto-watcher when watcher button is clicked', () => {
+    render(<CaptureBar />, { wrapper });
+
+    const watcherBtn = screen.getByTestId('toggle-watcher-btn');
+    fireEvent.click(watcherBtn);
+
+    expect(mockToggleWatcher).toHaveBeenCalledTimes(1);
   });
 });

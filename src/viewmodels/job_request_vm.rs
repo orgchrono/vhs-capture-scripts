@@ -10,11 +10,7 @@ use serde_json::Value;
 use std::path::{Path, PathBuf};
 
 /// UI options that have no native engine yet; surfaced to the user instead of silently ignored.
-const UNSUPPORTED_BOOL_OPTIONS: [&str; 5] = [
-    "ai_face_restore",
-    "ai_rife_60fps",
-    "ai_upscaler",
-    "ai_whisper",
+const UNSUPPORTED_BOOL_OPTIONS: [&str; 1] = [
     "auto_upload",
 ];
 
@@ -150,6 +146,11 @@ pub fn map_restoration_payload(params: &Value, input_path: &str, default_output_
             overscan_blanking: flag(params, "overscan_blanking"),
             dropout_clean: flag(params, "dropout_clean"),
             audio_offset_sec: params.get("audio_offset").and_then(Value::as_f64),
+            ai_face_restore: flag(params, "ai_face_restore"),
+            ai_face_fidelity: params.get("ai_face_fidelity").and_then(Value::as_f64).map(|v| v as f32),
+            ai_rife_60fps: flag(params, "ai_rife_60fps"),
+            ai_upscaler: flag(params, "ai_upscaler"),
+            ai_upscaler_model: text(params, "ai_upscaler_model").map(str::to_string),
         },
     };
     MappedJob {
@@ -222,7 +223,8 @@ mod tests {
     fn test_unsupported_stages_are_reported_not_hidden() {
         let params = json!({"ai_face_restore": true, "ai_upscaler": false, "mode": "freeze", "auto_upload": true});
         let mapped = map_restoration_payload(&params, "in.mkv", "media/restored");
-        assert_eq!(mapped.unsupported_options, vec!["ai_face_restore", "auto_upload", "mode"]);
+        assert_eq!(mapped.request.overrides.ai_face_restore, Some(true));
+        assert_eq!(mapped.unsupported_options, vec!["auto_upload", "mode"]);
     }
 
     #[test]

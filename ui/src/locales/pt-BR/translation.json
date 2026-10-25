@@ -38,7 +38,11 @@
     "help_title": "Integração Multiplataforma:",
     "help_desc": "O OBS Studio grava via DeckLink SDK nativo no Windows, Mac e Linux sem perdas. Se você preferir usar o VirtualDub2 ou AmaRecTV no Windows, basta salvar os arquivos na pasta media/raw/ que o app reconhece na hora!",
     "start_restore": "Iniciar Restauração",
-    "no_file": "Selecione um arquivo para restaurar primeiro!"
+    "no_file": "Selecione um arquivo para restaurar primeiro!",
+    "watcher_arm": "Auto-Ingest",
+    "watcher_armed": "Armado",
+    "watcher_armed_desc": "Auto-Watcher OBS armado: inicia a gravação ao detectar sinal e encerra no silêncio.",
+    "watcher_disarmed_desc": "Auto-Watcher OBS desarmado."
   },
   "console": {
     "title": "Console de Execução",
@@ -104,7 +108,15 @@
     "return_live_view": "Voltar ao Monitor em Tempo Real",
     "split_wipe": "Divisão Wipe",
     "split_dual": "Lado a Lado (Dual)",
-    "split_title_short": "A/B"
+    "split_title_short": "A/B",
+    "scopes_title": "Osciloscópios",
+    "scopes_waveform": "Waveform IRE",
+    "scopes_vectorscope": "Vectorscope SMPTE",
+    "scopes_audio": "Medidor EBU R128",
+    "scopes_tab_all": "Todos",
+    "scopes_tab_waveform": "Luma",
+    "scopes_tab_vectorscope": "Chroma",
+    "scopes_tab_audio": "Áudio"
   },
   "files": {
     "input_file_label": "Arquivo de Entrada (media/raw/)",
@@ -349,7 +361,12 @@
     "loaded_to_desk_desc": "Arquivo {{file}} pronto para processamento.",
     "no_titles_selected": "Nenhum Título Selecionado",
     "no_titles_selected_desc": "Selecione pelo menos uma gravação para extrair.",
-    "region_label": "Região"
+    "region_label": "Região",
+    "watcher_armed_title": "Auto-Ingest Armado",
+    "watcher_armed_desc": "Monitorando sinal de fita para gravação automática.",
+    "watcher_disarmed_title": "Auto-Ingest Desarmado",
+    "watcher_disarmed_desc": "Gravação automática desativada.",
+    "watcher_error": "Falha ao alterar estado do Auto-Watcher."
   },
   "telemetry": {
     "title": "Telemetria de Masterização Analógica",
@@ -464,7 +481,10 @@
     "whisper_starting": "[WHISPER] Iniciando geração de legendas com modelo {{model}}...",
     "whisper_background_started": "[WHISPER] Processamento iniciado em segundo plano.",
     "whisper_warning": "[WHISPER AVISO] {{msg}}",
-    "whisper_error": "[WHISPER ERRO] {{error}}"
+    "whisper_error": "[WHISPER ERRO] {{error}}",
+    "obs_watcher_armed": "[OBS] Auto-Watcher armado: vigilância de sinal ativa.",
+    "obs_watcher_disarmed": "[OBS] Auto-Watcher desarmado.",
+    "obs_watcher_error": "[OBS] Erro no Auto-Watcher: {{error}}"
   },
   "recovery": {
     "title": "Projetos em Andamento / Interrompidos",
@@ -599,5 +619,11 @@
     "open_report_tooltip": "Inspecionar Laudo de Controle de Qualidade e Defeitos",
     "close": "Fechar",
     "default_standard": "BT.601 / NTSC"
+  },
+  "common": {
+    "close": "Fechar",
+    "refresh": "Atualizar",
+    "maximize": "Maximizar",
+    "minimize": "Minimizar"
   }
 }
