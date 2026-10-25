@@ -3,13 +3,11 @@
 //! Exposes typed Tauri IPC commands for Panasonic DVR/MEIHDFS inspection,
 //! physical drive scanning, FFprobe media inspection, and smart thumbnail extraction.
 
-use crate::infrastructure::meihdfs::{
-    inspect_panasonic_probe, IngestProbeError, PanasonicMediaDescriptor,
-};
 use crate::infrastructure::panasonic::{
     classify_panasonic_probe, detect_connected_drives, evaluate_panasonic_drive,
-    generate_panasonic_chapters, PanasonicChapter, PanasonicDiskInfo, PanasonicDriveHeuristic,
-    PanasonicInspection,
+    generate_panasonic_chapters, inspect_panasonic_probe, IngestProbeError,
+    PanasonicChapter, PanasonicDiskInfo, PanasonicDriveHeuristic, PanasonicInspection,
+    PanasonicMediaDescriptor,
 };
 use crate::infrastructure::probe::{
     build_ffprobe_args, parse_ffprobe_json, probe_media_file, MediaProbeResult,

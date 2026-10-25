@@ -58,6 +58,8 @@ pub struct RestorationJobRequest {
     #[serde(default)]
     pub apply_ai_audio_denoise: bool,
     #[serde(default)]
+    pub apply_azimuth_correction: bool,
+    #[serde(default)]
     pub start_sec: f64,
     #[serde(default)]
     pub base_start_sec: Option<f64>,
@@ -147,6 +149,7 @@ pub fn plan_restoration_job(
         Deinterlacer::Bwdif => DeinterlaceFilter::BwdifBob,
         Deinterlacer::Znedi3 => DeinterlaceFilter::Znedi3,
         Deinterlacer::Nnedi => DeinterlaceFilter::Nnedi3,
+        Deinterlacer::Ivtc => DeinterlaceFilter::Ivtc,
         Deinterlacer::None => DeinterlaceFilter::None,
     });
 
@@ -224,6 +227,7 @@ pub fn plan_restoration_job(
         apply_audio_notch_hum: request.apply_audio_notch_hum,
         apply_loudness_norm: request.apply_loudness_norm,
         apply_ai_audio_denoise: request.apply_ai_audio_denoise,
+        apply_azimuth_correction: request.apply_azimuth_correction,
         start_sec: request.start_sec,
         audio_offset_sec: ov.audio_offset_sec.unwrap_or(0.0),
         duration_sec: request.duration_sec,
@@ -387,6 +391,7 @@ pub fn plan_restoration_job(
         | DeinterlaceFilter::Znedi3
         | DeinterlaceFilter::Nnedi3
         | DeinterlaceFilter::Yadif => 2.0,
+        DeinterlaceFilter::Ivtc => 0.8,
         _ => 1.0,
     };
     let expected_frames = (expected_duration * probe.fps * fps_multiplier).round() as u64;
@@ -541,6 +546,28 @@ fn write_checkpoint(planned: &PlannedRestoration, status: &str, kept_frames: u64
     }
 }
 
+fn update_live_restoration_frame(input_path: &str, current_sec: f64) {
+    let dirs = crate::viewmodels::api_support::media_dirs();
+    let live_frame_path = dirs.work.join("live_frame.jpg");
+    if let Some(ffmpeg) = crate::infrastructure::toolchain::resolve_executable_path("ffmpeg", None, None) {
+        let sec_str = format!("{:.2}", current_sec.max(0.0));
+        let _ = crate::infrastructure::toolchain::create_silent_command(&ffmpeg)
+            .args([
+                "-ss",
+                &sec_str,
+                "-i",
+                input_path,
+                "-frames:v",
+                "1",
+                "-q:v",
+                "3",
+                "-y",
+                &live_frame_path.to_string_lossy(),
+            ])
+            .status();
+    }
+}
+
 fn remove_checkpoint(planned: &PlannedRestoration) {
     let clean_base = planned
         .final_output_path
@@ -548,6 +575,8 @@ fn remove_checkpoint(planned: &PlannedRestoration) {
         .unwrap_or(&planned.final_output_path);
     let chk_path = format!("{clean_base}.checkpoint.json");
     let _ = fs::remove_file(chk_path);
+    let dirs = crate::viewmodels::api_support::media_dirs();
+    let _ = fs::remove_file(dirs.work.join("live_frame.jpg"));
 }
 
 /// Real-time native execution of a planned restoration pipeline.
@@ -656,7 +685,7 @@ pub fn execute_restoration_job(
                     l.on_log(trimmed);
                 }
 
-                if let Some(_snapshot) = accumulator.feed_line(trimmed) {
+                if let Some(snapshot) = accumulator.feed_line(trimmed) {
                     if let Some(l) = listener {
                         l.on_progress(&accumulator);
                     }
@@ -667,6 +696,7 @@ pub fn execute_restoration_job(
                             accumulator.current_frame,
                             start_time.elapsed().as_secs_f64(),
                         );
+                        update_live_restoration_frame(&planned.input_path, snapshot.out_time_seconds);
                     }
                 }
 
@@ -1140,6 +1170,7 @@ mod tests {
             apply_audio_notch_hum: true,
             apply_loudness_norm: true,
             apply_ai_audio_denoise: false,
+            apply_azimuth_correction: false,
             start_sec: 10.0,
             base_start_sec: None,
             duration_sec: Some(60.0),
@@ -1168,6 +1199,7 @@ mod tests {
             apply_audio_notch_hum: true,
             apply_loudness_norm: true,
             apply_ai_audio_denoise: false,
+            apply_azimuth_correction: false,
             start_sec: 10.0,
             base_start_sec: None,
             duration_sec: Some(60.0),
@@ -1201,6 +1233,7 @@ mod tests {
             apply_audio_notch_hum: false,
             apply_loudness_norm: false,
             apply_ai_audio_denoise: false,
+            apply_azimuth_correction: false,
             start_sec: 0.0,
             base_start_sec: None,
             duration_sec: Some(100.0),
@@ -1241,6 +1274,7 @@ mod tests {
             apply_audio_notch_hum: false,
             apply_loudness_norm: false,
             apply_ai_audio_denoise: false,
+            apply_azimuth_correction: false,
             start_sec: 0.0,
             base_start_sec: None,
             duration_sec: Some(10.0),
@@ -1268,6 +1302,7 @@ mod tests {
             apply_audio_notch_hum: false,
             apply_loudness_norm: false,
             apply_ai_audio_denoise: false,
+            apply_azimuth_correction: false,
             start_sec: 0.0,
             base_start_sec: None,
             duration_sec: Some(10.0),
@@ -1302,5 +1337,33 @@ mod tests {
 
         assert_eq!(progress_calls.load(Ordering::SeqCst), 1);
         assert_eq!(log_calls.load(Ordering::SeqCst), 1);
+    }
+
+    #[test]
+    fn test_plan_restoration_job_ivtc_and_azimuth() {
+        let req = RestorationJobRequest {
+            input_path: "film_tape.mkv".to_string(),
+            output_dir: "restored".to_string(),
+            preset: RestorationPreset::Custom,
+            target_1080p: false,
+            output_codec: None,
+            custom_deinterlacer: Some(DeinterlaceFilter::Ivtc),
+            audio_policy: None,
+            apply_audio_notch_hum: false,
+            apply_loudness_norm: false,
+            apply_ai_audio_denoise: false,
+            apply_azimuth_correction: true,
+            start_sec: 0.0,
+            base_start_sec: None,
+            duration_sec: Some(10.0),
+            overrides: RestorationOverrides::default(),
+        };
+        let probe = dummy_probe();
+        let planned = plan_restoration_job(&req, &probe, None, "ffmpeg.exe").unwrap();
+        // 10.0 sec * 29.97 fps * 0.8 = 239.76 -> 240 frames
+        assert_eq!(planned.expected_frames, 240);
+        assert!(planned.plan.video_filtergraph.contains("fieldmatch"));
+        assert!(planned.plan.video_filtergraph.contains("decimate"));
+        assert!(planned.plan.audio_filtergraph.contains("treble=g=3.5:f=6500"));
     }
 }

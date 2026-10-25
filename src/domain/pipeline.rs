@@ -40,6 +40,12 @@ pub enum OutputCodec {
     Ffv1,
 }
 
+/// Native IVTC (Inverse Telecine / 3:2 pulldown reversal) filterchain (29.97i -> 23.976p).
+pub const FILTER_IVTC_PULLDOWN: &str = "fieldmatch=order=tff:combmatch=full,bwdif=mode=0:parity=-1:deint=1,decimate";
+
+/// Professional audio azimuth alignment and high-shelf air restoration filterchain.
+pub const FILTER_AUDIO_AZIMUTH_HIGH_SHELF: &str = "treble=g=3.5:f=6500:w=0.6,stereotools=mlev=1.0:mpan=0.0:phase=1";
+
 /// Deinterlacer filter algorithms.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DeinterlaceFilter {
@@ -49,6 +55,7 @@ pub enum DeinterlaceFilter {
     Znedi3,
     Nnedi3,
     Yadif,
+    Ivtc,
     None,
 }
 
@@ -85,6 +92,8 @@ pub struct PipelineSpec {
     pub apply_loudness_norm: bool,
     #[serde(default)]
     pub apply_ai_audio_denoise: bool,
+    #[serde(default)]
+    pub apply_azimuth_correction: bool,
     pub start_sec: f64,
     pub audio_offset_sec: f64,
     pub duration_sec: Option<f64>,
@@ -137,6 +146,9 @@ pub fn build_video_filtergraph(spec: &PipelineSpec) -> String {
         }
         DeinterlaceFilter::Yadif => {
             filters.push("yadif=mode=1:parity=-1:deint=1".to_string());
+        }
+        DeinterlaceFilter::Ivtc => {
+            filters.push(FILTER_IVTC_PULLDOWN.to_string());
         }
         DeinterlaceFilter::None => {}
     }
@@ -265,6 +277,11 @@ pub fn build_audio_filtergraph(spec: &PipelineSpec) -> String {
     if spec.apply_ai_audio_denoise {
         // AI / FFT speech and background noise reduction
         filters.push("afftdn=nr=12.0:nf=-50.0:tn=1".to_string());
+    }
+
+    if spec.apply_azimuth_correction {
+        // High-shelf air excitation and azimuth phase alignment
+        filters.push(FILTER_AUDIO_AZIMUTH_HIGH_SHELF.to_string());
     }
 
     if filters.is_empty() {
@@ -519,6 +536,7 @@ mod tests {
             apply_audio_notch_hum: true,
             apply_loudness_norm: true,
             apply_ai_audio_denoise: false,
+            apply_azimuth_correction: false,
             start_sec: 66.533,
             audio_offset_sec: -0.05,
             duration_sec: Some(1200.0),
@@ -610,5 +628,17 @@ mod tests {
 
         let af = build_audio_filtergraph(&spec);
         assert!(af.contains("afftdn=nr=12.0:nf=-50.0:tn=1"));
+    }
+
+    #[test]
+    fn test_ivtc_and_azimuth_correction_filterchains() {
+        let mut spec = dummy_spec();
+        spec.deinterlacer = DeinterlaceFilter::Ivtc;
+        spec.apply_azimuth_correction = true;
+        let vf = build_video_filtergraph(&spec);
+        assert!(vf.contains("fieldmatch=order=tff:combmatch=full,bwdif=mode=0:parity=-1:deint=1,decimate"));
+
+        let af = build_audio_filtergraph(&spec);
+        assert!(af.contains("treble=g=3.5:f=6500:w=0.6,stereotools=mlev=1.0:mpan=0.0:phase=1"));
     }
 }

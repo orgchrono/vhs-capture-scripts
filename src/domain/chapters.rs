@@ -90,6 +90,57 @@ fn format_ms_to_webvtt(ms: u64) -> String {
     format!("{hours:02}:{mins:02}:{secs:02}.{millis:03}")
 }
 
+/// Pure helper formatting milliseconds to SMPTE timecode (HH:MM:SS:FF) based on specified frame rate.
+#[must_use]
+pub fn format_ms_to_smpte_timecode(ms: u64, fps: f64) -> String {
+    let effective_fps = if fps > 0.0 { fps } else { 29.97 };
+    let total_sec = ms as f64 / 1000.0;
+    let total_frames = (total_sec * effective_fps).round() as u64;
+    let fps_base = effective_fps.round().max(1.0) as u64;
+    let frames = total_frames % fps_base;
+    let total_seconds = total_frames / fps_base;
+    let secs = total_seconds % 60;
+    let mins = (total_seconds / 60) % 60;
+    let hours = total_seconds / 3600;
+    format!("{hours:02}:{mins:02}:{secs:02}:{frames:02}")
+}
+
+/// Pure generator producing standard SMPTE CMX 3600 Edit Decision List (EDL) from detected scenes.
+#[must_use]
+pub fn generate_cmx3600_edl(title: &str, scenes: &[ChapterInterval], fps: f64) -> String {
+    let mut out = format!("TITLE: {title}\nFCM: NON-DROP FRAME\n\n");
+    for s in scenes {
+        let event_num = s.scene_index;
+        let start_tc = format_ms_to_smpte_timecode(s.start_ms, fps);
+        let end_tc = format_ms_to_smpte_timecode(s.end_ms, fps);
+        out.push_str(&format!(
+            "{event_num:03}  AX       V     C        {start_tc} {end_tc} {start_tc} {end_tc}\n"
+        ));
+        out.push_str(&format!("* FROM CLIP NAME: Scene {}\n\n", s.scene_index));
+    }
+    out
+}
+
+/// Pure generator producing DaVinci Resolve & Premiere Pro Marker CSV from detected scenes.
+#[must_use]
+pub fn generate_resolve_markers_csv(
+    scenes: &[ChapterInterval],
+    fps: f64,
+    chapter_prefix: Option<&str>,
+) -> String {
+    let prefix = chapter_prefix.unwrap_or("Scene");
+    let mut out = String::from("#,Timecode In,Timecode Out,Name,Color,Notes\n");
+    for s in scenes {
+        let start_tc = format_ms_to_smpte_timecode(s.start_ms, fps);
+        let end_tc = format_ms_to_smpte_timecode(s.end_ms, fps);
+        out.push_str(&format!(
+            "{},{},{},{} {},Blue,Scene transition detected by VHS Studio Pro\n",
+            s.scene_index, start_tc, end_tc, prefix, s.scene_index
+        ));
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -133,5 +184,25 @@ Scene Number,Frame Number (Start),Timecode (Start),Seconds (Start),Frame Number 
         assert!(vtt.starts_with("WEBVTT\n\n"));
         assert!(vtt.contains("00:00:00.000 --> 00:00:01.000\nScene 1"));
         assert!(vtt.contains("00:00:01.033 --> 00:00:02.000\nScene 2"));
+    }
+
+    #[test]
+    fn test_generate_cmx3600_edl_output() {
+        let scenes = parse_scenedetect_csv(SAMPLE_CSV);
+        let edl = generate_cmx3600_edl("My Home Movie", &scenes, 29.97);
+        assert!(edl.starts_with("TITLE: My Home Movie\nFCM: NON-DROP FRAME\n\n"));
+        assert!(edl.contains("001  AX       V     C        00:00:00:00 00:00:01:00 00:00:00:00 00:00:01:00"));
+        assert!(edl.contains("* FROM CLIP NAME: Scene 1"));
+        assert!(edl.contains("002  AX       V     C        00:00:01:01 00:00:02:00 00:00:01:01 00:00:02:00"));
+        assert!(edl.contains("* FROM CLIP NAME: Scene 2"));
+    }
+
+    #[test]
+    fn test_generate_resolve_markers_csv_output() {
+        let scenes = parse_scenedetect_csv(SAMPLE_CSV);
+        let csv = generate_resolve_markers_csv(&scenes, 29.97, Some("Take"));
+        assert!(csv.starts_with("#,Timecode In,Timecode Out,Name,Color,Notes\n"));
+        assert!(csv.contains("1,00:00:00:00,00:00:01:00,Take 1,Blue,Scene transition detected by VHS Studio Pro\n"));
+        assert!(csv.contains("2,00:00:01:01,00:00:02:00,Take 2,Blue,Scene transition detected by VHS Studio Pro\n"));
     }
 }

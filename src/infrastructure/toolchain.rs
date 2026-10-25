@@ -79,6 +79,10 @@ pub fn get_tool_search_candidates(
         candidates.push(root.join("tools").join("bin").join(&bin_name));
         candidates.push(root.join("tools").join(tool_name).join(&bin_name));
         candidates.push(root.join("tools").join(tool_name).join("bin").join(&bin_name));
+        candidates.push(root.join("tools").join("vapoursynth").join(&bin_name));
+        candidates.push(root.join("tools").join("vapoursynth").join("bin").join(&bin_name));
+        candidates.push(root.join("tools").join("whisper").join(&bin_name));
+        candidates.push(root.join("tools").join("whisper").join("bin").join(&bin_name));
         candidates.push(root.join("tools").join("panasonic_rec").join(&bin_name));
         candidates.push(root.join("tools").join("panasonic_rec").join("bin").join(&bin_name));
         candidates.push(root.join("tools").join("ffmpeg").join("bin").join(&bin_name));
@@ -88,6 +92,11 @@ pub fn get_tool_search_candidates(
     if let Some(home) = user_home {
         candidates.push(home.join(".local").join("bin").join(&bin_name));
         candidates.push(home.join(".vhs_studio").join("tools").join(&bin_name));
+        candidates.push(home.join(".vhs_studio").join("tools").join("bin").join(&bin_name));
+        candidates.push(home.join(".vhs_studio").join("tools").join("vapoursynth").join(&bin_name));
+        candidates.push(home.join(".vhs_studio").join("tools").join("vapoursynth").join("bin").join(&bin_name));
+        candidates.push(home.join(".vhs_studio").join("tools").join("whisper").join(&bin_name));
+        candidates.push(home.join(".vhs_studio").join("tools").join("whisper").join("bin").join(&bin_name));
     }
 
     if cfg!(target_os = "windows") {

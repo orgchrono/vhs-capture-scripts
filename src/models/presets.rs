@@ -24,6 +24,7 @@ pub enum Deinterlacer {
     QtgmcSlow,
     Nnedi,
     Znedi3,
+    Ivtc,
     None,
 }
 
