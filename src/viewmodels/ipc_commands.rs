@@ -640,129 +640,17 @@ pub fn ipc_get_comparison_frame(
     let do_chroma = chroma_fix.unwrap_or(true);
     let src = source.unwrap_or_default();
 
-    let dirs = crate::viewmodels::api_support::media_dirs();
-    let resolved_source = if !src.is_empty() {
-        crate::viewmodels::api_support::resolve_media_input(&src, &dirs).unwrap_or(src)
-    } else {
-        String::new()
-    };
+    let res = crate::viewmodels::api_restoration::extract_comparison_frame_unified(
+        &src,
+        ts,
+        &deint,
+        do_denoise,
+        do_chroma,
+        false,
+        false,
+    );
 
-    let p = Path::new(&resolved_source);
-    let ffmpeg_bin = crate::infrastructure::toolchain::resolve_executable_path("ffmpeg", None, None);
-    let ffprobe_bin = crate::infrastructure::toolchain::resolve_executable_path("ffprobe", None, None);
-
-    let probed_duration = if !resolved_source.is_empty() && p.is_file() {
-        if let Some(ref probe_bin) = ffprobe_bin {
-            crate::infrastructure::probe::probe_media_file(&resolved_source, &probe_bin.to_string_lossy())
-                .map(|p| p.duration)
-                .unwrap_or(0.0)
-        } else {
-            0.0
-        }
-    } else {
-        0.0
-    };
-
-    if !resolved_source.is_empty()
-        && crate::infrastructure::security::is_safe_media_path(&resolved_source, &dirs.roots())
-        && p.is_file()
-    {
-        if let Some(ffmpeg) = ffmpeg_bin {
-            let mut raw_cmd = crate::infrastructure::toolchain::create_silent_command(&ffmpeg);
-            raw_cmd.args([
-                "-hide_banner",
-                "-loglevel",
-                "error",
-                "-ss",
-                &format!("{ts:.3}"),
-                "-i",
-                &resolved_source,
-                "-frames:v",
-                "1",
-                "-vf",
-                "scale=640:360",
-                "-f",
-                "image2",
-                "-c:v",
-                "mjpeg",
-                "pipe:1",
-            ]);
-
-            let deint_filter = if deint.to_ascii_lowercase().contains("bwdif") {
-                "bwdif=mode=0"
-            } else {
-                "yadif=mode=0"
-            };
-            let mut filters = vec![deint_filter.to_string()];
-            if do_denoise {
-                filters.push("hqdn3d=1.5:1.5:6:6".to_string());
-            }
-            if do_chroma {
-                filters.push("eq=saturation=1.1:contrast=1.05".to_string());
-            }
-            filters.push("scale=640:360".to_string());
-            let proc_vf = filters.join(",");
-
-            let mut proc_cmd = crate::infrastructure::toolchain::create_silent_command(&ffmpeg);
-            proc_cmd.args([
-                "-hide_banner",
-                "-loglevel",
-                "error",
-                "-ss",
-                &format!("{ts:.3}"),
-                "-i",
-                &resolved_source,
-                "-frames:v",
-                "1",
-                "-vf",
-                &proc_vf,
-                "-f",
-                "image2",
-                "-c:v",
-                "mjpeg",
-                "pipe:1",
-            ]);
-
-            let raw_out = raw_cmd.output().ok();
-            let proc_out = proc_cmd.output().ok();
-
-            if let (Some(r), Some(pr)) = (raw_out, proc_out) {
-                if r.status.success()
-                    && pr.status.success()
-                    && !r.stdout.is_empty()
-                    && !pr.stdout.is_empty()
-                {
-                    let raw_b64 = format!(
-                        "data:image/jpeg;base64,{}",
-                        crate::infrastructure::obs::base64_encode(&r.stdout)
-                    );
-                    let proc_b64 = format!(
-                        "data:image/jpeg;base64,{}",
-                        crate::infrastructure::obs::base64_encode(&pr.stdout)
-                    );
-                    return json!({
-                        "status": "ok",
-                        "timestamp": ts,
-                        "duration": probed_duration,
-                        "raw_image": raw_b64,
-                        "processed_image": proc_b64,
-                        "width": 640,
-                        "height": 360
-                    });
-                }
-            }
-        }
-    }
-
-    json!({
-        "status": "ok",
-        "timestamp": ts,
-        "duration": probed_duration,
-        "raw_image": "",
-        "processed_image": "",
-        "width": 640,
-        "height": 360
-    })
+    serde_json::to_value(&res).unwrap_or_else(|_| json!({}))
 }
 
 // ============================================================================

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
+import React from 'react'
 import {
   Terminal,
   Trash2,
@@ -11,20 +11,16 @@ import {
   X,
   Copy,
 } from 'lucide-react'
-import { toast } from 'sonner'
 import { Button } from './ui/button'
 import { useTranslation } from 'react-i18next'
 import { useStudioStore } from '../store/useStudioStore'
-import { usePreferencesStore } from '../store/usePreferencesStore'
+import {
+  useConsoleViewModel,
+  type LogFilterLevel,
+  type ContextMenuState,
+} from '../viewmodels/useConsoleViewModel'
 
-interface ContextMenuState {
-  x: number
-  y: number
-  line?: string
-  selectedText?: string
-}
-
-export type LogFilterLevel = 'all' | 'info' | 'warn' | 'error' | 'debug'
+export type { LogFilterLevel, ContextMenuState }
 
 export interface ConsoleViewerProps {
   onStart?: () => void
@@ -54,111 +50,25 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
   hasSelectedFile = true,
 }) => {
   const { t } = useTranslation()
-  const { logs, clearLogs, isRestoring: storeIsRestoring, isPaused: storeIsPaused } = useStudioStore()
-  const { autoScrollConsole, verboseConsole } = usePreferencesStore()
+  const { isRestoring: storeIsRestoring, isPaused: storeIsPaused } = useStudioStore()
   const isRestoring = propIsRestoring ?? storeIsRestoring
   const isPaused = propIsPaused ?? storeIsPaused
 
-  const [filterLevel, setFilterLevel] = useState<LogFilterLevel>('all')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
-  const endRef = useRef<HTMLDivElement>(null)
-
-  const handleCopy = useCallback(async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      toast.success(t('console.copied_to_clipboard'))
-    } catch {
-      // clipboard fallback
-    }
-    setContextMenu(null)
-  }, [t])
-
-  useEffect(() => {
-    const handleClose = () => setContextMenu(null)
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setContextMenu(null)
-    }
-    if (contextMenu) {
-      window.addEventListener('click', handleClose)
-      window.addEventListener('keydown', handleEsc)
-    }
-    return () => {
-      window.removeEventListener('click', handleClose)
-      window.removeEventListener('keydown', handleEsc)
-    }
-  }, [contextMenu])
-
-  const handleLineContextMenu = (e: React.MouseEvent, line: string) => {
-    e.preventDefault()
-    e.stopPropagation()
-    const selection = window.getSelection()?.toString() || ''
-    setContextMenu({
-      x: e.clientX,
-      y: e.clientY,
-      line,
-      selectedText: selection.trim() ? selection : undefined,
-    })
-  }
-
-  const handleContainerContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault()
-    const selection = window.getSelection()?.toString() || ''
-    setContextMenu({
-      x: e.clientX,
-      y: e.clientY,
-      selectedText: selection.trim() ? selection : undefined,
-    })
-  }
-
-  const filteredLogs = useMemo(() => {
-    let result = logs
-    if (filterLevel === 'error') {
-      result = result.filter(
-        (l) =>
-          l.includes('[ERRO]') ||
-          l.includes('Error') ||
-          l.includes('FALHA') ||
-          l.includes('Failed')
-      )
-    } else if (filterLevel === 'warn') {
-      result = result.filter(
-        (l) =>
-          l.includes('[AVISO]') ||
-          l.includes('Warning') ||
-          l.includes('Warn')
-      )
-    } else if (filterLevel === 'info') {
-      result = result.filter(
-        (l) =>
-          !l.includes('[ERRO]') &&
-          !l.includes('[AVISO]') &&
-          !l.includes('Error') &&
-          !l.includes('-> PROGRESS:')
-      )
-    } else if (filterLevel === 'debug') {
-      result = result.filter(
-        (l) =>
-          l.includes('-> PROGRESS:') ||
-          l.includes('[DEBUG]') ||
-          l.includes('DEBUG')
-      )
-    } else if (filterLevel === 'all' && !verboseConsole) {
-      result = result.filter((l) => !l.includes('-> PROGRESS:'))
-    }
-
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase()
-      result = result.filter((l) => l.toLowerCase().includes(q))
-    }
-    return result
-  }, [logs, filterLevel, searchQuery, verboseConsole])
-
-  useEffect(() => {
-    if (autoScrollConsole && typeof endRef.current?.scrollIntoView === 'function') {
-      endRef.current.scrollIntoView({ behavior: 'smooth' })
-    }
-  }, [filteredLogs, autoScrollConsole])
+  const {
+    logs,
+    clearLogs,
+    filterLevel,
+    setFilterLevel,
+    searchQuery,
+    setSearchQuery,
+    contextMenu,
+    endRef,
+    handleCopy,
+    handleLineContextMenu,
+    handleContainerContextMenu,
+    filteredLogs,
+    exportLogs,
+  } = useConsoleViewModel()
 
   const formatLine = (line: string, index: number) => {
     let colorClass = 'text-slate-300'
@@ -228,10 +138,11 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
           )}
 
           {/* Industry Standard Log Level Filter */}
-          <div className="hidden xl:flex items-center gap-1 ml-1 bg-studio-panel px-1 h-6 rounded-sm border border-studio-border text-[10px] font-mono shrink-0">
-            <Filter className="w-3 h-3 text-slate-500 mr-0.5" />
+          <div className="hidden xl:flex items-center gap-1 ml-1 bg-studio-panel px-1 h-6 rounded-sm border border-studio-border text-[10px] font-mono shrink-0" role="group" aria-label={t('console.title')}>
+            <Filter className="w-3 h-3 text-slate-500 mr-0.5" aria-hidden="true" />
             <button
               type="button"
+              aria-pressed={filterLevel === 'all'}
               onClick={() => setFilterLevel('all')}
               className={`px-1.5 h-5 flex items-center rounded-sm cursor-pointer ${
                 filterLevel === 'all'
@@ -239,10 +150,11 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              ALL
+              {t('console.filter_all')}
             </button>
             <button
               type="button"
+              aria-pressed={filterLevel === 'info'}
               onClick={() => setFilterLevel('info')}
               className={`px-1.5 h-5 flex items-center rounded-sm cursor-pointer ${
                 filterLevel === 'info'
@@ -250,10 +162,11 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              INFO
+              {t('console.filter_info')}
             </button>
             <button
               type="button"
+              aria-pressed={filterLevel === 'warn'}
               onClick={() => setFilterLevel('warn')}
               className={`px-1.5 h-5 flex items-center rounded-sm cursor-pointer ${
                 filterLevel === 'warn'
@@ -261,10 +174,11 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
                   : 'text-slate-400 hover:text-amber-300'
               }`}
             >
-              WARN
+              {t('console.filter_warn')}
             </button>
             <button
               type="button"
+              aria-pressed={filterLevel === 'error'}
               onClick={() => setFilterLevel('error')}
               className={`px-1.5 h-5 flex items-center rounded-sm cursor-pointer ${
                 filterLevel === 'error'
@@ -272,10 +186,11 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
                   : 'text-slate-400 hover:text-red-300'
               }`}
             >
-              ERR
+              {t('console.filter_err')}
             </button>
             <button
               type="button"
+              aria-pressed={filterLevel === 'debug'}
               onClick={() => setFilterLevel('debug')}
               className={`px-1.5 h-5 flex items-center rounded-sm cursor-pointer ${
                 filterLevel === 'debug'
@@ -283,7 +198,7 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
                   : 'text-slate-400 hover:text-cyan-300'
               }`}
             >
-              DEBUG
+              {t('console.filter_debug')}
             </button>
           </div>
 
@@ -320,28 +235,7 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
         <div className="flex items-center gap-1.5 font-mono shrink-0">
           <button
             type="button"
-            onClick={() => {
-              const currentLogs = useStudioStore.getState().logs
-              const header = `VHS Studio Pro - Diagnostic Log Export\nTimestamp: ${new Date().toISOString()}\nTotal Lines: ${currentLogs.length}\n${'='.repeat(
-                60
-              )}\n`
-              const blob = new Blob([header + currentLogs.join('\n')], {
-                type: 'text/plain;charset=utf-8',
-              })
-              const url = URL.createObjectURL(blob)
-              const a = document.createElement('a')
-              a.style.display = 'none'
-              a.href = url
-              a.download = `vhs_studio_diagnostic_${new Date()
-                .toISOString()
-                .replace(/[:.]/g, '-')}.log`
-              document.body.appendChild(a)
-              a.click()
-              setTimeout(() => {
-                document.body.removeChild(a)
-                URL.revokeObjectURL(url)
-              }, 1000)
-            }}
+            onClick={exportLogs}
             className="text-slate-300 hover:text-white transition text-[11px] flex items-center gap-1.5 cursor-pointer px-2 py-1 rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border"
             title={t('console.export_title')}
           >
@@ -433,12 +327,15 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
       </div>
 
       <div
+        role="log"
+        aria-live="polite"
+        aria-relevant="additions"
         onContextMenu={handleContainerContextMenu}
         className="flex-1 p-3.5 overflow-y-auto font-mono text-xs select-text"
       >
         {filteredLogs.length === 0 ? (
           <div className="text-slate-600 italic">
-            {searchQuery ? t('console.no_matches', 'Nenhum log correspondente encontrado.') : t('console.ready_message')}
+            {searchQuery ? t('console.no_matches') : t('console.ready_message')}
           </div>
         ) : (
           filteredLogs.map(formatLine)

@@ -17,23 +17,11 @@ pub fn compute_sha256_hex(payload: &[u8]) -> String {
     digest.iter().map(|b| format!("{b:02x}")).collect()
 }
 
-/// Computes a lowercase hexadecimal SHA-256 digest of an on-disk file in streaming 64KB chunks.
+/// Computes a lowercase hexadecimal SHA-256 digest of an on-disk file in streaming chunks.
+///
+/// NOTE: Direct filesystem I/O is encapsulated in `crate::infrastructure::storage::compute_file_sha256_hex`.
 pub fn compute_file_sha256_hex(path: &std::path::Path) -> Result<String, std::io::Error> {
-    use std::io::Read;
-    let mut file = std::fs::File::open(path)?;
-    let mut hasher = Sha256::new();
-    let mut buffer = [0u8; 65536];
-
-    loop {
-        let count = file.read(&mut buffer)?;
-        if count == 0 {
-            break;
-        }
-        hasher.update(&buffer[..count]);
-    }
-
-    let result = hasher.finalize();
-    Ok(result.iter().map(|b| format!("{b:02x}")).collect())
+    crate::infrastructure::storage::compute_file_sha256_hex(path)
 }
 
 /// Pure verification of a byte payload against an expected SHA-256 hex digest.

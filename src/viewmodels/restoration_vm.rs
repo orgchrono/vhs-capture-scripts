@@ -199,5 +199,63 @@ pub fn ipc_execute_restoration_job(
     planned: PlannedRestoration,
     cancel_flag: Option<&std::sync::atomic::AtomicBool>,
 ) -> Result<RestorationSummary, String> {
-    execute_restoration_job(&planned, cancel_flag, None)
+    let ctx = crate::viewmodels::api_router::default_app_context();
+    let total_stages: usize = planned
+        .request_json
+        .as_deref()
+        .and_then(|j| serde_json::from_str::<crate::infrastructure::executor::RestorationJobRequest>(j).ok())
+        .map(|r| match r.preset {
+            crate::models::presets::RestorationPreset::AiMaster => 6,
+            crate::models::presets::RestorationPreset::Gold => 5,
+            crate::models::presets::RestorationPreset::Speed => 4,
+            crate::models::presets::RestorationPreset::TbcHold => 4,
+            crate::models::presets::RestorationPreset::Custom => 4,
+        })
+        .unwrap_or(if planned.is_qtgmc_active { 5 } else { 4 });
+    ctx.process.append_log(format!(
+        "STAGE:1/{total_stages} | Starting native restoration: {} -> {}",
+        planned.input_path, planned.final_output_path
+    ));
+
+    let started = std::time::Instant::now();
+    let last_emit_ms = std::sync::atomic::AtomicU64::new(u64::MAX);
+    let last_stage_emitted = std::sync::atomic::AtomicUsize::new(1);
+
+    let listener = crate::infrastructure::executor::CallbackListener {
+        on_progress_fn: |acc| {
+            let now_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
+            let last = last_emit_ms.load(std::sync::atomic::Ordering::Relaxed);
+            let previous = (last != u64::MAX).then_some(last);
+            if crate::viewmodels::restoration_job_vm::should_emit_progress(previous, now_ms, acc.is_complete) {
+                last_emit_ms.store(now_ms, std::sync::atomic::Ordering::Relaxed);
+                let pct = if acc.total_expected_frames > 0 {
+                    (acc.current_frame as f64 / acc.total_expected_frames as f64).clamp(0.0, 1.0)
+                } else {
+                    0.0
+                };
+                let current_stage = if acc.is_complete {
+                    total_stages
+                } else {
+                    ((pct * total_stages as f64).floor() as usize + 1).clamp(1, total_stages)
+                };
+                let prev_stage = last_stage_emitted.swap(current_stage, std::sync::atomic::Ordering::Relaxed);
+                if current_stage > prev_stage {
+                    ctx.process.append_log(format!("STAGE:{current_stage}/{total_stages} | Pipeline Phase {current_stage}/{total_stages}"));
+                }
+                ctx.process.append_log(crate::infrastructure::runner::format_progress_log_line(acc));
+            }
+        },
+        on_log_fn: |line| {
+            if line.contains("Error") || line.contains("Stream #0:") || line.contains("Output #0") {
+                ctx.process.append_log(line);
+            }
+        },
+    };
+
+    let summary = execute_restoration_job(&planned, cancel_flag, Some(&listener))?;
+    ctx.process.append_log(format!(
+        "STAGE:{total_stages}/{total_stages} | Restoration finished: success={} output={}",
+        summary.success, summary.final_output_path
+    ));
+    Ok(summary)
 }

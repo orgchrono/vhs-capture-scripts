@@ -56,7 +56,7 @@ describe('RestorationSettings UX/UI & Layout Tests ("Feng Shui" & Coerência Vis
     await user.click(aiTab);
 
     expect(await screen.findByText(/Diagnóstico Honesto do Hardware/i)).toBeInTheDocument();
-    expect(screen.getByText(/Tier 3: GPU Acelerada/i)).toBeInTheDocument();
+    expect(screen.getByText(/(Tier|Nível) 3: GPU Acelerada/i)).toBeInTheDocument();
     expect(screen.getByText(/Módulos Neurais de Restauração/i)).toBeInTheDocument();
     expect(screen.getByText(/DeepFilterNet/i)).toBeInTheDocument();
     expect(screen.getByText(/Eliminação de Dropouts/i)).toBeInTheDocument();

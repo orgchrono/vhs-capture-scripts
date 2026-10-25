@@ -50,6 +50,7 @@ export const CaptureBar: React.FC = () => {
 
         <Button
           data-testid="toggle-watcher-btn"
+          aria-pressed={isWatcherActive}
           onClick={handleToggleWatcher}
           className={`h-8 px-2.5 font-mono font-bold text-xs uppercase tracking-wider rounded-sm border transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.99] shrink-0 ${
             isWatcherActive
@@ -58,20 +59,25 @@ export const CaptureBar: React.FC = () => {
           }`}
           title={isWatcherActive ? t('capture.watcher_armed_desc') : t('capture.watcher_disarmed_desc')}
         >
-          <span className={`led-lamp shrink-0 ${isWatcherActive ? 'led-live animate-pulse' : 'led-idle'}`} />
-          <Eye className="w-3.5 h-3.5" />
+          <span className={`led-lamp shrink-0 ${isWatcherActive ? 'led-live animate-pulse' : 'led-idle'}`} aria-hidden="true" />
+          <Eye className="w-3.5 h-3.5" aria-hidden="true" />
           <span>{isWatcherActive ? t('capture.watcher_armed') : t('capture.watcher_arm')}</span>
         </Button>
 
         <div className="relative group shrink-0">
           <button
             type="button"
-            className="h-8 w-8 flex items-center justify-center rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-slate-400 hover:text-slate-200 transition cursor-help"
+            className="h-8 w-8 flex items-center justify-center rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-slate-400 hover:text-slate-200 transition cursor-help focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/80"
             aria-label={t('capture.help_aria')}
+            aria-describedby="capture-help-tooltip"
           >
-            <HelpCircle className="w-4 h-4" />
+            <HelpCircle className="w-4 h-4" aria-hidden="true" />
           </button>
-          <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block w-72 p-3 bg-studio-panel border border-studio-border rounded-sm text-xs text-slate-300 shadow-xl z-50 leading-relaxed pointer-events-none font-mono">
+          <div
+            id="capture-help-tooltip"
+            role="tooltip"
+            className="absolute right-0 bottom-full mb-2 hidden group-hover:block group-focus-within:block w-72 p-3 bg-studio-panel border border-studio-border rounded-sm text-xs text-slate-300 shadow-xl z-50 leading-relaxed pointer-events-none font-mono"
+          >
             <strong className="text-white block mb-1">{t('capture.help_title')}</strong>
             {t('capture.help_desc')}
           </div>

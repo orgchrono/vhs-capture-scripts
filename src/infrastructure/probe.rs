@@ -306,36 +306,6 @@ pub fn assess_media_file_qc(
         return Err("Invalid probe dimensions".to_string());
     }
 
-    let mut cmd = create_silent_command(Path::new(ffmpeg_binary));
-    let (fps_filter, sample_interval_sec) = if probe.duration > 30.0 {
-        let interval = (probe.duration / 10.0).max(1.0);
-        (format!("fps=1/{interval:.4}"), interval)
-    } else {
-        ("fps=1".to_string(), 1.0)
-    };
-
-    cmd.args([
-        "-hide_banner",
-        "-loglevel",
-        "error",
-        "-i",
-        file_path,
-        "-vf",
-        &fps_filter,
-        "-vframes",
-        "10",
-        "-f",
-        "rawvideo",
-        "-pix_fmt",
-        "yuv420p",
-        "pipe:1",
-    ]);
-
-    let output = cmd
-        .output()
-        .map_err(|e| format!("Failed to spawn FFmpeg QC sampler: {e}"))?;
-    let stdout = output.stdout;
-
     let w = probe.width as usize;
     let h = probe.height as usize;
     let y_size = w * h;
@@ -347,21 +317,64 @@ pub fn assess_media_file_qc(
     let mut black_leader_count = 0;
     let mut past_leader = false;
 
-    if frame_size > 0 && stdout.len() >= frame_size {
-        for chunk in stdout.chunks_exact(frame_size) {
-            let y_plane = &chunk[..y_size];
-            let u_plane = &chunk[y_size..y_size + u_size];
-            let v_plane = &chunk[y_size + u_size..];
+    // Fast multi-point sampling with input seeking (-ss before -i) avoiding linear file decoding
+    let sample_timestamps: Vec<f64> = if probe.duration <= 2.0 {
+        vec![0.0]
+    } else if probe.duration <= 10.0 {
+        vec![0.5, probe.duration * 0.5, (probe.duration - 0.5).max(0.5)]
+    } else {
+        vec![
+            0.5,
+            (probe.duration * 0.1).max(1.0),
+            (probe.duration * 0.25).max(2.0),
+            (probe.duration * 0.5).max(3.0),
+            (probe.duration * 0.75).max(4.0),
+            (probe.duration - 2.0).max(5.0),
+        ]
+    };
 
-            let rep = crate::domain::qc::inspect_frame_qc(y_plane, u_plane, v_plane, w, h);
-            if !past_leader {
-                if rep.luma.mean_luma < 20.0 {
-                    black_leader_count += 1;
-                } else {
-                    past_leader = true;
+    let sample_interval_sec = if !sample_timestamps.is_empty() {
+        probe.duration / sample_timestamps.len() as f64
+    } else {
+        1.0
+    };
+
+    for ts in &sample_timestamps {
+        let mut cmd = create_silent_command(Path::new(ffmpeg_binary));
+        cmd.args([
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-ss",
+            &format!("{ts:.3}"),
+            "-i",
+            file_path,
+            "-vframes",
+            "1",
+            "-f",
+            "rawvideo",
+            "-pix_fmt",
+            "yuv420p",
+            "pipe:1",
+        ]);
+
+        if let Ok(output) = cmd.output() {
+            let stdout = output.stdout;
+            if frame_size > 0 && stdout.len() >= frame_size {
+                let y_plane = &stdout[..y_size];
+                let u_plane = &stdout[y_size..y_size + u_size];
+                let v_plane = &stdout[y_size + u_size..y_size + u_size + v_size];
+
+                let rep = crate::domain::qc::inspect_frame_qc(y_plane, u_plane, v_plane, w, h);
+                if !past_leader {
+                    if rep.luma.mean_luma < 20.0 {
+                        black_leader_count += 1;
+                    } else {
+                        past_leader = true;
+                    }
                 }
+                reports.push(rep);
             }
-            reports.push(rep);
         }
     }
 

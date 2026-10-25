@@ -60,6 +60,7 @@ export function useStudioViewModel() {
   const isBusy = isRestoring || isInstallingQtgmc || isInstallingObs;
   const lastPolledIndexRef = useRef(0);
   const addLogRef = useRef(addLog);
+  const addLogsRef = useRef(store.addLogs);
   const setIsRestoringRef = useRef(setIsRestoring);
   const isRestoringRef = useRef(isRestoring);
   const isInstallingQtgmcRef = useRef(isInstallingQtgmc);
@@ -71,6 +72,7 @@ export function useStudioViewModel() {
 
   useEffect(() => {
     addLogRef.current = addLog;
+    addLogsRef.current = store.addLogs;
     setIsRestoringRef.current = setIsRestoring;
     isRestoringRef.current = isRestoring;
     isInstallingQtgmcRef.current = isInstallingQtgmc;
@@ -79,17 +81,18 @@ export function useStudioViewModel() {
     setActiveTaskRef.current = store.setActiveTask;
     refetchStatusRef.current = refetchStatus;
     tRef.current = t;
-  }, [addLog, setIsRestoring, isRestoring, isInstallingQtgmc, isInstallingObs, store.activeTask, store.setActiveTask, refetchStatus, t]);
+  }, [addLog, store.addLogs, setIsRestoring, isRestoring, isInstallingQtgmc, isInstallingObs, store.activeTask, store.setActiveTask, refetchStatus, t]);
 
   const handleTaskCompletion = useCallback((status?: { success?: boolean | null; exit_code?: number | null }) => {
     if (isRestoringRef.current) {
       setIsRestoringRef.current(false);
       setActiveTaskRef.current(null);
+      const isExplicitSuccess = status?.success === true;
       const hasFailed = status?.success === false || (typeof status?.exit_code === 'number' && status.exit_code !== 0);
       if (hasFailed) {
         a11yAudio.playError();
         addLogRef.current(tRef.current('logs.restore_failed', { code: status?.exit_code ?? 'error' }));
-      } else {
+      } else if (isExplicitSuccess) {
         a11yAudio.playSuccess();
         addLogRef.current(tRef.current('logs.restore_success'));
       }
@@ -117,21 +120,45 @@ export function useStudioViewModel() {
     }
   }, []);
 
-  // Real-time Server-Sent Events (SSE) for low-latency live log streaming
+  // Real-time Server-Sent Events (SSE) for low-latency live log streaming with batching
   useEffect(() => {
     if (!isBusy || typeof EventSource === 'undefined') return;
 
     const eventSource = new EventSource('/api/logs/stream');
+    const logBuffer: string[] = [];
+    let flushTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const flushLogs = () => {
+      if (logBuffer.length > 0) {
+        const batch = logBuffer.splice(0, logBuffer.length);
+        if (addLogsRef.current) {
+          addLogsRef.current(batch);
+        } else {
+          batch.forEach((l) => addLogRef.current(l));
+        }
+      }
+      flushTimer = null;
+    };
 
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
         if (data.line) {
-          addLogRef.current(data.line);
+          logBuffer.push(data.line);
           handleLogLineProgress(data.line);
+          if (!flushTimer) {
+            flushTimer = setTimeout(flushLogs, 60);
+          }
         }
         if (data.active === false || data.running === false) {
-          handleTaskCompletion(data);
+          if (flushTimer) {
+            clearTimeout(flushTimer);
+            flushTimer = null;
+          }
+          flushLogs();
+          if (!isTauriEnvironment() || !isRestoringRef.current) {
+            handleTaskCompletion(data);
+          }
           eventSource.close();
         }
       } catch {
@@ -140,9 +167,14 @@ export function useStudioViewModel() {
     };
 
     return () => {
+      if (flushTimer) {
+        clearTimeout(flushTimer);
+        flushTimer = null;
+      }
+      flushLogs();
       eventSource.close();
     };
-  }, [isBusy, handleLogLineProgress]);
+  }, [isBusy, handleLogLineProgress, handleTaskCompletion]);
 
   // Fallback logs polling if EventSource is unavailable in environment
   const { data: logsData } = useGetLogsQuery(undefined, {
@@ -154,17 +186,19 @@ export function useStudioViewModel() {
     if (typeof EventSource === 'undefined' && logsData?.logs?.length) {
       const newLogs = logsData.logs.slice(lastPolledIndexRef.current);
       if (newLogs.length > 0) {
-        newLogs.forEach((l) => {
-          addLogRef.current(l);
-          handleLogLineProgress(l);
-        });
+        if (addLogsRef.current) {
+          addLogsRef.current(newLogs);
+        } else {
+          newLogs.forEach((l) => addLogRef.current(l));
+        }
+        newLogs.forEach((l) => handleLogLineProgress(l));
         lastPolledIndexRef.current = logsData.logs.length;
       }
       if (!logsData.active) {
         handleTaskCompletion(logsData);
       }
     }
-  }, [logsData, handleLogLineProgress]);
+  }, [logsData, handleLogLineProgress, handleTaskCompletion]);
 
   const handleStartRestoration = async (overrideParams?: Partial<RestorationPayload>) => {
     if (!store.selectedFile) {

@@ -13,7 +13,12 @@
     "obs_installed": "OBS 準備完了",
     "install_obs": "OBS をインストール",
     "installing": "インストール中...",
-    "preferences_title": "グローバルシステム設定"
+    "preferences_title": "グローバルシステム設定",
+    "encoder_prefix": "ENC:",
+    "codec_h264": "H.264",
+    "codec_hevc": "HEVC",
+    "codec_prores": "ProRes",
+    "codec_ffv1": "FFV1"
   },
   "presets": {
     "title": "アナログ映像マスタリング パイプライン",
@@ -67,7 +72,13 @@
     "copy_selection": "選択範囲をコピー",
     "copied_to_clipboard": "クリップボードにコピーしました！",
     "toggle": "Alternar Console",
-    "tab_title": "Console"
+    "tab_title": "Console",
+    "filter_all": "すべて",
+    "filter_info": "情報",
+    "filter_warn": "警告",
+    "filter_err": "エラー",
+    "filter_debug": "デバッグ",
+    "diagnostic_export_header": "VHS Studio Pro - 診断ログエクスポート\nタイムスタンプ: {{timestamp}}\n総行数: {{totalLines}}\n============================================================"
   },
   "monitor": {
     "live_preview": "LIVE PREVIEW (NATIVE)",
@@ -116,7 +127,10 @@
     "scopes_tab_all": "すべて",
     "scopes_tab_waveform": "輝度 (Luma)",
     "scopes_tab_vectorscope": "色度 (Chroma)",
-    "scopes_tab_audio": "音声 (Audio)"
+    "scopes_tab_audio": "音声 (Audio)",
+    "live_restoration_stream": "リアルタイム修復ストリーム",
+    "source_stream_proxy": "ソースストリームプロキシ",
+    "standby_no_signal": "スタンバイ / 信号なし"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -186,7 +200,10 @@
     "crt_monitor_badge": "DIRECT-SHOW / OBS VIRTUAL CAM",
     "engine_title": "Processing Engine",
     "engine_badge": "PRESETS & RESTORATION",
-    "sidebar_panasonic_title": "3. Panasonic DVR 取り込み"
+    "sidebar_panasonic_title": "3. Panasonic DVR 取り込み",
+    "title": "VHS Studio Pro",
+    "brand_name": "VHS STUDIO",
+    "brand_badge": "PRO"
   },
   "settings": {
     "technical_title": "Restoration Technical Settings",
@@ -230,7 +247,8 @@
     "tab_presets": "モード",
     "reset_default": "デフォルトに戻す",
     "tabs_aria_label": "Abas de Configuração",
-    "output_codec_hint": "最終動画のエンコード形式および圧縮コーデック。"
+    "output_codec_hint": "最終動画のエンコード形式および圧縮コーデック。",
+    "tier_label": "ティア {{tier}}: {{name}}"
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",
@@ -366,7 +384,10 @@
     "watcher_armed_desc": "テープ信号を監視して自動録画を開始します。",
     "watcher_disarmed_title": "自動インジェスト解除",
     "watcher_disarmed_desc": "自動録画監視を停止しました。",
-    "watcher_error": "オートウォッチャーの切り替えに失敗しました。"
+    "watcher_error": "オートウォッチャーの切り替えに失敗しました。",
+    "capture_failed_title": "キャプチャ失敗",
+    "capture_start_failed": "キャプチャの開始に失敗しました",
+    "capture_stop_failed": "キャプチャの停止に失敗しました"
   },
   "telemetry": {
     "title": "アナログマスタリング テレメトリ",
@@ -395,6 +416,10 @@
     "stage_encode_fast": "3. 高速 NVENC ハードウェアエンコード",
     "stage_encode_ai": "6. AI マスターエクスポート",
     "stage_export": "4. 高速エクスポート",
+    "stage_package_manager": "1. パッケージマネージャーと環境",
+    "stage_download_packages": "2. パッケージと依存関係のダウンロード",
+    "stage_configure_plugins": "3. プラグインと拡張機能の設定",
+    "stage_verify_toolchain": "4. 整合性の検証と完了",
     "stage_progress": "進捗",
     "streaming": "ストリーミング中",
     "status_paused": "一時停止中",
@@ -411,7 +436,8 @@
     "task_install_qtgmc": "QTGMC / VapourSynth インストール",
     "task_install_obs": "OBS Studio インストール",
     "task_whisper_subtitles": "Whisper 字幕・文字起こし",
-    "task_panasonic_extract": "Panasonic タイトル抽出"
+    "task_panasonic_extract": "Panasonic タイトル抽出",
+    "task_image_generation": "A/B比較フレーム抽出"
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",
@@ -451,7 +477,9 @@
     "gdrive_connect_btn": "Connect via Google OAuth",
     "dropbox_auth_btn": "Authorize Dropbox in Browser",
     "onedrive_auth_btn": "Authorize Microsoft Account",
-    "connected": "Connected"
+    "connected": "Connected",
+    "validating": "検証中...",
+    "save_error": "設定の保存中にエラーが発生しました。"
   },
   "logs": {
     "preparing_restore": "[復元] ファイルの復元を準備中: {{file}}",
@@ -630,6 +658,53 @@
     "close": "閉じる",
     "refresh": "更新",
     "maximize": "最大化",
-    "minimize": "最小化"
+    "minimize": "最小化",
+    "not_available": "利用不可"
+  },
+  "options": {
+    "deinterlacer": {
+      "qtgmc": "QTGMC 標準 (高品質)",
+      "qtgmc_fast": "QTGMC 高速 (バランス)",
+      "qtgmc_slow": "QTGMC 低速 (最高品質)",
+      "bwdif": "BWDIF (高速 / 低CPU負荷)",
+      "znedi3": "ZNEDI3 (最適化バリアント)",
+      "nnedi": "NNEDI3 (方向性アップスケール)",
+      "none": "なし (プログレッシブ / テレシネ)"
+    },
+    "video_mode": {
+      "double": "60fps / 50fps (スムーズ / 標準)",
+      "single": "30fps / 25fps (オリジナルフィルム)",
+      "freeze": "フレームホールドTBC (ドロップアウト保護)",
+      "drop": "ドロップ (未処理ドロップアウト除外)",
+      "passthrough": "パススルー (そのまま)"
+    },
+    "audio_mode": {
+      "stereo": "ステレオ (オリジナルキャプチャ)",
+      "mono": "ミックスモノラル (L+R合算)",
+      "mono_l": "強制モノラル (左のみ)",
+      "mono_r": "強制モノラル (右のみ)"
+    },
+    "output_codec": {
+      "h264": "H.264 (最大互換性)",
+      "hevc": "H.265 / HEVC (高圧縮率)",
+      "prores": "ProRes 422 HQ (編集マスター)",
+      "ffv1": "FFV1 (ロスレスアーカイブ)"
+    },
+    "resolution": {
+      "original": "オリジナル (480p / 576p)",
+      "1080p": "1080pアップスケール (YouTube標準)"
+    },
+    "ai_upscaler": {
+      "realesrgan_x4plus": "Real-ESRGAN x4plus (高忠実度・鮮鋭性)",
+      "realesr_animevideov3_x4": "Real-ESRGAN Anime 6B (V3アニメーション)",
+      "span_x4": "SPAN x4 (スーパーピクセルアテンション・超軽量)",
+      "models_se": "Real-CUGAN SE (アナロググレイン保持)",
+      "swinir_classical_sr": "SwinIR Classical (深刻なテープ劣化修復)"
+    },
+    "whisper_model": {
+      "tiny": "Tiny (高速, ~40MB RAM)",
+      "base": "Base (バランス, ~75MB RAM)",
+      "small": "Small (高精度, ~250MB RAM)"
+    }
   }
 }

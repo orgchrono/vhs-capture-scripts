@@ -288,10 +288,10 @@ pub fn generate_tape_sidecar_json(
 }
 
 /// Sets read-only permissions on an archival master file to prevent accidental deletion or modification.
+///
+/// NOTE: Direct filesystem I/O belongs to `crate::infrastructure::storage::set_file_readonly`.
 pub fn set_file_readonly(path: &std::path::Path) -> std::io::Result<()> {
-    let mut perms = std::fs::metadata(path)?.permissions();
-    perms.set_readonly(true);
-    std::fs::set_permissions(path, perms)
+    crate::infrastructure::storage::set_file_readonly(path)
 }
 
 /// Evaluates whether an archival backup plan satisfies the 3-2-1 digital preservation rule:
@@ -319,95 +319,11 @@ pub struct OaisVerificationReport {
 
 /// Cryptographically audits an OAIS package directory against its SHA-256 manifest.
 ///
-/// Recalculates cryptographic hashes of all referenced files (master, PREMIS sidecar,
-/// BagIt bag-info, DIP proxy) and validates fixity integrity.
+/// NOTE: Direct filesystem I/O belongs to `crate::infrastructure::storage::verify_oais_directory`.
 pub fn verify_oais_directory(
     package_dir: &std::path::Path,
 ) -> Result<OaisVerificationReport, Box<dyn std::error::Error>> {
-    if !package_dir.is_dir() {
-        return Err(format!("'{}' is not a valid directory.", package_dir.display()).into());
-    }
-
-    // Discover manifest file (*_manifest-sha256.txt or manifest-sha256.txt)
-    let mut manifest_path_opt: Option<std::path::PathBuf> = None;
-    for entry in std::fs::read_dir(package_dir)? {
-        let entry = entry?;
-        let p = entry.path();
-        if p.is_file() {
-            let fname = p.file_name().and_then(|n| n.to_str()).unwrap_or_default();
-            if fname.ends_with("_manifest-sha256.txt") || fname == "manifest-sha256.txt" {
-                manifest_path_opt = Some(p);
-                break;
-            }
-        }
-    }
-
-    let manifest_path = match manifest_path_opt {
-        Some(p) => p,
-        None => {
-            return Err(format!(
-                "No OAIS SHA-256 manifest (*_manifest-sha256.txt) found in '{}'",
-                package_dir.display()
-            )
-            .into());
-        }
-    };
-
-    let manifest_content = std::fs::read_to_string(&manifest_path)?;
-    let mut valid_files = Vec::new();
-    let mut corrupted_files = Vec::new();
-    let mut missing_files = Vec::new();
-
-    for line in manifest_content.lines() {
-        let trimmed = line.trim();
-        if trimmed.is_empty() || trimmed.starts_with('#') {
-            continue;
-        }
-
-        let mut parts = trimmed.split_whitespace();
-        let expected_hash = match parts.next() {
-            Some(h) => h,
-            None => continue,
-        };
-        let rel_filename = match parts.collect::<Vec<&str>>().join(" ") {
-            s if !s.is_empty() => s,
-            _ => continue,
-        };
-
-        let candidate_path = package_dir.join(&rel_filename);
-        let target_path = if candidate_path.is_file() {
-            candidate_path
-        } else if let Some(stripped) = rel_filename.strip_prefix("data/") {
-            package_dir.join(stripped)
-        } else {
-            candidate_path
-        };
-
-        if !target_path.is_file() {
-            missing_files.push(rel_filename);
-            continue;
-        }
-
-        let computed_hash = crate::domain::fixity::compute_file_sha256_hex(&target_path)?;
-        if computed_hash.eq_ignore_ascii_case(expected_hash) {
-            valid_files.push(rel_filename);
-        } else {
-            corrupted_files.push(rel_filename);
-        }
-    }
-
-    let total_files_checked = valid_files.len() + corrupted_files.len() + missing_files.len();
-    let is_valid = missing_files.is_empty() && corrupted_files.is_empty() && !valid_files.is_empty();
-
-    Ok(OaisVerificationReport {
-        package_dir: package_dir.to_string_lossy().to_string(),
-        manifest_file: manifest_path.file_name().unwrap_or_default().to_string_lossy().to_string(),
-        total_files_checked,
-        valid_files,
-        corrupted_files,
-        missing_files,
-        is_valid,
-    })
+    crate::infrastructure::storage::verify_oais_directory(package_dir)
 }
 
 

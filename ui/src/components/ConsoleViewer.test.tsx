@@ -56,28 +56,28 @@ describe('ConsoleViewer Component with Live Search', () => {
   it('filters logs by log level buttons (ERR / WARN / INFO / DEBUG / ALL)', () => {
     renderComponent();
 
-    const errBtn = screen.getByRole('button', { name: 'ERR' });
+    const errBtn = screen.getByRole('button', { name: /ERR|ERRO/i });
     fireEvent.click(errBtn);
     expect(screen.getByText('[ERRO] Frame buffer overflow.')).toBeInTheDocument();
     expect(screen.queryByText('[INFO] System initialized.')).not.toBeInTheDocument();
     expect(screen.queryByText('[DEBUG] Audio telemetry sample rate 48000Hz.')).not.toBeInTheDocument();
 
-    const warnBtn = screen.getByRole('button', { name: 'WARN' });
+    const warnBtn = screen.getByRole('button', { name: /WARN|AVISO/i });
     fireEvent.click(warnBtn);
     expect(screen.getByText('[AVISO] Dropped frame detected at 00:01:23.')).toBeInTheDocument();
     expect(screen.queryByText('[ERRO] Frame buffer overflow.')).not.toBeInTheDocument();
 
-    const debugBtn = screen.getByRole('button', { name: 'DEBUG' });
+    const debugBtn = screen.getByRole('button', { name: /DEBUG/i });
     fireEvent.click(debugBtn);
     expect(screen.getByText('[DEBUG] Audio telemetry sample rate 48000Hz.')).toBeInTheDocument();
     expect(screen.queryByText('[ERRO] Frame buffer overflow.')).not.toBeInTheDocument();
 
-    const infoBtn = screen.getByRole('button', { name: 'INFO' });
+    const infoBtn = screen.getByRole('button', { name: /INFO/i });
     fireEvent.click(infoBtn);
     expect(screen.getByText('[INFO] System initialized.')).toBeInTheDocument();
     expect(screen.queryByText('[ERRO] Frame buffer overflow.')).not.toBeInTheDocument();
 
-    const allBtn = screen.getByRole('button', { name: 'ALL' });
+    const allBtn = screen.getByRole('button', { name: /ALL|TODOS/i });
     fireEvent.click(allBtn);
     expect(screen.getByText('[INFO] System initialized.')).toBeInTheDocument();
     expect(screen.getByText('[DEBUG] Audio telemetry sample rate 48000Hz.')).toBeInTheDocument();

@@ -317,6 +317,30 @@ export const studioSlice = createSlice({
         state.logs.push(line);
       }
     },
+    addLogs: (state, action: PayloadAction<string[]>) => {
+      const incoming = action.payload;
+      if (!incoming || incoming.length === 0) return;
+      const cleaned: string[] = [];
+      let lastLine = state.logs.length > 0 ? state.logs[state.logs.length - 1] : undefined;
+      for (const raw of incoming) {
+        const line = raw
+          .replace(ANSI_OSC_ESCAPE_REGEX, '')
+          .replace(BARE_COLOR_ESCAPE_REGEX, '')
+          .trim();
+        if (line && line !== lastLine) {
+          cleaned.push(line);
+          lastLine = line;
+        }
+      }
+      if (cleaned.length === 0) return;
+      const limit = LOG_LIMITS.MAX_LINES;
+      const combined = state.logs.concat(cleaned);
+      if (combined.length > limit) {
+        state.logs = combined.slice(-limit);
+      } else {
+        state.logs = combined;
+      }
+    },
     clearLogs: (state) => {
       state.logs = [];
     },
@@ -392,6 +416,7 @@ export const {
   setActiveTask,
 
   addLog,
+  addLogs,
   clearLogs,
   toggleSidebar,
   setSidebarCollapsed,

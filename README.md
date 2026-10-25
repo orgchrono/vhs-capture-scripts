@@ -31,7 +31,7 @@ Built upon a **Concurrent Directed Acyclic Graph (DAG) Pipeline Engine**, the sy
 
 ## 🚀 Overview & Core Highlights
 
-- **Sequential Pipelined Chain with Graceful Degradation:** A cumulative multi-engine post-processing chain (`FaceRestoration` $\to$ `RIFE 60fps` $\to$ `Real-ESRGAN`) passing state cumulatively with atomic file commit (`os.replace`) and cleanup of intermediate temporary files. Per-step error boundaries guarantee that secondary neural failures gracefully preserve the base master without crashing the studio.
+- **Sequential Pipelined Chain with Graceful Degradation:** A cumulative multi-engine post-processing chain (`FaceRestoration` $\to$ `RIFE 60fps` $\to$ `Real-ESRGAN`) passing state cumulatively with atomic file commit (`std::fs::rename`) and cleanup of intermediate temporary files. Per-step error boundaries guarantee that secondary neural failures gracefully preserve the base master without crashing the studio.
 - **Real-Time Hardware Telemetry & Dynamic Sparklines:** Real-time host CPU and RAM utilization tracking via `psutil` (`GET /api/system/metrics`), exposed through an interactive retractable drawer in the NLE Footer StatusBar with live CSS sparkline load histories and color-coded threshold alerts.
 - **Automated Tape Quality Control & Forensic Defect Reporting:** Automated inspection (`QualityControl.run_qc`) that detects unrecorded black leaders, interlacing cadence, audio channel disparity, magnetic oxide dropouts, and head switching noise, generating structured JSON and Markdown defect reports for any file in the archive.
 - **Interactive Real-Time A/B Split-Screen Monitor:** Real-time dual-frame inspection powered by a lightweight 360p/15fps proxy pipeline (< 50ms latency, < 2% CPU overhead). Standard 4:3 VHS tapes receive automatic pillarbox padding to prevent anamorphic stretching, while client disconnects trigger recursive `psutil` process tree killing to eliminate orphaned FFmpeg processes on Windows.
@@ -67,8 +67,8 @@ flowchart TD
     Security --> SSE["Server-Sent Events (Live Telemetry Stream)"]
     Security --> Queue["In-Memory & Storage Batch Queue (domain::queue)"]
   
-    Queue --> DAG["DAG Pipeline Orchestrator (domain::pipeline)"]
-    DAG --> ProcMgr["Subprocess Safe Executor (CWE-78 Sanitized)"]
+    Queue --> DAG["DAG Pipeline Orchestrator (domain::pipeline/)"]
+    DAG --> ProcMgr["Subprocess Safe Executor (infrastructure::executor/)"]
   
     ProcMgr --> Engines{"Specialized Engine Dispatch"}
   

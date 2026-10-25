@@ -11,7 +11,7 @@ export const Toaster: React.FC = () => {
       richColors
       closeButton
       position="bottom-right"
-      aria-label={t('toast.region_label', { defaultValue: 'Notificações do Sistema' })}
+      aria-label={t('toast.region_label')}
       toastOptions={{
         className: 'font-mono text-xs border border-studio-border bg-studio-panel text-slate-200 shadow-2xl backdrop-blur-md rounded-sm',
         style: {

@@ -133,18 +133,33 @@ pub fn is_safe_media_path(raw: &str, roots: &MediaRoots<'_>) -> bool {
     }
     let normalized = raw.replace('\\', "/");
     let normalized = normalized.trim_start_matches("./");
-    if normalized == "media" || normalized.starts_with("media/") {
+    if normalized == "media"
+        || normalized.starts_with("media/")
+        || normalized.starts_with("raw/")
+        || normalized.starts_with("restored/")
+    {
         return true;
     }
     if is_plain_file_name(raw) {
         let name = raw.trim();
-        if roots.raw_dir.join(name).exists() || roots.media_dir.join(name).exists() {
+        if roots.raw_dir.join(name).exists()
+            || roots.media_dir.join(name).exists()
+            || roots.media_dir.join("restored").join(name).exists()
+        {
             return true;
         }
     }
     let path = Path::new(raw);
-    if path.is_absolute() && path.starts_with(roots.media_dir) {
-        return true;
+    if path.is_absolute() {
+        let norm_path = path.to_string_lossy().replace('\\', "/").to_lowercase();
+        let norm_media = roots
+            .media_dir
+            .to_string_lossy()
+            .replace('\\', "/")
+            .to_lowercase();
+        if norm_path.starts_with(&norm_media) {
+            return true;
+        }
     }
     path.is_absolute() && path.is_file() && is_valid_media_extension(&extension_of(raw))
 }

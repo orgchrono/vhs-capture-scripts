@@ -6,7 +6,7 @@
 
 use serde::{Deserialize, Serialize};
 
-pub const OVERSCAN_BLANKING_HEIGHT_PX: u32 = 16;
+pub const OVERSCAN_BLANKING_HEIGHT_PX: u32 = crate::models::constants::OVERSCAN_BLANKING_HEIGHT_PX;
 pub const AUDIO_NOTCH_HUM_FREQ_HZ_NTSC: u32 = 60;
 pub const AUDIO_NOTCH_HUM_FREQ_HZ_PAL: u32 = 50;
 pub const AUDIO_NOTCH_WIDTH_HZ: u32 = 4;
@@ -14,17 +14,17 @@ pub const AUDIO_NOTCH_ATTENUATION_DB: i32 = -30;
 pub const DEFAULT_AUDIO_DENOISE_NR_DB: f32 = 12.0;
 pub const DEFAULT_AUDIO_DENOISE_NF_DB: f32 = -50.0;
 
-pub const FILTER_DEDOT: &str = "dedot=m=dotcrawl+rainbows";
-pub const FILTER_DROPOUT_CLEAN: &str = "removegrain=m=1,tmedian=radius=1";
-pub const FILTER_CHROMA_SHIFT: &str = "chromashift=cbh=2:cbv=1:crh=2:crv=1:edge=smear";
-pub const FILTER_DENOISE: &str = "hqdn3d=4.0:3.0:6.0:4.5";
+pub const FILTER_DEDOT: &str = crate::models::constants::FILTER_DEDOT;
+pub const FILTER_DROPOUT_CLEAN: &str = crate::models::constants::FILTER_DROPOUT_CLEAN;
+pub const FILTER_CHROMA_SHIFT: &str = crate::models::constants::FILTER_CHROMA_SHIFT;
+pub const FILTER_DENOISE: &str = crate::models::constants::FILTER_DENOISE_HQDN3D;
 pub const FILTER_DEINT_BWDIF_BOB: &str = "bwdif=mode=1:parity=-1:deint=1";
 pub const FILTER_DEINT_BWDIF_SINGLE: &str = "bwdif=mode=0:parity=-1:deint=1";
 pub const FILTER_DEINT_YADIF: &str = "yadif=mode=1:parity=-1:deint=1";
-pub const FILTER_IVTC_PULLDOWN: &str = "fieldmatch=order=tff:combmatch=full,bwdif=mode=0:parity=-1:deint=1,decimate";
-pub const FILTER_AUDIO_AZIMUTH_HIGH_SHELF: &str = "treble=g=3.5:f=6500:w=0.6,stereotools=mlev=1.0:mpan=0.0:phase=1";
-pub const FILTER_UPSCALE_1080P: &str = "scale=1440:1080:flags=lanczos,colormatrix=bt601:bt709,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1";
-pub const FILTER_BROADCAST_LIMITER: &str = "limiter=min=16:max=235:planes=1,limiter=min=16:max=240:planes=6";
+pub const FILTER_IVTC_PULLDOWN: &str = crate::models::constants::FILTER_IVTC_PULLDOWN;
+pub const FILTER_AUDIO_AZIMUTH_HIGH_SHELF: &str = crate::models::constants::FILTER_AUDIO_AZIMUTH_HIGH_SHELF;
+pub const FILTER_UPSCALE_1080P: &str = crate::models::constants::FILTER_UPSCALE_1080P;
+pub const FILTER_BROADCAST_LIMITER: &str = crate::models::constants::FILTER_EBU_R103_LEGALIZER;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VideoFilterSpec {

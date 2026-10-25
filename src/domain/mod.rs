@@ -10,6 +10,8 @@ pub mod chapters;
 pub mod filter;
 pub mod fixity;
 pub mod log_buffer;
+pub mod obs_signal;
+pub mod panasonic_format;
 pub mod pipeline;
 pub mod qc;
 pub mod qtgmc;

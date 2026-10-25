@@ -1,7 +1,5 @@
-import { useState } from 'react'
 import { useTranslation } from "react-i18next";
 import { HardDrive, Cloud, Database, Box, Server, Globe, CheckCircle2 } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { useStorageViewModel } from "../viewmodels/useStorageViewModel";
@@ -14,24 +12,7 @@ import { useStorageViewModel } from "../viewmodels/useStorageViewModel";
 export function StorageSettings() {
   const { t } = useTranslation();
   const vm = useStorageViewModel();
-  const [saveFeedback, setSaveFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-
-  const onSaveClick = () => {
-    setSaveFeedback(null);
-    vm.handleSave(
-      () => {
-        const msg = t("storage.saved_success", { defaultValue: "Storage configuration saved successfully!" });
-        setSaveFeedback({ type: 'success', message: msg });
-        toast.success(msg);
-        setTimeout(() => setSaveFeedback(null), 4000);
-      },
-      (err) => {
-        const errMsg = String(err);
-        setSaveFeedback({ type: 'error', message: errMsg });
-        toast.error(errMsg);
-      }
-    );
-  };
+  const { saveFeedback, onSaveClick } = vm;
 
   const providers = [
     { id: "local_nas_usb", name: t("storage.provider_local"), icon: HardDrive },
@@ -58,7 +39,7 @@ export function StorageSettings() {
       </div>
 
       {/* Grid de Seleção de Provedor */}
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2" role="group" aria-label={t("storage.title")}>
         {providers.map((p) => {
           const Icon = p.icon;
           const isSelected = vm.provider === p.id;
@@ -66,14 +47,15 @@ export function StorageSettings() {
             <button
               key={p.id}
               type="button"
+              aria-pressed={isSelected}
               onClick={() => vm.setProvider(p.id)}
-              className={`py-2 px-1.5 rounded-sm flex flex-col items-center gap-1.5 border transition-all text-center cursor-pointer font-mono text-xs ${
+              className={`py-2 px-1.5 rounded-sm flex flex-col items-center gap-1.5 border transition-all text-center cursor-pointer font-mono text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/80 ${
                 isSelected
                   ? "border-emerald-500/80 bg-studio-surface-hover text-emerald-400 shadow-xs"
                   : "border-studio-border bg-studio-panel text-slate-400 hover:border-slate-500 hover:text-slate-200 hover:bg-studio-surface-hover"
               }`}
             >
-              <Icon className="w-4 h-4" />
+              <Icon className="w-4 h-4" aria-hidden="true" />
               <span className="font-medium text-[11px] leading-tight line-clamp-1">{p.name}</span>
             </button>
           );
@@ -295,6 +277,8 @@ export function StorageSettings() {
       {/* Mensagem de Feedback Não-Bloqueante */}
       {saveFeedback && (
         <div
+          role="status"
+          aria-live="polite"
           className={`p-2.5 rounded-sm border text-xs font-mono flex items-center gap-2 ${
             saveFeedback.type === 'success'
               ? 'bg-studio-panel border-emerald-500/40 text-emerald-300'

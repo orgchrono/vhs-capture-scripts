@@ -13,7 +13,12 @@
     "obs_installed": "OBS Ready",
     "install_obs": "Install OBS",
     "installing": "Installing...",
-    "preferences_title": "Global System Preferences"
+    "preferences_title": "Global System Preferences",
+    "encoder_prefix": "ENC:",
+    "codec_h264": "H.264",
+    "codec_hevc": "HEVC",
+    "codec_prores": "ProRes",
+    "codec_ffv1": "FFV1"
   },
   "presets": {
     "title": "Analog Mastering Pipelines",
@@ -67,7 +72,13 @@
     "copy_selection": "Copy Selection",
     "copied_to_clipboard": "Copied to clipboard!",
     "toggle": "Toggle Console",
-    "tab_title": "Console"
+    "tab_title": "Console",
+    "filter_all": "ALL",
+    "filter_info": "INFO",
+    "filter_warn": "WARN",
+    "filter_err": "ERR",
+    "filter_debug": "DEBUG",
+    "diagnostic_export_header": "VHS Studio Pro - Diagnostic Log Export\nTimestamp: {{timestamp}}\nTotal Lines: {{totalLines}}\n============================================================"
   },
   "monitor": {
     "live_preview": "LIVE PREVIEW (NATIVE)",
@@ -116,7 +127,10 @@
     "scopes_tab_all": "All",
     "scopes_tab_waveform": "Luma",
     "scopes_tab_vectorscope": "Chroma",
-    "scopes_tab_audio": "Audio"
+    "scopes_tab_audio": "Audio",
+    "live_restoration_stream": "Live Restoration Stream",
+    "source_stream_proxy": "Source Stream Proxy",
+    "standby_no_signal": "STANDBY / NO SIGNAL"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -186,7 +200,10 @@
     "crt_monitor_badge": "DIRECT-SHOW / OBS VIRTUAL CAM",
     "engine_title": "Processing Engine",
     "engine_badge": "PRESETS & RESTORATION",
-    "sidebar_panasonic_title": "3. Panasonic DVR Ingest"
+    "sidebar_panasonic_title": "3. Panasonic DVR Ingest",
+    "title": "VHS Studio Pro",
+    "brand_name": "VHS STUDIO",
+    "brand_badge": "PRO"
   },
   "settings": {
     "technical_title": "Restoration Technical Settings",
@@ -230,7 +247,8 @@
     "crf_smaller": "Smaller File (28)",
     "reset_default": "Reset to default",
     "tabs_aria_label": "Settings Tabs",
-    "output_codec_hint": "Output encoding format and compression codec."
+    "output_codec_hint": "Output encoding format and compression codec.",
+    "tier_label": "Tier {{tier}}: {{name}}"
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",
@@ -366,7 +384,10 @@
     "watcher_armed_desc": "Monitoring tape signal for automatic capture.",
     "watcher_disarmed_title": "Auto-Ingest Disarmed",
     "watcher_disarmed_desc": "Automatic capture disengaged.",
-    "watcher_error": "Failed to toggle Auto-Watcher state."
+    "watcher_error": "Failed to toggle Auto-Watcher state.",
+    "capture_failed_title": "Capture Failed",
+    "capture_start_failed": "Capture start failed",
+    "capture_stop_failed": "Capture stop failed"
   },
   "telemetry": {
     "title": "Analog Mastering Telemetry",
@@ -387,6 +408,10 @@
     "stage_encode_fast": "3. Fast Hardware NVENC Encode",
     "stage_encode_ai": "6. AI Master Export",
     "stage_export": "4. Fast Export",
+    "stage_package_manager": "1. Package Manager & Environment",
+    "stage_download_packages": "2. Download Packages & Dependencies",
+    "stage_configure_plugins": "3. Configure Plugins & Extensions",
+    "stage_verify_toolchain": "4. Integrity Verification & Ready",
     "stage_progress": "Progress",
     "fps": "FPS",
     "frames": "Frames",
@@ -411,7 +436,8 @@
     "task_install_qtgmc": "QTGMC / VapourSynth Installation",
     "task_install_obs": "OBS Studio Installation",
     "task_whisper_subtitles": "Whisper Subtitles & Transcription",
-    "task_panasonic_extract": "Panasonic Title Extraction"
+    "task_panasonic_extract": "Panasonic Title Extraction",
+    "task_image_generation": "A/B Comparison Frame Extraction"
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",
@@ -451,7 +477,9 @@
     "gdrive_connect_btn": "Connect via Google OAuth",
     "dropbox_auth_btn": "Authorize Dropbox in Browser",
     "onedrive_auth_btn": "Authorize Microsoft Account",
-    "connected": "Connected"
+    "connected": "Connected",
+    "validating": "Validating...",
+    "save_error": "Failed to save storage settings."
   },
   "logs": {
     "preparing_restore": "[RESTORATION] Preparing file restoration: {{file}}",
@@ -630,6 +658,53 @@
     "close": "Close",
     "refresh": "Refresh",
     "maximize": "Maximize",
-    "minimize": "Minimize"
+    "minimize": "Minimize",
+    "not_available": "N/A"
+  },
+  "options": {
+    "deinterlacer": {
+      "qtgmc": "QTGMC Standard (High Quality)",
+      "qtgmc_fast": "QTGMC Fast (Balanced)",
+      "qtgmc_slow": "QTGMC Slow (Maximum Quality)",
+      "bwdif": "BWDIF (Fast / Low CPU)",
+      "znedi3": "ZNEDI3 (Optimized Variant)",
+      "nnedi": "NNEDI3 (Directional Upscale)",
+      "none": "None (Progressive / Telecine)"
+    },
+    "video_mode": {
+      "double": "60fps / 50fps (Smooth / Standard)",
+      "single": "30fps / 25fps (Original Film)",
+      "freeze": "Frame-Hold TBC (Dropout Protection)",
+      "drop": "Drop (Exclude Raw Dropouts)",
+      "passthrough": "Passthrough (Intact)"
+    },
+    "audio_mode": {
+      "stereo": "Stereo (Original Capture)",
+      "mono": "Mixed Mono (Summed L+R)",
+      "mono_l": "Forced Mono (Left Only)",
+      "mono_r": "Forced Mono (Right Only)"
+    },
+    "output_codec": {
+      "h264": "H.264 (Maximum Compatibility)",
+      "hevc": "H.265 / HEVC (Higher Compression)",
+      "prores": "ProRes 422 HQ (Editing Master)",
+      "ffv1": "FFV1 (Lossless Archival)"
+    },
+    "resolution": {
+      "original": "Original (480p / 576p)",
+      "1080p": "Upscale 1080p (YouTube Standard)"
+    },
+    "ai_upscaler": {
+      "realesrgan_x4plus": "Real-ESRGAN x4plus (High Fidelity & Sharpness)",
+      "realesr_animevideov3_x4": "Real-ESRGAN Anime 6B (V3 Animation/Anime)",
+      "span_x4": "SPAN x4 (Super-Pixel Attention - Ultra-light)",
+      "models_se": "Real-CUGAN SE (Natural Analog Grain Preservation)",
+      "swinir_classical_sr": "SwinIR Classical (Severe Tape Restoration)"
+    },
+    "whisper_model": {
+      "tiny": "Tiny (Fast, ~40MB RAM)",
+      "base": "Base (Balanced, ~75MB RAM)",
+      "small": "Small (Accurate, ~250MB RAM)"
+    }
   }
 }

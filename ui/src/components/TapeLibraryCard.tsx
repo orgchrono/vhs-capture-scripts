@@ -72,6 +72,7 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
 
           <button
             type="button"
+            aria-expanded={isLibraryExpanded}
             onClick={() => setIsLibraryExpanded(!isLibraryExpanded)}
             className="flex items-center justify-center w-5 h-5 text-slate-400 hover:text-slate-100 bg-studio-surface hover:bg-studio-surface-hover rounded-sm border border-studio-border cursor-pointer transition"
             title={isLibraryExpanded ? t('files.collapse') : t('files.expand')}
@@ -79,9 +80,9 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
             data-testid="toggle-tape-library-btn"
           >
             {isLibraryExpanded ? (
-              <Minus className="w-3 h-3" />
+              <Minus className="w-3 h-3" aria-hidden="true" />
             ) : (
-              <Plus className="w-3 h-3" />
+              <Plus className="w-3 h-3" aria-hidden="true" />
             )}
           </button>
         </div>
@@ -214,27 +215,38 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
                 const targetPath = job.source_file || job.output_file;
                 const isSelected = selectedFile === targetPath;
                 const name = job.source_file ? (job.source_file.split(/[/\\]/).pop() || job.source_file) : job.job_id;
+                const jobExt = (job.output_file || '.part').split('.').pop()?.toUpperCase() || '';
+                const selectOrphan = () => {
+                  if (isRestoring || isPaused) return;
+                  handleSelectTape({
+                    name,
+                    path: targetPath,
+                    size_mb: Math.round(job.output_size_bytes / (1024 * 1024)),
+                  });
+                };
                 return (
                   <div
                     key={job.job_id}
-                    onClick={() => {
-                      if (isRestoring || isPaused) return;
-                      handleSelectTape({
-                        name,
-                        path: targetPath,
-                        size_mb: Math.round(job.output_size_bytes / (1024 * 1024)),
-                      });
+                    role="button"
+                    tabIndex={isRestoring || isPaused ? -1 : 0}
+                    aria-pressed={isSelected}
+                    onClick={selectOrphan}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        selectOrphan();
+                      }
                     }}
-                    className={`group relative p-2 rounded-sm border transition-all flex items-center gap-2.5 select-none ${isRestoring || isPaused ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'
+                    className={`group relative p-2 rounded-sm border transition-all flex items-center gap-2.5 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/80 ${isRestoring || isPaused ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'
                       } ${isSelected
                         ? 'bg-amber-950/30 border-amber-500 ring-1 ring-amber-500/30 shadow-xs'
                         : 'bg-studio-surface border-amber-900/60 hover:border-amber-600 hover:bg-studio-surface-hover'
                       }`}
                   >
                     <div className="w-12 h-9 rounded-sm bg-amber-950/60 border border-amber-800/80 flex flex-col items-center justify-center shrink-0 relative overflow-hidden">
-                      <AlertTriangle className="w-4 h-4 text-amber-400" />
+                      <AlertTriangle className="w-4 h-4 text-amber-400" aria-hidden="true" />
                       <span className="text-[8px] font-mono font-bold text-amber-300 mt-0.5 uppercase tracking-tighter">
-                        PART
+                        {jobExt}
                       </span>
                     </div>
 
@@ -268,17 +280,27 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
               {/* Standard Files */}
               {files.map((file) => {
                 const isSelected = selectedFile === file.path;
-                const ext = file.name.split('.').pop()?.toUpperCase() || 'RAW';
+                const ext = file.name.split('.').pop()?.toUpperCase() || '';
                 const inc = findIncompleteJob(file.path);
 
                 return (
                   <div
                     key={file.path}
+                    role="button"
+                    tabIndex={isRestoring || isPaused ? -1 : 0}
+                    aria-pressed={isSelected}
                     onClick={() => {
                       if (isRestoring || isPaused) return;
                       handleSelectTape(file);
                     }}
-                    className={`group relative p-2 rounded-sm border transition-all flex items-center gap-2.5 select-none ${isRestoring || isPaused ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        if (isRestoring || isPaused) return;
+                        handleSelectTape(file);
+                      }
+                    }}
+                    className={`group relative p-2 rounded-sm border transition-all flex items-center gap-2.5 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/80 ${isRestoring || isPaused ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'
                       } ${isSelected
                         ? 'bg-studio-surface border-emerald-500/80 ring-1 ring-emerald-500/30 shadow-xs'
                         : 'bg-studio-surface border-studio-border hover:border-slate-500 hover:bg-studio-surface-hover'

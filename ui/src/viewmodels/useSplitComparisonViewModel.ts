@@ -43,27 +43,23 @@ export function useSplitComparisonViewModel({
   } = useStudioStore();
 
   const [splitPos, setSplitPos] = useState<number>(splitPosition ?? 50);
-  const [timestamp, setTimestamp] = useState<number>(previewTimestamp ?? 5.0);
+  const timestamp = previewTimestamp ?? 5.0;
   const [isScrubbing, setIsScrubbing] = useState<boolean>(false);
-  const [scrubTimestamp, setScrubTimestamp] = useState<number>(previewTimestamp ?? 5.0);
-  const [streamAnchor, setStreamAnchor] = useState<number>(previewTimestamp ?? 5.0);
+  const [scrubTimestamp, setScrubTimestamp] = useState<number>(timestamp);
+  const [streamAnchor, setStreamAnchor] = useState<number>(timestamp);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [splitLayout, setSplitLayout] = useState<'wipe' | 'dual'>('wipe');
   const [viewMode, setViewMode] = useState<'stream' | 'freeze'>(previewMode ?? initialMode);
   const [streamKey, setStreamKey] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>((previewMode ?? initialMode) === 'stream');
 
-  // Atomic state holding both frames for a single locked timestamp
-  const [displayedFrames, setDisplayedFrames] = useState<ComparisonFrameState>({
-    raw: '',
-    processed: '',
-    timestamp: previewTimestamp ?? 5.0,
-  });
-
   const containerRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef<boolean>(false);
   const splitPosRef = useRef<number>(splitPos);
-  splitPosRef.current = splitPos;
+
+  useEffect(() => {
+    splitPosRef.current = splitPos;
+  }, [splitPos]);
 
   const hasMedia = Boolean(source && source.trim().length > 0);
   const activePlaying = hasMedia && isPlaying;
@@ -83,14 +79,7 @@ export function useSplitComparisonViewModel({
     ? liveSec
     : timestamp;
 
-  // Synchronize internal timestamp with store's previewTimestamp when updated externally
-  useEffect(() => {
-    if (typeof previewTimestamp === 'number' && !isScrubbing) {
-      setTimestamp(previewTimestamp);
-    }
-  }, [previewTimestamp, isScrubbing]);
-
-  const [debouncedTimestamp, setDebouncedTimestamp] = useState<number>(previewTimestamp ?? 5.0);
+  const [debouncedTimestamp, setDebouncedTimestamp] = useState<number>(timestamp);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -134,15 +123,20 @@ export function useSplitComparisonViewModel({
     }
   }, [isFetching, isRestoring, activeTask?.type, setActiveTask]);
 
-  // Atomically commit frame pair only when BOTH raw and processed are returned
-  useEffect(() => {
+  // Atomically derive frame pair only when BOTH raw and processed are returned
+  const displayedFrames = useMemo<ComparisonFrameState>(() => {
     if (frameData && frameData.raw_image && frameData.processed_image) {
-      setDisplayedFrames({
+      return {
         raw: frameData.raw_image,
         processed: frameData.processed_image,
         timestamp: frameData.timestamp ?? debouncedTimestamp,
-      });
+      };
     }
+    return {
+      raw: '',
+      processed: '',
+      timestamp: debouncedTimestamp,
+    };
   }, [frameData, debouncedTimestamp]);
 
   const totalDuration = frameData?.duration && frameData.duration > 0 ? frameData.duration : 0;
@@ -154,17 +148,14 @@ export function useSplitComparisonViewModel({
     let interval: ReturnType<typeof setInterval> | undefined;
     if (activePlaying && totalDuration > 0) {
       interval = setInterval(() => {
-        setTimestamp((prev) => {
-          const next = prev >= totalDuration ? 0 : Math.round((prev + 1) * 10) / 10;
-          setPreviewTimestamp(next);
-          return next;
-        });
+        const next = timestamp >= totalDuration ? 0 : Math.round((timestamp + 1) * 10) / 10;
+        setPreviewTimestamp(next);
       }, 1000);
     }
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [activePlaying, totalDuration, setPreviewTimestamp]);
+  }, [activePlaying, totalDuration, timestamp, setPreviewTimestamp]);
 
   const updateSplitFromClientX = useCallback((clientX: number) => {
     if (!containerRef.current) return;
@@ -246,7 +237,6 @@ export function useSplitComparisonViewModel({
   const maxSeekLimit = totalDuration > 0 ? totalDuration : 3600;
 
   const handleJumpToLive = useCallback(() => {
-    setTimestamp(liveSec);
     setScrubTimestamp(liveSec);
     setStreamAnchor(liveSec);
     setPreviewTimestamp(liveSec);
@@ -258,7 +248,6 @@ export function useSplitComparisonViewModel({
   const handleSeek = (offsetSec: number) => {
     const origin = isScrubbing ? scrubTimestamp : effectiveTimestamp;
     const bounded = clampBoundedTime(origin + offsetSec);
-    setTimestamp(bounded);
     setScrubTimestamp(bounded);
     setStreamAnchor(bounded);
     setPreviewTimestamp(bounded);
@@ -268,7 +257,6 @@ export function useSplitComparisonViewModel({
   const handleTimelineInput = (newVal: number) => {
     const clamped = clampBoundedTime(newVal);
     setScrubTimestamp(clamped);
-    setTimestamp(clamped);
     setPreviewTimestamp(clamped);
   };
 

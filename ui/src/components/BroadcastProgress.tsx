@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Activity, Clock, Gauge, Film } from 'lucide-react';
 import { Progress } from './ui/progress';
 import { useStudioStore } from '../store/useStudioStore';
-import { createTelemetryParser, getPresetStages } from '../lib/telemetry';
+import { createTelemetryParser, getTaskStages } from '../lib/telemetry';
 
 const telemetryParser = createTelemetryParser();
 
@@ -15,7 +15,7 @@ function useBroadcastTelemetry() {
     () => telemetryParser(logs, isRestoring, preset, activeTask),
     [logs, isRestoring, preset, activeTask]
   );
-  const stages = useMemo(() => getPresetStages(preset), [preset]);
+  const stages = useMemo(() => getTaskStages(activeTask, preset), [activeTask, preset]);
   return { t, isRestoring, isPaused, isBusy, telemetry, stages };
 }
 
@@ -116,7 +116,7 @@ export const BroadcastProgress: React.FC = () => {
               >
                 {st.step}
               </span>
-              <span className="truncate">{t(st.key, st.label)}</span>
+              <span className="truncate">{t(st.key)}</span>
             </div>
           );
         })}

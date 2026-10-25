@@ -15,6 +15,10 @@ use std::os::windows::process::CommandExt;
 /// Windows creation flag to prevent flashing a console window in GUI desktop mode.
 pub const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
+/// Windows creation flag to execute compute-heavy background tasks with below-normal priority,
+/// preventing UI freezes, thread starvation, and desktop stuttering.
+pub const BELOW_NORMAL_PRIORITY_CLASS: u32 = 0x0000_4000;
+
 /// Status summary of all core external CLI binaries.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct ToolchainReport {
@@ -514,6 +518,19 @@ pub fn create_silent_command(program: &Path) -> Command {
     #[cfg(windows)]
     {
         cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+    cmd
+}
+
+/// Spawns a compute-heavy background Command (FFmpeg/VSPipe) configured with below-normal priority
+/// so the operating system and UI thread remain fluid and responsive.
+#[must_use]
+pub fn create_compute_command(program: &Path) -> Command {
+    let mut cmd = Command::new(program);
+    cmd.stdin(std::process::Stdio::null());
+    #[cfg(windows)]
+    {
+        cmd.creation_flags(CREATE_NO_WINDOW | BELOW_NORMAL_PRIORITY_CLASS);
     }
     cmd
 }

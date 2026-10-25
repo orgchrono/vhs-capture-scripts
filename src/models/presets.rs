@@ -15,6 +15,39 @@ pub enum RestorationPreset {
     Custom,
 }
 
+impl RestorationPreset {
+    #[must_use]
+    pub fn from_slug(slug: &str) -> Option<Self> {
+        match slug.trim().to_ascii_lowercase().as_str() {
+            "gold" => Some(Self::Gold),
+            "speed" => Some(Self::Speed),
+            "tbc_hold" | "tbchold" | "tbc-hold" => Some(Self::TbcHold),
+            "ai_master" | "aimaster" | "ai-master" => Some(Self::AiMaster),
+            "custom" => Some(Self::Custom),
+            _ => None,
+        }
+    }
+
+    #[must_use]
+    pub const fn as_slug(&self) -> &'static str {
+        match self {
+            Self::Gold => "gold",
+            Self::Speed => "speed",
+            Self::TbcHold => "tbc_hold",
+            Self::AiMaster => "ai_master",
+            Self::Custom => "custom",
+        }
+    }
+}
+
+impl std::str::FromStr for RestorationPreset {
+    type Err = crate::models::errors::DomainError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::from_slug(s).ok_or_else(|| crate::models::errors::DomainError::InvalidPresetSlug(s.to_string()))
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Deinterlacer {

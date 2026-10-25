@@ -98,9 +98,16 @@ fn handle_sse_stream(
     stream.write_all(&head).map_err(|_| ())?;
 
     let mut cursor = 0usize;
+    let mut has_seen_active = false;
+    let mut idle_wait_cycles = 0usize;
+
     loop {
         let snapshot = ctx.process.snapshot();
         let current_logs = ctx.process.logs();
+
+        if snapshot.running {
+            has_seen_active = true;
+        }
 
         if current_logs.len() > cursor {
             let new_lines = &current_logs[cursor..];
@@ -124,21 +131,48 @@ fn handle_sse_stream(
         }
 
         if !snapshot.running && cursor >= current_logs.len() {
-            // Heartbeat / final state
-            let done_event = format_sse_event(
-                &json!({
-                    "running": false,
-                    "active": false,
-                    "paused": false,
-                    "exit_code": snapshot.last_exit_code,
-                    "success": snapshot.last_success
-                })
-                .to_string(),
-            );
-            let _ = stream.write_all(done_event.as_bytes());
-            let _ = stream.flush();
-            thread::sleep(Duration::from_millis(500));
-            break;
+            if has_seen_active
+                || snapshot.last_exit_code.is_some()
+                || snapshot.last_success.is_some()
+            {
+                // Heartbeat / final state
+                let done_event = format_sse_event(
+                    &json!({
+                        "running": false,
+                        "active": false,
+                        "paused": false,
+                        "exit_code": snapshot.last_exit_code,
+                        "success": snapshot.last_success
+                    })
+                    .to_string(),
+                );
+                let _ = stream.write_all(done_event.as_bytes());
+                let _ = stream.flush();
+                thread::sleep(Duration::from_millis(500));
+                break;
+            }
+
+            // Client connected before process spawn completed; wait up to ~2 seconds sending keepalive pings
+            if idle_wait_cycles < 15 {
+                idle_wait_cycles += 1;
+                let _ = stream.write_all(b": keepalive\n\n");
+                let _ = stream.flush();
+            } else {
+                // Idle stream without active tasks
+                let done_event = format_sse_event(
+                    &json!({
+                        "running": false,
+                        "active": false,
+                        "paused": false,
+                        "exit_code": snapshot.last_exit_code,
+                        "success": snapshot.last_success
+                    })
+                    .to_string(),
+                );
+                let _ = stream.write_all(done_event.as_bytes());
+                let _ = stream.flush();
+                break;
+            }
         }
 
         thread::sleep(Duration::from_millis(150));
@@ -438,7 +472,7 @@ fn handle_connection(mut stream: TcpStream, ctx: &AppContext) {
 
 /// Starts the native multi-threaded Rust HTTP/IPC server on `host:port`.
 pub fn run_native_http_server(host: &str, port: u16, open_browser: bool) -> Result<(), String> {
-    let ctx = Arc::new(AppContext::default_runtime());
+    let ctx = Arc::new(crate::viewmodels::api_router::default_app_context().clone());
     run_native_http_server_with_context(host, port, open_browser, ctx)
 }
 

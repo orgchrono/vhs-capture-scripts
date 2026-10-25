@@ -13,7 +13,12 @@
     "obs_installed": "OBS جاهز",
     "install_obs": "تثبيت OBS",
     "installing": "جارٍ التثبيت...",
-    "preferences_title": "تفضيلات النظام العامة"
+    "preferences_title": "تفضيلات النظام العامة",
+    "encoder_prefix": "ENC:",
+    "codec_h264": "H.264",
+    "codec_hevc": "HEVC",
+    "codec_prores": "ProRes",
+    "codec_ffv1": "FFV1"
   },
   "presets": {
     "title": "مسارات استعادة وتحسين الفيديو التناظري",
@@ -67,7 +72,13 @@
     "copy_selection": "نسخ التحديد",
     "copied_to_clipboard": "تم النسخ إلى الحافظة!",
     "toggle": "Alternar Console",
-    "tab_title": "Console"
+    "tab_title": "Console",
+    "filter_all": "الكل",
+    "filter_info": "معلومات",
+    "filter_warn": "تحذير",
+    "filter_err": "خطأ",
+    "filter_debug": "تصحيح",
+    "diagnostic_export_header": "VHS Studio Pro - تصدير سجل التشخيص\nالطابع الزمني: {{timestamp}}\nإجمالي الأسطر: {{totalLines}}\n============================================================"
   },
   "monitor": {
     "live_preview": "LIVE PREVIEW (NATIVE)",
@@ -116,7 +127,10 @@
     "scopes_tab_all": "الكل",
     "scopes_tab_waveform": "Luma",
     "scopes_tab_vectorscope": "Chroma",
-    "scopes_tab_audio": "صوت"
+    "scopes_tab_audio": "صوت",
+    "live_restoration_stream": "بث الترميم المباشر",
+    "source_stream_proxy": "وكيل البث المصدر",
+    "standby_no_signal": "في وضع الاستعداد / لا توجد إشارة"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -186,7 +200,10 @@
     "crt_monitor_badge": "DIRECT-SHOW / OBS VIRTUAL CAM",
     "engine_title": "Processing Engine",
     "engine_badge": "PRESETS & RESTORATION",
-    "sidebar_panasonic_title": "3. استرداد Panasonic DVR"
+    "sidebar_panasonic_title": "3. استرداد Panasonic DVR",
+    "title": "VHS Studio Pro",
+    "brand_name": "VHS STUDIO",
+    "brand_badge": "PRO"
   },
   "settings": {
     "technical_title": "Restoration Technical Settings",
@@ -230,7 +247,8 @@
     "tab_presets": "الوضع",
     "reset_default": "إعادة الضبط إلى الافتراضي",
     "tabs_aria_label": "Abas de Configuração",
-    "output_codec_hint": "تنسيق الترميز وضغط الفيديو النهائي."
+    "output_codec_hint": "تنسيق الترميز وضغط الفيديو النهائي.",
+    "tier_label": "المستوى {{tier}}: {{name}}"
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",
@@ -366,7 +384,10 @@
     "watcher_armed_desc": "مراقبة إشارة الشريط للتسجيل التلقائي.",
     "watcher_disarmed_title": "تم إيقاف الالتقاط التلقائي",
     "watcher_disarmed_desc": "تم إيقاف التسجيل التلقائي.",
-    "watcher_error": "فشل في تبديل حالة المراقب التلقائي."
+    "watcher_error": "فشل في تبديل حالة المراقب التلقائي.",
+    "capture_failed_title": "فشل الالتقاط",
+    "capture_start_failed": "فشل بدء الالتقاط",
+    "capture_stop_failed": "فشل إيقاف الالتقاط"
   },
   "telemetry": {
     "title": "قياسات معالجة الفيديو التناظري المباشرة",
@@ -395,6 +416,10 @@
     "stage_encode_fast": "3. ترميز سريع بالأجهزة NVENC",
     "stage_encode_ai": "6. تصدير النسخة الرئيسية بالذكاء الاصطناعي",
     "stage_export": "4. تصدير سريع",
+    "stage_package_manager": "1. مدير الحزم والبيئة",
+    "stage_download_packages": "2. تنزيل الحزم والتبعيات",
+    "stage_configure_plugins": "3. تكوين المكونات الإضافية والملحقات",
+    "stage_verify_toolchain": "4. التحقق من النزاهة واكتمال الإعداد",
     "stage_progress": "التقدم",
     "streaming": "بث حي",
     "status_paused": "متوقف مؤقتاً",
@@ -411,7 +436,8 @@
     "task_install_qtgmc": "تثبيت QTGMC / VapourSynth",
     "task_install_obs": "تثبيت OBS Studio",
     "task_whisper_subtitles": "نسخ وتوليد ترجمات Whisper",
-    "task_panasonic_extract": "استخراج عنوان Panasonic"
+    "task_panasonic_extract": "استخراج عنوان Panasonic",
+    "task_image_generation": "استخراج إطارات المقارنة A/B"
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",
@@ -451,7 +477,9 @@
     "gdrive_connect_btn": "Connect via Google OAuth",
     "dropbox_auth_btn": "Authorize Dropbox in Browser",
     "onedrive_auth_btn": "Authorize Microsoft Account",
-    "connected": "Connected"
+    "connected": "Connected",
+    "validating": "جارٍ التحقق...",
+    "save_error": "حدث خطأ أثناء حفظ الإعدادات."
   },
   "logs": {
     "preparing_restore": "[استعادة] جاري تحضير استعادة الملف: {{file}}",
@@ -630,6 +658,53 @@
     "close": "إغلاق",
     "refresh": "تحديث",
     "maximize": "تكبير",
-    "minimize": "تصغير"
+    "minimize": "تصغير",
+    "not_available": "غير متوفر"
+  },
+  "options": {
+    "deinterlacer": {
+      "qtgmc": "QTGMC قياسي (جودة عالية)",
+      "qtgmc_fast": "QTGMC سريع (متوازن)",
+      "qtgmc_slow": "QTGMC بطيء (أقصى جودة)",
+      "bwdif": "BWDIF (سريع / استهلاك معالج منخفض)",
+      "znedi3": "ZNEDI3 (نسخة محسنة)",
+      "nnedi": "NNEDI3 (ترقية اتجاهية)",
+      "none": "بدون (تدريجي / تيليسين)"
+    },
+    "video_mode": {
+      "double": "60 إطار/ث / 50 إطار/ث (سلس / قياسي)",
+      "single": "30 إطار/ث / 25 إطار/ث (فيلم أصلي)",
+      "freeze": "تثبيت الإطار TBC (حماية من الانقطاع)",
+      "drop": "إسقاط (استبعاد الإطارات التالفة)",
+      "passthrough": "تمرير مباشر (دون تعديل)"
+    },
+    "audio_mode": {
+      "stereo": "ستريو (الالتقاط الأصلي)",
+      "mono": "أحادي مدمج (مجموع ي+ي)",
+      "mono_l": "أحادي إجباري (اليسار فقط)",
+      "mono_r": "أحادي إجباري (اليمين فقط)"
+    },
+    "output_codec": {
+      "h264": "H.264 (أقصى توافق)",
+      "hevc": "H.265 / HEVC (ضغط أعلى)",
+      "prores": "ProRes 422 HQ (ماستر مونتاج)",
+      "ffv1": "FFV1 (أرشيفي بدون فقدان)"
+    },
+    "resolution": {
+      "original": "الأصلي (480p / 576p)",
+      "1080p": "ترقية 1080p (معيار يوتيوب)"
+    },
+    "ai_upscaler": {
+      "realesrgan_x4plus": "Real-ESRGAN x4plus (دقة ووضوح عاليان)",
+      "realesr_animevideov3_x4": "Real-ESRGAN Anime 6B (رسوم متحركة/أنمي V3)",
+      "span_x4": "SPAN x4 (انتباه البكسل الفائق - خفيف جداً)",
+      "models_se": "Real-CUGAN SE (الحفاظ على الحبيبات التناظرية)",
+      "swinir_classical_sr": "SwinIR Classical (استعادة الأشرطة شديدة التلف)"
+    },
+    "whisper_model": {
+      "tiny": "Tiny (سريع, ~40MB ذاكرة)",
+      "base": "Base (متوازن, ~75MB ذاكرة)",
+      "small": "Small (دقيق, ~250MB ذاكرة)"
+    }
   }
 }

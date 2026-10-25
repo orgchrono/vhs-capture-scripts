@@ -213,7 +213,7 @@ Starts or pauses the background queue worker thread.
 
 ---
 
-## 4. OBS Studio Ingest & Telemetry (`src/viewmodels/capture_vm.rs` & `src/infrastructure/obs.rs`)
+## 4. OBS Studio Ingest & Telemetry (`src/viewmodels/capture_vm.rs` & `src/infrastructure/obs/`)
 
 ### `GET /api/obs/stats`
 Queries real-time telemetry from OBS Studio via WebSocket v5.
@@ -239,7 +239,7 @@ Remotely triggers recording start and stop within OBS Studio.
 
 ---
 
-## 5. Restoration & Process Actions (`src/viewmodels/api_restoration.rs` & `src/domain/pipeline.rs`)
+## 5. Restoration & Process Actions (`src/viewmodels/api_restoration/` & `src/domain/pipeline/`)
 
 ### `POST /api/run`
 Initiates direct pipeline execution for a selected media file.
@@ -279,7 +279,7 @@ Extracts and returns a comparison frame pair (Raw vs Restored) at a specified ti
   - `timestamp`: Float timestamp in seconds (e.g. `12.5`).
   - `denoise`: Optional boolean (`true`/`false`) to simulate spatial-temporal noise reduction.
   - `color`: Optional boolean (`true`/`false`) to simulate color channel balancing.
-- **Aspect Ratio Handling:** Uses resolution and scaling filters in [`src/domain/pipeline.rs`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/domain/pipeline.rs) to pad 4:3 SD tapes with pillarbox bars (`480x360` inside `640x360`), preventing anamorphic stretch.
+- **Aspect Ratio Handling:** Uses resolution and scaling filters in [`src/domain/pipeline/video_filters.rs`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/domain/pipeline/video_filters.rs) to pad 4:3 SD tapes with pillarbox bars (`480x360` inside `640x360`), preventing anamorphic stretch.
 - **Response (HTTP 200):**
   ```json
   {
@@ -321,7 +321,7 @@ Performs recovery actions (`resume`, `finalize`, or `discard`) on incomplete rec
 
 ---
 
-## 6. Panasonic DVR Ingestion (`src/viewmodels/ingest_vm.rs` & `src/infrastructure/panasonic.rs`)
+## 6. Panasonic DVR Ingestion (`src/viewmodels/ingest_vm.rs` & `src/infrastructure/panasonic/`)
 
 ### `GET /api/ingest/panasonic/disks`
 Enumerates attached physical block drives and USB-SATA bridge controllers.
