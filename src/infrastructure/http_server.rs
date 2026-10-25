@@ -109,6 +109,7 @@ fn handle_sse_stream(
                 let event_json = json!({
                     "line": line,
                     "running": snapshot.running,
+                    "active": snapshot.running,
                     "paused": snapshot.paused,
                     "exit_code": snapshot.last_exit_code,
                     "success": snapshot.last_success
@@ -127,6 +128,7 @@ fn handle_sse_stream(
             let done_event = format_sse_event(
                 &json!({
                     "running": false,
+                    "active": false,
                     "paused": false,
                     "exit_code": snapshot.last_exit_code,
                     "success": snapshot.last_success

@@ -4,6 +4,7 @@ import '@testing-library/jest-dom/vitest';
 import { BroadcastProgress, BroadcastProgressRibbon } from './BroadcastProgress';
 import { store } from '../store';
 import { setIsRestoring, addLog, clearLogs } from '../store/studioSlice';
+import { useStudioStore } from '../store/useStudioStore';
 import { Provider } from 'react-redux';
 
 const renderWithStore = (ui: React.ReactElement) => {
@@ -49,5 +50,21 @@ describe('BroadcastProgress Component', () => {
     store.dispatch(addLog('PROGRESS: 34% | Frames: 29800/87600 | FPS: 28.4 | ETA: 00:33:56 | Speed: 1.18x'));
     renderWithStore(<BroadcastProgressRibbon />);
     expect(screen.getByText('34%')).toBeInTheDocument();
+  });
+
+  it('isolates activeTask progress from previous PROGRESS: 100% in logs', () => {
+    store.dispatch(addLog('[RESTORE] Job completed! PROGRESS: 100%'));
+    useStudioStore.setState({
+      activeTask: {
+        type: 'image_generation',
+        labelKey: 'telemetry.task_image_generation',
+        progressPercent: 45,
+      },
+    });
+
+    renderWithStore(<BroadcastProgress />);
+    const progressBar = screen.getByRole('progressbar');
+    expect(progressBar).toHaveAttribute('aria-valuenow', '45');
+    expect(screen.getByText('45%')).toBeInTheDocument();
   });
 });

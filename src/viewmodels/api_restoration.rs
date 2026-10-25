@@ -803,7 +803,7 @@ fn handle_comparison_frame(req: &ApiRequest) -> ApiResponse {
         .query("chroma_fix")
         .map(|c| c != "false")
         .unwrap_or(true);
-    let comb_filter = req
+    let _comb_filter = req
         .query("comb_filter")
         .map(|c| c != "false")
         .unwrap_or(false);
@@ -851,6 +851,7 @@ fn handle_comparison_frame(req: &ApiRequest) -> ApiResponse {
                 "-hide_banner",
                 "-loglevel",
                 "error",
+                "-accurate_seek",
                 "-ss",
                 &format!("{timestamp:.3}"),
                 "-i",
@@ -869,11 +870,9 @@ fn handle_comparison_frame(req: &ApiRequest) -> ApiResponse {
             let mut proc_cmd =
                 crate::infrastructure::toolchain::create_silent_command(&ffmpeg);
 
-            // Faithful pipeline filter chain matching chosen restoration specs in strict physical order
+            // Faithful pipeline filter chain matching chosen restoration specs in strict physical order.
+            // Note: dedot lookahead requires a 5-frame window and shifts single-frame PTS, so it is omitted from single static frame extraction.
             let mut filters = Vec::new();
-            if comb_filter {
-                filters.push("dedot=m=dotcrawl+rainbows".to_string());
-            }
             if !deinterlacer.eq_ignore_ascii_case("none") {
                 filters.push("bwdif=mode=0:parity=-1:deint=1".to_string());
             }
@@ -896,6 +895,7 @@ fn handle_comparison_frame(req: &ApiRequest) -> ApiResponse {
                 "-hide_banner",
                 "-loglevel",
                 "error",
+                "-accurate_seek",
                 "-ss",
                 &format!("{timestamp:.3}"),
                 "-i",

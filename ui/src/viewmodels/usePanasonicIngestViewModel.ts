@@ -135,6 +135,11 @@ export function usePanasonicIngestViewModel({ onRefresh }: UsePanasonicIngestVie
     if (!trimmedPath) return;
 
     try {
+      setActiveTask({
+        type: 'panasonic_extract',
+        labelKey: 'telemetry.task_panasonic_extract',
+        progressPercent: 30,
+      });
       addLog(t('logs.panasonic_inspecting', { path: trimmedPath }));
       const res = await triggerInspect(trimmedPath).unwrap();
       setInspectionResult(res);
@@ -151,6 +156,8 @@ export function usePanasonicIngestViewModel({ onRefresh }: UsePanasonicIngestVie
       const msg = getErrorMessage(err, t('toast.inspect_error'));
       addLog(t('logs.panasonic_inspect_error', { error: msg }));
       toast.error(msg);
+    } finally {
+      setActiveTask(null);
     }
   };
 

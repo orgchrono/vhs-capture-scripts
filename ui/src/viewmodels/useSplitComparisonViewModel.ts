@@ -38,6 +38,8 @@ export function useSplitComparisonViewModel({
     isRestoring,
     logs,
     preset,
+    activeTask,
+    setActiveTask,
   } = useStudioStore();
 
   const [splitPos, setSplitPos] = useState<number>(splitPosition ?? 50);
@@ -81,6 +83,13 @@ export function useSplitComparisonViewModel({
     ? liveSec
     : timestamp;
 
+  // Synchronize internal timestamp with store's previewTimestamp when updated externally
+  useEffect(() => {
+    if (typeof previewTimestamp === 'number' && !isScrubbing) {
+      setTimestamp(previewTimestamp);
+    }
+  }, [previewTimestamp, isScrubbing]);
+
   const [debouncedTimestamp, setDebouncedTimestamp] = useState<number>(previewTimestamp ?? 5.0);
 
   useEffect(() => {
@@ -104,6 +113,27 @@ export function useSplitComparisonViewModel({
     { skip: !hasMedia || isStreamActive }
   );
 
+  // Reflect frame extraction telemetry in activeTask
+  useEffect(() => {
+    if (isFetching && !isRestoring) {
+      setActiveTask({
+        type: 'image_generation',
+        labelKey: 'telemetry.task_image_generation',
+        progressPercent: 45,
+      });
+    } else if (!isFetching && activeTask?.type === 'image_generation') {
+      setActiveTask({
+        type: 'image_generation',
+        labelKey: 'telemetry.task_image_generation',
+        progressPercent: 100,
+      });
+      const timer = setTimeout(() => {
+        setActiveTask(null);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isFetching, isRestoring, activeTask?.type, setActiveTask]);
+
   // Atomically commit frame pair only when BOTH raw and processed are returned
   useEffect(() => {
     if (frameData && frameData.raw_image && frameData.processed_image) {
@@ -126,6 +156,7 @@ export function useSplitComparisonViewModel({
       interval = setInterval(() => {
         setTimestamp((prev) => {
           const next = prev >= totalDuration ? 0 : Math.round((prev + 1) * 10) / 10;
+          setPreviewTimestamp(next);
           return next;
         });
       }, 1000);
@@ -133,7 +164,7 @@ export function useSplitComparisonViewModel({
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [activePlaying, totalDuration]);
+  }, [activePlaying, totalDuration, setPreviewTimestamp]);
 
   const updateSplitFromClientX = useCallback((clientX: number) => {
     if (!containerRef.current) return;

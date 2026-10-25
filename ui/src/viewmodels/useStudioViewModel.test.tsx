@@ -121,4 +121,110 @@ describe('useStudioViewModel', () => {
     expect(executeSpy).toHaveBeenCalled();
     expect(mockStartRestoration).not.toHaveBeenCalled();
   });
+
+  it('handles immediate completion when OBS is already installed', async () => {
+    vi.useFakeTimers();
+    mockInstallObs.mockReturnValue({
+      unwrap: vi.fn().mockResolvedValue({ status: 'ok', message: 'obs_already_installed' }),
+    });
+
+    const { result } = renderHook(() => useStudioViewModel(), { wrapper });
+
+    await act(async () => {
+      await result.current.handleInstallObs();
+    });
+
+    expect(useStudioStore.getState().activeTask?.progressPercent).toBe(100);
+
+    act(() => {
+      vi.advanceTimersByTime(350);
+    });
+
+    expect(useStudioStore.getState().activeTask?.type).toBe('idle');
+    expect(result.current.isInstallingObs).toBe(false);
+    vi.useRealTimers();
+  });
+
+  it('handles immediate completion when VapourSynth is already available', async () => {
+    vi.useFakeTimers();
+    mockInstallQtgmc.mockReturnValue({
+      unwrap: vi.fn().mockResolvedValue({ status: 'ok', message: 'vapoursynth_already_available' }),
+    });
+
+    const { result } = renderHook(() => useStudioViewModel(), { wrapper });
+
+    await act(async () => {
+      await result.current.handleInstallQtgmc();
+    });
+
+    expect(useStudioStore.getState().activeTask?.progressPercent).toBe(100);
+
+    act(() => {
+      vi.advanceTimersByTime(350);
+    });
+
+    expect(useStudioStore.getState().activeTask?.type).toBe('idle');
+    expect(result.current.isInstallingQtgmc).toBe(false);
+    vi.useRealTimers();
+  });
+
+  it('processes SSE message stream with termination on active: false or running: false', async () => {
+    let capturedOnMessage: ((event: { data: string }) => void) | null = null;
+    let mockClosed = false;
+
+    class MockEventSource {
+      onmessage: ((event: { data: string }) => void) | null = null;
+      close() {
+        mockClosed = true;
+      }
+      constructor() {
+        capturedOnMessage = (e) => {
+          if (this.onmessage) this.onmessage(e);
+        };
+      }
+    }
+    const originalEventSource = globalThis.EventSource;
+    globalThis.EventSource = MockEventSource as unknown as typeof EventSource;
+
+    useStudioStore.setState({
+      isRestoring: true,
+      activeTask: {
+        type: 'restore',
+        labelKey: 'telemetry.task_restore',
+        progressPercent: 10,
+      },
+    });
+
+    renderHook(() => useStudioViewModel(), { wrapper });
+
+    expect(capturedOnMessage).not.toBeNull();
+
+    act(() => {
+      capturedOnMessage?.({
+        data: JSON.stringify({
+          line: 'STAGE:2/4 PROGRESS: 65%',
+          running: true,
+          active: true,
+        }),
+      });
+    });
+
+    act(() => {
+      capturedOnMessage?.({
+        data: JSON.stringify({
+          line: 'Restoration finished.',
+          running: false,
+          active: false,
+          success: true,
+          exit_code: 0,
+        }),
+      });
+    });
+
+    expect(mockClosed).toBe(true);
+    expect(useStudioStore.getState().isRestoring).toBe(false);
+    expect(useStudioStore.getState().activeTask?.type).toBe('idle');
+
+    globalThis.EventSource = originalEventSource;
+  });
 });
