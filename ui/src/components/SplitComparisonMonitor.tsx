@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import React from 'react';
 import {
   RefreshCw,
   Play,
@@ -13,12 +13,10 @@ import {
   Columns2,
   X,
 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { useGetComparisonFrameQuery } from '../api/studioRtkApi';
-import { useStudioStore } from '../store/useStudioStore';
-import { createTelemetryParser } from '../lib/telemetry';
+import { useSplitComparisonViewModel } from '../viewmodels/useSplitComparisonViewModel';
 import { LiveEdgeIndicator } from './LiveEdgeIndicator';
 import { TimelineScrubber } from './TimelineScrubber';
+import { MonitorReticleOverlay } from './MonitorReticleOverlay';
 
 const SPLIT_PRESETS = [0, 25, 50, 75, 100] as const;
 
@@ -72,230 +70,48 @@ const ComparisonPane: React.FC<ComparisonPaneProps> = ({
   );
 };
 
-export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
-  source = '',
-  onClose,
-  initialMode = 'freeze',
-}) => {
-  const { t } = useTranslation();
+export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = (props) => {
   const {
-    previewTimestamp,
-    splitPosition,
-    previewMode,
-    setPreviewTimestamp,
-    setSplitPosition,
-    setPreviewMode,
-    deinterlacer,
-    denoise,
-    chromaFix,
-    combFilter,
-    overscanBlanking,
-    dropoutClean,
-    isRestoring,
-    logs,
-    preset,
-  } = useStudioStore();
-
-  const [splitPos, setSplitPos] = useState<number>(splitPosition ?? 50);
-  const [timestamp, setTimestamp] = useState<number>(previewTimestamp ?? 5.0);
-  const [isScrubbing, setIsScrubbing] = useState<boolean>(false);
-  const [scrubTimestamp, setScrubTimestamp] = useState<number>(previewTimestamp ?? 5.0);
-  const [streamAnchor, setStreamAnchor] = useState<number>(previewTimestamp ?? 5.0);
-  const [isDragging, setIsDragging] = useState<boolean>(false);
-  const [splitLayout, setSplitLayout] = useState<'wipe' | 'dual'>('wipe');
-  const [viewMode, setViewMode] = useState<'stream' | 'freeze'>(previewMode ?? initialMode);
-  const [streamKey, setStreamKey] = useState<number>(0);
-  const [isPlaying, setIsPlaying] = useState<boolean>((previewMode ?? initialMode) === 'stream');
-
-  const containerRef = useRef<HTMLDivElement>(null);
-  const isDraggingRef = useRef<boolean>(false);
-  const splitPosRef = useRef<number>(splitPos);
-  splitPosRef.current = splitPos;
-
-  const hasMedia = Boolean(source && source.trim().length > 0);
-  const activePlaying = hasMedia && isPlaying;
-  const isStreamActive = viewMode === 'stream' && activePlaying;
-
-  const telemetry = useMemo(() => {
-    const parser = createTelemetryParser();
-    return parser(logs, isRestoring, preset);
-  }, [logs, isRestoring, preset]);
-
-  const liveSec = telemetry.currentSeconds;
-  const displayTime = isScrubbing ? scrubTimestamp : timestamp;
-  const isAtLiveEdge = !isRestoring || Math.abs(displayTime - liveSec) <= 2.0;
-  const effectiveTimestamp = isScrubbing
-    ? scrubTimestamp
-    : isRestoring && isAtLiveEdge && liveSec > 0
-    ? liveSec
-    : timestamp;
-
-  const [debouncedTimestamp, setDebouncedTimestamp] = useState<number>(previewTimestamp ?? 5.0);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedTimestamp(effectiveTimestamp);
-    }, 200);
-    return () => clearTimeout(timer);
-  }, [effectiveTimestamp]);
-
-  const {
-    data: frameData,
+    t,
+    source,
+    onClose,
+    containerRef,
+    splitPos,
+    isDragging,
+    splitLayout,
+    setSplitLayout,
+    viewMode,
+    isPlaying,
+    setIsPlaying,
+    streamKey,
+    streamAnchor,
+    hasMedia,
+    isStreamActive,
     isFetching,
-  } = useGetComparisonFrameQuery(
-    {
-      source,
-      timestamp: debouncedTimestamp,
-      deinterlacer: deinterlacer || 'qtgmc',
-      denoise: denoise ?? false,
-      chroma_fix: chromaFix ?? true,
-      comb_filter: combFilter ?? false,
-      overscan: overscanBlanking ?? true,
-      dropout: dropoutClean ?? false,
-    },
-    { skip: !hasMedia || isStreamActive }
-  );
-
-  const totalDuration = frameData?.duration && frameData.duration > 0 ? frameData.duration : 0;
-  const progressPct = totalDuration > 0
-    ? Math.min(100, Math.max(0, (effectiveTimestamp / totalDuration) * 100)).toFixed(1)
-    : '0.0';
-
-  useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | undefined;
-    if (activePlaying && totalDuration > 0) {
-      interval = setInterval(() => {
-        setTimestamp((prev) => {
-          const next = prev >= totalDuration ? 0 : Math.round((prev + 1) * 10) / 10;
-          return next;
-        });
-      }, 1000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [activePlaying, totalDuration]);
-
-  const updateSplitFromClientX = useCallback((clientX: number) => {
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    if (rect.width <= 0) return;
-    const x = clientX - rect.left;
-    const pct = Math.max(0, Math.min(100, (x / rect.width) * 100));
-    const rounded = Math.round(pct);
-    splitPosRef.current = rounded;
-    setSplitPos(rounded);
-  }, []);
-
-  const handleDividerPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch {
-      // safe fallback
-    }
-    isDraggingRef.current = true;
-    setIsDragging(true);
-    updateSplitFromClientX(e.clientX);
-  };
-
-  const handleDividerPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (isDraggingRef.current) {
-      updateSplitFromClientX(e.clientX);
-    }
-  };
-
-  const handleDividerPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (isDraggingRef.current) {
-      isDraggingRef.current = false;
-      setIsDragging(false);
-      try {
-        e.currentTarget.releasePointerCapture(e.pointerId);
-      } catch {
-        // safe fallback
-      }
-      setSplitPosition(splitPosRef.current);
-    }
-  };
-
-  const handleSplitChange = (val: number) => {
-    const safe = Math.max(0, Math.min(100, val));
-    splitPosRef.current = safe;
-    setSplitPos(safe);
-    setSplitPosition(safe);
-  };
-
-  const handlePresetSelect = (presetVal: number) => {
-    splitPosRef.current = presetVal;
-    setSplitPos(presetVal);
-    setSplitPosition(presetVal);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'ArrowLeft') {
-      e.preventDefault();
-      handleSplitChange(splitPos - 5);
-    } else if (e.key === 'ArrowRight') {
-      e.preventDefault();
-      handleSplitChange(splitPos + 5);
-    }
-  };
-
-  const handleModeChange = (mode: 'stream' | 'freeze') => {
-    setViewMode(mode);
-    setPreviewMode(mode);
-    if (mode === 'stream') {
-      setStreamAnchor(effectiveTimestamp);
-      setIsPlaying(true);
-      setStreamKey((prev) => prev + 1);
-    } else {
-      setIsPlaying(false);
-    }
-  };
-
-  const maxSeekLimit = totalDuration > 0 ? totalDuration : 3600;
-
-  const handleJumpToLive = useCallback(() => {
-    setTimestamp(liveSec);
-    setScrubTimestamp(liveSec);
-    setPreviewTimestamp(liveSec);
-    setStreamAnchor(liveSec);
-    setStreamKey((k) => k + 1);
-  }, [liveSec, setPreviewTimestamp]);
-
-  const handleSeek = (delta: number) => {
-    const current = isScrubbing ? scrubTimestamp : effectiveTimestamp;
-    const nextTime = Math.max(0, Math.min(maxSeekLimit, current + delta));
-    setTimestamp(nextTime);
-    setScrubTimestamp(nextTime);
-    setPreviewTimestamp(nextTime);
-    setStreamAnchor(nextTime);
-    setStreamKey((prev) => prev + 1);
-  };
-
-  const handleTimelineCommit = () => {
-    const target = isScrubbing ? scrubTimestamp : timestamp;
-    setPreviewTimestamp(target);
-    setStreamAnchor(target);
-    setStreamKey((prev) => prev + 1);
-  };
-
-  const cachedImagesRef = useRef<{ raw?: string; processed?: string }>({});
-  if (frameData?.raw_image) {
-    cachedImagesRef.current.raw = frameData.raw_image;
-  }
-  if (frameData?.processed_image) {
-    cachedImagesRef.current.processed = frameData.processed_image;
-  }
-
-  const rawImg = frameData?.raw_image || cachedImagesRef.current.raw;
-  const procImg = frameData?.processed_image || cachedImagesRef.current.processed;
+    displayedFrames,
+    effectiveTimestamp,
+    isAtLiveEdge,
+    isRestoring,
+    setIsScrubbing,
+    totalDuration,
+    progressPct,
+    handleDividerPointerDown,
+    handleDividerPointerMove,
+    handleDividerPointerUp,
+    handlePresetSelect,
+    handleKeyDown,
+    handleModeChange,
+    handleJumpToLive,
+    handleSeek,
+    handleTimelineInput,
+    handleTimelineCommit,
+  } = useSplitComparisonViewModel(props);
 
   const rawStreamUrl = `/api/monitor/stream-proxy?mode=raw&source=${encodeURIComponent(source)}&fps=15&timestamp=${streamAnchor}&k=${streamKey}`;
   const procStreamUrl = `/api/monitor/stream-proxy?mode=processed&source=${encodeURIComponent(source)}&fps=15&timestamp=${streamAnchor}&k=${streamKey}`;
 
-  const rawSrc = isStreamActive ? rawStreamUrl : rawImg;
-  const procSrc = isStreamActive ? procStreamUrl : procImg;
+  const rawSrc = isStreamActive ? rawStreamUrl : displayedFrames.raw;
+  const procSrc = isStreamActive ? procStreamUrl : displayedFrames.processed;
 
   return (
     <div
@@ -307,13 +123,13 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
       data-testid="split-comparison-monitor"
     >
       {/* Top Header Bar: Zero Overflow Guaranteed Floating HUD */}
-      <div className="absolute top-2 left-2 right-2 z-20 flex items-center justify-between pointer-events-auto gap-1.5 flex-nowrap min-w-0">
+      <div className="absolute top-2 left-2 right-2 z-20 flex flex-wrap items-center justify-between pointer-events-auto gap-1.5 min-w-0">
         {/* Left: Compact A/B Monitor Title & Split Percentage Badge */}
         <div className="flex items-center gap-1.5 shrink-0 min-w-0">
           <button
             type="button"
             onClick={onClose}
-            className="bg-black/85 hover:bg-studio-surface backdrop-blur-md px-2 py-1 rounded-sm text-[10px] font-mono text-slate-300 hover:text-white border border-studio-border hover:border-amber-400/50 shadow-sm flex items-center gap-1.5 shrink-0 whitespace-nowrap cursor-pointer transition min-w-0"
+            className="bg-black/85 hover:bg-studio-surface backdrop-blur-md h-6 px-2 rounded-sm text-[10px] font-mono text-slate-300 hover:text-white border border-studio-border hover:border-amber-400/50 shadow-sm flex items-center gap-1.5 shrink-0 whitespace-nowrap cursor-pointer transition min-w-0"
             title={t('monitor.split_title')}
             aria-label={t('monitor.split_title')}
             data-testid="split-title-badge-btn"
@@ -345,7 +161,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
             <button
               type="button"
               onClick={() => setSplitLayout('wipe')}
-              className={`w-5.5 h-5 flex items-center justify-center rounded-xs transition cursor-pointer text-[9px] font-mono ${
+              className={`h-6 px-1.5 min-w-[24px] flex items-center justify-center rounded-xs transition cursor-pointer text-[9px] font-mono ${
                 splitLayout === 'wipe'
                   ? 'bg-amber-500/25 text-amber-300 font-semibold border border-amber-400/40'
                   : 'text-slate-400 hover:text-slate-200 border border-transparent'
@@ -359,7 +175,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
             <button
               type="button"
               onClick={() => setSplitLayout('dual')}
-              className={`w-5.5 h-5 flex items-center justify-center rounded-xs transition cursor-pointer text-[9px] font-mono ${
+              className={`h-6 px-1.5 min-w-[24px] flex items-center justify-center rounded-xs transition cursor-pointer text-[9px] font-mono ${
                 splitLayout === 'dual'
                   ? 'bg-amber-500/25 text-amber-300 font-semibold border border-amber-400/40'
                   : 'text-slate-400 hover:text-slate-200 border border-transparent'
@@ -380,7 +196,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
                   key={p}
                   type="button"
                   onClick={() => handlePresetSelect(p)}
-                  className={`w-4.5 sm:w-5 h-4 flex items-center justify-center rounded-xs transition-colors cursor-pointer border ${
+                  className={`h-5 px-1.5 min-w-[20px] flex items-center justify-center rounded-xs transition-colors cursor-pointer border ${
                     splitPos === p
                       ? 'bg-amber-500/25 text-amber-300 font-semibold border-amber-400/50'
                       : 'text-slate-400 hover:text-slate-200 border-transparent'
@@ -400,7 +216,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
             <button
               type="button"
               onClick={() => handleModeChange('stream')}
-              className={`w-5 h-5 flex items-center justify-center rounded-xs transition cursor-pointer ${
+              className={`h-6 px-1.5 min-w-[24px] flex items-center justify-center rounded-xs transition cursor-pointer ${
                 viewMode === 'stream'
                   ? 'bg-amber-500/20 text-amber-300 font-semibold'
                   : 'text-slate-400 hover:text-slate-200'
@@ -414,7 +230,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
             <button
               type="button"
               onClick={() => handleModeChange('freeze')}
-              className={`w-5 h-5 flex items-center justify-center rounded-xs transition cursor-pointer ${
+              className={`h-6 px-1.5 min-w-[24px] flex items-center justify-center rounded-xs transition cursor-pointer ${
                 viewMode === 'freeze'
                   ? 'bg-amber-500/20 text-amber-300 font-semibold'
                   : 'text-slate-400 hover:text-slate-200'
@@ -427,12 +243,12 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
             </button>
           </div>
 
-          {/* Close Button - MUST NEVER be cut off */}
+          {/* Close Button */}
           {onClose && (
             <button
               type="button"
               onClick={onClose}
-              className="w-5.5 h-5.5 flex items-center justify-center bg-black/85 hover:bg-red-950/60 backdrop-blur-md text-slate-300 hover:text-red-200 rounded-sm border border-studio-border hover:border-red-600/70 shadow-sm transition cursor-pointer shrink-0 z-30"
+              className="w-6 h-6 flex items-center justify-center bg-black/85 hover:bg-red-950/60 backdrop-blur-md text-slate-300 hover:text-red-200 rounded-sm border border-studio-border hover:border-red-600/70 shadow-sm transition cursor-pointer shrink-0 z-30"
               title={t('monitor.split_close')}
               aria-label={t('monitor.split_close')}
               data-testid="split-close-btn"
@@ -443,7 +259,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
         </div>
       </div>
 
-      {/* Main Full-Frame Video Canvas: SSOT with LiveMonitor (Fills the entire monitor card) */}
+      {/* Main Full-Frame Video Canvas */}
       <div
         ref={containerRef}
         className="absolute inset-0 z-0 flex items-center justify-center bg-black overflow-hidden select-none"
@@ -460,7 +276,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
         {/* Video Canvas Presentation: Wipe or Dual side-by-side */}
         {splitLayout === 'wipe' ? (
           <>
-            {/* Side B: Restored / Processed (Underneath, Full Monitor Width) */}
+            {/* Side B: Restored / Processed */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
               <ComparisonPane
                 type="restored"
@@ -470,7 +286,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
               />
             </div>
 
-            {/* Side A: Raw / Original (Clipped on Left according to splitPos) */}
+            {/* Side A: Raw / Original */}
             <div
               className="absolute inset-0 overflow-hidden pointer-events-none flex items-center justify-center"
               style={{ clipPath: `polygon(0 0, ${splitPos}% 0, ${splitPos}% 100%, 0 100%)` }}
@@ -483,7 +299,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
               />
             </div>
 
-            {/* Draggable Divider Handle Line with Pointer Capture & Broadcast Grip */}
+            {/* Draggable Divider Handle Line */}
             <div
               className={`absolute top-0 bottom-0 z-20 cursor-ew-resize flex items-center justify-center group ${
                 isDragging ? 'cursor-grabbing' : 'cursor-grab'
@@ -500,20 +316,15 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
               tabIndex={0}
               data-testid="split-divider-line"
             >
-              {/* Wider hit-box for effortless grab */}
               <div className="absolute inset-y-0 -left-4 -right-4 cursor-ew-resize" />
-              
-              {/* Crisp Vertical Line with subtle glow */}
               <div className="w-0.5 h-full bg-gradient-to-b from-amber-400/20 via-amber-400 to-amber-400/20 shadow-[0_0_8px_rgba(251,191,36,0.7)] group-hover:bg-amber-300 transition-colors pointer-events-none" />
 
-              {/* Central Broadcast Grip Handle */}
               <div className="absolute top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-slate-950/95 border-2 border-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.6)] flex items-center justify-center cursor-ew-resize group-hover:scale-110 active:scale-95 transition-transform backdrop-blur-md">
                 <div className="flex items-center text-amber-300 pointer-events-none select-none">
                   <ChevronLeft className="w-3.5 h-3.5 -mr-1" />
                   <ChevronRight className="w-3.5 h-3.5 -ml-1" />
                 </div>
 
-                {/* Floating percentage badge above handle */}
                 <div className="absolute -top-7 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-xs bg-black/90 border border-amber-400/60 text-amber-300 text-[9px] font-mono font-bold shadow-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
                   {splitPos}%
                 </div>
@@ -521,9 +332,8 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
             </div>
           </>
         ) : (
-          /* Side-by-Side Dual Viewport (Butterfly 50/50 View) */
+          /* Side-by-Side Dual Viewport */
           <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
-            {/* Left 50%: Raw */}
             <div className="relative w-1/2 h-full border-r border-amber-400/30 overflow-hidden flex items-center justify-center bg-black">
               <ComparisonPane
                 type="raw"
@@ -533,7 +343,6 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
               />
             </div>
 
-            {/* Right 50%: Restored */}
             <div className="relative w-1/2 h-full overflow-hidden flex items-center justify-center bg-black">
               <ComparisonPane
                 type="restored"
@@ -545,24 +354,16 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           </div>
         )}
 
-        {/* CRT Scanline & Subtle Vignette Overlay: SSOT with LiveMonitor */}
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 z-10 shadow-[inset_0_0_60px_rgba(0,0,0,0.85)]"
         />
 
-        {/* Broadcast Reticle Corners: SSOT with LiveMonitor */}
-        <div aria-hidden="true" className="pointer-events-none absolute inset-3 z-10 border border-white/5 rounded-sm">
-          <div className="absolute top-0 left-0 w-2.5 h-2.5 border-t-2 border-l-2 border-white/20" />
-          <div className="absolute top-0 right-0 w-2.5 h-2.5 border-t-2 border-r-2 border-white/20" />
-          <div className="absolute bottom-0 left-0 w-2.5 h-2.5 border-b-2 border-l-2 border-white/20" />
-          <div className="absolute bottom-0 right-0 w-2.5 h-2.5 border-b-2 border-r-2 border-white/20" />
-        </div>
+        <MonitorReticleOverlay />
       </div>
 
-      {/* Bottom Transport Controls: SSOT with LiveMonitor */}
+      {/* Bottom Transport Controls */}
       <div className="absolute bottom-0 left-0 right-0 z-30 bg-studio-panel/95 border-t border-studio-border px-2.5 py-1.5 flex items-center justify-between gap-2.5 text-xs font-mono select-none flex-nowrap min-w-0">
-        {/* Left: Media Transport Controls */}
         <div className="flex items-center gap-1 shrink-0">
           <button
             type="button"
@@ -592,14 +393,10 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
               if (hasMedia) {
                 const nextPlaying = !isPlaying;
                 setIsPlaying(nextPlaying);
-                setStreamAnchor(effectiveTimestamp);
                 if (nextPlaying) {
-                  setViewMode('stream');
-                  setPreviewMode('stream');
-                  setStreamKey((k) => k + 1);
+                  handleModeChange('stream');
                 } else {
-                  setViewMode('freeze');
-                  setPreviewMode('freeze');
+                  handleModeChange('freeze');
                 }
               }
             }}
@@ -639,7 +436,6 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           </button>
         </div>
 
-        {/* Jump to Live Restoration Point Button or Live Edge indicator */}
         {isRestoring && (
           <LiveEdgeIndicator
             isAtLiveEdge={isAtLiveEdge}
@@ -648,7 +444,6 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           />
         )}
 
-        {/* Center/Right: Full Timeline Scrubber with Time & Progress Information */}
         <TimelineScrubber
           currentTimestamp={effectiveTimestamp}
           totalDuration={totalDuration}
@@ -656,11 +451,9 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = ({
           disabled={!hasMedia}
           onScrubStart={() => {
             setIsScrubbing(true);
-            setScrubTimestamp(effectiveTimestamp);
           }}
           onScrubChange={(val) => {
-            setScrubTimestamp(val);
-            setTimestamp(val);
+            handleTimelineInput(val);
           }}
           onScrubCommit={() => {
             setIsScrubbing(false);

@@ -1,3 +1,5 @@
+import type { ActiveStudioTask } from '../store/studioSlice';
+
 export interface TelemetryData {
   readonly stage: number;
   readonly stageNameKey: string;
@@ -87,12 +89,39 @@ export const getPresetStages = (preset?: string): StageDefinition[] => {
  * Dynamic stage resolution without arbitrary hardcoded percentage jumps.
  */
 export const createTelemetryParser = () => {
-  return (logs: readonly string[], isRestoring: boolean, preset?: string): TelemetryData => {
-    if (!isRestoring) return IDLE_TELEMETRY;
+  return (
+    logs: readonly string[],
+    isBusy: boolean,
+    preset?: string,
+    activeTask?: ActiveStudioTask
+  ): TelemetryData => {
+    if (!isBusy && (!activeTask || activeTask.type === 'idle')) return IDLE_TELEMETRY;
+
+    const reversedLogs = [...logs].reverse();
+
+    if (activeTask && activeTask.type !== 'idle' && activeTask.type !== 'restore') {
+      const progressLine = reversedLogs.find((line) => /PROGRESS:\s*(\d+)%/i.test(line));
+      const progressMatch = progressLine ? progressLine.match(/PROGRESS:\s*(\d+)%/i) : null;
+      const explicitPercent = progressMatch
+        ? parseInt(progressMatch[1], 10)
+        : activeTask.progressPercent;
+
+      return {
+        stage: 1,
+        stageNameKey: activeTask.labelKey,
+        progressPercent: Math.min(100, Math.max(0, explicitPercent)),
+        currentFrames: 0,
+        totalFrames: 0,
+        fps: 0,
+        eta: '--:--:--',
+        speed: '1.0x',
+        isStreaming: true,
+        currentSeconds: 0,
+      };
+    }
 
     const stages = getPresetStages(preset);
     const totalSteps = stages.length;
-    const reversedLogs = [...logs].reverse();
 
     const stagePatternLine = reversedLogs.find((line) => /STAGE:(\d+)\/(\d+)/i.test(line));
     const stagePatternMatch = stagePatternLine ? stagePatternLine.match(/STAGE:(\d+)\/(\d+)/i) : null;

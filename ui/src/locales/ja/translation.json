@@ -405,7 +405,13 @@
     "toggle_hw_drawer": "ハードウェアテレメトリパネルの切り替え",
     "pipeline_active_badge": "パイプライン稼働中",
     "pipeline_idle_badge": "待機中",
-    "hw_pill": "CPU {{cpu}}% • RAM {{ram}}%"
+    "hw_pill": "CPU {{cpu}}% • RAM {{ram}}%",
+    "pipeline_signature": "DAG: VapourSynth + FFmpeg • YUV422p10le スタジオパイプライン",
+    "rec_obs_badge": "[OBS 録画中]",
+    "task_install_qtgmc": "QTGMC / VapourSynth インストール",
+    "task_install_obs": "OBS Studio インストール",
+    "task_whisper_subtitles": "Whisper 字幕・文字起こし",
+    "task_panasonic_extract": "Panasonic タイトル抽出"
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",

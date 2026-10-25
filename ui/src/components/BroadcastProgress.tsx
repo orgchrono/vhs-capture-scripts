@@ -7,17 +7,20 @@ import { createTelemetryParser, getPresetStages } from '../lib/telemetry';
 
 const telemetryParser = createTelemetryParser();
 
-export const BroadcastProgress: React.FC = () => {
+function useBroadcastTelemetry() {
   const { t } = useTranslation();
-  const { isRestoring, isPaused, logs, preset } = useStudioStore();
+  const { isRestoring, isPaused, logs, preset, activeTask } = useStudioStore();
+  const isBusy = isRestoring || (activeTask && activeTask.type !== 'idle');
+  const telemetry = useMemo(
+    () => telemetryParser(logs, isRestoring, preset, activeTask),
+    [logs, isRestoring, preset, activeTask]
+  );
+  const stages = useMemo(() => getPresetStages(preset), [preset]);
+  return { t, isRestoring, isPaused, isBusy, telemetry, stages };
+}
 
-  const telemetry = useMemo(() => {
-    return telemetryParser(logs, isRestoring, preset);
-  }, [isRestoring, logs, preset]);
-
-  const stages = useMemo(() => {
-    return getPresetStages(preset);
-  }, [preset]);
+export const BroadcastProgress: React.FC = () => {
+  const { t, isRestoring, isPaused, isBusy, telemetry, stages } = useBroadcastTelemetry();
 
   return (
     <div
@@ -30,7 +33,7 @@ export const BroadcastProgress: React.FC = () => {
         <div className="flex items-center gap-2">
           <span
             className={`led-lamp ${
-              isRestoring
+              isBusy
                 ? isPaused
                   ? 'led-warn animate-pulse'
                   : 'led-live animate-pulse'
@@ -42,7 +45,7 @@ export const BroadcastProgress: React.FC = () => {
             {t('telemetry.title')}
           </span>
           <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-studio-surface border border-studio-border text-slate-300">
-            {isRestoring
+            {isBusy
               ? isPaused
                 ? t('telemetry.status_paused')
                 : t(telemetry.stageNameKey)
@@ -56,7 +59,7 @@ export const BroadcastProgress: React.FC = () => {
           className="text-xs font-mono font-bold tracking-tight text-white flex items-center gap-1.5"
         >
           <span className="text-slate-400 text-[10px] font-normal uppercase">
-            {isRestoring
+            {isBusy
               ? isPaused
                 ? t('telemetry.status_paused')
                 : t('telemetry.status_running')
@@ -77,7 +80,7 @@ export const BroadcastProgress: React.FC = () => {
         value={telemetry.progressPercent}
         aria-label={t('telemetry.progress_label')}
         aria-valuetext={`${telemetry.progressPercent}% - ${
-          isRestoring
+          isBusy
             ? isPaused
               ? t('telemetry.status_paused')
               : t(telemetry.stageNameKey)
@@ -156,10 +159,7 @@ export const BroadcastProgress: React.FC = () => {
 };
 
 export const BroadcastProgressRibbon: React.FC = () => {
-  const { t } = useTranslation();
-  const { isRestoring, isPaused, logs, preset } = useStudioStore();
-  const telemetry = useMemo(() => telemetryParser(logs, isRestoring, preset), [logs, isRestoring, preset]);
-  const stages = useMemo(() => getPresetStages(preset), [preset]);
+  const { t, isRestoring, isPaused, isBusy, telemetry, stages } = useBroadcastTelemetry();
 
   return (
     <div
@@ -172,7 +172,7 @@ export const BroadcastProgressRibbon: React.FC = () => {
       <div className="flex items-center gap-2 shrink-0">
         <span
           className={`led-lamp ${
-            isRestoring
+            isBusy
               ? isPaused
                 ? 'led-idle'
                 : 'led-live animate-pulse'
@@ -180,11 +180,13 @@ export const BroadcastProgressRibbon: React.FC = () => {
           }`}
           aria-hidden="true"
         />
-        {isRestoring && (
+        {isBusy && (
           <span className="text-[11px] font-bold text-slate-200 truncate max-w-[200px]">
             {isPaused
               ? t('telemetry.status_paused')
-              : `${telemetry.stage}/${stages.length} ${t(telemetry.stageNameKey)}`}
+              : isRestoring
+              ? `${telemetry.stage}/${stages.length} ${t(telemetry.stageNameKey)}`
+              : t(telemetry.stageNameKey)}
           </span>
         )}
       </div>

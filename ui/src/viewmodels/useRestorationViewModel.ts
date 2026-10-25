@@ -82,6 +82,12 @@ export function useRestorationViewModel(): UseRestorationViewModelResult {
       return;
     }
 
+    store.setActiveTask({
+      type: 'whisper_subtitles',
+      labelKey: 'telemetry.task_whisper_subtitles',
+      progressPercent: 10,
+    });
+
     store.addLog(t('logs.whisper_starting', { model: whisperModel }));
 
     let targetLanguage = whisperLanguage;
@@ -104,6 +110,7 @@ export function useRestorationViewModel(): UseRestorationViewModelResult {
         });
 
         if (!confirmedLang) {
+          store.setActiveTask(null);
           return;
         }
         targetLanguage = confirmedLang;
@@ -117,6 +124,7 @@ export function useRestorationViewModel(): UseRestorationViewModelResult {
         });
 
         if (!confirmedLang) {
+          store.setActiveTask(null);
           return;
         }
         targetLanguage = confirmedLang;
@@ -138,10 +146,12 @@ export function useRestorationViewModel(): UseRestorationViewModelResult {
         store.addLog(t('logs.whisper_warning', { msg }));
         toast.warning(msg);
       }
+      store.setActiveTask(null);
     } catch (e: unknown) {
       const errMsg = getErrorMessage(e, t('toast.network_error'));
       store.addLog(t('logs.whisper_error', { error: errMsg }));
       toast.error(errMsg);
+      store.setActiveTask(null);
     }
   };
 

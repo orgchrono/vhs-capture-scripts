@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { store, useAppDispatch, useAppSelector } from './index';
-import { studioSlice, type StudioState, type WorkspacePreset } from './studioSlice';
+import { studioSlice, type StudioState, type WorkspacePreset, type StudioTaskType, type ActiveStudioTask } from './studioSlice';
 import type {
   RestorationPreset,
   VideoMode,
@@ -10,7 +10,7 @@ import type {
   ResolutionMode,
 } from '../types';
 
-export type { StudioState };
+export type { StudioState, WorkspacePreset, StudioTaskType, ActiveStudioTask };
 
 export function useStudioStore() {
   const dispatch = useAppDispatch();
@@ -47,6 +47,7 @@ export function useStudioStore() {
       setIsRestoring: (val: boolean) => dispatch(actions.setIsRestoring(val)),
       setIsPaused: (val: boolean) => dispatch(actions.setIsPaused(val)),
       setIsCapturing: (val: boolean) => dispatch(actions.setIsCapturing(val)),
+      setActiveTask: (task: ActiveStudioTask | null) => dispatch(actions.setActiveTask(task)),
 
       addLog: (line: string) => dispatch(actions.addLog(line)),
       clearLogs: () => dispatch(actions.clearLogs()),

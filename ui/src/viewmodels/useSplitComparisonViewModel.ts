@@ -1,0 +1,293 @@
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useStudioStore } from '../store/useStudioStore';
+import { useGetComparisonFrameQuery } from '../api/studioRtkApi';
+import { createTelemetryParser } from '../lib/telemetry';
+
+export interface UseSplitComparisonViewModelParams {
+  source?: string;
+  initialMode?: 'stream' | 'freeze';
+  onClose?: () => void;
+}
+
+export interface ComparisonFrameState {
+  raw: string;
+  processed: string;
+  timestamp: number;
+}
+
+export function useSplitComparisonViewModel({
+  source = '',
+  initialMode = 'freeze',
+  onClose,
+}: UseSplitComparisonViewModelParams) {
+  const { t } = useTranslation();
+  const {
+    previewTimestamp,
+    splitPosition,
+    previewMode,
+    setPreviewTimestamp,
+    setSplitPosition,
+    setPreviewMode,
+    deinterlacer,
+    denoise,
+    chromaFix,
+    combFilter,
+    overscanBlanking,
+    dropoutClean,
+    isRestoring,
+    logs,
+    preset,
+  } = useStudioStore();
+
+  const [splitPos, setSplitPos] = useState<number>(splitPosition ?? 50);
+  const [timestamp, setTimestamp] = useState<number>(previewTimestamp ?? 5.0);
+  const [isScrubbing, setIsScrubbing] = useState<boolean>(false);
+  const [scrubTimestamp, setScrubTimestamp] = useState<number>(previewTimestamp ?? 5.0);
+  const [streamAnchor, setStreamAnchor] = useState<number>(previewTimestamp ?? 5.0);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [splitLayout, setSplitLayout] = useState<'wipe' | 'dual'>('wipe');
+  const [viewMode, setViewMode] = useState<'stream' | 'freeze'>(previewMode ?? initialMode);
+  const [streamKey, setStreamKey] = useState<number>(0);
+  const [isPlaying, setIsPlaying] = useState<boolean>((previewMode ?? initialMode) === 'stream');
+
+  // Atomic state holding both frames for a single locked timestamp
+  const [displayedFrames, setDisplayedFrames] = useState<ComparisonFrameState>({
+    raw: '',
+    processed: '',
+    timestamp: previewTimestamp ?? 5.0,
+  });
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef<boolean>(false);
+  const splitPosRef = useRef<number>(splitPos);
+  splitPosRef.current = splitPos;
+
+  const hasMedia = Boolean(source && source.trim().length > 0);
+  const activePlaying = hasMedia && isPlaying;
+  const isStreamActive = viewMode === 'stream' && activePlaying;
+
+  const telemetry = useMemo(() => {
+    const parser = createTelemetryParser();
+    return parser(logs, isRestoring, preset);
+  }, [logs, isRestoring, preset]);
+
+  const liveSec = telemetry.currentSeconds;
+  const displayTime = isScrubbing ? scrubTimestamp : timestamp;
+  const isAtLiveEdge = !isRestoring || Math.abs(displayTime - liveSec) <= 2.0;
+  const effectiveTimestamp = isScrubbing
+    ? scrubTimestamp
+    : isRestoring && isAtLiveEdge && liveSec > 0
+    ? liveSec
+    : timestamp;
+
+  const [debouncedTimestamp, setDebouncedTimestamp] = useState<number>(previewTimestamp ?? 5.0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedTimestamp(effectiveTimestamp);
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [effectiveTimestamp]);
+
+  const { data: frameData, isFetching } = useGetComparisonFrameQuery(
+    {
+      source,
+      timestamp: debouncedTimestamp,
+      deinterlacer: deinterlacer || 'qtgmc',
+      denoise: denoise ?? false,
+      chroma_fix: chromaFix ?? true,
+      comb_filter: combFilter ?? false,
+      overscan: overscanBlanking ?? true,
+      dropout: dropoutClean ?? false,
+    },
+    { skip: !hasMedia || isStreamActive }
+  );
+
+  // Atomically commit frame pair only when BOTH raw and processed are returned
+  useEffect(() => {
+    if (frameData && frameData.raw_image && frameData.processed_image) {
+      setDisplayedFrames({
+        raw: frameData.raw_image,
+        processed: frameData.processed_image,
+        timestamp: frameData.timestamp ?? debouncedTimestamp,
+      });
+    }
+  }, [frameData, debouncedTimestamp]);
+
+  const totalDuration = frameData?.duration && frameData.duration > 0 ? frameData.duration : 0;
+  const progressPct = totalDuration > 0
+    ? Math.min(100, Math.max(0, (effectiveTimestamp / totalDuration) * 100)).toFixed(1)
+    : '0.0';
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | undefined;
+    if (activePlaying && totalDuration > 0) {
+      interval = setInterval(() => {
+        setTimestamp((prev) => {
+          const next = prev >= totalDuration ? 0 : Math.round((prev + 1) * 10) / 10;
+          return next;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [activePlaying, totalDuration]);
+
+  const updateSplitFromClientX = useCallback((clientX: number) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const x = clientX - rect.left;
+    const pct = Math.max(0, Math.min(100, (x / rect.width) * 100));
+    const rounded = Math.round(pct);
+    splitPosRef.current = rounded;
+    setSplitPos(rounded);
+  }, []);
+
+  const handleDividerPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // safe fallback
+    }
+    isDraggingRef.current = true;
+    setIsDragging(true);
+    updateSplitFromClientX(e.clientX);
+  };
+
+  const handleDividerPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isDraggingRef.current) {
+      updateSplitFromClientX(e.clientX);
+    }
+  };
+
+  const handleDividerPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isDraggingRef.current) {
+      isDraggingRef.current = false;
+      setIsDragging(false);
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch {
+        // safe fallback
+      }
+      setSplitPosition(splitPosRef.current);
+    }
+  };
+
+  const handleSplitChange = (val: number) => {
+    const safe = Math.max(0, Math.min(100, val));
+    splitPosRef.current = safe;
+    setSplitPos(safe);
+    setSplitPosition(safe);
+  };
+
+  const handlePresetSelect = (presetVal: number) => {
+    splitPosRef.current = presetVal;
+    setSplitPos(presetVal);
+    setSplitPosition(presetVal);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      handleSplitChange(splitPos - 5);
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      handleSplitChange(splitPos + 5);
+    }
+  };
+
+  const handleModeChange = (mode: 'stream' | 'freeze') => {
+    setViewMode(mode);
+    setPreviewMode(mode);
+    if (mode === 'stream') {
+      setStreamAnchor(effectiveTimestamp);
+      setIsPlaying(true);
+      setStreamKey((prev) => prev + 1);
+    } else {
+      setIsPlaying(false);
+    }
+  };
+
+  const maxSeekLimit = totalDuration > 0 ? totalDuration : 3600;
+
+  const handleJumpToLive = useCallback(() => {
+    setTimestamp(liveSec);
+    setScrubTimestamp(liveSec);
+    setStreamAnchor(liveSec);
+    setPreviewTimestamp(liveSec);
+    setStreamKey((k) => k + 1);
+  }, [liveSec, setPreviewTimestamp]);
+
+  const clampBoundedTime = (targetSec: number) => Math.max(0, Math.min(maxSeekLimit, targetSec));
+
+  const handleSeek = (offsetSec: number) => {
+    const origin = isScrubbing ? scrubTimestamp : effectiveTimestamp;
+    const bounded = clampBoundedTime(origin + offsetSec);
+    setTimestamp(bounded);
+    setScrubTimestamp(bounded);
+    setStreamAnchor(bounded);
+    setPreviewTimestamp(bounded);
+    setStreamKey((k) => k + 1);
+  };
+
+  const handleTimelineInput = (newVal: number) => {
+    const clamped = clampBoundedTime(newVal);
+    setScrubTimestamp(clamped);
+    setTimestamp(clamped);
+    setPreviewTimestamp(clamped);
+  };
+
+  const handleTimelineCommit = () => {
+    const target = isScrubbing ? scrubTimestamp : effectiveTimestamp;
+    setStreamAnchor(target);
+    setPreviewTimestamp(target);
+    setStreamKey((k) => k + 1);
+  };
+
+  return {
+    t,
+    source,
+    onClose,
+    containerRef,
+    splitPos,
+    isDragging,
+    splitLayout,
+    setSplitLayout,
+    viewMode,
+    isPlaying,
+    setIsPlaying,
+    streamKey,
+    streamAnchor,
+    hasMedia,
+    isStreamActive,
+    isFetching,
+    displayedFrames,
+    effectiveTimestamp,
+    displayTime,
+    liveSec,
+    isAtLiveEdge,
+    isRestoring,
+    isScrubbing,
+    setIsScrubbing,
+    scrubTimestamp,
+    totalDuration,
+    progressPct,
+    maxSeekLimit,
+    updateSplitFromClientX,
+    handleDividerPointerDown,
+    handleDividerPointerMove,
+    handleDividerPointerUp,
+    handleSplitChange,
+    handlePresetSelect,
+    handleKeyDown,
+    handleModeChange,
+    handleJumpToLive,
+    handleSeek,
+    handleTimelineInput,
+    handleTimelineCommit,
+  };
+}

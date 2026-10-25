@@ -80,11 +80,12 @@ const StudioMain: React.FC<{
     preset,
     outputCodec,
     setOutputCodec,
+    activeTask,
   } = useStudioStore()
 
   const telemetry = useMemo(() => {
-    return telemetryParser(logs, isRestoring, preset)
-  }, [logs, isRestoring, preset])
+    return telemetryParser(logs, isRestoring, preset, activeTask)
+  }, [logs, isRestoring, preset, activeTask])
 
   const currentPresetLabel = useMemo(() => {
     const labels = getPresetLabels(t)
@@ -244,7 +245,7 @@ const StudioMain: React.FC<{
       onDrop={handleDrop}
     >
       {/* Precision Broadcast Header Progress Stripe */}
-      {isRestoring && (
+      {(isRestoring || (activeTask && activeTask.type !== 'idle')) && (
         <div
           role="progressbar"
           aria-valuenow={telemetry.progressPercent}
