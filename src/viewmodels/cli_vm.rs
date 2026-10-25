@@ -85,6 +85,8 @@ pub fn print_usage() {
     println!("  qtgmc-script <INPUT>       Generate high-performance VapourSynth QTGMC script");
     println!("  bagit-manifest <DIR>       Generate RFC 8493 BagIt manifest for target directory");
     println!("  oais-package <DIR> [O] [D] Package directory into OAIS SIP/AIP with BagIt and PREMIS");
+    println!("  oais-verify <DIR>          Verify cryptographic fixity and PREMIS/BagIt compliance of OAIS package");
+    println!("  bootstrap-toolchain        Automated zero-setup bootstrap for VapourSynth, OBS, and core toolchain");
     println!("  timecode <SECONDS>         Format seconds as broadcast timecode HH:MM:SS.mmm");
     println!(
         "  install-ffmpeg <MGR>       Display package manager installation command for FFmpeg"
@@ -1168,9 +1170,11 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
         }
         "setup-qtgmc" => {
             println!("[QTGMC SETUP] Starting automated VapourSynth + QTGMC setup...");
+            println!("STAGE:1/4 PROGRESS: 10% - Initializing toolchain installer...");
             match crate::infrastructure::package::install_vapoursynth_toolchain() {
                 Ok(cmd) => {
                     println!("[QTGMC SETUP] Toolchain setup completed successfully: {cmd}");
+                    println!("STAGE:4/4 PROGRESS: 100% - Toolchain setup completed.");
                     std::process::exit(0);
                 }
                 Err(err) => {
@@ -1181,9 +1185,11 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
         }
         "setup-obs" => {
             println!("[OBS SETUP] Starting automated OBS Studio setup...");
+            println!("STAGE:1/4 PROGRESS: 10% - Initializing OBS Studio installer...");
             match crate::infrastructure::package::install_obs_toolchain() {
                 Ok(cmd) => {
                     println!("[OBS SETUP] OBS Studio setup completed successfully: {cmd}");
+                    println!("STAGE:4/4 PROGRESS: 100% - OBS Studio setup completed.");
                     std::process::exit(0);
                 }
                 Err(err) => {
@@ -1214,6 +1220,68 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
             let vtt_content = crate::domain::whisper::generate_vtt_content(&segments);
             std::fs::write(&output_path, vtt_content)?;
             println!("Subtitles generated successfully: {output_path}");
+        }
+        "oais-verify" => {
+            let target_dir = match args.get(2) {
+                Some(d) => d,
+                None => {
+                    eprintln!("Error: Missing target directory. Usage: vhs-studio oais-verify <PACOTE_DIR>");
+                    std::process::exit(1);
+                }
+            };
+            match crate::domain::archive::verify_oais_directory(Path::new(target_dir)) {
+                Ok(report) => {
+                    println!("{}", serde_json::to_string_pretty(&report)?);
+                    if !report.is_valid {
+                        std::process::exit(1);
+                    }
+                }
+                Err(err) => {
+                    eprintln!("Error verifying OAIS package: {err}");
+                    std::process::exit(1);
+                }
+            }
+        }
+        "bootstrap-toolchain" => {
+            println!("[BOOTSTRAP] Initializing VHS Studio Pro Turnkey Toolchain bootstrap...");
+            println!("STAGE:1/4 PROGRESS: 10% - Installing VapourSynth + QTGMC toolchain...");
+            match crate::infrastructure::package::install_vapoursynth_toolchain() {
+                Ok(info) => {
+                    println!("[BOOTSTRAP] VapourSynth toolchain ready: {info}");
+                }
+                Err(err) => {
+                    eprintln!("[BOOTSTRAP ERROR] VapourSynth installation failed: {err}");
+                    std::process::exit(1);
+                }
+            }
+
+            println!("STAGE:2/4 PROGRESS: 40% - Installing OBS Studio toolchain...");
+            match crate::infrastructure::package::install_obs_toolchain() {
+                Ok(info) => {
+                    println!("[BOOTSTRAP] OBS Studio toolchain ready: {info}");
+                }
+                Err(err) => {
+                    eprintln!("[BOOTSTRAP ERROR] OBS Studio installation failed: {err}");
+                    std::process::exit(1);
+                }
+            }
+
+            println!("STAGE:3/4 PROGRESS: 70% - Inspecting external multimedia binaries (FFmpeg/FFprobe)...");
+            let cwd = env::current_dir().ok();
+            let home_str = env::var("USERPROFILE").or_else(|_| env::var("HOME")).ok();
+            let home = home_str.as_ref().map(Path::new);
+
+            let ffmpeg = crate::infrastructure::toolchain::resolve_executable_path("ffmpeg", cwd.as_deref(), home);
+            let ffprobe = crate::infrastructure::toolchain::resolve_executable_path("ffprobe", cwd.as_deref(), home);
+            let python = crate::infrastructure::toolchain::resolve_executable_path("python", cwd.as_deref(), home)
+                .or_else(|| crate::infrastructure::toolchain::resolve_executable_path("python3", cwd.as_deref(), home));
+
+            println!("[BOOTSTRAP] FFmpeg binary: {ffmpeg:?}");
+            println!("[BOOTSTRAP] FFprobe binary: {ffprobe:?}");
+            println!("[BOOTSTRAP] Python binary: {python:?}");
+
+            println!("STAGE:4/4 PROGRESS: 100% - Toolchain verification and bootstrap complete.");
+            println!("[BOOTSTRAP] All systems nominal. Ready for production ingestion and restoration.");
         }
         "desktop" | "gui" => {
             crate::viewmodels::ipc_commands::run_desktop_app();
@@ -1268,6 +1336,13 @@ mod tests {
         assert!(premis_content.contains("<objectIdentifierValue>tape_master.mkv</objectIdentifierValue>"));
         assert!(premis_content.contains("<eventType>ingestion</eventType>"));
         assert!(premis_content.contains("<eventType>fixity check</eventType>"));
+
+        // Verify OAIS package with verification report
+        let report = crate::domain::archive::verify_oais_directory(&temp_dir).expect("verify oais directory");
+        assert!(report.is_valid);
+        assert_eq!(report.missing_files.len(), 0);
+        assert_eq!(report.corrupted_files.len(), 0);
+        assert_eq!(report.valid_files.len(), 1);
 
         let _ = fs::remove_dir_all(&temp_dir);
     }

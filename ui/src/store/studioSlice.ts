@@ -14,6 +14,22 @@ const BARE_COLOR_ESCAPE_REGEX = /\[\d{1,3}m/g;
 
 export type WorkspacePreset = 'default' | 'capture' | 'restore';
 
+export type StudioTaskType =
+  | 'idle'
+  | 'restore'
+  | 'install_qtgmc'
+  | 'install_obs'
+  | 'whisper_subtitles'
+  | 'panasonic_extract'
+  | 'image_generation';
+
+export interface ActiveStudioTask {
+  type: StudioTaskType;
+  labelKey: string;
+  progressPercent: number; // 0..100
+  indeterminate?: boolean;
+}
+
 export interface StudioState {
   selectedFile: string;
   preset: RestorationPreset;
@@ -42,6 +58,7 @@ export interface StudioState {
   isRestoring: boolean;
   isPaused: boolean;
   isCapturing: boolean;
+  activeTask: ActiveStudioTask;
   logs: string[];
   sidebarCollapsed: boolean;
   consoleCollapsed: boolean;
@@ -80,6 +97,11 @@ export const initialStudioState: StudioState = {
   isRestoring: false,
   isPaused: false,
   isCapturing: false,
+  activeTask: {
+    type: 'idle',
+    labelKey: 'telemetry.stage_idle',
+    progressPercent: 0,
+  },
   logs: [],
   sidebarCollapsed: false,
   consoleCollapsed: false,
@@ -270,8 +292,14 @@ export const studioSlice = createSlice({
       state.isPaused = action.payload;
     },
     setIsCapturing: (state, action: PayloadAction<boolean>) => {
-
       state.isCapturing = action.payload;
+    },
+    setActiveTask: (state, action: PayloadAction<ActiveStudioTask | null>) => {
+      state.activeTask = action.payload ?? {
+        type: 'idle',
+        labelKey: 'telemetry.stage_idle',
+        progressPercent: 0,
+      };
     },
     addLog: (state, action: PayloadAction<string>) => {
       const line = action.payload
@@ -361,6 +389,7 @@ export const {
   setIsRestoring,
   setIsPaused,
   setIsCapturing,
+  setActiveTask,
 
   addLog,
   clearLogs,

@@ -54,7 +54,7 @@ export const IncompleteJobsCard: React.FC<IncompleteJobsCardProps> = ({
         <div className="flex items-center gap-1.5 font-mono text-[11px] text-amber-300 font-bold uppercase tracking-wider">
           <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
           <span>{t('recovery.title')}</span>
-          <span className="text-[10px] bg-amber-950/60 px-1.5 py-0.2 rounded-sm text-amber-200 border border-amber-800/60">
+          <span className="text-[10px] bg-amber-950/60 px-1.5 py-0.5 rounded-sm text-amber-200 border border-amber-800/60">
             {incompleteJobs.length}
           </span>
         </div>

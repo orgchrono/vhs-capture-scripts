@@ -858,7 +858,7 @@ fn handle_comparison_frame(req: &ApiRequest) -> ApiResponse {
                 "-frames:v",
                 "1",
                 "-vf",
-                "scale=640:480:force_original_aspect_ratio=decrease",
+                "scale=640:480:force_original_aspect_ratio=decrease,setsar=1:1",
                 "-f",
                 "image2",
                 "-c:v",
@@ -889,7 +889,7 @@ fn handle_comparison_frame(req: &ApiRequest) -> ApiResponse {
             if overscan {
                 filters.push("drawbox=y=ih-16:color=black:width=iw:height=16:t=fill".to_string());
             }
-            filters.push("scale=640:480:force_original_aspect_ratio=decrease".to_string());
+            filters.push("scale=640:480:force_original_aspect_ratio=decrease,setsar=1:1".to_string());
             let proc_vf = filters.join(",");
 
             proc_cmd.args([
@@ -911,8 +911,14 @@ fn handle_comparison_frame(req: &ApiRequest) -> ApiResponse {
                 "pipe:1",
             ]);
 
-            let raw_out = raw_cmd.output().ok();
-            let proc_out = proc_cmd.output().ok();
+            let (raw_out, proc_out) = std::thread::scope(|s| {
+                let raw_handle = s.spawn(|| raw_cmd.output().ok());
+                let proc_handle = s.spawn(|| proc_cmd.output().ok());
+                (
+                    raw_handle.join().unwrap_or(None),
+                    proc_handle.join().unwrap_or(None),
+                )
+            });
 
             if let (Some(r), Some(pr)) = (raw_out, proc_out) {
                 if r.status.success()
@@ -936,7 +942,7 @@ fn handle_comparison_frame(req: &ApiRequest) -> ApiResponse {
                         "raw_image": raw_b64,
                         "processed_image": proc_b64,
                         "width": 640,
-                        "height": 360
+                        "height": 480
                     }));
                 }
             }
@@ -950,7 +956,7 @@ fn handle_comparison_frame(req: &ApiRequest) -> ApiResponse {
         "raw_image": "",
         "processed_image": "",
         "width": 640,
-        "height": 360
+        "height": 480
     }))
 }
 

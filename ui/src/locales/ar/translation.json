@@ -405,7 +405,13 @@
     "toggle_hw_drawer": "تبديل لوحة القياس عن بُعد للأجهزة",
     "pipeline_active_badge": "خط الأنابيب نشط",
     "pipeline_idle_badge": "خامل",
-    "hw_pill": "CPU {{cpu}}% • RAM {{ram}}%"
+    "hw_pill": "CPU {{cpu}}% • RAM {{ram}}%",
+    "pipeline_signature": "DAG: VapourSynth + FFmpeg • خط إنتاج استوديو YUV422p10le",
+    "rec_obs_badge": "[تسجيل OBS]",
+    "task_install_qtgmc": "تثبيت QTGMC / VapourSynth",
+    "task_install_obs": "تثبيت OBS Studio",
+    "task_whisper_subtitles": "نسخ وتوليد ترجمات Whisper",
+    "task_panasonic_extract": "استخراج عنوان Panasonic"
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",

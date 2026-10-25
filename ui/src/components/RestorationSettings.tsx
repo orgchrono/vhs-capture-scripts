@@ -174,7 +174,7 @@ export const RestorationSettings: React.FC = () => {
             placeholder={t('settings.search_placeholder')}
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
-            className="pl-8.5 pr-7 h-8 text-xs bg-studio-surface border border-studio-border text-white placeholder:text-slate-500 focus:border-studio-border-focus rounded-sm font-mono w-full"
+            className="pl-8 pr-7 h-8 text-xs bg-studio-surface border border-studio-border text-white placeholder:text-slate-500 focus:border-studio-border-focus rounded-sm font-mono w-full"
             data-testid="settings-search-input"
           />
           {search && (
@@ -496,15 +496,15 @@ export const RestorationSettings: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
                     {/* Áudio Neural DeepFilterNet */}
                     {matches(['deepfilter', 'audio', 'áudio', 'denoise', 'neural', 'ai', 'ia']) && (
-                      <div className="bg-studio-surface p-3 rounded-sm border border-studio-border flex items-center justify-between min-h-18">
-                        <div className="space-y-0.5 pr-2">
-                          <div className="flex items-center gap-2">
-                            <label className="text-xs font-medium text-slate-200 font-mono">{t('ai.deepfilter_label')}</label>
+                      <div className="bg-studio-surface p-3 rounded-sm border border-studio-border flex items-start justify-between gap-3 min-h-[72px] overflow-hidden">
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+                            <label className="text-xs font-medium text-slate-200 font-mono truncate" title={t('ai.deepfilter_label')}>{t('ai.deepfilter_label')}</label>
                             <span className="text-[9px] bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded-sm font-mono whitespace-nowrap shrink-0">
                               {t('ai.realtime_cpu')}
                             </span>
                           </div>
-                          <p className="text-[11px] text-slate-400 leading-normal font-mono">
+                          <p className="text-[11px] text-slate-400 leading-relaxed font-mono break-words">
                             {t('ai.deepfilter_desc')}
                           </p>
                         </div>
@@ -513,21 +513,22 @@ export const RestorationSettings: React.FC = () => {
                           checked={aiAudioDenoise}
                           onCheckedChange={setAiAudioDenoise}
                           disabled={isLocked}
+                          className="shrink-0 self-center ml-2"
                         />
                       </div>
                     )}
 
                     {/* Dropout Cleaner */}
                     {matches(['dropout', 'cleaner', 'tape', 'fita', 'ai', 'ia']) && (
-                      <div className="bg-studio-surface p-3 rounded-sm border border-studio-border flex items-center justify-between min-h-18">
-                        <div className="space-y-0.5 pr-2">
-                          <div className="flex items-center gap-2">
-                            <label className="text-xs font-medium text-slate-200 font-mono">{t('ai.dropout_label')}</label>
+                      <div className="bg-studio-surface p-3 rounded-sm border border-studio-border flex items-start justify-between gap-3 min-h-[72px] overflow-hidden">
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+                            <label className="text-xs font-medium text-slate-200 font-mono truncate" title={t('ai.dropout_label')}>{t('ai.dropout_label')}</label>
                             <span className="text-[9px] bg-slate-800 text-slate-300 border border-studio-border px-1.5 py-0.5 rounded-sm font-mono whitespace-nowrap shrink-0">
                               {t('ai.fast_cpu')}
                             </span>
                           </div>
-                          <p className="text-[11px] text-slate-400 leading-normal font-mono">
+                          <p className="text-[11px] text-slate-400 leading-relaxed font-mono break-words">
                             {t('ai.dropout_desc')}
                           </p>
                         </div>
@@ -536,21 +537,22 @@ export const RestorationSettings: React.FC = () => {
                           checked={dropoutClean}
                           onCheckedChange={setDropoutClean}
                           disabled={isLocked}
+                          className="shrink-0 self-center ml-2"
                         />
                       </div>
                     )}
 
                     {/* RIFE 60fps */}
                     {matches(['rife', '60fps', 'fps', 'interpolação', 'interpolation', 'vulkan', 'ai', 'ia']) && (
-                      <div className="bg-studio-surface p-3 rounded-sm border border-studio-border flex items-center justify-between min-h-18">
-                        <div className="space-y-0.5 pr-2">
-                          <div className="flex items-center gap-2">
-                            <label className="text-xs font-medium text-slate-200 font-mono">{t('ai.rife_label')}</label>
+                      <div className="bg-studio-surface p-3 rounded-sm border border-studio-border flex items-start justify-between gap-3 min-h-[72px] overflow-hidden">
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+                            <label className="text-xs font-medium text-slate-200 font-mono truncate" title={t('ai.rife_label')}>{t('ai.rife_label')}</label>
                             <span className="text-[9px] bg-amber-950/60 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded-sm font-mono whitespace-nowrap shrink-0">
                               {hardwareProfile?.gpu?.vulkan_available ? t('ai.vulkan_speed') : t('ai.slow_cpu')}
                             </span>
                           </div>
-                          <p className="text-[11px] text-slate-400 leading-normal font-mono">
+                          <p className="text-[11px] text-slate-400 leading-relaxed font-mono break-words">
                             {t('ai.rife_desc')}
                           </p>
                         </div>
@@ -559,22 +561,23 @@ export const RestorationSettings: React.FC = () => {
                           checked={aiRife60fps}
                           onCheckedChange={setAiRife60fps}
                           disabled={isLocked}
+                          className="shrink-0 self-center ml-2"
                         />
                       </div>
                     )}
 
                     {/* Super Resolução / Upscaler */}
                     {matches(['upscaler', 'super', 'resolução', 'realesrgan', 'compact', 'ai', 'ia']) && (
-                      <div className="bg-studio-surface p-3 rounded-sm border border-studio-border flex flex-col justify-between gap-2.5 min-h-18">
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <div className="flex items-center gap-2">
-                              <label className="text-xs font-medium text-slate-200 font-mono">{t('ai.upscaler_label')}</label>
+                      <div className="bg-studio-surface p-3 rounded-sm border border-studio-border flex flex-col justify-between gap-2.5 min-h-[72px] overflow-hidden">
+                        <div className="flex items-start justify-between gap-3 min-w-0">
+                          <div className="min-w-0 flex-1 space-y-1">
+                            <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+                              <label className="text-xs font-medium text-slate-200 font-mono truncate" title={t('ai.upscaler_label')}>{t('ai.upscaler_label')}</label>
                               <span className="text-[9px] bg-amber-950/60 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded-sm font-mono whitespace-nowrap shrink-0">
                                 {hardwareProfile && hardwareProfile.tier <= TIER_CONFIG.BASIC ? t('ai.intensive') : t('ai.moderate')}
                               </span>
                             </div>
-                            <p className="text-[11px] text-slate-400 leading-normal font-mono">
+                            <p className="text-[11px] text-slate-400 leading-relaxed font-mono break-words">
                               {t('ai.upscaler_desc')}
                             </p>
                           </div>
@@ -583,6 +586,7 @@ export const RestorationSettings: React.FC = () => {
                             checked={aiUpscaler}
                             onCheckedChange={setAiUpscaler}
                             disabled={isLocked}
+                            className="shrink-0 self-center ml-2"
                           />
                         </div>
 
@@ -609,16 +613,16 @@ export const RestorationSettings: React.FC = () => {
 
                   {/* Restauração Facial CodeFormer */}
                   {matches(['codeformer', 'face', 'rosto', 'fidelidade', 'sharpness', 'ai', 'ia']) && (
-                    <div className="bg-studio-surface p-3.5 rounded-sm border border-studio-border space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5 pr-2">
-                          <div className="flex items-center gap-2">
-                            <label className="text-xs font-medium text-slate-200 font-mono">{t('ai.face_restore_label')}</label>
+                    <div className="bg-studio-surface p-3.5 rounded-sm border border-studio-border space-y-2.5 overflow-hidden">
+                      <div className="flex items-start justify-between gap-3 min-w-0">
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+                            <label className="text-xs font-medium text-slate-200 font-mono truncate" title={t('ai.face_restore_label')}>{t('ai.face_restore_label')}</label>
                             <span className="text-[9px] bg-rose-950/60 text-rose-300 border border-rose-500/30 px-1.5 py-0.5 rounded-sm font-mono whitespace-nowrap shrink-0">
                               {hardwareProfile && hardwareProfile.tier <= TIER_CONFIG.BASIC ? t('ai.high_load') : t('ai.moderate')}
                             </span>
                           </div>
-                          <p className="text-[11px] text-slate-400 leading-normal font-mono">
+                          <p className="text-[11px] text-slate-400 leading-relaxed font-mono break-words">
                             {t('ai.face_restore_desc')}
                           </p>
                         </div>
@@ -627,6 +631,7 @@ export const RestorationSettings: React.FC = () => {
                           checked={aiFaceRestore}
                           onCheckedChange={setAiFaceRestore}
                           disabled={isLocked}
+                          className="shrink-0 self-center ml-2"
                         />
                       </div>
 

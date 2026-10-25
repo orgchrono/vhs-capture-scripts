@@ -110,6 +110,31 @@ pub fn generate_full_premis_v3_xml(
     events: &[PremisEvent],
     agents: &[PremisAgent],
 ) -> String {
+    generate_full_premis_v3_xml_with_dip(
+        source_file,
+        source_sha256,
+        master_file,
+        master_size,
+        master_sha256,
+        None,
+        events,
+        agents,
+    )
+}
+
+/// Pure PREMIS v3 XML generator supporting DIP proxy derivation representation (`video/mp4`, `compositionLevel=0`).
+#[must_use]
+#[allow(clippy::too_many_arguments)]
+pub fn generate_full_premis_v3_xml_with_dip(
+    source_file: &str,
+    source_sha256: &str,
+    master_file: &str,
+    master_size: u64,
+    master_sha256: &str,
+    dip_info: Option<(&str, u64, &str)>,
+    events: &[PremisEvent],
+    agents: &[PremisAgent],
+) -> String {
     let mut xml = String::from(
         r#"<?xml version="1.0" encoding="UTF-8"?>
 <premis xmlns="http://www.loc.gov/premis/v3" version="3.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
@@ -160,6 +185,41 @@ pub fn generate_full_premis_v3_xml(
   </object>
 "#
     ));
+
+    // Optional DIP Proxy Object (derived from Master Object)
+    if let Some((dip_file, dip_size, dip_sha256)) = dip_info {
+        xml.push_str(&format!(
+            r#"  <object xsi:type="file">
+    <objectIdentifier>
+      <objectIdentifierType>local</objectIdentifierType>
+      <objectIdentifierValue>{dip_file}</objectIdentifierValue>
+    </objectIdentifier>
+    <objectCharacteristics>
+      <compositionLevel>0</compositionLevel>
+      <size>{dip_size}</size>
+      <format>
+        <formatDesignation>
+          <formatName>video/mp4</formatName>
+        </formatDesignation>
+      </format>
+      <fixity>
+        <messageDigestAlgorithm>SHA-256</messageDigestAlgorithm>
+        <messageDigest>{dip_sha256}</messageDigest>
+      </fixity>
+    </objectCharacteristics>
+    <originalName>{dip_file}</originalName>
+    <relationship>
+      <relationshipType>derivation</relationshipType>
+      <relationshipSubType>has source</relationshipSubType>
+      <relatedObjectIdentifier>
+        <relatedObjectIdentifierType>local</relatedObjectIdentifierType>
+        <relatedObjectIdentifierValue>{master_file}</relatedObjectIdentifierValue>
+      </relatedObjectIdentifier>
+    </relationship>
+  </object>
+"#
+        ));
+    }
 
     // Preservation Events
     for ev in events {
@@ -243,6 +303,111 @@ pub fn evaluate_321_compliance(
     has_remote_or_cloud_copy: bool,
 ) -> bool {
     total_copies >= 3 && distinct_media_locations >= 2 && has_remote_or_cloud_copy
+}
+
+/// Cryptographic fixity verification report for an OAIS package directory.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct OaisVerificationReport {
+    pub package_dir: String,
+    pub manifest_file: String,
+    pub total_files_checked: usize,
+    pub valid_files: Vec<String>,
+    pub corrupted_files: Vec<String>,
+    pub missing_files: Vec<String>,
+    pub is_valid: bool,
+}
+
+/// Cryptographically audits an OAIS package directory against its SHA-256 manifest.
+///
+/// Recalculates cryptographic hashes of all referenced files (master, PREMIS sidecar,
+/// BagIt bag-info, DIP proxy) and validates fixity integrity.
+pub fn verify_oais_directory(
+    package_dir: &std::path::Path,
+) -> Result<OaisVerificationReport, Box<dyn std::error::Error>> {
+    if !package_dir.is_dir() {
+        return Err(format!("'{}' is not a valid directory.", package_dir.display()).into());
+    }
+
+    // Discover manifest file (*_manifest-sha256.txt or manifest-sha256.txt)
+    let mut manifest_path_opt: Option<std::path::PathBuf> = None;
+    for entry in std::fs::read_dir(package_dir)? {
+        let entry = entry?;
+        let p = entry.path();
+        if p.is_file() {
+            let fname = p.file_name().and_then(|n| n.to_str()).unwrap_or_default();
+            if fname.ends_with("_manifest-sha256.txt") || fname == "manifest-sha256.txt" {
+                manifest_path_opt = Some(p);
+                break;
+            }
+        }
+    }
+
+    let manifest_path = match manifest_path_opt {
+        Some(p) => p,
+        None => {
+            return Err(format!(
+                "No OAIS SHA-256 manifest (*_manifest-sha256.txt) found in '{}'",
+                package_dir.display()
+            )
+            .into());
+        }
+    };
+
+    let manifest_content = std::fs::read_to_string(&manifest_path)?;
+    let mut valid_files = Vec::new();
+    let mut corrupted_files = Vec::new();
+    let mut missing_files = Vec::new();
+
+    for line in manifest_content.lines() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() || trimmed.starts_with('#') {
+            continue;
+        }
+
+        let mut parts = trimmed.split_whitespace();
+        let expected_hash = match parts.next() {
+            Some(h) => h,
+            None => continue,
+        };
+        let rel_filename = match parts.collect::<Vec<&str>>().join(" ") {
+            s if !s.is_empty() => s,
+            _ => continue,
+        };
+
+        let candidate_path = package_dir.join(&rel_filename);
+        let target_path = if candidate_path.is_file() {
+            candidate_path
+        } else if let Some(stripped) = rel_filename.strip_prefix("data/") {
+            package_dir.join(stripped)
+        } else {
+            candidate_path
+        };
+
+        if !target_path.is_file() {
+            missing_files.push(rel_filename);
+            continue;
+        }
+
+        let computed_hash = crate::domain::fixity::compute_file_sha256_hex(&target_path)?;
+        if computed_hash.eq_ignore_ascii_case(expected_hash) {
+            valid_files.push(rel_filename);
+        } else {
+            corrupted_files.push(rel_filename);
+        }
+    }
+
+    let total_files_checked = valid_files.len() + corrupted_files.len() + missing_files.len();
+    let is_valid = missing_files.is_empty() && corrupted_files.is_empty() && !valid_files.is_empty();
+
+    Ok(OaisVerificationReport {
+        package_dir: package_dir.to_string_lossy().to_string(),
+        manifest_file: manifest_path.file_name().unwrap_or_default().to_string_lossy().to_string(),
+        total_files_checked,
+        valid_files,
+        corrupted_files,
+        missing_files,
+        is_valid,
+    })
 }
 
 
@@ -373,6 +538,64 @@ mod tests {
         assert!(xml.contains("<eventType>ingestion</eventType>"));
         assert!(xml.contains("<eventType>deinterlacing</eventType>"));
         assert!(xml.contains("<agentName>VHS Studio Pro Native Engine v2.1.0</agentName>"));
+    }
+
+    #[test]
+    fn test_generate_full_premis_v3_xml_with_dip() {
+        let events = vec![];
+        let agents = vec![];
+
+        let xml = generate_full_premis_v3_xml_with_dip(
+            "raw.mkv",
+            "aaa111",
+            "master.mkv",
+            1000,
+            "bbb222",
+            Some(("master_proxy.mp4", 500, "ccc333")),
+            &events,
+            &agents,
+        );
+
+        assert!(xml.contains("<objectIdentifierValue>master_proxy.mp4</objectIdentifierValue>"));
+        assert!(xml.contains("<compositionLevel>0</compositionLevel>"));
+        assert!(xml.contains("<formatName>video/mp4</formatName>"));
+        assert!(xml.contains("<messageDigest>ccc333</messageDigest>"));
+        assert!(xml.contains("<relatedObjectIdentifierValue>master.mkv</relatedObjectIdentifierValue>"));
+    }
+
+    #[test]
+    fn test_verify_oais_directory() {
+        let temp_dir = std::env::temp_dir().join(format!("vhs_test_oais_verify_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&temp_dir);
+        std::fs::create_dir_all(&temp_dir).expect("create test dir");
+
+        let master_file = temp_dir.join("tape_master.mkv");
+        let proxy_file = temp_dir.join("tape_proxy.mp4");
+        std::fs::write(&master_file, b"MASTER_CONTENT_12345").unwrap();
+        std::fs::write(&proxy_file, b"PROXY_CONTENT_67890").unwrap();
+
+        let master_hash = crate::domain::fixity::compute_file_sha256_hex(&master_file).unwrap();
+        let proxy_hash = crate::domain::fixity::compute_file_sha256_hex(&proxy_file).unwrap();
+
+        let manifest_file = temp_dir.join("tape_manifest-sha256.txt");
+        let manifest_content = format!("{master_hash}  tape_master.mkv\n{proxy_hash}  tape_proxy.mp4\n");
+        std::fs::write(&manifest_file, manifest_content).unwrap();
+
+        let report = verify_oais_directory(&temp_dir).expect("verification should succeed");
+        assert!(report.is_valid);
+        assert_eq!(report.total_files_checked, 2);
+        assert_eq!(report.valid_files.len(), 2);
+        assert!(report.corrupted_files.is_empty());
+        assert!(report.missing_files.is_empty());
+
+        // Test corruption detection
+        std::fs::write(&proxy_file, b"TAMPERED_CONTENT").unwrap();
+        let report_bad = verify_oais_directory(&temp_dir).expect("verification should run");
+        assert!(!report_bad.is_valid);
+        assert_eq!(report_bad.corrupted_files.len(), 1);
+        assert_eq!(report_bad.corrupted_files[0], "tape_proxy.mp4");
+
+        let _ = std::fs::remove_dir_all(&temp_dir);
     }
 }
 

@@ -405,7 +405,13 @@
     "toggle_hw_drawer": "切换硬件遥测面板",
     "pipeline_active_badge": "管线运行中",
     "pipeline_idle_badge": "空闲",
-    "hw_pill": "CPU {{cpu}}% • RAM {{ram}}%"
+    "hw_pill": "CPU {{cpu}}% • RAM {{ram}}%",
+    "pipeline_signature": "DAG: VapourSynth + FFmpeg • YUV422p10le 工作流管线",
+    "rec_obs_badge": "[OBS 录制中]",
+    "task_install_qtgmc": "QTGMC / VapourSynth 安装",
+    "task_install_obs": "OBS Studio 安装",
+    "task_whisper_subtitles": "Whisper 离线转录与字幕生成",
+    "task_panasonic_extract": "松下录像标题提取"
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",

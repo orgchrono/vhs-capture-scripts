@@ -53,7 +53,7 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
         <div className="flex items-center gap-1.5 font-mono text-[11px] text-slate-300 font-bold uppercase tracking-wider">
           <Film className="w-3.5 h-3.5 text-slate-400" />
           <span>{t('files.library_explorer_title')}</span>
-          <span className="text-[10px] bg-studio-surface px-1.5 py-0.2 rounded-sm text-slate-400 border border-studio-border">
+          <span className="text-[10px] bg-studio-surface px-1.5 py-0.5 rounded-sm text-slate-400 border border-studio-border">
             {files.length + orphanJobs.length}
           </span>
         </div>
@@ -196,7 +196,7 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
 
       {/* Tape Cards List */}
       {isLibraryExpanded && (
-        <div className="space-y-1.5 max-h-95 overflow-y-auto custom-scrollbar pr-0.5 pt-0.5">
+        <div className="space-y-1.5 max-h-[380px] overflow-y-auto custom-scrollbar pr-0.5 pt-0.5">
           {files.length === 0 && orphanJobs.length === 0 ? (
             <div className="p-4 border border-dashed border-studio-border rounded-sm bg-studio-surface/40 flex flex-col items-center justify-center text-center text-slate-400 gap-1.5">
               <UploadCloud className="w-6 h-6 text-slate-500 mb-0.5" />
@@ -247,7 +247,7 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
                         >
                           {name}
                         </h4>
-                        <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-xs bg-amber-950/90 text-amber-300 border border-amber-800 hover:border-amber-600 transition-colors shadow-xs shrink-0">
+                        <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-xs bg-amber-950/90 text-amber-300 border border-amber-800 hover:border-amber-600 transition-colors shadow-xs shrink-0">
                           {t('recovery.badge_incomplete', { pct: job.progress_percent })}
                         </span>
                       </div>
@@ -326,7 +326,7 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
                         </h4>
                         <div className="flex items-center gap-1 shrink-0">
                           {inc && (
-                            <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-xs bg-amber-950/90 text-amber-300 border border-amber-800 hover:border-amber-600 transition-colors shadow-xs">
+                            <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-xs bg-amber-950/90 text-amber-300 border border-amber-800 hover:border-amber-600 transition-colors shadow-xs">
                               {t('recovery.badge_incomplete', { pct: inc.progress_percent })}
                             </span>
                           )}

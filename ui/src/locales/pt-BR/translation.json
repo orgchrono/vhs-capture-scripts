@@ -405,7 +405,13 @@
     "toggle_hw_drawer": "Alternar Painel de Telemetria de Hardware",
     "pipeline_active_badge": "Pipeline Ativa",
     "pipeline_idle_badge": "Ocioso",
-    "hw_pill": "CPU {{cpu}}% • RAM {{ram}}%"
+    "hw_pill": "CPU {{cpu}}% • RAM {{ram}}%",
+    "pipeline_signature": "DAG: VapourSynth + FFmpeg • Pipeline de Estúdio YUV422p10le",
+    "rec_obs_badge": "[GRAVANDO OBS]",
+    "task_install_qtgmc": "Instalação QTGMC / VapourSynth",
+    "task_install_obs": "Instalação do OBS Studio",
+    "task_whisper_subtitles": "Transcrição e Legendas Whisper",
+    "task_panasonic_extract": "Extração de Título Panasonic"
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",

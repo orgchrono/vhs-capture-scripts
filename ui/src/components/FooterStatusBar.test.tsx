@@ -39,7 +39,7 @@ describe('FooterStatusBar Broadcast Component', () => {
     store.dispatch(setIsCapturing(true));
     renderWithStore(<FooterStatusBar />);
 
-    expect(screen.getByText(/\[REC OBS\]/i)).toBeInTheDocument();
+    expect(screen.getByText(/\[REC OBS\]|\[GRAVANDO OBS\]/i)).toBeInTheDocument();
   });
 
   it('displays active file name when selectedFile is set', () => {

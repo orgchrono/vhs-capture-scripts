@@ -371,9 +371,11 @@ pub fn install_qtgmc_python_packages() -> Result<String, String> {
 
 pub fn install_vapoursynth_toolchain() -> Result<String, String> {
     let mut log_msgs = Vec::new();
+    println!("STAGE:1/4 PROGRESS: 15% - Verifying package manager...");
     println!("[QTGMC SETUP] Step 1/3: Checking/Installing system VapourSynth package...");
 
     // 1. Install or update system VapourSynth package
+    println!("STAGE:2/4 PROGRESS: 45% - Downloading runtime packages...");
     let sys_res = (|| {
         if cfg!(target_os = "windows") {
             if command_available("winget") {
@@ -415,6 +417,7 @@ pub fn install_vapoursynth_toolchain() -> Result<String, String> {
     }
 
     // 2. Install Python dependencies (havsfunc, vsutil, ffms2, vsrepo)
+    println!("STAGE:3/4 PROGRESS: 80% - Configuring plugins...");
     println!("[QTGMC SETUP] Step 2/3: Installing Python QTGMC packages...");
     match install_qtgmc_python_packages() {
         Ok(msg) => log_msgs.push(msg),
@@ -433,14 +436,17 @@ pub fn install_vapoursynth_toolchain() -> Result<String, String> {
     if log_msgs.is_empty() {
         Err("No package manager or python environment available to provision VapourSynth".to_string())
     } else {
+        println!("STAGE:4/4 PROGRESS: 100% - Toolchain ready.");
         Ok(log_msgs.join(" && "))
     }
 }
 
 pub fn install_obs_toolchain() -> Result<String, String> {
-    if cfg!(target_os = "windows") {
+    println!("STAGE:1/4 PROGRESS: 15% - Verifying package manager...");
+    println!("STAGE:2/4 PROGRESS: 45% - Downloading runtime packages...");
+    let res = if cfg!(target_os = "windows") {
         if command_available("winget") {
-            return execute_install_command(
+            execute_install_command(
                 "winget",
                 &[
                     "install",
@@ -450,27 +456,35 @@ pub fn install_obs_toolchain() -> Result<String, String> {
                     "--accept-package-agreements",
                     "--accept-source-agreements",
                 ],
-            );
-        }
-        if command_available("choco") {
-            return execute_install_command("choco", &["install", "obs-studio", "-y"]);
+            )
+        } else if command_available("choco") {
+            execute_install_command("choco", &["install", "obs-studio", "-y"])
+        } else {
+            Err("no supported OBS installer command found on host".to_string())
         }
     } else if cfg!(target_os = "macos") {
         if command_available("brew") {
-            return execute_install_command("brew", &["install", "--cask", "obs"]);
+            execute_install_command("brew", &["install", "--cask", "obs"])
+        } else {
+            Err("no supported OBS installer command found on host".to_string())
         }
     } else {
         if command_available("apt-get") {
-            return execute_install_command("apt-get", &["install", "-y", "obs-studio"]);
+            execute_install_command("apt-get", &["install", "-y", "obs-studio"])
+        } else if command_available("dnf") {
+            execute_install_command("dnf", &["install", "-y", "obs-studio"])
+        } else if command_available("pacman") {
+            execute_install_command("pacman", &["-S", "--noconfirm", "obs-studio"])
+        } else {
+            Err("no supported OBS installer command found on host".to_string())
         }
-        if command_available("dnf") {
-            return execute_install_command("dnf", &["install", "-y", "obs-studio"]);
-        }
-        if command_available("pacman") {
-            return execute_install_command("pacman", &["-S", "--noconfirm", "obs-studio"]);
-        }
+    };
+
+    if res.is_ok() {
+        println!("STAGE:3/4 PROGRESS: 80% - Configuring plugins...");
+        println!("STAGE:4/4 PROGRESS: 100% - Toolchain ready.");
     }
-    Err("no supported OBS installer command found on host".to_string())
+    res
 }
 
 #[cfg(test)]

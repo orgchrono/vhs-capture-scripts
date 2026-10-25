@@ -33,11 +33,14 @@ export const FooterStatusBar: React.FC = () => {
     logs,
     consoleCollapsed,
     toggleConsole,
+    activeTask,
   } = useStudioStore();
 
+  const isBusy = isRestoring || (activeTask && activeTask.type !== 'idle');
+
   const telemetry = useMemo(() => {
-    return telemetryParser(logs, isRestoring, preset);
-  }, [logs, isRestoring, preset]);
+    return telemetryParser(logs, isRestoring, preset, activeTask);
+  }, [logs, isRestoring, preset, activeTask]);
 
   const presetStages = useMemo(() => {
     return getPresetStages(preset);
@@ -66,7 +69,7 @@ export const FooterStatusBar: React.FC = () => {
             className={`led-lamp ${
               isCapturing
                 ? 'led-rec animate-pulse'
-                : isRestoring
+                : isBusy
                 ? 'led-live animate-pulse'
                 : 'led-idle'
             }`}
@@ -74,10 +77,12 @@ export const FooterStatusBar: React.FC = () => {
           />
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300 shrink-0 whitespace-nowrap">
             {isCapturing
-              ? '[REC OBS]'
+              ? t('telemetry.rec_obs_badge')
               : isRestoring
               ? `[${t(currentStageDef.key, currentStageDef.label)}]`
-              : t('telemetry.stage_idle', 'PRONTO')}
+              : isBusy
+              ? `[${t(telemetry.stageNameKey)}]`
+              : t('telemetry.stage_idle')}
           </span>
         </div>
 
@@ -94,7 +99,7 @@ export const FooterStatusBar: React.FC = () => {
 
       {/* CENTER SECTION: Frame Accurate Telemetry Meters */}
       <div className="flex items-center gap-2 min-w-0 shrink overflow-hidden">
-        {isRestoring ? (
+        {isBusy ? (
           <>
             {/* Mini Progress Pill */}
             <div className="flex items-center gap-1.5 bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border shrink-0 whitespace-nowrap">
@@ -113,7 +118,7 @@ export const FooterStatusBar: React.FC = () => {
                   ? `${telemetry.currentFrames}/${telemetry.totalFrames}`
                   : telemetry.currentFrames > 0
                   ? `${telemetry.currentFrames}`
-                  : 'STREAMING'}
+                  : t('telemetry.streaming')}
               </span>
             </div>
 
@@ -147,7 +152,7 @@ export const FooterStatusBar: React.FC = () => {
         ) : (
           <div className="hidden md:flex items-center gap-2 text-[10px] text-slate-500 shrink-0 whitespace-nowrap">
             <Radio className="w-3 h-3 text-slate-600 shrink-0" />
-            <span>DAG: VapourSynth + FFmpeg • YUV422p10le Studio Pipeline</span>
+            <span>{t('telemetry.pipeline_signature')}</span>
           </div>
         )}
       </div>
@@ -207,7 +212,7 @@ export const FooterStatusBar: React.FC = () => {
           <Terminal className="w-3 h-3 shrink-0" />
           <span>{t('console.tab_title', 'Logs')}</span>
           {logs.length > 0 && (
-            <span className="px-1 py-0.2 rounded-full text-[9px] bg-slate-800 text-slate-300">
+            <span className="px-1.5 py-0.5 rounded-full text-[9px] bg-slate-800 text-slate-300 leading-none">
               {logs.length}
             </span>
           )}

@@ -13,7 +13,10 @@ use std::time::Instant;
 
 use serde::{Deserialize, Serialize};
 
-use crate::archive::{generate_bag_info_txt, generate_full_premis_v3_xml, PremisAgent, PremisEvent};
+use crate::archive::{
+    generate_bag_info_txt, generate_full_premis_v3_xml_with_dip,
+    PremisAgent, PremisEvent,
+};
 use crate::fixity::compute_file_sha256_hex;
 use crate::media::{get_part_path, seconds_to_timecode};
 use crate::pipeline::{
@@ -1211,7 +1214,7 @@ fn emit_oais_archival_sidecars(
     events.push(PremisEvent {
         event_id: format!("evt-fixity-{}", now.replace([':', '-'], "")),
         event_type: "fixity check".to_string(),
-        event_datetime: now,
+        event_datetime: now.clone(),
         event_detail: format!(
             "Cryptographic SHA-256 fixity calculation for {}",
             planned.final_output_path
@@ -1219,6 +1222,74 @@ fn emit_oais_archival_sidecars(
         event_outcome: "success".to_string(),
         linking_agent_id: "agent-vhs-studio-pro".to_string(),
     });
+
+    // Optional DIP Proxy Generation for Lossless Master
+    let is_lossless_master = {
+        let lower = planned.final_output_path.to_lowercase();
+        let has_lossless_ext = lower.ends_with(".mkv") || lower.ends_with(".mov") || lower.ends_with(".avi");
+        let has_lossless_codec = planned.plan.encoder_args.iter().any(|arg| {
+            let a = arg.to_lowercase();
+            a.contains("ffv1") || a.contains("prores")
+        });
+        !lower.ends_with("_proxy.mp4") && (has_lossless_ext || has_lossless_codec)
+    };
+
+    let proxy_path_str = format!("{stem_path}_proxy.mp4");
+    let proxy_path = Path::new(&proxy_path_str);
+
+    if is_lossless_master && !proxy_path.is_file() {
+        let cwd = std::env::current_dir().ok();
+        let home_str = std::env::var("USERPROFILE").or_else(|_| std::env::var("HOME")).ok();
+        let home = home_str.as_ref().map(Path::new);
+        if let Some(ffmpeg_bin) = crate::infrastructure::toolchain::resolve_executable_path("ffmpeg", cwd.as_deref(), home) {
+            let _ = crate::infrastructure::toolchain::create_silent_command(&ffmpeg_bin)
+                .args([
+                    "-y",
+                    "-i",
+                    &planned.final_output_path,
+                    "-c:v",
+                    "libx264",
+                    "-crf",
+                    "20",
+                    "-preset",
+                    "veryfast",
+                    "-pix_fmt",
+                    "yuv420p",
+                    "-movflags",
+                    "+faststart",
+                    "-c:a",
+                    "aac",
+                    "-b:a",
+                    "192k",
+                    &proxy_path_str,
+                ])
+                .status();
+        }
+    }
+
+    let dip_info = if proxy_path.is_file() {
+        let proxy_size = fs::metadata(proxy_path).map(|m| m.len()).unwrap_or(0);
+        let proxy_sha256 = compute_file_sha256_hex(proxy_path).unwrap_or_default();
+        let proxy_name = proxy_path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
+        Some((proxy_name, proxy_size, proxy_sha256))
+    } else {
+        None
+    };
+
+    if let Some((ref proxy_name, _, _)) = dip_info {
+        events.push(PremisEvent {
+            event_id: format!("evt-dip-{}", now.replace([':', '-'], "")),
+            event_type: "derivation".to_string(),
+            event_datetime: now.clone(),
+            event_detail: format!("H.264 web dissemination proxy generation for {proxy_name}"),
+            event_outcome: "success".to_string(),
+            linking_agent_id: "agent-vhs-studio-pro".to_string(),
+        });
+    }
 
     let agents = vec![PremisAgent {
         agent_id: "agent-vhs-studio-pro".to_string(),
@@ -1235,13 +1306,15 @@ fn emit_oais_archival_sidecars(
         .unwrap_or_default()
         .to_string_lossy();
 
-    // 1. Generate PREMIS v3 XML
-    let premis_xml = generate_full_premis_v3_xml(
+    // 1. Generate PREMIS v3 XML with optional DIP proxy
+    let dip_param = dip_info.as_ref().map(|(n, s, h)| (n.as_str(), *s, h.as_str()));
+    let premis_xml = generate_full_premis_v3_xml_with_dip(
         &source_file_name,
         &source_sha256,
         &master_file_name,
         master_size,
         master_sha256,
+        dip_param,
         &events,
         &agents,
     );
@@ -1249,11 +1322,16 @@ fn emit_oais_archival_sidecars(
     fs::write(&premis_path, &premis_xml)?;
 
     // 2. Generate BagIt bag-info.txt
+    let (payload_bytes, file_count) = if let Some((_, proxy_size, _)) = dip_info {
+        (master_size + proxy_size, 2)
+    } else {
+        (master_size, 1)
+    };
     let bag_info = generate_bag_info_txt(
         "VHS Studio Pro Archival Lab",
         "OAIS Archival Master Package",
-        master_size,
-        1,
+        payload_bytes,
+        file_count,
         &date_only,
     );
     let bag_info_path = format!("{stem_path}_bag-info.txt");
@@ -1262,10 +1340,6 @@ fn emit_oais_archival_sidecars(
     // 3. Generate manifest-sha256.txt
     let premis_sha256 = compute_file_sha256_hex(Path::new(&premis_path)).unwrap_or_default();
     let bag_info_sha256 = compute_file_sha256_hex(Path::new(&bag_info_path)).unwrap_or_default();
-    let master_file_name = Path::new(&planned.final_output_path)
-        .file_name()
-        .unwrap_or_default()
-        .to_string_lossy();
     let premis_file_name = Path::new(&premis_path)
         .file_name()
         .unwrap_or_default()
@@ -1275,9 +1349,13 @@ fn emit_oais_archival_sidecars(
         .unwrap_or_default()
         .to_string_lossy();
 
-    let manifest_content = format!(
-        "{master_sha256}  {master_file_name}\n{premis_sha256}  {premis_file_name}\n{bag_info_sha256}  {bag_info_file_name}\n"
-    );
+    let mut manifest_content = format!("{master_sha256}  {master_file_name}\n");
+    if let Some((ref proxy_name, _, ref proxy_sha)) = dip_info {
+        manifest_content.push_str(&format!("{proxy_sha}  {proxy_name}\n"));
+    }
+    manifest_content.push_str(&format!(
+        "{premis_sha256}  {premis_file_name}\n{bag_info_sha256}  {bag_info_file_name}\n"
+    ));
     let manifest_path = format!("{stem_path}_manifest-sha256.txt");
     fs::write(&manifest_path, &manifest_content)?;
 
@@ -1898,6 +1976,23 @@ mod tests {
         assert!(manifest_content.contains("master_hash_123456  master_tape.mov"));
         assert!(manifest_content.contains("master_tape_premis.xml"));
         assert!(manifest_content.contains("master_tape_bag-info.txt"));
+
+        // Now test with DIP web dissemination proxy present
+        let proxy_file = temp_dir.join("master_tape_proxy.mp4");
+        fs::write(&proxy_file, b"H264_WEB_DIP_PROXY_PAYLOAD").expect("write proxy");
+
+        emit_oais_archival_sidecars(&planned, "master_hash_123456").expect("emit sidecars with dip");
+
+        let premis_dip_content = fs::read_to_string(&premis_file).unwrap();
+        assert!(premis_dip_content.contains("<formatName>video/mp4</formatName>"));
+        assert!(premis_dip_content.contains("<compositionLevel>0</compositionLevel>"));
+        assert!(premis_dip_content.contains("<objectIdentifierValue>master_tape_proxy.mp4</objectIdentifierValue>"));
+
+        let manifest_dip_content = fs::read_to_string(&manifest_file).unwrap();
+        assert!(manifest_dip_content.contains("master_tape_proxy.mp4"));
+
+        let bag_info_dip_content = fs::read_to_string(&bag_info_file).unwrap();
+        assert!(bag_info_dip_content.contains(".2"));
 
         let _ = fs::remove_dir_all(&temp_dir);
     }

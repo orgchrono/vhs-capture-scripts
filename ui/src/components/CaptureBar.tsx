@@ -27,12 +27,12 @@ export const CaptureBar: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 w-full">
+      <div className="flex flex-wrap items-center gap-1.5 w-full">
         {!isCapturing ? (
           <Button
             data-testid="start-capture-btn"
             onClick={handleStartCapture}
-            className="flex-1 w-full h-8 bg-red-800/90 hover:bg-red-700 text-white font-mono font-bold text-xs uppercase tracking-wider rounded-sm border border-red-600/40 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
+            className="flex-1 min-w-[120px] h-8 bg-red-800/90 hover:bg-red-700 text-white font-mono font-bold text-xs uppercase tracking-wider rounded-sm border border-red-600/40 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
           >
             <Radio className="w-3.5 h-3.5 text-white" />
             <span>{t('capture.start_obs')}</span>
@@ -41,7 +41,7 @@ export const CaptureBar: React.FC = () => {
           <Button
             data-testid="stop-capture-btn"
             onClick={handleStopCapture}
-            className="flex-1 w-full h-8 bg-amber-700/90 hover:bg-amber-600 text-white font-mono font-bold text-xs uppercase tracking-wider rounded-sm border border-amber-500/40 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
+            className="flex-1 min-w-[120px] h-8 bg-amber-700/90 hover:bg-amber-600 text-white font-mono font-bold text-xs uppercase tracking-wider rounded-sm border border-amber-500/40 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
           >
             <Square className="w-3.5 h-3.5 text-white" />
             <span>{t('capture.stop_obs')}</span>
@@ -51,7 +51,7 @@ export const CaptureBar: React.FC = () => {
         <Button
           data-testid="toggle-watcher-btn"
           onClick={handleToggleWatcher}
-          className={`h-8 px-3 font-mono font-bold text-xs uppercase tracking-wider rounded-sm border transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.99] shrink-0 ${
+          className={`h-8 px-2.5 font-mono font-bold text-xs uppercase tracking-wider rounded-sm border transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.99] shrink-0 ${
             isWatcherActive
               ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50 hover:bg-emerald-900/80'
               : 'bg-studio-surface text-slate-300 border-studio-border hover:bg-studio-surface-hover hover:text-white'

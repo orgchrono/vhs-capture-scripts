@@ -1,5 +1,5 @@
 import { a11yAudio } from '../lib/a11yAudio';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useStudioStore } from '../store/useStudioStore';
 import { TIMING } from '../lib/constants';
 import { getErrorMessage } from '../lib/errors';
@@ -62,14 +62,47 @@ export function useStudioViewModel() {
   const addLogRef = useRef(addLog);
   const setIsRestoringRef = useRef(setIsRestoring);
   const isRestoringRef = useRef(isRestoring);
+  const isInstallingQtgmcRef = useRef(isInstallingQtgmc);
+  const isInstallingObsRef = useRef(isInstallingObs);
+  const setActiveTaskRef = useRef(store.setActiveTask);
+  const refetchStatusRef = useRef(refetchStatus);
   const tRef = useRef(t);
 
   useEffect(() => {
     addLogRef.current = addLog;
     setIsRestoringRef.current = setIsRestoring;
     isRestoringRef.current = isRestoring;
+    isInstallingQtgmcRef.current = isInstallingQtgmc;
+    isInstallingObsRef.current = isInstallingObs;
+    setActiveTaskRef.current = store.setActiveTask;
+    refetchStatusRef.current = refetchStatus;
     tRef.current = t;
-  }, [addLog, setIsRestoring, isRestoring, t]);
+  }, [addLog, setIsRestoring, isRestoring, isInstallingQtgmc, isInstallingObs, store.setActiveTask, refetchStatus, t]);
+
+  const handleTaskCompletion = useCallback((status?: { success?: boolean | null; exit_code?: number | null }) => {
+    if (isRestoringRef.current) {
+      setIsRestoringRef.current(false);
+      setActiveTaskRef.current(null);
+      const hasFailed = status?.success === false || (typeof status?.exit_code === 'number' && status.exit_code !== 0);
+      if (hasFailed) {
+        a11yAudio.playError();
+        addLogRef.current(tRef.current('logs.restore_failed', { code: status?.exit_code ?? 'error' }));
+      } else {
+        a11yAudio.playSuccess();
+        addLogRef.current(tRef.current('logs.restore_success'));
+      }
+    }
+    if (isInstallingQtgmcRef.current) {
+      setIsInstallingQtgmc(false);
+      setActiveTaskRef.current(null);
+      refetchStatusRef.current();
+    }
+    if (isInstallingObsRef.current) {
+      setIsInstallingObs(false);
+      setActiveTaskRef.current(null);
+      refetchStatusRef.current();
+    }
+  }, []);
 
   // Real-time Server-Sent Events (SSE) for low-latency live log streaming
   useEffect(() => {
@@ -83,17 +116,9 @@ export function useStudioViewModel() {
         if (data.line) {
           addLogRef.current(data.line);
         }
-        if (data.active === false && isRestoringRef.current) {
-          setIsRestoringRef.current(false);
+        if (data.active === false) {
+          handleTaskCompletion(data);
           eventSource.close();
-          const hasFailed = data.success === false || (typeof data.exit_code === 'number' && data.exit_code !== 0);
-          if (hasFailed) {
-            a11yAudio.playError();
-            addLogRef.current(tRef.current('logs.restore_failed', { code: data.exit_code ?? 'error' }));
-          } else {
-            a11yAudio.playSuccess();
-            addLogRef.current(tRef.current('logs.restore_success'));
-          }
         }
       } catch {
         // Ignore JSON parse errors on keepalive comments
@@ -118,16 +143,8 @@ export function useStudioViewModel() {
         newLogs.forEach((l) => addLogRef.current(l));
         lastPolledIndexRef.current = logsData.logs.length;
       }
-      if (!logsData.active && isRestoringRef.current) {
-        setIsRestoringRef.current(false);
-        const hasFailed = logsData.success === false || (typeof logsData.exit_code === 'number' && logsData.exit_code !== 0);
-        if (hasFailed) {
-          a11yAudio.playError();
-          addLogRef.current(tRef.current('logs.restore_failed', { code: logsData.exit_code ?? 'error' }));
-        } else {
-          a11yAudio.playSuccess();
-          addLogRef.current(tRef.current('logs.restore_success'));
-        }
+      if (!logsData.active) {
+        handleTaskCompletion(logsData);
       }
     }
   }, [logsData]);
@@ -177,6 +194,11 @@ export function useStudioViewModel() {
         if (hashMatch) {
           addLog(t('logs.pipeline_hash', { hash: hashMatch[1] }));
         }
+        store.setActiveTask({
+          type: 'restore',
+          labelKey: 'telemetry.status_running',
+          progressPercent: 0,
+        });
         a11yAudio.playStageStart();
         setIsRestoring(true);
         addLog(overrideParams?.resume ? t('logs.restore_resumed') : t('logs.restore_started'));
@@ -185,6 +207,7 @@ export function useStudioViewModel() {
           .executeRestorationJob(planned)
           .then((res) => {
             setIsRestoring(false);
+            store.setActiveTask(null);
             if (res.success) {
               a11yAudio.playSuccess();
               addLog(t('logs.restore_success'));
@@ -195,6 +218,7 @@ export function useStudioViewModel() {
           })
           .catch((e: unknown) => {
             setIsRestoring(false);
+            store.setActiveTask(null);
             a11yAudio.playError();
             addLog(t('logs.restore_failed', { code: getErrorMessage(e) }));
           });
@@ -236,6 +260,11 @@ export function useStudioViewModel() {
       }).unwrap();
 
       if (data.status === 'started' || data.status === 'ok') {
+        store.setActiveTask({
+          type: 'restore',
+          labelKey: 'telemetry.status_running',
+          progressPercent: 0,
+        });
         a11yAudio.playStageStart();
         setIsRestoring(true);
         addLog(overrideParams?.resume ? t('logs.restore_resumed') : t('logs.restore_started'));
@@ -256,6 +285,11 @@ export function useStudioViewModel() {
   const handleInstallObs = async () => {
     lastPolledIndexRef.current = 0;
     setIsInstallingObs(true);
+    store.setActiveTask({
+      type: 'install_obs',
+      labelKey: 'telemetry.task_install_obs',
+      progressPercent: 5,
+    });
     addLog(t('logs.obs_installing'));
     try {
       await installObsTrigger().unwrap();
@@ -263,22 +297,27 @@ export function useStudioViewModel() {
       refetchStatus();
     } catch (e: unknown) {
       logger.error('Failed to install OBS:', getErrorMessage(e));
-    } finally {
-      setTimeout(() => setIsInstallingObs(false), TIMING.INSTALL_RESET_DELAY_MS);
+      setIsInstallingObs(false);
+      store.setActiveTask(null);
     }
   };
 
   const handleInstallQtgmc = async () => {
     lastPolledIndexRef.current = 0;
     setIsInstallingQtgmc(true);
+    store.setActiveTask({
+      type: 'install_qtgmc',
+      labelKey: 'telemetry.task_install_qtgmc',
+      progressPercent: 5,
+    });
     addLog(t('logs.qtgmc_installing'));
     try {
       await installQtgmcTrigger().unwrap();
       addLog(t('logs.qtgmc_installer_started'));
     } catch (e: unknown) {
       addLog(t('logs.qtgmc_install_error', { error: getErrorMessage(e) }));
-    } finally {
-      setTimeout(() => setIsInstallingQtgmc(false), TIMING.INSTALL_RESET_DELAY_MS);
+      setIsInstallingQtgmc(false);
+      store.setActiveTask(null);
     }
   };
 
@@ -354,6 +393,7 @@ export function useStudioViewModel() {
       if (res.status === 'ok') {
         store.setIsRestoring(false);
         store.setIsPaused(false);
+        store.setActiveTask(null);
         a11yAudio.playError();
         toast.error(t('toast.restore_aborted_title'), {
           description: t('toast.restore_aborted_desc'),

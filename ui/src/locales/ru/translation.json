@@ -405,7 +405,13 @@
     "toggle_hw_drawer": "Переключить панель телеметрии оборудования",
     "pipeline_active_badge": "Конвейер активен",
     "pipeline_idle_badge": "Ожидание",
-    "hw_pill": "CPU {{cpu}}% • RAM {{ram}}%"
+    "hw_pill": "CPU {{cpu}}% • RAM {{ram}}%",
+    "pipeline_signature": "DAG: VapourSynth + FFmpeg • Студийный пайплайн YUV422p10le",
+    "rec_obs_badge": "[ЗАПИСЬ OBS]",
+    "task_install_qtgmc": "Установка QTGMC / VapourSynth",
+    "task_install_obs": "Установка OBS Studio",
+    "task_whisper_subtitles": "Транскрипция и субтитры Whisper",
+    "task_panasonic_extract": "Извлечение заголовка Panasonic"
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",
