@@ -47,6 +47,7 @@ fn build_cli_job_request(
         apply_audio_notch_hum: true,
         apply_loudness_norm: true,
         apply_ai_audio_denoise: false,
+        apply_azimuth_correction: false,
         start_sec: 0.0,
         base_start_sec: None,
         duration_sec: None,
@@ -494,7 +495,7 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
             let csv_path = match args.get(2) {
                 Some(p) => p,
                 None => {
-                    eprintln!("Error: Missing CSV path. Usage: vhs-studio chapters <CSV_PATH> [TITLE] [FORMAT: ffmetadata|vtt]");
+                    eprintln!("Error: Missing CSV path. Usage: vhs-studio chapters <CSV_PATH> [TITLE] [FORMAT: ffmetadata|vtt|edl|resolve-csv]");
                     std::process::exit(1);
                 }
             };
@@ -513,6 +514,12 @@ pub fn run_cli(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
             if format_type.eq_ignore_ascii_case("vtt") {
                 let vtt = crate::domain::chapters::generate_webvtt_text(&scenes, Some("Scene"));
                 println!("{vtt}");
+            } else if format_type.eq_ignore_ascii_case("edl") || format_type.eq_ignore_ascii_case("cmx3600") {
+                let edl = crate::domain::chapters::generate_cmx3600_edl(title, &scenes, 29.97);
+                println!("{edl}");
+            } else if format_type.eq_ignore_ascii_case("resolve") || format_type.eq_ignore_ascii_case("resolve-csv") {
+                let rcsv = crate::domain::chapters::generate_resolve_markers_csv(&scenes, 29.97, Some("Scene"));
+                println!("{rcsv}");
             } else {
                 let ffmeta = crate::domain::chapters::generate_ffmetadata_text(
                     title,

@@ -21,6 +21,8 @@ pub const FILTER_DENOISE: &str = "hqdn3d=4.0:3.0:6.0:4.5";
 pub const FILTER_DEINT_BWDIF_BOB: &str = "bwdif=mode=1:parity=-1:deint=1";
 pub const FILTER_DEINT_BWDIF_SINGLE: &str = "bwdif=mode=0:parity=-1:deint=1";
 pub const FILTER_DEINT_YADIF: &str = "yadif=mode=1:parity=-1:deint=1";
+pub const FILTER_IVTC_PULLDOWN: &str = "fieldmatch=order=tff:combmatch=full,bwdif=mode=0:parity=-1:deint=1,decimate";
+pub const FILTER_AUDIO_AZIMUTH_HIGH_SHELF: &str = "treble=g=3.5:f=6500:w=0.6,stereotools=mlev=1.0:mpan=0.0:phase=1";
 pub const FILTER_UPSCALE_1080P: &str = "scale=1440:1080:flags=lanczos,colormatrix=bt601:bt709,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1";
 pub const FILTER_BROADCAST_LIMITER: &str = "limiter=min=16:max=235:planes=1,limiter=min=16:max=240:planes=6";
 
@@ -92,6 +94,7 @@ pub fn resolve_deinterlace_filter(deinterlacer: &str) -> &'static str {
         "bwdif" | "znedi3" | "nnedi3" | "nnedi" => FILTER_DEINT_BWDIF_BOB,
         "bwdif_single" => FILTER_DEINT_BWDIF_SINGLE,
         "yadif" => FILTER_DEINT_YADIF,
+        "ivtc" | "telecine" => FILTER_IVTC_PULLDOWN,
         _ => "",
     }
 }

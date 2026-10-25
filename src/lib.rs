@@ -17,7 +17,7 @@ pub use domain::{
     recovery, stream, tbc, whisper,
 };
 pub use infrastructure::{
-    app_context, executor, hardware, http_codec, http_server, i18n_validator, lock, meihdfs,
+    app_context, executor, hardware, http_codec, http_server, i18n_validator, lock,
     oauth, obs, package, panasonic, paths, preflight, probe, process_control, process_manager,
     queue_store, queue_worker, runner, security, storage, thumbnail, toolchain,
 };

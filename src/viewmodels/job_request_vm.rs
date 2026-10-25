@@ -49,6 +49,7 @@ pub fn map_deinterlacer(value: &str) -> Option<DeinterlaceFilter> {
         "znedi3" => Some(DeinterlaceFilter::Znedi3),
         "nnedi" => Some(DeinterlaceFilter::Nnedi3),
         "yadif" => Some(DeinterlaceFilter::Yadif),
+        "ivtc" | "telecine" => Some(DeinterlaceFilter::Ivtc),
         "none" => Some(DeinterlaceFilter::None),
         _ => None,
     }
@@ -132,6 +133,9 @@ pub fn map_restoration_payload(params: &Value, input_path: &str, default_output_
         apply_audio_notch_hum: audio_treatment,
         apply_loudness_norm: audio_treatment,
         apply_ai_audio_denoise: flag(params, "ai_audio_denoise").unwrap_or(false),
+        apply_azimuth_correction: flag(params, "azimuth_correction")
+            .or_else(|| flag(params, "apply_azimuth_correction"))
+            .unwrap_or(false),
         start_sec,
         base_start_sec,
         duration_sec,

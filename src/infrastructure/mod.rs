@@ -9,7 +9,6 @@ pub mod http_server;
 pub mod i18n_validator;
 pub mod job_recovery;
 pub mod lock;
-pub mod meihdfs;
 pub mod oauth;
 pub mod obs;
 pub mod package;
