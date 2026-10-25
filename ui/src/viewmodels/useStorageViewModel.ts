@@ -1,4 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import {
   useGetStorageConfigQuery,
   useUpdateStorageConfigMutation,
@@ -9,6 +11,7 @@ import {
   type TauriStorageEnvelope,
 } from "../api/tauriBridge";
 import { getErrorMessage } from "../lib/errors";
+import { TIMING } from "../lib/constants";
 
 // ============================================================================
 // VIEWMODEL: Strict MVVM, SoC & Functional Purity (RTK Query / Tauri Dual Bridge)
@@ -56,6 +59,7 @@ const DEFAULT_CONFIG: StorageConfigModel = {
 };
 
 export function useStorageViewModel() {
+  const { t } = useTranslation();
   const isTauri = isTauriEnvironment();
   const { data: storageData, isLoading } = useGetStorageConfigQuery(undefined, {
     skip: isTauri,
@@ -66,6 +70,7 @@ export function useStorageViewModel() {
   const [isNativeSaving, setIsNativeSaving] = useState(false);
   const [userSelectedProvider, setUserSelectedProvider] = useState<string | null>(null);
   const [userConfigOverrides, setUserConfigOverrides] = useState<Partial<StorageConfigModel>>({});
+  const [saveFeedback, setSaveFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   useEffect(() => {
     if (!isTauri) return;
@@ -120,12 +125,29 @@ export function useStorageViewModel() {
       if (res.status === "ok") {
         if (onSuccess) onSuccess();
       } else {
-        if (onError) onError(res.message || "Erro ao salvar");
+        if (onError) onError(res.message || t("storage.save_error"));
       }
     } catch (e: unknown) {
       setIsNativeSaving(false);
-      if (onError) onError(getErrorMessage(e, "Erro ao salvar configurações."));
+      if (onError) onError(getErrorMessage(e, t("storage.save_error")));
     }
+  };
+
+  const onSaveClick = () => {
+    setSaveFeedback(null);
+    void handleSave(
+      () => {
+        const msg = t("storage.saved_success");
+        setSaveFeedback({ type: 'success', message: msg });
+        toast.success(msg);
+        setTimeout(() => setSaveFeedback(null), TIMING.NOTIFICATION_AUTO_DISMISS_MS);
+      },
+      (err) => {
+        const errMsg = String(err);
+        setSaveFeedback({ type: 'error', message: errMsg });
+        toast.error(errMsg);
+      }
+    );
   };
 
   const initiateOAuth = (providerId: string) => {
@@ -141,7 +163,9 @@ export function useStorageViewModel() {
     updateConfig,
     status,
     loading: isTauri ? isNativeSaving : (isLoading || isSaving),
+    saveFeedback,
     handleSave,
+    onSaveClick,
     initiateOAuth,
   };
 }

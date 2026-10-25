@@ -13,7 +13,12 @@
     "obs_installed": "OBS 已就绪",
     "install_obs": "安装 OBS",
     "installing": "正在安装...",
-    "preferences_title": "全局系统首选项"
+    "preferences_title": "全局系统首选项",
+    "encoder_prefix": "ENC:",
+    "codec_h264": "H.264",
+    "codec_hevc": "HEVC",
+    "codec_prores": "ProRes",
+    "codec_ffv1": "FFV1"
   },
   "presets": {
     "title": "模拟母带级修复预设管线",
@@ -67,7 +72,13 @@
     "copy_selection": "复制选区",
     "copied_to_clipboard": "已复制到剪贴板！",
     "toggle": "Alternar Console",
-    "tab_title": "Console"
+    "tab_title": "Console",
+    "filter_all": "全部",
+    "filter_info": "信息",
+    "filter_warn": "警告",
+    "filter_err": "错误",
+    "filter_debug": "调试",
+    "diagnostic_export_header": "VHS Studio Pro - 诊断日志导出\n时间戳: {{timestamp}}\n总行数: {{totalLines}}\n============================================================"
   },
   "monitor": {
     "live_preview": "LIVE PREVIEW (NATIVE)",
@@ -116,7 +127,10 @@
     "scopes_tab_all": "全部",
     "scopes_tab_waveform": "亮度 (Luma)",
     "scopes_tab_vectorscope": "色度 (Chroma)",
-    "scopes_tab_audio": "音频"
+    "scopes_tab_audio": "音频",
+    "live_restoration_stream": "实时修复流",
+    "source_stream_proxy": "源流代理",
+    "standby_no_signal": "待机 / 无信号"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -186,7 +200,10 @@
     "crt_monitor_badge": "DIRECT-SHOW / OBS VIRTUAL CAM",
     "engine_title": "Processing Engine",
     "engine_badge": "PRESETS & RESTORATION",
-    "sidebar_panasonic_title": "3. 松下 Panasonic DVR 硬盘提取"
+    "sidebar_panasonic_title": "3. 松下 Panasonic DVR 硬盘提取",
+    "title": "VHS Studio Pro",
+    "brand_name": "VHS STUDIO",
+    "brand_badge": "PRO"
   },
   "settings": {
     "technical_title": "Restoration Technical Settings",
@@ -230,7 +247,8 @@
     "tab_presets": "预设模式",
     "reset_default": "恢复默认值",
     "tabs_aria_label": "Abas de Configuração",
-    "output_codec_hint": "最终视频的输出编码格式与压缩模式。"
+    "output_codec_hint": "最终视频的输出编码格式与压缩模式。",
+    "tier_label": "等级 {{tier}}: {{name}}"
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",
@@ -366,7 +384,10 @@
     "watcher_armed_desc": "正在监控磁带信号以执行自动采集。",
     "watcher_disarmed_title": "自动采录已关闭",
     "watcher_disarmed_desc": "已停用自动采录守望。",
-    "watcher_error": "切换自动采录状态失败。"
+    "watcher_error": "切换自动采录状态失败。",
+    "capture_failed_title": "捕获失败",
+    "capture_start_failed": "启动捕获失败",
+    "capture_stop_failed": "停止捕获失败"
   },
   "telemetry": {
     "title": "模拟修复母带遥测数据",
@@ -395,6 +416,10 @@
     "stage_encode_fast": "3. NVENC 硬件快速编码",
     "stage_encode_ai": "6. AI 旗舰母带导出",
     "stage_export": "4. 快速导出",
+    "stage_package_manager": "1. 包管理器与运行环境",
+    "stage_download_packages": "2. 下载软件包与依赖项",
+    "stage_configure_plugins": "3. 配置插件与扩展",
+    "stage_verify_toolchain": "4. 完整性校验与就绪",
     "stage_progress": "进度",
     "streaming": "实时处理中",
     "status_paused": "已暂停",
@@ -411,7 +436,8 @@
     "task_install_qtgmc": "QTGMC / VapourSynth 安装",
     "task_install_obs": "OBS Studio 安装",
     "task_whisper_subtitles": "Whisper 离线转录与字幕生成",
-    "task_panasonic_extract": "松下录像标题提取"
+    "task_panasonic_extract": "松下录像标题提取",
+    "task_image_generation": "A/B 对比帧提取"
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",
@@ -451,7 +477,9 @@
     "gdrive_connect_btn": "Connect via Google OAuth",
     "dropbox_auth_btn": "Authorize Dropbox in Browser",
     "onedrive_auth_btn": "Authorize Microsoft Account",
-    "connected": "Connected"
+    "connected": "Connected",
+    "validating": "验证中...",
+    "save_error": "保存设置失败。"
   },
   "logs": {
     "preparing_restore": "[修复] 正在准备修复文件: {{file}}",
@@ -630,6 +658,53 @@
     "close": "关闭",
     "refresh": "刷新",
     "maximize": "最大化",
-    "minimize": "最小化"
+    "minimize": "最小化",
+    "not_available": "不可用"
+  },
+  "options": {
+    "deinterlacer": {
+      "qtgmc": "QTGMC 标准 (高质量)",
+      "qtgmc_fast": "QTGMC 快速 (均衡)",
+      "qtgmc_slow": "QTGMC 慢速 (最高质量)",
+      "bwdif": "BWDIF (快速 / 低CPU占用)",
+      "znedi3": "ZNEDI3 (优化变体)",
+      "nnedi": "NNEDI3 (定向超分辨率)",
+      "none": "无 (逐行 / 胶片转录)"
+    },
+    "video_mode": {
+      "double": "60fps / 50fps (平滑 / 标准)",
+      "single": "30fps / 25fps (原始胶片)",
+      "freeze": "帧保持TBC (信号丢失保护)",
+      "drop": "丢弃 (排除原始坏损)",
+      "passthrough": "直通 (原样)"
+    },
+    "audio_mode": {
+      "stereo": "立体声 (原始捕获)",
+      "mono": "混合单声道 (L+R混合)",
+      "mono_l": "强制单声道 (仅左声道)",
+      "mono_r": "强制单声道 (仅右声道)"
+    },
+    "output_codec": {
+      "h264": "H.264 (最高兼容性)",
+      "hevc": "H.265 / HEVC (高压缩率)",
+      "prores": "ProRes 422 HQ (剪辑母版)",
+      "ffv1": "FFV1 (无损归档)"
+    },
+    "resolution": {
+      "original": "原始分辨率 (480p / 576p)",
+      "1080p": "超分辨率 1080p (YouTube标准)"
+    },
+    "ai_upscaler": {
+      "realesrgan_x4plus": "Real-ESRGAN x4plus (高保真与锐度)",
+      "realesr_animevideov3_x4": "Real-ESRGAN Anime 6B (V3动画/动漫)",
+      "span_x4": "SPAN x4 (超像素注意力 - 超轻量)",
+      "models_se": "Real-CUGAN SE (保留模拟颗粒)",
+      "swinir_classical_sr": "SwinIR Classical (严重磁带损伤修复)"
+    },
+    "whisper_model": {
+      "tiny": "Tiny (快速, ~40MB 内存)",
+      "base": "Base (均衡, ~75MB 内存)",
+      "small": "Small (精准, ~250MB 内存)"
+    }
   }
 }

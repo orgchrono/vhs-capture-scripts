@@ -25,37 +25,38 @@ The architectural design of VHS Studio Pro satisfies stringent requirements for 
 
 ---
 
-## 2. Diagnóstico e Arquitetura Consolidada (Clean MVVM 4-Tier)
+## 2. Diagnóstico e Arquitetura Consolidada (Clean MVVM 4-Tier & Decomposed Modules)
 
-A migração de todo o código legado em Python para Rust nativo foi realizada seguindo a arquitetura **MVVM de 4 camadas** e as diretrizes rigorosas do repositório (**FP, SoC, SRP, DRY, SSOT** e **ZERO-HARDCODE**):
+A migração de todo o código legado em Python para Rust nativo e a decomposição modular da **Fase 5.0** foram realizadas seguindo a arquitetura **MVVM de 4 camadas** e as diretrizes rigorosas do repositório (**FP Pureza, SoC, SRP, DRY, SSOT** e **ZERO-HARDCODE**):
 
 ```mermaid
 graph TD
     subgraph VIEW["VIEW / FRONTEND (React 19)"]
-        V1["10 Locales i18n · Radix UI · TailwindCSS · RTK Query · Tauri Bridge"]
+        V1["10 Locales i18n · Radix UI · TailwindCSS · RTK Query · Settings Sub-Tabs"]
+        V2["Dumb Views: RestorationSettings · ConsoleViewer · AppPreferencesModal"]
     end
 
-    subgraph VIEWMODELS["VIEWMODELS (Typed IPC & REST Routers)"]
-        VM1["api_system · api_restoration · api_queue · api_ingest · api_obs · cli"]
-        VM2["ipc_commands (57 Tauri v2 handlers: restoration, ingest, storage, etc)"]
+    subgraph VIEWMODELS["VIEWMODELS (Typed Custom Hooks & Rust REST Routers)"]
+        VM1["React ViewModels: useStudioViewModel · useConsoleViewModel · useConflictResolutionViewModel"]
+        VM2["Rust REST Routers: api_system · api_restoration (decomposed) · api_queue · api_ingest · api_obs · cli_vm"]
     end
 
-    subgraph INFRASTRUCTURE["INFRASTRUCTURE (OS / IO / Subprocess)"]
-        INF1["http_server · job_recovery · panasonic · meihdfs · obs · toolchain"]
-        INF2["thumbnail · storage · process_manager · queue_worker · security"]
+    subgraph INFRASTRUCTURE["INFRASTRUCTURE (OS / IO / Subprocess Shell)"]
+        INF1["http_server · job_recovery · panasonic (probe_io / drive_scanner) · meihdfs · obs (ws_codec / rpc_client / auto_watcher)"]
+        INF2["executor (planner / checkpoint / neural_chain / oais_packager / remux / process_runner) · storage · toolchain"]
     end
 
-    subgraph DOMAIN["DOMAIN (Pure Functional Logic)"]
-        DOM1["qc · qtgmc · stream · recovery · pipeline · filter · fixity · audio"]
-        DOM2["ai (Real-ESRGAN, RIFE, CodeFormer, Afftdn) · archive · chapters"]
+    subgraph DOMAIN["DOMAIN (Pure Functional Core / Zero I/O)"]
+        DOM1["qc · qtgmc · stream · recovery · filter · fixity · audio · panasonic_format · obs_signal"]
+        DOM2["pipeline (spec / video_filters / audio_filters / encoder_args) · ai · archive · chapters"]
     end
 
-    subgraph MODELS["MODELS (Entities & Constants)"]
-        MOD1["constants · presets · preferences · config · media · recovery · queue"]
+    subgraph MODELS["MODELS (Entities & Constants SSOT)"]
+        MOD1["constants · errors · presets · preferences · config · media · recovery · queue"]
     end
 
-    VIEW <-->|"IPC (Tauri v2) / REST (HTTP/1.1) / SSE"| VIEWMODELS
-    VIEWMODELS <-->|"Pure Types / Typed Commands"| INFRASTRUCTURE
+    VIEW <-->|"REST (HTTP/1.1 :8088) / SSE Stream"| VIEWMODELS
+    VIEWMODELS <-->|"Typed Domain Commands / DTOs"| INFRASTRUCTURE
     INFRASTRUCTURE <-->|"Pure Computation / Immutable Specs"| DOMAIN
     DOMAIN -->|"SSOT Validation & Bounds"| MODELS
     INFRASTRUCTURE -->|"SSOT Constants"| MODELS
@@ -77,8 +78,8 @@ flowchart TD
     Security --> Router["Native API Router (src/viewmodels/api_router.rs)"]
     Router --> Queue["In-Memory & Storage Batch Queue (src/domain/queue.rs)"]
     
-    Queue --> DAG["Pure Pipeline Orchestrator (src/domain/pipeline.rs)"]
-    DAG --> ProcMgr["Subprocess Safe Executor (src/infrastructure/executor.rs)"]
+    Queue --> DAG["Pure Pipeline Orchestrator (src/domain/pipeline/)"]
+    DAG --> ProcMgr["Subprocess Safe Executor (src/infrastructure/executor/)"]
     
     ProcMgr --> Engines{"Specialized Engine Dispatch"}
     
@@ -98,15 +99,15 @@ flowchart TD
 
 ## 4. Modular Architecture Decomposition
 
-The backend is decomposed into specialized, decoupled modules organized across four strict Clean Architecture / MVVM layers:
+The backend and frontend are decomposed into specialized, decoupled modules organized across four strict Clean Architecture / MVVM layers:
 
 | Layer | Module Path | Core Responsibility |
 | :--- | :--- | :--- |
-| **Models** | [`src/models/`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/models/) | Immutable data models (`config.rs`, `constants.rs`, `media.rs`, `preferences.rs`, `presets.rs`). |
-| **Domain** | [`src/domain/`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/domain/) | Pure mathematical & algorithmic video restoration (`pipeline.rs`, `qtgmc.rs`, `qc.rs`, `whisper.rs`, `ai.rs`, `filter.rs`, `recovery.rs`, `audio.rs`, `tbc.rs`, `queue.rs`, `stream.rs`, `chapters.rs`, `fixity.rs`, `archive.rs`). Free of I/O side effects. |
-| **Infrastructure**| [`src/infrastructure/`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/infrastructure/) | OS processes, subprocess spawners, hardware discovery, Panasonic DVR I/O, storage adapters, HTTP daemon (`executor.rs`, `hardware.rs`, `http_server.rs`, `i18n_validator.rs`, `lock.rs`, `meihdfs.rs`, `oauth.rs`, `obs.rs`, `package.rs`, `panasonic.rs`, `preflight.rs`, `probe.rs`, `runner.rs`, `storage.rs`, `thumbnail.rs`, `toolchain.rs`). |
-| **ViewModels** | [`src/viewmodels/`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/viewmodels/) | API command dispatching and telemetry emitters (`api_router.rs`, `capture_vm.rs`, `cli_vm.rs`, `ingest_vm.rs`, `restoration_vm.rs`, `storage_vm.rs`, `system_vm.rs`). |
-| **View (UI)** | [`ui/src/`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/ui/src/) | Pure presentation components, Redux Toolkit Query client state, virtualized monitors, and i18n dictionaries. |
+| **Models** | [`src/models/`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/models/) | Immutable data models and single sources of truth (`config.rs`, `constants.rs`, `errors.rs`, `media.rs`, `preferences.rs`, `presets.rs`). |
+| **Domain** | [`src/domain/`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/domain/) | Pure mathematical & algorithmic video restoration. **100% Zero-I/O Functional Core**:<br>• `pipeline/` (`spec.rs`, `video_filters.rs`, `audio_filters.rs`, `encoder_args.rs`, `mod.rs`)<br>• `panasonic_format.rs`, `obs_signal.rs`<br>• `qtgmc.rs`, `qc.rs`, `whisper.rs`, `ai.rs`, `filter.rs`, `recovery.rs`, `audio.rs`, `stream.rs`, `chapters.rs`, `fixity.rs`, `archive.rs`. |
+| **Infrastructure**| [`src/infrastructure/`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/infrastructure/) | OS processes, subprocess spawners, hardware discovery, Panasonic DVR I/O, storage adapters, HTTP daemon. **Imperative Shell**:<br>• `executor/` (`planner.rs`, `checkpoint.rs`, `neural_chain.rs`, `oais_packager.rs`, `remux.rs`, `process_runner.rs`, `mod.rs`)<br>• `panasonic/` (`probe_io.rs`, `drive_scanner.rs`, `mod.rs`)<br>• `obs/` (`ws_codec.rs`, `rpc_client.rs`, `auto_watcher.rs`, `mod.rs`)<br>• `storage.rs`, `hardware.rs`, `http_server.rs`, `toolchain.rs`, `preflight.rs`, `probe.rs`. |
+| **ViewModels** | [`src/viewmodels/`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/viewmodels/) | API command dispatching, REST routes, and telemetry emitters:<br>• `api_restoration/` (`comparison_frame.rs`, `whisper_service.rs`, `checkpoint_handlers.rs`, `qc_handlers.rs`, `lifecycle_handlers.rs`, `mod.rs`)<br>• `cli_vm/` (`args_parser.rs`, `commands_archive_qc.rs`, `commands_restore.rs`, `commands_ingest_obs.rs`, `commands_system_queue.rs`, `mod.rs`)<br>• `api_router.rs`, `capture_vm.rs`, `ingest_vm.rs`, `restoration_vm.rs`, `storage_vm.rs`, `system_vm.rs`, `ipc_commands.rs`. |
+| **View (UI)** | [`ui/src/`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/ui/src/) | Pure presentation dumb components, Redux Toolkit Query client state, virtualized monitors, and i18n dictionaries:<br>• `components/settings/` (`SettingsPrimitives.tsx`, `useSettingsSearchViewModel.ts`, `PresetsTab.tsx`, `VideoTab.tsx`, `AudioTab.tsx`, `FiltersTab.tsx`, `AdvancedTab.tsx`, `AiTab.tsx`, `StorageTab.tsx`)<br>• `viewmodels/` (`useConsoleViewModel.ts`, `useConflictResolutionViewModel.ts`, `usePreferencesViewModel.ts`, `useStudioViewModel.ts`, `useRestorationViewModel.ts`, `useCaptureViewModel.ts`, `useSplitComparisonViewModel.ts`). |
 
 ---
 
@@ -177,7 +178,7 @@ Codebase health is enforced across two complementary audit layers:
    - **Playwright:** End-to-End integration testing under headless Chromium.
    - **Cargo Check:** Fast compilation check of the entire native Rust core.
    - **Cargo Clippy:** Strict idiomatic Rust linting (`clippy -- -D warnings`).
-   - **Cargo Test:** 211/211 native Rust unit tests covering all domain models and infrastructure.
+   - **Cargo Test:** 237/237 native Rust unit tests covering all domain models, decomposed pipelines, and infrastructure.
    - **i18n Parity:** Verification of key parity across all 10 supported translation dictionaries.
 2. **Swarm Auditors (`scripts/swarm_auditors.mts`):**
    - 7 parallel auditors inspecting Architecture (SoC/SRP/MVVM), Dependencies, Security (zero hardcoded secrets), Code Quality & FP purity, Test Harness, UX/UI & A11y, and CI/CD pipelines.

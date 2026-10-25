@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Film,
@@ -15,6 +15,7 @@ import { useStudioStore } from '../store/useStudioStore';
 import { useGetSystemMetricsQuery } from '../api/studioRtkApi';
 import { TIMING } from '../lib/constants';
 import { createTelemetryParser, getPresetStages, getPresetLabels } from '../lib/telemetry';
+import { useEscapeClose } from '../lib/utils';
 import { SystemTelemetryCard } from './SystemTelemetryCard';
 
 const telemetryParser = createTelemetryParser();
@@ -56,10 +57,13 @@ export const FooterStatusBar: React.FC = () => {
 
   const presetLabels = useMemo(() => getPresetLabels(t), [t]);
 
+  const closeHwDrawer = useCallback(() => setHwDrawerOpen(false), []);
+  useEscapeClose(hwDrawerOpen, closeHwDrawer);
+
   return (
     <footer
       role="status"
-      aria-label={t('telemetry.title', 'Barra de Status e Telemetria')}
+      aria-label={t('telemetry.title')}
       className="h-8 w-full max-w-full overflow-hidden bg-studio-panel/95 backdrop-blur border-t border-studio-border text-slate-300 font-mono text-[11px] select-none flex items-center justify-between px-2.5 shrink-0 z-30"
     >
       {/* LEFT SECTION: Tally Status, Current Stage & Active File */}
@@ -79,7 +83,7 @@ export const FooterStatusBar: React.FC = () => {
             {isCapturing
               ? t('telemetry.rec_obs_badge')
               : isRestoring
-              ? `[${t(currentStageDef.key, currentStageDef.label)}]`
+              ? `[${t(currentStageDef.key)}]`
               : isBusy
               ? `[${t(telemetry.stageNameKey)}]`
               : t('telemetry.stage_idle')}
@@ -103,7 +107,7 @@ export const FooterStatusBar: React.FC = () => {
           <>
             {/* Mini Progress Pill */}
             <div className="flex items-center gap-1.5 bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border shrink-0 whitespace-nowrap">
-              <span className="text-[10px] text-slate-400">{t('telemetry.stage_progress', 'Progresso')}:</span>
+              <span className="text-[10px] text-slate-400">{t('telemetry.stage_progress')}:</span>
               <span className="text-emerald-400 font-bold tabular-nums">
                 {telemetry.progressPercent}%
               </span>
@@ -112,7 +116,7 @@ export const FooterStatusBar: React.FC = () => {
             {/* Frames */}
             <div className="hidden sm:flex items-center gap-1 text-[10px] bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border shrink-0 whitespace-nowrap">
               <Film className="w-3 h-3 text-slate-400 shrink-0" />
-              <span className="text-slate-400">{t('telemetry.frames', 'Quadros')}:</span>
+              <span className="text-slate-400">{t('telemetry.frames')}:</span>
               <span className="text-white font-medium tabular-nums">
                 {telemetry.totalFrames > 0
                   ? `${telemetry.currentFrames}/${telemetry.totalFrames}`
@@ -125,7 +129,7 @@ export const FooterStatusBar: React.FC = () => {
             {/* FPS */}
             <div className="hidden xl:flex items-center gap-1 text-[10px] bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border shrink-0 whitespace-nowrap">
               <Gauge className="w-3 h-3 text-emerald-400 shrink-0" />
-              <span className="text-slate-400">{t('telemetry.fps', 'FPS')}:</span>
+              <span className="text-slate-400">{t('telemetry.fps')}:</span>
               <span className="text-white font-medium tabular-nums">
                 {telemetry.fps.toFixed(2)}
               </span>
@@ -134,7 +138,7 @@ export const FooterStatusBar: React.FC = () => {
             {/* ETA */}
             <div className="hidden lg:flex items-center gap-1 text-[10px] bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border shrink-0 whitespace-nowrap">
               <Clock className="w-3 h-3 text-amber-400 shrink-0" />
-              <span className="text-slate-400">{t('telemetry.eta', 'ETA')}:</span>
+              <span className="text-slate-400">{t('telemetry.eta')}:</span>
               <span className="text-white font-medium tabular-nums">
                 {telemetry.eta}
               </span>
@@ -143,7 +147,7 @@ export const FooterStatusBar: React.FC = () => {
             {/* Speed */}
             <div className="hidden 2xl:flex items-center gap-1 text-[10px] bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border shrink-0 whitespace-nowrap">
               <Activity className="w-3 h-3 text-slate-300 shrink-0" />
-              <span className="text-slate-400">{t('telemetry.speed', 'Vel')}:</span>
+              <span className="text-slate-400">{t('telemetry.speed')}:</span>
               <span className="text-white font-medium tabular-nums">
                 {telemetry.speed}
               </span>
@@ -202,7 +206,7 @@ export const FooterStatusBar: React.FC = () => {
           type="button"
           onClick={toggleConsole}
           aria-expanded={!consoleCollapsed}
-          aria-label={t('console.toggle', 'Alternar Console de Logs')}
+          aria-label={t('console.toggle')}
           className={`flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[10px] font-mono border transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
             !consoleCollapsed
               ? 'bg-studio-surface-hover border-studio-border-focus text-slate-200 shadow-sm'
@@ -210,7 +214,7 @@ export const FooterStatusBar: React.FC = () => {
           }`}
         >
           <Terminal className="w-3 h-3 shrink-0" />
-          <span>{t('console.tab_title', 'Logs')}</span>
+          <span>{t('console.tab_title')}</span>
           {logs.length > 0 && (
             <span className="px-1.5 py-0.5 rounded-full text-[9px] bg-slate-800 text-slate-300 leading-none">
               {logs.length}

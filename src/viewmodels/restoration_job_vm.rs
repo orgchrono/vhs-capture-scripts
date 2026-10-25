@@ -43,12 +43,22 @@ pub fn run_restoration_request(
     emit: &(dyn Fn(&str) + Send + Sync),
 ) -> Result<RestorationSummary, String> {
     let planned = plan_restoration_request(request)?;
+    let total_stages: usize = match request.preset {
+        crate::models::presets::RestorationPreset::AiMaster => 6,
+        crate::models::presets::RestorationPreset::Gold => 5,
+        crate::models::presets::RestorationPreset::Speed => 4,
+        crate::models::presets::RestorationPreset::TbcHold => 4,
+        crate::models::presets::RestorationPreset::Custom => 4,
+    };
+
     emit(&format!(
-        "Starting native restoration: {} -> {}",
+        "STAGE:1/{total_stages} | Starting native restoration: {} -> {}",
         planned.input_path, planned.final_output_path
     ));
     let started = Instant::now();
     let last_emit_ms = AtomicU64::new(u64::MAX);
+    let last_stage_emitted = std::sync::atomic::AtomicUsize::new(1);
+
     let listener = CallbackListener {
         on_progress_fn: |acc| {
             let now_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
@@ -56,14 +66,32 @@ pub fn run_restoration_request(
             let previous = (last != u64::MAX).then_some(last);
             if should_emit_progress(previous, now_ms, acc.is_complete) {
                 last_emit_ms.store(now_ms, Ordering::Relaxed);
+                let pct = if acc.total_expected_frames > 0 {
+                    (acc.current_frame as f64 / acc.total_expected_frames as f64).clamp(0.0, 1.0)
+                } else {
+                    0.0
+                };
+                let current_stage = if acc.is_complete {
+                    total_stages
+                } else {
+                    ((pct * total_stages as f64).floor() as usize + 1).clamp(1, total_stages)
+                };
+                let prev_stage = last_stage_emitted.swap(current_stage, Ordering::Relaxed);
+                if current_stage > prev_stage {
+                    emit(&format!("STAGE:{current_stage}/{total_stages} | Pipeline Phase {current_stage}/{total_stages}"));
+                }
                 emit(&format_progress_log_line(acc));
             }
         },
-        on_log_fn: |_line| {},
+        on_log_fn: |line| {
+            if line.contains("Error") || line.contains("Stream #0:") || line.contains("Output #0") {
+                emit(line);
+            }
+        },
     };
     let summary = execute_restoration_job(&planned, None, Some(&listener))?;
     emit(&format!(
-        "Restoration finished: success={} output={}",
+        "STAGE:{total_stages}/{total_stages} | Restoration finished: success={} output={}",
         summary.success, summary.final_output_path
     ));
     Ok(summary)

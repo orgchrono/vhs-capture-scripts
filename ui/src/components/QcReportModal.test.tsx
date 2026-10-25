@@ -40,6 +40,10 @@ describe('QcReportModal Component', () => {
       <QcReportModal filePath="sample.mkv" isOpen={true} onClose={onClose} />
     );
 
+    await waitFor(() => {
+      expect(screen.getAllByRole('button', { name: /close|fechar/i }).length).toBeGreaterThan(0);
+    });
+
     const closeBtns = screen.getAllByRole('button', { name: /close|fechar/i });
     fireEvent.click(closeBtns[0]);
     expect(onClose).toHaveBeenCalled();

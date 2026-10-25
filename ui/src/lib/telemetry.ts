@@ -84,6 +84,29 @@ export const getPresetStages = (preset?: string): StageDefinition[] => {
   }
 };
 
+export const getTaskStages = (
+  activeTask?: ActiveStudioTask | null,
+  preset?: string
+): StageDefinition[] => {
+  if (activeTask && activeTask.type === 'install_obs') {
+    return [
+      { id: 'pkg', step: 1, key: 'telemetry.stage_package_manager', label: 'Package Manager' },
+      { id: 'download', step: 2, key: 'telemetry.stage_download_packages', label: 'Download OBS' },
+      { id: 'plugins', step: 3, key: 'telemetry.stage_configure_plugins', label: 'Configure Plugins' },
+      { id: 'ready', step: 4, key: 'telemetry.stage_verify_toolchain', label: 'Toolchain Ready' },
+    ];
+  }
+  if (activeTask && activeTask.type === 'install_qtgmc') {
+    return [
+      { id: 'pkg', step: 1, key: 'telemetry.stage_package_manager', label: 'Package Manager' },
+      { id: 'runtime', step: 2, key: 'telemetry.stage_download_packages', label: 'Download VapourSynth' },
+      { id: 'plugins', step: 3, key: 'telemetry.stage_configure_plugins', label: 'Configure QTGMC' },
+      { id: 'ready', step: 4, key: 'telemetry.stage_verify_toolchain', label: 'Toolchain Ready' },
+    ];
+  }
+  return getPresetStages(preset);
+};
+
 /**
  * Pure functional closure factory parsing raw streaming DAG logs into structured broadcast telemetry.
  * Dynamic stage resolution without arbitrary hardcoded percentage jumps.
@@ -97,32 +120,41 @@ export const createTelemetryParser = () => {
   ): TelemetryData => {
     if (!isBusy && (!activeTask || activeTask.type === 'idle')) return IDLE_TELEMETRY;
 
-    const reversedLogs = [...logs].reverse();
+    // Scan only recent tail (last 40 lines) to prevent locking main JS thread on massive log histories
+    const recentLogs = logs.length > 40 ? logs.slice(-40) : logs;
+    const reversedLogs = [...recentLogs].reverse();
 
     if (activeTask && activeTask.type !== 'idle' && activeTask.type !== 'restore') {
       let explicitPercent = activeTask.progressPercent;
+      let detectedStage = 1;
+
       if (activeTask.type === 'install_obs' || activeTask.type === 'install_qtgmc') {
-        const marker = activeTask.type === 'install_obs' ? '[OBS SETUP]' : '[QTGMC SETUP]';
-        let markerIdx = -1;
-        for (let i = logs.length - 1; i >= 0; i--) {
-          if (logs[i].includes(marker)) {
-            markerIdx = i;
-            break;
-          }
-        }
-        if (markerIdx !== -1) {
-          const relevantLogs = logs.slice(markerIdx).reverse();
-          const progressLine = relevantLogs.find((line) => /PROGRESS:\s*(\d+)%/i.test(line));
-          const progressMatch = progressLine ? progressLine.match(/PROGRESS:\s*(\d+)%/i) : null;
+        const installLine = reversedLogs.find(
+          (line) =>
+            /STAGE:\s*(\d+)\/(\d+)/i.test(line) ||
+            /\[(?:OBS|QTGMC)\s+SETUP\]/i.test(line) ||
+            /PROGRESS:\s*(\d+)%/i.test(line)
+        );
+        if (installLine) {
+          const progressMatch = /PROGRESS:\s*(\d+)%/i.exec(installLine);
           if (progressMatch) {
             explicitPercent = parseInt(progressMatch[1], 10);
+          }
+          const stageMatch = /STAGE:\s*(\d+)\/(\d+)/i.exec(installLine);
+          if (stageMatch) {
+            detectedStage = parseInt(stageMatch[1], 10);
           }
         }
       }
 
+      const taskStages = getTaskStages(activeTask, preset);
+      const totalTaskSteps = taskStages.length;
+      const normalizedStage = Math.min(totalTaskSteps, Math.max(1, detectedStage));
+      const matchedStageDef = taskStages.find((s) => s.step === normalizedStage) || taskStages[0];
+
       return {
-        stage: 1,
-        stageNameKey: activeTask.labelKey,
+        stage: normalizedStage,
+        stageNameKey: matchedStageDef ? matchedStageDef.key : activeTask.labelKey,
         progressPercent: Math.min(100, Math.max(0, explicitPercent)),
         currentFrames: 0,
         totalFrames: 0,
@@ -136,21 +168,6 @@ export const createTelemetryParser = () => {
 
     const stages = getPresetStages(preset);
     const totalSteps = stages.length;
-
-    const stagePatternLine = reversedLogs.find((line) => /STAGE:(\d+)\/(\d+)/i.test(line));
-    const stagePatternMatch = stagePatternLine ? stagePatternLine.match(/STAGE:(\d+)\/(\d+)/i) : null;
-
-    const detectedStage = stagePatternMatch
-      ? Math.min(totalSteps, Math.max(1, parseInt(stagePatternMatch[1], 10)))
-      : logs.reduce((stageAcc, line) => {
-          if (/ProRes|x264|Codificando|Encoding|Muxing|FFV1|Finalizando|Finalizing/i.test(line)) return totalSteps;
-          if (/CodeFormer|FaceRestor|RIFE|Upscaler|Real-ESRGAN/i.test(line)) return Math.min(totalSteps, Math.max(stageAcc, 3));
-          if (/Chroma|denoise|Filtro|Filter|TComb|dropout|audio_treatment|EBU/i.test(line)) return Math.min(totalSteps, Math.max(stageAcc, 3));
-          if (/QTGMC|BWDIF|VapourSynth|desentrela|deinterlac/i.test(line)) return Math.min(totalSteps, Math.max(stageAcc, 2));
-          return stageAcc;
-        }, 1);
-
-    const matchedStageDef = stages.find((s) => s.step === detectedStage) || stages[0];
 
     const progressLine = reversedLogs.find((line) => /PROGRESS:\s*(\d+)%/i.test(line));
     const progressMatch = progressLine ? progressLine.match(/PROGRESS:\s*(\d+)%/i) : null;
@@ -166,9 +183,24 @@ export const createTelemetryParser = () => {
         ? Math.min(100, Math.max(0, explicitPercent))
         : totalFrames > 0 && currentFrames > 0
         ? Math.min(100, Math.round((currentFrames / totalFrames) * 100))
-        : totalSteps > 1
-        ? Math.min(99, Math.round(((detectedStage - 1) / totalSteps) * 100))
         : 0;
+
+    const stagePatternLine = reversedLogs.find((line) => /STAGE:\s*(\d+)\/(\d+)/i.test(line));
+    const stagePatternMatch = stagePatternLine ? stagePatternLine.match(/STAGE:\s*(\d+)\/(\d+)/i) : null;
+
+    const detectedStage = stagePatternMatch
+      ? Math.min(totalSteps, Math.max(1, parseInt(stagePatternMatch[1], 10)))
+      : calculatedPercent > 0 && totalSteps > 0
+      ? Math.min(totalSteps, Math.max(1, Math.floor((calculatedPercent / 100) * totalSteps) + 1))
+      : reversedLogs.reduce((stageAcc, line) => {
+          if (/ProRes|x264|Codificando|Encoding|Muxing|FFV1|Finalizando|Finalizing/i.test(line)) return totalSteps;
+          if (/CodeFormer|FaceRestor|RIFE|Upscaler|Real-ESRGAN/i.test(line)) return Math.min(totalSteps, Math.max(stageAcc, 3));
+          if (/Chroma|denoise|Filtro|Filter|TComb|dropout|audio_treatment|EBU/i.test(line)) return Math.min(totalSteps, Math.max(stageAcc, 3));
+          if (/QTGMC|BWDIF|VapourSynth|desentrela|deinterlac/i.test(line)) return Math.min(totalSteps, Math.max(stageAcc, 2));
+          return stageAcc;
+        }, 1);
+
+    const matchedStageDef = stages.find((s) => s.step === detectedStage) || stages[0];
 
     const latestFpsLine = reversedLogs.find((line) => /(?:FPS|Velocidade):\s*([\d.]+)(?:\s*fps)?/i.test(line));
     const fpsMatch = latestFpsLine ? latestFpsLine.match(/(?:FPS|Velocidade):\s*([\d.]+)(?:\s*fps)?/i) : null;

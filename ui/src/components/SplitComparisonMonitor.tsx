@@ -157,9 +157,10 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = (pr
         {/* Right: Controls & Actions (Layout Mode, Split Presets, View Mode & Close) */}
         <div className="flex items-center gap-1 ml-auto shrink-0 flex-nowrap">
           {/* Layout Mode Selector (Wipe vs Dual) */}
-          <div className="flex items-center gap-0.5 bg-black/85 backdrop-blur-md p-0.5 rounded-sm border border-studio-border shadow-sm shrink-0">
+          <div className="flex items-center gap-0.5 bg-black/85 backdrop-blur-md p-0.5 rounded-sm border border-studio-border shadow-sm shrink-0" role="group" aria-label={t('monitor.split_title')}>
             <button
               type="button"
+              aria-pressed={splitLayout === 'wipe'}
               onClick={() => setSplitLayout('wipe')}
               className={`h-6 px-1.5 min-w-[24px] flex items-center justify-center rounded-xs transition cursor-pointer text-[9px] font-mono ${
                 splitLayout === 'wipe'
@@ -170,10 +171,11 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = (pr
               aria-label={t('monitor.split_wipe')}
               data-testid="split-layout-wipe-btn"
             >
-              <Layers className="w-3 h-3 shrink-0" />
+              <Layers className="w-3 h-3 shrink-0" aria-hidden="true" />
             </button>
             <button
               type="button"
+              aria-pressed={splitLayout === 'dual'}
               onClick={() => setSplitLayout('dual')}
               className={`h-6 px-1.5 min-w-[24px] flex items-center justify-center rounded-xs transition cursor-pointer text-[9px] font-mono ${
                 splitLayout === 'dual'
@@ -184,17 +186,18 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = (pr
               aria-label={t('monitor.split_dual')}
               data-testid="split-layout-dual-btn"
             >
-              <Columns2 className="w-3 h-3 shrink-0" />
+              <Columns2 className="w-3 h-3 shrink-0" aria-hidden="true" />
             </button>
           </div>
 
           {/* Quick Split Presets (only in Wipe mode) */}
           {splitLayout === 'wipe' && (
-            <div className="flex items-center gap-0.5 bg-black/85 backdrop-blur-md p-0.5 rounded-sm border border-studio-border text-[8.5px] font-mono shadow-sm shrink-0">
+            <div className="flex items-center gap-0.5 bg-black/85 backdrop-blur-md p-0.5 rounded-sm border border-studio-border text-[8.5px] font-mono shadow-sm shrink-0" role="group">
               {SPLIT_PRESETS.map((p) => (
                 <button
                   key={p}
                   type="button"
+                  aria-pressed={splitPos === p}
                   onClick={() => handlePresetSelect(p)}
                   className={`h-5 px-1.5 min-w-[20px] flex items-center justify-center rounded-xs transition-colors cursor-pointer border ${
                     splitPos === p
@@ -212,9 +215,10 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = (pr
           )}
 
           {/* Sub-Screen / View Mode Selector */}
-          <div className="flex items-center gap-0.5 bg-black/85 backdrop-blur-md p-0.5 rounded-sm border border-studio-border shadow-sm shrink-0">
+          <div className="flex items-center gap-0.5 bg-black/85 backdrop-blur-md p-0.5 rounded-sm border border-studio-border shadow-sm shrink-0" role="group">
             <button
               type="button"
+              aria-pressed={viewMode === 'stream'}
               onClick={() => handleModeChange('stream')}
               className={`h-6 px-1.5 min-w-[24px] flex items-center justify-center rounded-xs transition cursor-pointer ${
                 viewMode === 'stream'
@@ -225,10 +229,11 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = (pr
               aria-label={t('monitor.mode_live_stream')}
               data-testid="mode-stream-btn"
             >
-              <Radio className="w-3 h-3" />
+              <Radio className="w-3 h-3" aria-hidden="true" />
             </button>
             <button
               type="button"
+              aria-pressed={viewMode === 'freeze'}
               onClick={() => handleModeChange('freeze')}
               className={`h-6 px-1.5 min-w-[24px] flex items-center justify-center rounded-xs transition cursor-pointer ${
                 viewMode === 'freeze'
@@ -239,7 +244,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = (pr
               aria-label={t('monitor.mode_freeze_frame')}
               data-testid="mode-freeze-btn"
             >
-              <Film className="w-3 h-3" />
+              <Film className="w-3 h-3" aria-hidden="true" />
             </button>
           </div>
 
@@ -310,6 +315,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = (pr
               onPointerUp={handleDividerPointerUp}
               onPointerCancel={handleDividerPointerUp}
               role="separator"
+              aria-label={t('monitor.split_preset', { percent: splitPos })}
               aria-valuenow={splitPos}
               aria-valuemin={0}
               aria-valuemax={100}

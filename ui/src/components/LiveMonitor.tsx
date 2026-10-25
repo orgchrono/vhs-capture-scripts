@@ -124,6 +124,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
 
           <button
             type="button"
+            aria-pressed={showScopes}
             onClick={() => setShowScopes(!showScopes)}
             className={`h-6 px-2 rounded-sm text-[10px] font-mono border shadow-sm flex items-center gap-1.5 transition cursor-pointer shrink-0 whitespace-nowrap ${
               showScopes
@@ -134,7 +135,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
             aria-label={t('monitor.scopes_title')}
             data-testid="toggle-scopes-btn"
           >
-            <Activity className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+            <Activity className="w-3.5 h-3.5 text-sky-400 shrink-0" aria-hidden="true" />
             <span className="shrink-0 whitespace-nowrap">{t('monitor.scopes_title')}</span>
           </button>
 
@@ -278,6 +279,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
           </button>
           <button
             type="button"
+            aria-pressed={isPlaying}
             onClick={() => setIsPlaying(!isPlaying)}
             disabled={!selectedFile || isActive || isRestoring}
             className={`w-6 h-6 flex items-center justify-center rounded-sm border transition cursor-pointer shrink-0 disabled:opacity-40 disabled:cursor-not-allowed ${
@@ -289,7 +291,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
             aria-label={isPlaying ? t('monitor.split_pause') : t('monitor.split_play')}
             data-testid="live-play-toggle-btn"
           >
-            {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+            {isPlaying ? <Pause className="w-3.5 h-3.5" aria-hidden="true" /> : <Play className="w-3.5 h-3.5" aria-hidden="true" />}
           </button>
           <button
             type="button"

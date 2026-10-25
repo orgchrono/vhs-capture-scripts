@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Settings,
   Folder,
@@ -21,8 +21,7 @@ import {
   SelectValue,
 } from './ui/select';
 import { useTranslation } from 'react-i18next';
-import { usePreferencesStore } from '../store/usePreferencesStore';
-import { useSavePreferencesMutation } from '../api/studioRtkApi';
+import { usePreferencesViewModel, type PreferencesTabType } from '../viewmodels/usePreferencesViewModel';
 
 interface AppPreferencesModalProps {
   isOpen: boolean;
@@ -30,7 +29,7 @@ interface AppPreferencesModalProps {
   onOpenPrivacy?: () => void;
 }
 
-type TabType = 'directories' | 'performance' | 'console' | 'hardware' | 'interface';
+export type { PreferencesTabType as TabType };
 
 export const AppPreferencesModal: React.FC<AppPreferencesModalProps> = ({
   isOpen,
@@ -38,36 +37,13 @@ export const AppPreferencesModal: React.FC<AppPreferencesModalProps> = ({
   onOpenPrivacy,
 }) => {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<TabType>('directories');
-  const prefs = usePreferencesStore();
-  const [savePreferencesTrigger] = useSavePreferencesMutation();
-
-  const handleSaveAndClose = () => {
-    void savePreferencesTrigger({
-      rawDir: prefs.rawDir,
-      restoredDir: prefs.restoredDir,
-      cacheDir: prefs.cacheDir,
-      livePreviewEnabled: prefs.livePreviewEnabled,
-      previewFps: prefs.previewFps,
-      verboseConsole: prefs.verboseConsole,
-      autoScrollConsole: prefs.autoScrollConsole,
-      maxConsoleLines: prefs.maxConsoleLines,
-      panasonicHotplugEnabled: prefs.panasonicHotplugEnabled,
-      panasonicPollIntervalMs: prefs.panasonicPollIntervalMs,
-      preferredAiDevice: prefs.preferredAiDevice,
-      whisperMaxThreads: prefs.whisperMaxThreads,
-      hardwareEncoderPreference: prefs.hardwareEncoderPreference,
-      highContrast: prefs.highContrast,
-      largeText: prefs.largeText,
-      theme: prefs.theme,
-    });
-    onClose();
-  };
-
-  const handleReset = () => {
-    prefs.resetPreferences();
-    void savePreferencesTrigger({});
-  };
+  const {
+    prefs,
+    activeTab,
+    setActiveTab,
+    handleSaveAndClose,
+    handleReset,
+  } = usePreferencesViewModel(onClose, isOpen);
 
   if (!isOpen) return null;
 
@@ -76,6 +52,11 @@ export const AppPreferencesModal: React.FC<AppPreferencesModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="preferences-modal-title"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200"
     >
       <div className="bg-studio-panel border border-studio-border rounded-md max-w-3xl w-full p-5 shadow-2xl flex flex-col max-h-[92vh] overflow-hidden select-none">
@@ -109,8 +90,10 @@ export const AppPreferencesModal: React.FC<AppPreferencesModalProps> = ({
         </div>
 
         {/* Tab Navigation Navigation Bar */}
-        <div className="flex border-b border-studio-border gap-1 pb-2 shrink-0 overflow-x-auto custom-scrollbar">
+        <div className="flex border-b border-studio-border gap-1 pb-2 shrink-0 overflow-x-auto custom-scrollbar" role="tablist">
           <Button
+            role="tab"
+            aria-selected={activeTab === 'directories'}
             variant={activeTab === 'directories' ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => setActiveTab('directories')}
@@ -119,10 +102,12 @@ export const AppPreferencesModal: React.FC<AppPreferencesModalProps> = ({
                 : 'text-slate-400 hover:text-slate-200'
               }`}
           >
-            <Folder className="w-3.5 h-3.5" />
+            <Folder className="w-3.5 h-3.5" aria-hidden="true" />
             <span>{t('preferences.tab_storage')}</span>
           </Button>
           <Button
+            role="tab"
+            aria-selected={activeTab === 'performance'}
             variant={activeTab === 'performance' ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => setActiveTab('performance')}
@@ -131,10 +116,12 @@ export const AppPreferencesModal: React.FC<AppPreferencesModalProps> = ({
                 : 'text-slate-400 hover:text-slate-200'
               }`}
           >
-            <Sliders className="w-3.5 h-3.5" />
+            <Sliders className="w-3.5 h-3.5" aria-hidden="true" />
             <span>{t('preferences.tab_performance')}</span>
           </Button>
           <Button
+            role="tab"
+            aria-selected={activeTab === 'console'}
             variant={activeTab === 'console' ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => setActiveTab('console')}
@@ -143,10 +130,12 @@ export const AppPreferencesModal: React.FC<AppPreferencesModalProps> = ({
                 : 'text-slate-400 hover:text-slate-200'
               }`}
           >
-            <Terminal className="w-3.5 h-3.5" />
+            <Terminal className="w-3.5 h-3.5" aria-hidden="true" />
             <span>{t('preferences.tab_console')}</span>
           </Button>
           <Button
+            role="tab"
+            aria-selected={activeTab === 'hardware'}
             variant={activeTab === 'hardware' ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => setActiveTab('hardware')}
@@ -155,10 +144,12 @@ export const AppPreferencesModal: React.FC<AppPreferencesModalProps> = ({
                 : 'text-slate-400 hover:text-slate-200'
               }`}
           >
-            <Cpu className="w-3.5 h-3.5" />
+            <Cpu className="w-3.5 h-3.5" aria-hidden="true" />
             <span>{t('preferences.tab_hardware')}</span>
           </Button>
           <Button
+            role="tab"
+            aria-selected={activeTab === 'interface'}
             variant={activeTab === 'interface' ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => setActiveTab('interface')}
@@ -167,7 +158,7 @@ export const AppPreferencesModal: React.FC<AppPreferencesModalProps> = ({
                 : 'text-slate-400 hover:text-slate-200'
               }`}
           >
-            <Palette className="w-3.5 h-3.5" />
+            <Palette className="w-3.5 h-3.5" aria-hidden="true" />
             <span>{t('preferences.tab_interface')}</span>
           </Button>
         </div>

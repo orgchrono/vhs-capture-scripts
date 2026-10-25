@@ -86,14 +86,14 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="flex items-center gap-3 shrink-0">
         <h1
           className="bg-studio-surface border border-studio-border text-slate-100 text-xs px-3 py-1.5 rounded-sm tracking-wider font-mono font-bold flex items-center gap-2 select-none shadow-sm cursor-default shrink-0 whitespace-nowrap"
-          title="VHS Studio Pro"
-          aria-label="VHS Studio Pro"
+          title={t('app.title')}
+          aria-label={t('app.title')}
         >
-          <span className="sr-only">VHS Studio Pro</span>
+          <span className="sr-only">{t('app.title')}</span>
           <Film className="w-3.5 h-3.5 text-amber-500 shrink-0" aria-hidden="true" />
-          <span className="text-white tracking-wider shrink-0 whitespace-nowrap">VHS STUDIO</span>
+          <span className="text-white tracking-wider shrink-0 whitespace-nowrap">{t('app.brand_name')}</span>
           <span className="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] px-1.5 py-0.5 rounded font-bold font-mono shrink-0 whitespace-nowrap">
-            PRO
+            {t('app.brand_badge')}
           </span>
         </h1>
       </div>
@@ -103,7 +103,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div
           className="flex items-center bg-studio-surface border border-studio-border rounded-sm px-2 py-0.5 text-xs text-slate-300 h-8 shrink-0 whitespace-nowrap"
         >
-          <Globe className="w-3.5 h-3.5 text-slate-400 mr-1.5 shrink-0" />
+          <Globe className="w-3.5 h-3.5 text-slate-400 mr-1.5 shrink-0" aria-hidden="true" />
           <select
             value={i18n.language}
             onChange={(e) => i18n.changeLanguage(e.target.value)}
@@ -128,6 +128,7 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => prefs.setHighContrast(!prefs.highContrast)}
             title={t('header.accessibility_contrast')}
             aria-label={t('header.accessibility_contrast')}
+            aria-pressed={prefs.highContrast}
           >
             <Eye className="w-3.5 h-3.5" />
           </Button>
@@ -138,6 +139,7 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => prefs.setLargeText(!prefs.largeText)}
             title={t('header.accessibility_text_size')}
             aria-label={t('header.accessibility_text_size')}
+            aria-pressed={prefs.largeText}
           >
             <Type className="w-3.5 h-3.5" />
           </Button>
@@ -148,6 +150,7 @@ export const Header: React.FC<HeaderProps> = ({
               className="w-7 h-7 rounded-sm hover:bg-studio-surface-hover text-slate-400 hover:text-emerald-400 shrink-0"
               onClick={onOpenPrivacy}
               title={t('header.eula_terms')}
+              aria-label={t('header.eula_terms')}
             >
               <ShieldCheck className="w-3.5 h-3.5" />
             </Button>
@@ -176,6 +179,8 @@ export const Header: React.FC<HeaderProps> = ({
               className={`w-7 h-7 rounded-sm hover:bg-studio-surface-hover shrink-0 ${sidebarCollapsed ? 'text-slate-600' : 'text-slate-200'}`}
               onClick={onToggleSidebar}
               title={sidebarCollapsed ? t('header.expand_sidebar') : t('header.collapse_sidebar')}
+              aria-label={sidebarCollapsed ? t('header.expand_sidebar') : t('header.collapse_sidebar')}
+              aria-expanded={!sidebarCollapsed}
             >
               <PanelLeft className="w-3.5 h-3.5" />
             </Button>
@@ -187,6 +192,8 @@ export const Header: React.FC<HeaderProps> = ({
               className={`w-7 h-7 rounded-sm hover:bg-studio-surface-hover shrink-0 ${consoleCollapsed ? 'text-slate-600' : 'text-emerald-400'}`}
               onClick={onToggleConsole}
               title={consoleCollapsed ? t('header.expand_console') : t('header.collapse_console')}
+              aria-label={consoleCollapsed ? t('header.expand_console') : t('header.collapse_console')}
+              aria-expanded={!consoleCollapsed}
             >
               <PanelBottom className="w-3.5 h-3.5" />
             </Button>
@@ -197,8 +204,8 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Hardware Status & Encoder Selector Tally */}
         <div className="hidden md:flex items-center gap-1.5 bg-studio-surface border border-studio-border px-2.5 py-1 rounded-sm text-xs h-8 shrink-0 whitespace-nowrap">
-          <Cpu className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-          <span className="text-slate-400 text-[10px] font-mono uppercase shrink-0 whitespace-nowrap">ENC:</span>
+          <Cpu className="w-3.5 h-3.5 text-slate-400 shrink-0" aria-hidden="true" />
+          <span className="text-slate-400 text-[10px] font-mono uppercase shrink-0 whitespace-nowrap">{t('header.encoder_prefix')}</span>
           <select
             value={activeCodec}
             onChange={(e) => handleCodecChange(e.target.value as OutputCodec)}
@@ -207,10 +214,10 @@ export const Header: React.FC<HeaderProps> = ({
             data-testid="header-codec-select"
             className="bg-transparent text-amber-400 text-[11px] font-mono font-bold uppercase focus:outline-none cursor-pointer pr-1"
           >
-            <option value="h264" className="bg-studio-panel text-slate-200">H.264</option>
-            <option value="hevc" className="bg-studio-panel text-slate-200">HEVC</option>
-            <option value="prores" className="bg-studio-panel text-slate-200">ProRes</option>
-            <option value="ffv1" className="bg-studio-panel text-slate-200">FFV1</option>
+            <option value="h264" className="bg-studio-panel text-slate-200">{t('header.codec_h264')}</option>
+            <option value="hevc" className="bg-studio-panel text-slate-200">{t('header.codec_hevc')}</option>
+            <option value="prores" className="bg-studio-panel text-slate-200">{t('header.codec_prores')}</option>
+            <option value="ffv1" className="bg-studio-panel text-slate-200">{t('header.codec_ffv1')}</option>
           </select>
           {status?.hardware?.ram?.total_gb !== undefined && (
             <span className="text-slate-500 font-mono text-[10px] shrink-0">

@@ -86,6 +86,7 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
 
         <button
           type="button"
+          aria-expanded={isExpanded}
           onClick={() => setIsExpanded(!isExpanded)}
           className="flex items-center justify-center w-5 h-5 text-slate-400 hover:text-slate-100 bg-studio-surface hover:bg-studio-surface-hover rounded-sm border border-studio-border cursor-pointer transition"
           title={isExpanded ? t('files.panasonic_collapse') : t('files.panasonic_expand')}
@@ -93,9 +94,9 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
           data-testid="toggle-panasonic-ingest-btn"
         >
           {isExpanded ? (
-            <Minus className="w-3 h-3" />
+            <Minus className="w-3 h-3" aria-hidden="true" />
           ) : (
-            <Plus className="w-3 h-3" />
+            <Plus className="w-3 h-3" aria-hidden="true" />
           )}
         </button>
       </div>
@@ -236,6 +237,7 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
           <div className="border border-studio-border rounded-sm bg-studio-panel/70 p-2 flex flex-col gap-1">
             <button
               type="button"
+              aria-expanded={showGuidance}
               onClick={() => setShowGuidance(!showGuidance)}
               className="flex items-center justify-between text-[10px] font-bold text-slate-300 hover:text-white cursor-pointer"
             >
@@ -344,14 +346,15 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
                         {/* Checkbox */}
                         <button
                           type="button"
+                          aria-pressed={isSelected}
                           onClick={() => toggleSelectTitle(title.id)}
                           className="mt-0.5 text-amber-400 hover:text-amber-300 transition cursor-pointer shrink-0"
                           aria-label={title.title}
                         >
                           {isSelected ? (
-                            <CheckSquare className="w-4 h-4 text-amber-400" />
+                            <CheckSquare className="w-4 h-4 text-amber-400" aria-hidden="true" />
                           ) : (
-                            <Square className="w-4 h-4 text-slate-500" />
+                            <Square className="w-4 h-4 text-slate-500" aria-hidden="true" />
                           )}
                         </button>
 
@@ -415,13 +418,14 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
                         <div className="border-t border-studio-border/60 pt-1 flex flex-col gap-1">
                           <button
                             type="button"
+                            aria-expanded={isExpandedChapters}
                             onClick={() => toggleExpandChapters(title.id)}
                             className="flex items-center gap-1 text-[9px] text-slate-400 hover:text-slate-200 transition cursor-pointer self-start"
                           >
                             {isExpandedChapters ? (
-                              <ChevronDown className="w-2.5 h-2.5" />
+                              <ChevronDown className="w-2.5 h-2.5" aria-hidden="true" />
                             ) : (
-                              <ChevronRight className="w-2.5 h-2.5" />
+                              <ChevronRight className="w-2.5 h-2.5" aria-hidden="true" />
                             )}
                             <span>
                               {t('files.chapters_count', { count: title.chapters.length })}

@@ -141,6 +141,53 @@ pub const SUPPORTED_LOCALES: [&str; 10] = [
     "pt-BR", "en-US", "es", "fr", "de", "it", "ja", "ar", "ru", "zh-CN",
 ];
 
+/// Canonical overscan blanking height in pixels (head switching noise mask at bottom).
+pub const OVERSCAN_BLANKING_HEIGHT_PX: u32 = 16;
+
+/// Default VapourSynth memory cache size in megabytes for QTGMC processing.
+pub const DEFAULT_VPY_CACHE_SIZE_MB: usize = 4000;
+
+/// Default checkpoint flush interval measured in processed video frames.
+pub const CHECKPOINT_FLUSH_INTERVAL_FRAMES: u64 = 500;
+
+/// Video CRF quality setting for OAIS DIP Web Distribution Proxy derivatives.
+pub const DIP_PROXY_CRF: u8 = 20;
+
+/// Audio bitrate for OAIS DIP Web Distribution Proxy derivatives.
+pub const DIP_PROXY_AUDIO_BITRATE: &str = "192k";
+
+/// Canonical comparison preview extraction width in pixels.
+pub const COMPARISON_PREVIEW_WIDTH: u32 = 640;
+
+/// Canonical comparison preview extraction height in pixels.
+pub const COMPARISON_PREVIEW_HEIGHT: u32 = 480;
+
+/// Comb detection plane difference threshold in QTGMC deinterlacing script.
+pub const QTGMC_COMB_PLANE_STATS_THRESHOLD: f64 = 0.0705;
+
+/// Maximum luma mean to consider an OBS captured frame as total blackout.
+pub const OBS_LUMA_BLACKOUT_MAX: f64 = 18.0;
+
+/// Minimum blue dominance threshold to detect a blue screen condition.
+pub const OBS_BLUE_DOMINANCE_MIN: f64 = 110.0;
+
+/// Number of consecutive matching frames required to trigger OBS auto-watcher state transition.
+pub const OBS_TRIGGER_HYSTERESIS_FRAMES: u32 = 5;
+
+// Canonical FFmpeg filter strings (SSOT)
+pub const FILTER_EBU_R103_LEGALIZER: &str = "limiter=min=16:max=235:planes=1,limiter=min=16:max=240:planes=6";
+pub const FILTER_DEDOT: &str = "dedot=m=dotcrawl+rainbows";
+pub const FILTER_DROPOUT_CLEAN: &str = "removegrain=m=1,tmedian=radius=1";
+pub const FILTER_CHROMA_SHIFT: &str = "chromashift=cbh=2:cbv=1:crh=2:crv=1:edge=smear";
+pub const FILTER_DENOISE_HQDN3D: &str = "hqdn3d=4.0:3.0:6.0:4.5";
+pub const FILTER_IVTC_PULLDOWN: &str = "fieldmatch=order=tff:combmatch=full,bwdif=mode=0:parity=-1:deint=1,decimate";
+pub const FILTER_AUDIO_AZIMUTH_HIGH_SHELF: &str = "treble=g=3.5:f=6500:w=0.6,stereotools=mlev=1.0:mpan=0.0:phase=1";
+pub const FILTER_AUDIO_ASYNC_RESAMPLE: &str = "aresample=async=1000:min_hard_comp=0.100000:first_pts=0";
+pub const FILTER_AUDIO_EBU_R128_LOUDNORM: &str = "loudnorm=I=-23:LRA=7:tp=-1.5";
+pub const FILTER_AUDIO_AFFTDN: &str = "afftdn=nr=12.0:nf=-50.0:tn=1";
+pub const FILTER_UPSCALE_1080P: &str = "scale=-1:1080:flags=lanczos,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=black";
+pub const FILTER_TBC_FRAME_HOLD: &str = "tinterlace=mode=merge";
+
 #[cfg(test)]
 mod tests {
     use super::*;

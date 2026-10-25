@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
   ShieldCheck,
   AlertTriangle,
@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from './ui/button';
-import { studioApi } from '../api/studioApi';
+import { useQcReportViewModel } from '../viewmodels/useQcReportViewModel';
 
 export interface QcReportModalProps {
   filePath: string | null;
@@ -26,80 +26,38 @@ export const QcReportModal: React.FC<QcReportModalProps> = ({
   onClose,
 }) => {
   const { t } = useTranslation();
-  const [loading, setLoading] = useState<boolean>(false);
-  const [copied, setCopied] = useState<boolean>(false);
-  const [reportData, setReportData] = useState<{
-    exists: boolean;
-    report: Record<string, unknown> | null;
-    markdown: string;
-  } | null>(null);
-
-  useEffect(() => {
-    if (!isOpen || !filePath) {
-      setReportData(null);
-      return;
-    }
-
-    let isMounted = true;
-    setLoading(true);
-
-    studioApi
-      .getQcReport(filePath)
-      .then((data) => {
-        if (isMounted) {
-          setReportData(data);
-          setLoading(false);
-        }
-      })
-      .catch(() => {
-        if (isMounted) {
-          setReportData(null);
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [isOpen, filePath]);
+  const {
+    loading,
+    copied,
+    reportData,
+    handleCopy,
+    handleDownload,
+  } = useQcReportViewModel(filePath, isOpen, onClose);
 
   if (!isOpen) return null;
 
-  const handleCopy = () => {
-    if (reportData?.markdown) {
-      navigator.clipboard.writeText(reportData.markdown).then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      });
-    }
-  };
-
-  const handleDownload = () => {
-    if (reportData?.report) {
-      const blob = new Blob([JSON.stringify(reportData.report, null, 2)], {
-        type: 'application/json',
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${filePath ? filePath.split(/[/\\]/).pop() : 'qc'}_report.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
-  };
-
   const fileName = filePath ? filePath.split(/[/\\]/).pop() : '';
-  const rawData = reportData?.report?.raw as Record<string, unknown> | undefined;
-  const masterData = reportData?.report?.master as Record<string, unknown> | undefined;
+  const reportObj = (reportData?.report || {}) as Record<string, unknown>;
+  const rawData = (reportObj.raw || reportObj.metadata || (reportObj.width ? reportObj : undefined)) as Record<string, unknown> | undefined;
+  const masterData = reportObj.master as Record<string, unknown> | undefined;
   const isCompliant = Boolean(
-    reportData?.report?.broadcast_compliance_achieved ??
-      reportData?.report?.is_legal_broadcast ??
+    reportObj.broadcast_compliance_achieved ??
+      reportObj.is_legal_broadcast ??
+      masterData?.is_legal_broadcast ??
+      rawData?.is_legal_broadcast ??
       true
   );
   const dropouts = Number(
-    reportData?.report?.dropouts_mitigated ??
-      reportData?.report?.total_dropout_frames ??
+    reportObj.dropouts_mitigated ??
+      reportObj.total_dropout_frames ??
+      rawData?.total_dropout_frames ??
       0
+  );
+  const standardLabel = String(
+    masterData?.standard ||
+      rawData?.standard ||
+      (rawData?.color_space ? String(rawData.color_space).toUpperCase() : '') ||
+      t('qc.default_standard')
   );
 
   return (
@@ -107,6 +65,11 @@ export const QcReportModal: React.FC<QcReportModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="qc-report-modal-title"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200"
     >
       <div className="bg-studio-panel border border-studio-border rounded-md max-w-3xl w-full p-5 shadow-2xl flex flex-col max-h-[92vh] overflow-hidden select-none">
@@ -196,7 +159,7 @@ export const QcReportModal: React.FC<QcReportModalProps> = ({
                       {t('files.format_label')}
                     </div>
                     <div className="font-bold text-xs text-slate-200 truncate">
-                      {String(masterData?.standard || rawData?.standard || t('qc.default_standard'))}
+                      {standardLabel}
                     </div>
                   </div>
                 </div>
@@ -224,7 +187,7 @@ export const QcReportModal: React.FC<QcReportModalProps> = ({
 
               {/* Detailed Markdown Report */}
               <div className="border border-studio-border rounded-sm bg-studio-bg p-3 font-mono text-[10px] leading-relaxed text-slate-300 overflow-x-auto select-text whitespace-pre-wrap max-h-72 custom-scrollbar">
-                {reportData.markdown}
+                {reportData.markdown || t('qc.no_report')}
               </div>
             </>
           )}

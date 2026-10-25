@@ -34,55 +34,55 @@ export const API_ENDPOINTS = {
   OBS_STOP: '/api/obs/stop',
 } as const;
 
-export const DEINTERLACER_OPTIONS: { value: DeinterlacerType; label: string }[] = [
-  { value: 'qtgmc', label: 'QTGMC Standard (High Quality)' },
-  { value: 'qtgmc_fast', label: 'QTGMC Fast (Balanced)' },
-  { value: 'qtgmc_slow', label: 'QTGMC Slow (Maximum Quality)' },
-  { value: 'bwdif', label: 'BWDIF (Fast / Low CPU)' },
-  { value: 'znedi3', label: 'ZNEDI3 (Optimized Variant)' },
-  { value: 'nnedi', label: 'NNEDI3 (Directional Upscale)' },
-  { value: 'none', label: 'None (Progressive / Telecine)' },
+export const DEINTERLACER_OPTIONS: { value: DeinterlacerType; labelKey: string; label: string }[] = [
+  { value: 'qtgmc', labelKey: 'options.deinterlacer.qtgmc', label: 'QTGMC Standard (High Quality)' },
+  { value: 'qtgmc_fast', labelKey: 'options.deinterlacer.qtgmc_fast', label: 'QTGMC Fast (Balanced)' },
+  { value: 'qtgmc_slow', labelKey: 'options.deinterlacer.qtgmc_slow', label: 'QTGMC Slow (Maximum Quality)' },
+  { value: 'bwdif', labelKey: 'options.deinterlacer.bwdif', label: 'BWDIF (Fast / Low CPU)' },
+  { value: 'znedi3', labelKey: 'options.deinterlacer.znedi3', label: 'ZNEDI3 (Optimized Variant)' },
+  { value: 'nnedi', labelKey: 'options.deinterlacer.nnedi', label: 'NNEDI3 (Directional Upscale)' },
+  { value: 'none', labelKey: 'options.deinterlacer.none', label: 'None (Progressive / Telecine)' },
 ];
 
-export const VIDEO_MODE_OPTIONS: { value: VideoMode; label: string }[] = [
-  { value: 'double', label: '60fps / 50fps (Smooth / Standard)' },
-  { value: 'single', label: '30fps / 25fps (Original Film)' },
-  { value: 'freeze', label: 'Frame-Hold TBC (Dropout Protection)' },
-  { value: 'drop', label: 'Drop (Exclude Raw Dropouts)' },
-  { value: 'passthrough', label: 'Passthrough (Intact)' },
+export const VIDEO_MODE_OPTIONS: { value: VideoMode; labelKey: string; label: string }[] = [
+  { value: 'double', labelKey: 'options.video_mode.double', label: '60fps / 50fps (Smooth / Standard)' },
+  { value: 'single', labelKey: 'options.video_mode.single', label: '30fps / 25fps (Original Film)' },
+  { value: 'freeze', labelKey: 'options.video_mode.freeze', label: 'Frame-Hold TBC (Dropout Protection)' },
+  { value: 'drop', labelKey: 'options.video_mode.drop', label: 'Drop (Exclude Raw Dropouts)' },
+  { value: 'passthrough', labelKey: 'options.video_mode.passthrough', label: 'Passthrough (Intact)' },
 ];
 
-export const AUDIO_MODE_OPTIONS: { value: AudioMode; label: string }[] = [
-  { value: 'stereo', label: 'Stereo (Original Capture)' },
-  { value: 'mono', label: 'Mixed Mono (Summed L+R)' },
-  { value: 'mono_l', label: 'Forced Mono (Left Only)' },
-  { value: 'mono_r', label: 'Forced Mono (Right Only)' },
+export const AUDIO_MODE_OPTIONS: { value: AudioMode; labelKey: string; label: string }[] = [
+  { value: 'stereo', labelKey: 'options.audio_mode.stereo', label: 'Stereo (Original Capture)' },
+  { value: 'mono', labelKey: 'options.audio_mode.mono', label: 'Mixed Mono (Summed L+R)' },
+  { value: 'mono_l', labelKey: 'options.audio_mode.mono_l', label: 'Forced Mono (Left Only)' },
+  { value: 'mono_r', labelKey: 'options.audio_mode.mono_r', label: 'Forced Mono (Right Only)' },
 ];
 
-export const OUTPUT_CODEC_OPTIONS: { value: OutputCodec; label: string }[] = [
-  { value: 'h264', label: 'H.264 (Maximum Compatibility)' },
-  { value: 'hevc', label: 'H.265 / HEVC (Higher Compression)' },
-  { value: 'prores', label: 'ProRes 422 HQ (Editing Master)' },
-  { value: 'ffv1', label: 'FFV1 (Lossless Archival)' },
+export const OUTPUT_CODEC_OPTIONS: { value: OutputCodec; labelKey: string; label: string }[] = [
+  { value: 'h264', labelKey: 'options.output_codec.h264', label: 'H.264 (Maximum Compatibility)' },
+  { value: 'hevc', labelKey: 'options.output_codec.hevc', label: 'H.265 / HEVC (Higher Compression)' },
+  { value: 'prores', labelKey: 'options.output_codec.prores', label: 'ProRes 422 HQ (Editing Master)' },
+  { value: 'ffv1', labelKey: 'options.output_codec.ffv1', label: 'FFV1 (Lossless Archival)' },
 ];
 
-export const RESOLUTION_OPTIONS: { value: ResolutionMode; label: string }[] = [
-  { value: 'original', label: 'Original (480p / 576p)' },
-  { value: '1080p', label: 'Upscale 1080p (YouTube Standard)' },
+export const RESOLUTION_OPTIONS: { value: ResolutionMode; labelKey: string; label: string }[] = [
+  { value: 'original', labelKey: 'options.resolution.original', label: 'Original (480p / 576p)' },
+  { value: '1080p', labelKey: 'options.resolution.1080p', label: 'Upscale 1080p (YouTube Standard)' },
 ];
 
-export const AI_UPSCALER_OPTIONS: { value: string; label: string }[] = [
-  { value: 'realesrgan-x4plus', label: 'Real-ESRGAN x4plus (High Fidelity & Sharpness)' },
-  { value: 'realesr-animevideov3-x4', label: 'Real-ESRGAN Anime 6B (V3 Animation/Anime)' },
-  { value: 'span-x4', label: 'SPAN x4 (Super-Pixel Attention - Ultra-light)' },
-  { value: 'models-se', label: 'Real-CUGAN SE (Natural Analog Grain Preservation)' },
-  { value: 'swinir-classical-sr', label: 'SwinIR Classical (Severe Tape Restoration)' },
+export const AI_UPSCALER_OPTIONS: { value: string; labelKey: string; label: string }[] = [
+  { value: 'realesrgan-x4plus', labelKey: 'options.ai_upscaler.realesrgan_x4plus', label: 'Real-ESRGAN x4plus (High Fidelity & Sharpness)' },
+  { value: 'realesr-animevideov3-x4', labelKey: 'options.ai_upscaler.realesr_animevideov3_x4', label: 'Real-ESRGAN Anime 6B (V3 Animation/Anime)' },
+  { value: 'span-x4', labelKey: 'options.ai_upscaler.span_x4', label: 'SPAN x4 (Super-Pixel Attention - Ultra-light)' },
+  { value: 'models-se', labelKey: 'options.ai_upscaler.models_se', label: 'Real-CUGAN SE (Natural Analog Grain Preservation)' },
+  { value: 'swinir-classical-sr', labelKey: 'options.ai_upscaler.swinir_classical_sr', label: 'SwinIR Classical (Severe Tape Restoration)' },
 ];
 
-export const WHISPER_MODEL_OPTIONS: { value: string; label: string }[] = [
-  { value: 'tiny', label: 'Tiny (Fast, ~40MB RAM)' },
-  { value: 'base', label: 'Base (Balanced, ~75MB RAM)' },
-  { value: 'small', label: 'Small (Accurate, ~250MB RAM)' },
+export const WHISPER_MODEL_OPTIONS: { value: string; labelKey: string; label: string }[] = [
+  { value: 'tiny', labelKey: 'options.whisper_model.tiny', label: 'Tiny (Fast, ~40MB RAM)' },
+  { value: 'base', labelKey: 'options.whisper_model.base', label: 'Base (Balanced, ~75MB RAM)' },
+  { value: 'small', labelKey: 'options.whisper_model.small', label: 'Small (Accurate, ~250MB RAM)' },
 ];
 
 export const WHISPER_LANGUAGE_OPTIONS: { value: string; labelKey: string }[] = [

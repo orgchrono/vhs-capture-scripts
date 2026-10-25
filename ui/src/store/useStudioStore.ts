@@ -50,6 +50,7 @@ export function useStudioStore() {
       setActiveTask: (task: ActiveStudioTask | null) => dispatch(actions.setActiveTask(task)),
 
       addLog: (line: string) => dispatch(actions.addLog(line)),
+      addLogs: (lines: string[]) => dispatch(actions.addLogs(lines)),
       clearLogs: () => dispatch(actions.clearLogs()),
       toggleSidebar: () => dispatch(actions.toggleSidebar()),
       setSidebarCollapsed: (val: boolean) => dispatch(actions.setSidebarCollapsed(val)),

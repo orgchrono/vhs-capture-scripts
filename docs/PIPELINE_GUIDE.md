@@ -15,7 +15,7 @@ Restoring legacy magnetic tape media (VHS, S-VHS, Betamax, Video8, Hi8) requires
 
 ---
 
-## 2. Sequential Pipelined Chain & DAG Architecture (`src/domain/pipeline.rs`)
+## 2. Sequential Pipelined Chain & DAG Architecture (`src/domain/pipeline/`)
 
 VHS Studio Pro implements a hybrid execution model: high-speed concurrent audio transcription running alongside a **Sequential Pipelined Chain** for cumulative video transformations:
 
@@ -67,7 +67,7 @@ for (step_name, enabled, step_fn) in post_step_specs {
 ```
 
 - **Fail-Safe Boundary:** If an optional model fails (e.g. GPU out-of-memory or missing weights), the pipeline gracefully preserves the preceding video without crashing the studio.
-- **Atomic Master Commit:** Once all stages complete, `os.replace` commits the final video to `self.output_path` in a single atomic filesystem operation.
+- **Atomic Master Commit:** Once all stages complete, `std::fs::rename` commits the final video to `self.output_path` in a single atomic filesystem operation.
 - **Intermediate Artifact Purging:** Intermediate files recorded in `intermediate_files` are safely deleted, freeing disk space.
 - **Deterministic Audio Cleanup:** The temporary uncompressed WAV file (`_temp.wav`) generated during Whisper transcription is enclosed in a `try ... finally` block, guaranteeing deletion even on unhandled errors or cancellations.
 
@@ -86,7 +86,7 @@ The deinterlacing engine synthesizes interlaced fields into full-rate progressiv
 
 ---
 
-## 4. Analog Noise Reduction & Declarative Filterchain (`src/domain/filter.rs`)
+## 4. Analog Noise Reduction & Declarative Filterchain (`src/domain/pipeline/video_filters.rs`)
 
 The FFmpeg filtergraph is generated through **pure, declarative functional composition** without global mutable state:
 
@@ -96,8 +96,8 @@ The FFmpeg filtergraph is generated through **pure, declarative functional compo
    - Evaluates spatio-temporal noise variance across frames (`hqdn3d=3:2:6:4`), eliminating high-frequency analog snow without creating trailing ghosts (*ghosting*).
 3. **Temporal Dropout Cleaner ([`DropoutCleaner`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/domain/filter.rs)):**
    - Applies `removegrain=1,tmedian=radius=1` to detect and eliminate single-frame white streaks caused by magnetic oxide flaking, replacing corrupted scanlines via temporal interpolation from adjacent fields.
-4. **Overscan Blanking (12px Mask):**
-   - Applies `drawbox=y=ih-12:color=black:width=iw:height=12:t=fill` across the bottom 12 scanlines containing helical head-switching noise, preventing flashing bars on digital flat panels without altering the 4:3 picture framing.
+4. **Overscan Blanking (16px Mask):**
+   - Applies `drawbox=y=ih-16:color=black:width=iw:height=16:t=fill` across the bottom 16 scanlines containing helical head-switching noise, preventing flashing bars on digital flat panels without altering the 4:3 picture framing.
 5. **3D Adaptive Comb Filtering (`dedot` / `TComb`):**
    - Suppresses cross-color rainbowing and cross-luminance dot crawl caused by composite video notch filtering during original recording.
 6. **Audio Conditioning & Acoustic Restoration:**
@@ -206,5 +206,8 @@ cargo run -- qc-report media/raw/tape_01.mkv
 ### 11.2 Output Reports Generated
 - `<file>_qc_report.json`: Structured metadata and defect metrics for CI/CD or batch validation.
 - `<file>_defect_report.md`: Complete forensic report mapping each observed flaw, its affected timecode interval, the physical root cause on tape, and the recommended/applied filter.
+
+
+
 
 

@@ -129,11 +129,11 @@ test.describe('VHS Studio Pipeline, Settings & Real-time Console E2E', () => {
     await expect(consoleSearch).toBeVisible();
 
     // Filter by ERR level
-    const errBtn = page.getByRole('button', { name: 'ERR' });
+    const errBtn = page.getByRole('button', { name: /ERR|ERRO/i });
     await errBtn.click();
 
     // Filter back to ALL
-    const allBtn = page.getByRole('button', { name: 'ALL' });
+    const allBtn = page.getByRole('button', { name: /ALL|TODOS/i });
     await allBtn.click();
 
     // Right-click on console container should open context menu

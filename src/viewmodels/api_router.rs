@@ -68,11 +68,18 @@ pub fn dispatch_api_request_with_context(req: &ApiRequest, ctx: &AppContext) -> 
     }
 }
 
+static DEFAULT_CTX: OnceLock<AppContext> = OnceLock::new();
+
+/// Global shared application context accessor.
+#[must_use]
+pub fn default_app_context() -> &'static AppContext {
+    DEFAULT_CTX.get_or_init(AppContext::default_runtime)
+}
+
 /// Convenience dispatcher using the global default runtime context.
 #[must_use]
 pub fn dispatch_api_request(req: &ApiRequest) -> ApiResponse {
-    static DEFAULT_CTX: OnceLock<AppContext> = OnceLock::new();
-    let ctx = DEFAULT_CTX.get_or_init(AppContext::default_runtime);
+    let ctx = default_app_context();
     dispatch_api_request_with_context(req, ctx)
 }
 

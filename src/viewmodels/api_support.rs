@@ -85,7 +85,14 @@ pub fn resolve_media_input(raw: &str, dirs: &MediaDirs) -> Option<String> {
     let is_plain_name = !name.contains('/') && !name.contains('\\');
     if is_plain_name {
         let in_raw = dirs.raw.join(name);
-        let candidate = if in_raw.exists() { in_raw } else { dirs.media.join(name) };
+        let in_restored = dirs.restored.join(name);
+        let candidate = if in_raw.exists() {
+            in_raw
+        } else if in_restored.exists() {
+            in_restored
+        } else {
+            dirs.media.join(name)
+        };
         return Some(candidate.to_string_lossy().into_owned());
     }
     Some(name.to_string())

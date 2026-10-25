@@ -70,3 +70,4 @@ VHS Studio Pro can remotely monitor and orchestrate your OBS capture sessions:
 3. In VHS Studio Pro, configure the password in `config/local.toml` or the UI Settings panel. The system completes the cryptographic SHA-256 handshake automatically.
 4. Save recordings directly to the `media/raw/` directory. VHS Studio Pro will detect new files immediately, displaying them in the Ingest Desk.
 
+

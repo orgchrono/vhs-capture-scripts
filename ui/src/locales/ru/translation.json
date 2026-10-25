@@ -13,7 +13,12 @@
     "obs_installed": "OBS готов",
     "install_obs": "Установить OBS",
     "installing": "Установка...",
-    "preferences_title": "Глобальные настройки системы"
+    "preferences_title": "Глобальные настройки системы",
+    "encoder_prefix": "ENC:",
+    "codec_h264": "H.264",
+    "codec_hevc": "HEVC",
+    "codec_prores": "ProRes",
+    "codec_ffv1": "FFV1"
   },
   "presets": {
     "title": "Пайплайны аналогового мастеринга",
@@ -67,7 +72,13 @@
     "copy_selection": "Копировать выделение",
     "copied_to_clipboard": "Скопировано в буфер обмена!",
     "toggle": "Alternar Console",
-    "tab_title": "Console"
+    "tab_title": "Console",
+    "filter_all": "ВСЕ",
+    "filter_info": "ИНФО",
+    "filter_warn": "ПРЕД",
+    "filter_err": "ОШИБ",
+    "filter_debug": "ОТЛАД",
+    "diagnostic_export_header": "VHS Studio Pro - Экспорт диагностического журнала\nМетка времени: {{timestamp}}\nВсего строк: {{totalLines}}\n============================================================"
   },
   "monitor": {
     "live_preview": "LIVE PREVIEW (NATIVE)",
@@ -116,7 +127,10 @@
     "scopes_tab_all": "Все",
     "scopes_tab_waveform": "Яркость (Luma)",
     "scopes_tab_vectorscope": "Цветность (Chroma)",
-    "scopes_tab_audio": "Звук"
+    "scopes_tab_audio": "Звук",
+    "live_restoration_stream": "Поток реставрации в реальном времени",
+    "source_stream_proxy": "Прокси исходного потока",
+    "standby_no_signal": "ОЖИДАНИЕ / НЕТ СИГНАЛА"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -186,7 +200,10 @@
     "crt_monitor_badge": "DIRECT-SHOW / OBS VIRTUAL CAM",
     "engine_title": "Processing Engine",
     "engine_badge": "PRESETS & RESTORATION",
-    "sidebar_panasonic_title": "3. Импорт Panasonic DVR"
+    "sidebar_panasonic_title": "3. Импорт Panasonic DVR",
+    "title": "VHS Studio Pro",
+    "brand_name": "VHS STUDIO",
+    "brand_badge": "PRO"
   },
   "settings": {
     "technical_title": "Restoration Technical Settings",
@@ -230,7 +247,8 @@
     "tab_presets": "Режим",
     "reset_default": "Сбросить по умолчанию",
     "tabs_aria_label": "Abas de Configuração",
-    "output_codec_hint": "Формат кодирования и сжатия выходного видео."
+    "output_codec_hint": "Формат кодирования и сжатия выходного видео.",
+    "tier_label": "Уровень {{tier}}: {{name}}"
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",
@@ -366,7 +384,10 @@
     "watcher_armed_desc": "Мониторинг сигнала ленты для автоматической записи.",
     "watcher_disarmed_title": "Автозахват отключен",
     "watcher_disarmed_desc": "Автоматическая запись деактивирована.",
-    "watcher_error": "Не удалось переключить статус автонаблюдателя."
+    "watcher_error": "Не удалось переключить статус автонаблюдателя.",
+    "capture_failed_title": "Сбой захвата",
+    "capture_start_failed": "Не удалось запустить захват",
+    "capture_stop_failed": "Не удалось остановить захват"
   },
   "telemetry": {
     "title": "Телеметрия аналогового мастеринга",
@@ -395,6 +416,10 @@
     "stage_encode_fast": "3. Быстрое аппаратное кодирование NVENC",
     "stage_encode_ai": "6. Экспорт ИИ мастера",
     "stage_export": "4. Быстрый экспорт",
+    "stage_package_manager": "1. Пакетный менеджер и окружение",
+    "stage_download_packages": "2. Загрузка пакетов и зависимостей",
+    "stage_configure_plugins": "3. Настройка плагинов и расширений",
+    "stage_verify_toolchain": "4. Проверка целостности и готовность",
     "stage_progress": "Прогресс",
     "streaming": "ПОТОКОВАЯ ОБРАБОТКА",
     "status_paused": "ПАУЗА",
@@ -411,7 +436,8 @@
     "task_install_qtgmc": "Установка QTGMC / VapourSynth",
     "task_install_obs": "Установка OBS Studio",
     "task_whisper_subtitles": "Транскрипция и субтитры Whisper",
-    "task_panasonic_extract": "Извлечение заголовка Panasonic"
+    "task_panasonic_extract": "Извлечение заголовка Panasonic",
+    "task_image_generation": "Извлечение кадров сравнения A/B"
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",
@@ -451,7 +477,9 @@
     "gdrive_connect_btn": "Connect via Google OAuth",
     "dropbox_auth_btn": "Authorize Dropbox in Browser",
     "onedrive_auth_btn": "Authorize Microsoft Account",
-    "connected": "Connected"
+    "connected": "Connected",
+    "validating": "Проверка...",
+    "save_error": "Ошибка при сохранении настроек."
   },
   "logs": {
     "preparing_restore": "[ВОССТАНОВЛЕНИЕ] Подготовка к восстановлению файла: {{file}}",
@@ -630,6 +658,53 @@
     "close": "Закрыть",
     "refresh": "Обновить",
     "maximize": "Развернуть",
-    "minimize": "Свернуть"
+    "minimize": "Свернуть",
+    "not_available": "Н/Д"
+  },
+  "options": {
+    "deinterlacer": {
+      "qtgmc": "QTGMC Стандарт (Высокое качество)",
+      "qtgmc_fast": "QTGMC Быстрый (Баланс)",
+      "qtgmc_slow": "QTGMC Медленный (Максимальное качество)",
+      "bwdif": "BWDIF (Быстро / Низкая нагрузка CPU)",
+      "znedi3": "ZNEDI3 (Оптимизированный вариант)",
+      "nnedi": "NNEDI3 (Направленный апскейл)",
+      "none": "Нет (Прогрессивный / Телесин)"
+    },
+    "video_mode": {
+      "double": "60 кадр/с / 50 кадр/с (Плавный / Стандарт)",
+      "single": "30 кадр/с / 25 кадр/с (Исходная пленка)",
+      "freeze": "Frame-Hold TBC (Защита от выпадений)",
+      "drop": "Пропуск (Исключение дефектов)",
+      "passthrough": "Прямой пропуск (Без изменений)"
+    },
+    "audio_mode": {
+      "stereo": "Стерео (Исходный захват)",
+      "mono": "Микшированный моно (Сумма L+R)",
+      "mono_l": "Принудительный моно (Только левый)",
+      "mono_r": "Принудительный моно (Только правый)"
+    },
+    "output_codec": {
+      "h264": "H.264 (Максимальная совместимость)",
+      "hevc": "H.265 / HEVC (Высокое сжатие)",
+      "prores": "ProRes 422 HQ (Монтажный мастер)",
+      "ffv1": "FFV1 (Архивный без потерь)"
+    },
+    "resolution": {
+      "original": "Исходное (480p / 576p)",
+      "1080p": "Апскейл 1080p (Стандарт YouTube)"
+    },
+    "ai_upscaler": {
+      "realesrgan_x4plus": "Real-ESRGAN x4plus (Высокая четкость и детализация)",
+      "realesr_animevideov3_x4": "Real-ESRGAN Anime 6B (Анимация V3/Аниме)",
+      "span_x4": "SPAN x4 (Super-Pixel Attention - Ультралегкий)",
+      "models_se": "Real-CUGAN SE (Сохранение аналогового зерна)",
+      "swinir_classical_sr": "SwinIR Classical (Глубокое восстановление пленки)"
+    },
+    "whisper_model": {
+      "tiny": "Tiny (Быстрый, ~40MB ОЗУ)",
+      "base": "Base (Баланс, ~75MB ОЗУ)",
+      "small": "Small (Точный, ~250MB ОЗУ)"
+    }
   }
 }

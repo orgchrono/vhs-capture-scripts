@@ -39,6 +39,17 @@ export const RestorationConflictModal: React.FC<RestorationConflictModalProps> =
       role="dialog"
       aria-modal="true"
       aria-labelledby="conflict-modal-title"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          onClose();
+        }
+      }}
+      tabIndex={-1}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200 select-none"
     >
       <div className="bg-studio-panel border border-amber-600/40 rounded-md max-w-lg w-full p-5 shadow-2xl flex flex-col gap-4 text-slate-100">

@@ -50,7 +50,7 @@ export const PresetSelector: React.FC = () => {
   ]
 
   return (
-    <div className="grid grid-cols-2 gap-3 mb-1">
+    <div className="grid grid-cols-2 gap-3 mb-1" role="group" aria-label={t('presets.gold_name')}>
       {presets.map((p) => {
         const Icon = p.icon
         const isActive = preset === p.id
@@ -60,6 +60,7 @@ export const PresetSelector: React.FC = () => {
             type="button"
             key={p.id}
             data-testid={`preset-${p.id}`}
+            aria-pressed={isActive}
             disabled={isLocked}
             onClick={() => {
               if (isLocked || preset === p.id) return
@@ -67,7 +68,7 @@ export const PresetSelector: React.FC = () => {
               toast.info(t('toast.preset_applied', { name: p.name }))
             }}
             className={cn(
-              'relative text-left p-3 rounded-sm border transition-all duration-150 overflow-hidden flex flex-col justify-between group min-h-[88px]',
+              'relative text-left p-3 rounded-sm border transition-all duration-150 overflow-hidden flex flex-col justify-between group min-h-[88px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/80',
               isLocked ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
               isActive
                 ? 'bg-studio-surface border-slate-300 text-white shadow-sm'
@@ -93,7 +94,7 @@ export const PresetSelector: React.FC = () => {
                     isActive ? 'bg-slate-200 text-slate-950 font-bold' : 'bg-studio-surface text-slate-400 group-hover:text-slate-200 border border-studio-border'
                   )}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-4 h-4" aria-hidden="true" />
                 </div>
                 <span className={cn('text-xs font-semibold tracking-wide truncate font-mono', isActive ? 'text-white' : 'text-slate-200')}>
                   {p.name}

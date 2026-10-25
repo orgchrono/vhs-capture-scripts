@@ -13,7 +13,12 @@
     "obs_installed": "OBS Instalado",
     "install_obs": "Instalar OBS",
     "installing": "Instalando...",
-    "preferences_title": "Preferências Globais do Sistema"
+    "preferences_title": "Preferências Globais do Sistema",
+    "encoder_prefix": "ENC:",
+    "codec_h264": "H.264",
+    "codec_hevc": "HEVC",
+    "codec_prores": "ProRes",
+    "codec_ffv1": "FFV1"
   },
   "presets": {
     "title": "Pipelines Prontas de Restauração Analógica",
@@ -67,7 +72,13 @@
     "abort": "Interromper",
     "abort_tooltip": "Interromper sinal e finalizar processo com segurança",
     "toggle": "Alternar Console",
-    "tab_title": "Console"
+    "tab_title": "Console",
+    "filter_all": "TODOS",
+    "filter_info": "INFO",
+    "filter_warn": "AVISO",
+    "filter_err": "ERRO",
+    "filter_debug": "DEBUG",
+    "diagnostic_export_header": "VHS Studio Pro - Exportação de Log Diagnóstico\nCarimbo: {{timestamp}}\nTotal de Linhas: {{totalLines}}\n============================================================"
   },
   "monitor": {
     "live_preview": "LIVE PREVIEW (NATIVO)",
@@ -116,7 +127,10 @@
     "scopes_tab_all": "Todos",
     "scopes_tab_waveform": "Luma",
     "scopes_tab_vectorscope": "Chroma",
-    "scopes_tab_audio": "Áudio"
+    "scopes_tab_audio": "Áudio",
+    "live_restoration_stream": "Stream de Restauração em Tempo Real",
+    "source_stream_proxy": "Proxy de Stream de Origem",
+    "standby_no_signal": "EM ESPERA / SEM SINAL"
   },
   "files": {
     "input_file_label": "Arquivo de Entrada (media/raw/)",
@@ -186,7 +200,10 @@
     "crt_monitor_badge": "DIRECT-SHOW / OBS VIRTUAL CAM",
     "engine_title": "Motor de Processamento",
     "engine_badge": "PRESETS & RESTAURAÇÃO",
-    "sidebar_panasonic_title": "3. Ingestão Panasonic DVR"
+    "sidebar_panasonic_title": "3. Ingestão Panasonic DVR",
+    "title": "VHS Studio Pro",
+    "brand_name": "VHS STUDIO",
+    "brand_badge": "PRO"
   },
   "settings": {
     "technical_title": "Configurações Técnicas de Restauração",
@@ -230,7 +247,8 @@
     "crf_smaller": "Menor Tamanho (28)",
     "reset_default": "Restaurar padrão",
     "tabs_aria_label": "Abas de Configuração",
-    "output_codec_hint": "Formato de codificação e compressão do vídeo final."
+    "output_codec_hint": "Formato de codificação e compressão do vídeo final.",
+    "tier_label": "Nível {{tier}}: {{name}}"
   },
   "ai": {
     "diagnostic_title": "Diagnóstico Honesto do Hardware",
@@ -366,7 +384,10 @@
     "watcher_armed_desc": "Monitorando sinal de fita para gravação automática.",
     "watcher_disarmed_title": "Auto-Ingest Desarmado",
     "watcher_disarmed_desc": "Gravação automática desativada.",
-    "watcher_error": "Falha ao alterar estado do Auto-Watcher."
+    "watcher_error": "Falha ao alterar estado do Auto-Watcher.",
+    "capture_failed_title": "Falha na Captura",
+    "capture_start_failed": "Falha ao iniciar captura",
+    "capture_stop_failed": "Falha ao parar captura"
   },
   "telemetry": {
     "title": "Telemetria de Masterização Analógica",
@@ -387,6 +408,10 @@
     "stage_encode_fast": "3. Codificação NVENC Hardware Rápido",
     "stage_encode_ai": "6. Exportação Master IA",
     "stage_export": "4. Exportação Rápida",
+    "stage_package_manager": "1. Gerenciador de Pacotes e Ambiente",
+    "stage_download_packages": "2. Download de Pacotes e Dependências",
+    "stage_configure_plugins": "3. Configuração de Plugins e Extensões",
+    "stage_verify_toolchain": "4. Verificação de Integridade e Conclusão",
     "stage_progress": "Progresso",
     "fps": "FPS",
     "frames": "Quadros",
@@ -411,7 +436,8 @@
     "task_install_qtgmc": "Instalação QTGMC / VapourSynth",
     "task_install_obs": "Instalação do OBS Studio",
     "task_whisper_subtitles": "Transcrição e Legendas Whisper",
-    "task_panasonic_extract": "Extração de Título Panasonic"
+    "task_panasonic_extract": "Extração de Título Panasonic",
+    "task_image_generation": "Extração de Quadros Comparativos A/B"
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",
@@ -451,7 +477,9 @@
     "gdrive_connect_btn": "Conectar via Google OAuth",
     "dropbox_auth_btn": "Autorizar Dropbox no Navegador",
     "onedrive_auth_btn": "Autorizar Conta Microsoft",
-    "connected": "Conectado"
+    "connected": "Conectado",
+    "validating": "Validando...",
+    "save_error": "Erro ao salvar configurações."
   },
   "logs": {
     "preparing_restore": "[RESTAURAÇÃO] Preparando restauração do arquivo: {{file}}",
@@ -630,6 +658,53 @@
     "close": "Fechar",
     "refresh": "Atualizar",
     "maximize": "Maximizar",
-    "minimize": "Minimizar"
+    "minimize": "Minimizar",
+    "not_available": "N/D"
+  },
+  "options": {
+    "deinterlacer": {
+      "qtgmc": "QTGMC Padrão (Alta Qualidade)",
+      "qtgmc_fast": "QTGMC Rápido (Equilibrado)",
+      "qtgmc_slow": "QTGMC Lento (Qualidade Máxima)",
+      "bwdif": "BWDIF (Rápido / Baixo CPU)",
+      "znedi3": "ZNEDI3 (Variante Otimizada)",
+      "nnedi": "NNEDI3 (Upscale Direcional)",
+      "none": "Nenhum (Progressivo / Telecine)"
+    },
+    "video_mode": {
+      "double": "60fps / 50fps (Fluido / Padrão)",
+      "single": "30fps / 25fps (Película Original)",
+      "freeze": "Frame-Hold TBC (Proteção de Dropouts)",
+      "drop": "Drop (Excluir Dropouts Brutos)",
+      "passthrough": "Passthrough (Intacto)"
+    },
+    "audio_mode": {
+      "stereo": "Estéreo (Captura Original)",
+      "mono": "Mono Misto (Soma L+R)",
+      "mono_l": "Mono Forçado (Apenas Canal Esquerdo)",
+      "mono_r": "Mono Forçado (Apenas Canal Direito)"
+    },
+    "output_codec": {
+      "h264": "H.264 (Compatibilidade Máxima)",
+      "hevc": "H.265 / HEVC (Maior Compressão)",
+      "prores": "ProRes 422 HQ (Master de Edição)",
+      "ffv1": "FFV1 (Preservação Sem Perdas)"
+    },
+    "resolution": {
+      "original": "Original (480p / 576p)",
+      "1080p": "Upscale 1080p (Padrão YouTube)"
+    },
+    "ai_upscaler": {
+      "realesrgan_x4plus": "Real-ESRGAN x4plus (Alta Fidelidade e Nitidez)",
+      "realesr_animevideov3_x4": "Real-ESRGAN Anime 6B (Animação V3/Anime)",
+      "span_x4": "SPAN x4 (Atenção Super-Pixel - Ultraleve)",
+      "models_se": "Real-CUGAN SE (Preservação de Grão Analógico)",
+      "swinir_classical_sr": "SwinIR Classical (Restauração Severa de Fita)"
+    },
+    "whisper_model": {
+      "tiny": "Tiny (Rápido, ~40MB RAM)",
+      "base": "Base (Equilibrado, ~75MB RAM)",
+      "small": "Small (Preciso, ~250MB RAM)"
+    }
   }
 }

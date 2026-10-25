@@ -45,7 +45,7 @@ export function useCaptureViewModel(): UseCaptureViewModelResult {
           description: t('toast.capture_started_desc'),
         });
       } else {
-        const msg = res.message || t('toast.capture_failed_title', { defaultValue: 'Capture start failed' });
+        const msg = res.message || t('toast.capture_start_failed');
         addLog(t('logs.obs_warning_prefix', { message: msg }));
         toast.warning(msg);
       }
@@ -71,7 +71,7 @@ export function useCaptureViewModel(): UseCaptureViewModelResult {
       }
     } catch (e: unknown) {
       setIsCapturing(false);
-      const errMsg = getErrorMessage(e, t('toast.capture_failed_title', { defaultValue: 'Capture stop failed' }));
+      const errMsg = getErrorMessage(e, t('toast.capture_stop_failed'));
       addLog(t('logs.obs_capture_error', { error: errMsg }));
       toast.error(errMsg);
     }

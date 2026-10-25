@@ -25,27 +25,12 @@ import {
 import { useStudioViewModel } from './viewmodels'
 import { useStudioStore } from './store/useStudioStore'
 import { usePreferencesStore } from './store/usePreferencesStore'
-import {
-  useGetPreferencesQuery,
-  useGetIncompleteJobsQuery,
-  useHandleIncompleteJobMutation,
-  useLazyCheckExistingRestorationQuery,
-} from './api/studioRtkApi'
-import type { IncompleteJob } from './types'
+import { useGetPreferencesQuery } from './api/studioRtkApi'
+import { useConflictResolutionViewModel } from './viewmodels/useConflictResolutionViewModel'
 import { LAYOUT_CONFIG } from './lib/constants'
 
 const telemetryParser = createTelemetryParser()
 
-interface ConflictTarget {
-  job_id: string
-  source_file: string
-  output_file: string
-  output_size_bytes: number
-  can_resume?: boolean
-  progress_percent?: number
-  last_modified?: string
-  status?: string
-}
 
 const StudioMain: React.FC<{
   onOpenPrivacy?: () => void
@@ -95,40 +80,6 @@ const StudioMain: React.FC<{
   const [isDragOver, setIsDragOver] = useState(false)
   const shouldReduceMotion = useReducedMotion()
 
-  const { data: incompleteData, refetch: refetchIncomplete } = useGetIncompleteJobsQuery(undefined, {
-    pollingInterval: isRestoring ? 1500 : 3000,
-  })
-  const [handleJobAction] = useHandleIncompleteJobMutation()
-  const [triggerCheckExisting] = useLazyCheckExistingRestorationQuery()
-  const [conflictJob, setConflictJob] = useState<IncompleteJob | ConflictTarget | null>(null)
-  const [conflictType, setConflictType] = useState<'partial' | 'completed'>('partial')
-  const [isConflictModalOpen, setIsConflictModalOpen] = useState(false)
-
-  useEffect(() => {
-    void refetchIncomplete()
-  }, [selectedFile, refetchIncomplete])
-
-  const incompleteJobForSelected = selectedFile
-    ? incompleteData?.incomplete_jobs?.find((j) => {
-        const sNorm = selectedFile.replace(/\\/g, '/').toLowerCase()
-        const sFileName = sNorm.split('/').pop() || ''
-        const jNorm = (j.source_file || '').replace(/\\/g, '/').toLowerCase()
-        const jFileName = jNorm.split('/').pop() || ''
-
-        // 1. If source_file is specified in checkpoint/job, match strictly
-        if (jNorm) {
-          return sNorm === jNorm || (sFileName && jFileName && sFileName === jFileName)
-        }
-
-        // 2. Orphan job without source_file recorded: match output stem
-        const sStem = sFileName.replace(/\.[^/.]+$/, '')
-        const outNorm = (j.output_file || '').replace(/\\/g, '/').toLowerCase()
-        const outFileName = outNorm.split('/').pop() || ''
-        const outStem = outFileName.replace(/\.[^/.]+$/, '').replace(/\.part$/, '')
-        return Boolean(sStem && (outStem === sStem || outStem.startsWith(`${sStem}_`)))
-      })
-    : undefined
-
   const executeStartRestoration = (resume = false) => {
     if (!handleStartRestoration(resume ? { resume: true } : undefined)) {
       toast.error(t('toast.no_file_title'), {
@@ -141,69 +92,25 @@ const StudioMain: React.FC<{
     }
   }
 
-  const onStart = async () => {
-    if (!selectedFile) {
+  const {
+    conflictJob,
+    conflictType,
+    isConflictModalOpen,
+    incompleteJobForSelected,
+    onStart,
+    handleResumeFromConflict,
+    handleOverwriteFromConflict,
+    closeConflictModal,
+  } = useConflictResolutionViewModel({
+    selectedFile,
+    isRestoring,
+    onExecuteStart: executeStartRestoration,
+    onShowNoFileToast: () => {
       toast.error(t('toast.no_file_title'), {
         description: t('toast.no_file_desc'),
       })
-      return
-    }
-
-    if (incompleteJobForSelected) {
-      setConflictJob(incompleteJobForSelected)
-      setConflictType('partial')
-      setIsConflictModalOpen(true)
-      return
-    }
-
-    try {
-      const existing = await triggerCheckExisting({ source: selectedFile }).unwrap()
-      if (existing?.has_existing) {
-        const isCompleted = existing.type === 'completed'
-        setConflictJob({
-          job_id: `${existing.type || 'existing'}_${selectedFile}`,
-          source_file: selectedFile,
-          output_file: existing.file_path || '',
-          output_size_bytes: existing.size_bytes || 0,
-          can_resume: existing.can_resume ?? !isCompleted,
-          progress_percent: existing.progress_percent ?? (isCompleted ? 100 : 0),
-          last_modified: existing.last_modified || '',
-          status: isCompleted ? 'completed' : 'incomplete',
-        })
-        setConflictType(isCompleted ? 'completed' : 'partial')
-        setIsConflictModalOpen(true)
-        return
-      }
-    } catch {
-      // Proceed safely if existing restoration check query is unfulfilled
-    }
-
-    executeStartRestoration(false)
-  }
-
-  const handleResumeFromConflict = async () => {
-    setIsConflictModalOpen(false)
-    setConflictJob(null)
-    executeStartRestoration(true)
-  }
-
-  const handleOverwriteFromConflict = async () => {
-    const target = conflictJob || incompleteJobForSelected
-    if (target && target.status !== 'completed') {
-      try {
-        await handleJobAction({
-          output_path: target.output_file,
-          action: 'discard',
-        }).unwrap()
-        void refetchIncomplete()
-      } catch {
-        // ignore discard error
-      }
-    }
-    setIsConflictModalOpen(false)
-    setConflictJob(null)
-    executeStartRestoration(false)
-  }
+    },
+  })
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -230,7 +137,7 @@ const StudioMain: React.FC<{
       const matched = status?.raw_files?.find((f) => f.name === file.name)
       const filePath = (matched && typeof matched.path === 'string' ? matched.path : electronFile.path) || file.name
       setSelectedFile(filePath)
-      addLog(t('toast.file_loaded_log', { file: filePath, defaultValue: `[INGESTÃO DRAG-AND-DROP] Fita carregada com sucesso: ${filePath}` }))
+      addLog(t('toast.file_loaded_log', { file: filePath }))
       toast.success(t('toast.file_loaded_title'), {
         description: `${file.name} - ${t('toast.file_loaded_desc')}`,
       })
@@ -441,10 +348,7 @@ const StudioMain: React.FC<{
           sizeBytes={conflictJob.output_size_bytes}
           canResume={conflictJob.can_resume}
           progressPercent={conflictJob.progress_percent}
-          onClose={() => {
-            setIsConflictModalOpen(false)
-            setConflictJob(null)
-          }}
+          onClose={closeConflictModal}
           onResume={handleResumeFromConflict}
           onOverwrite={handleOverwriteFromConflict}
         />
