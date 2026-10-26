@@ -58,28 +58,28 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
   return (
     <div className="bg-studio-panel border border-studio-border rounded-md p-2.5 flex flex-col gap-2 select-none">
       {/* Header: Title, Hotplug Indicator, and Expand/Collapse Toggle */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5 font-mono text-[11px] text-slate-300 font-bold uppercase tracking-wider">
-          <Disc className="w-3.5 h-3.5 text-amber-400" />
-          <span>{t('files.panasonic_ingest_title')}</span>
+      <div className="flex items-center justify-between gap-1.5 min-w-0">
+        <div className="flex items-center gap-1.5 font-mono text-[11px] text-slate-300 font-bold uppercase tracking-wider min-w-0 flex-1">
+          <Disc className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+          <span className="truncate">{t('files.panasonic_ingest_title')}</span>
           {hasPanasonicDisk && (
-            <span className="led-lamp led-live animate-pulse" aria-hidden="true" />
+            <span className="led-lamp led-live animate-pulse shrink-0" aria-hidden="true" />
           )}
           {panasonicHotplugEnabled ? (
             <span
-              className="flex items-center gap-1 text-[9px] bg-studio-surface px-1.5 py-0.5 rounded-xs border border-studio-border text-slate-400 font-normal cursor-help"
+              className="hidden sm:flex items-center gap-1 text-[9px] bg-studio-surface px-1.5 py-0.5 rounded-xs border border-studio-border text-slate-400 font-normal cursor-help shrink-0"
               title={t('files.hotplug_tooltip')}
             >
-              <span className="led-lamp led-idle" aria-hidden="true" />
-              <span>{t('files.hotplug_active_label')}</span>
+              <span className="led-lamp led-idle shrink-0" aria-hidden="true" />
+              <span className="shrink-0">{t('files.hotplug_active_label')}</span>
             </span>
           ) : (
             <span
-              className="flex items-center gap-1 text-[9px] bg-studio-surface px-1.5 py-0.5 rounded-xs border border-studio-border text-slate-500 font-normal cursor-help"
+              className="hidden sm:flex items-center gap-1 text-[9px] bg-studio-surface px-1.5 py-0.5 rounded-xs border border-studio-border text-slate-500 font-normal cursor-help shrink-0"
               title={t('files.hotplug_disabled_tooltip')}
             >
-              <span className="led-lamp led-off" aria-hidden="true" />
-              <span>{t('files.hotplug_disabled_label')}</span>
+              <span className="led-lamp led-off shrink-0" aria-hidden="true" />
+              <span className="shrink-0">{t('files.hotplug_disabled_label')}</span>
             </span>
           )}
         </div>
@@ -88,7 +88,7 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
           type="button"
           aria-expanded={isExpanded}
           onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center justify-center w-5 h-5 text-slate-400 hover:text-slate-100 bg-studio-surface hover:bg-studio-surface-hover rounded-sm border border-studio-border cursor-pointer transition"
+          className="flex items-center justify-center w-5 h-5 text-slate-400 hover:text-slate-100 bg-studio-surface hover:bg-studio-surface-hover rounded-sm border border-studio-border cursor-pointer transition shrink-0"
           title={isExpanded ? t('files.panasonic_collapse') : t('files.panasonic_expand')}
           aria-label={isExpanded ? t('files.panasonic_collapse') : t('files.panasonic_expand')}
           data-testid="toggle-panasonic-ingest-btn"

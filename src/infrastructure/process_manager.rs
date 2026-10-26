@@ -17,6 +17,7 @@ use std::thread::{self, JoinHandle};
 #[derive(Debug)]
 struct ProcessState {
     pid: Option<u32>,
+    in_process_active: bool,
     paused: bool,
     terminated_by_user: bool,
     logs: LogRing,
@@ -81,6 +82,7 @@ impl ProcessManager {
         Self {
             shared: Arc::new(Mutex::new(ProcessState {
                 pid: None,
+                in_process_active: false,
                 paused: false,
                 terminated_by_user: false,
                 logs: LogRing::new(log_capacity),
@@ -94,7 +96,7 @@ impl ProcessManager {
     pub fn snapshot(&self) -> ProcessSnapshot {
         let state = lock(&self.shared);
         ProcessSnapshot {
-            running: state.pid.is_some(),
+            running: state.pid.is_some() || state.in_process_active,
             paused: state.paused,
             last_exit_code: state.last_exit_code,
             last_success: state.last_success,
@@ -104,6 +106,26 @@ impl ProcessManager {
     #[must_use]
     pub fn is_running(&self) -> bool {
         self.snapshot().running
+    }
+
+    /// Sets the in-process execution active state (used when running native tasks without subprocess pid).
+    pub fn set_in_process_active(&self, active: bool) {
+        let mut state = lock(&self.shared);
+        state.in_process_active = active;
+        if active {
+            state.paused = false;
+            state.terminated_by_user = false;
+            state.last_exit_code = None;
+            state.last_success = None;
+        }
+    }
+
+    /// Sets the final outcome for an in-process native task.
+    pub fn set_result(&self, success: bool, exit_code: Option<i32>) {
+        let mut state = lock(&self.shared);
+        state.in_process_active = false;
+        state.last_success = Some(success);
+        state.last_exit_code = exit_code;
     }
 
     #[must_use]
@@ -124,7 +146,7 @@ impl ProcessManager {
     /// Spawns `program args…` capturing stdout/stderr. Fails if a process is already active.
     pub fn start(&self, program: &Path, args: &[String]) -> Result<(), String> {
         let mut state = lock(&self.shared);
-        if state.pid.is_some() {
+        if state.pid.is_some() || state.in_process_active {
             return Err("Please wait for current process to finish.".to_string());
         }
         let mut child = create_silent_command(program)
@@ -187,9 +209,16 @@ impl ProcessManager {
         Ok("Process resumed.".to_string())
     }
 
-    /// Kills the active process tree. Returns `false` when nothing was running.
+    /// Kills the active process tree or signals active in-process job. Returns `false` when nothing was running.
     pub fn terminate(&self) -> bool {
         let mut state = lock(&self.shared);
+        if state.in_process_active {
+            state.in_process_active = false;
+            state.terminated_by_user = true;
+            state.last_exit_code = Some(1);
+            state.last_success = Some(false);
+            return true;
+        }
         let Some(pid) = state.pid else {
             return false;
         };

@@ -43,9 +43,9 @@ export const TimelineScrubber: React.FC<TimelineScrubberProps> = ({
         onPointerUp={onScrubCommit}
         onMouseUp={onScrubCommit}
         onKeyUp={onScrubCommit}
-        className="w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-amber-400 disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 transition-all"
+        className="w-full h-2 rounded-sm appearance-none cursor-pointer accent-amber-400 bg-slate-800/90 border border-slate-700/80 disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-110 transition-all"
         style={{
-          background: `linear-gradient(to right, rgb(251 191 36) ${progressPct}%, rgb(30 41 59) ${progressPct}%)`,
+          background: `linear-gradient(to right, rgb(251 191 36) ${progressPct}%, rgba(51, 65, 85, 0.9) ${progressPct}%)`,
         }}
         aria-label={t('monitor.timeline_scrubber')}
         title={t('monitor.timeline_scrubber')}

@@ -129,6 +129,7 @@
     "scopes_tab_vectorscope": "Цветность (Chroma)",
     "scopes_tab_audio": "Звук",
     "live_restoration_stream": "Поток реставрации в реальном времени",
+    "generating_preview": "Синхронизация потока реставрации...",
     "source_stream_proxy": "Прокси исходного потока",
     "standby_no_signal": "ОЖИДАНИЕ / НЕТ СИГНАЛА"
   },

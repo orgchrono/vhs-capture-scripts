@@ -254,9 +254,11 @@ pub fn execute_restoration_job(
         .wait()
         .map_err(|e| format!("Failed to wait on FFmpeg exit: {e}"))?;
 
-    if let Some(ref mut vs) = vspipe_child {
-        let _ = vs.wait();
-    }
+    let vs_exit = if let Some(ref mut vs) = vspipe_child {
+        vs.wait().ok()
+    } else {
+        None
+    };
 
     let elapsed = start_time.elapsed().as_secs_f64();
 
@@ -273,22 +275,46 @@ pub fn execute_restoration_job(
         ));
     }
 
-    if !status.success() {
+    let vs_failed = vs_exit.as_ref().map(|s| !s.success()).unwrap_or(false);
+    let is_truncated = planned.expected_frames > 0
+        && accumulator.current_frame < (planned.expected_frames * 90 / 100);
+
+    if !status.success() || vs_failed || is_truncated {
         write_checkpoint(planned, "failed", accumulator.current_frame, elapsed);
         let vs_err = vspipe_stderr_drain
             .and_then(|handle| handle.join().ok())
             .unwrap_or_default();
-        let mut err_msg = if !vs_err.trim().is_empty() {
-            format!("VapourSynth/QTGMC failed: {} | FFmpeg exit: {status}", vs_err.trim())
-        } else {
-            format!("FFmpeg exited with error status: {status}")
-        };
         let err_text = stderr_drain
             .and_then(|handle| handle.join().ok())
             .unwrap_or_default();
+
+        let mut err_msg = if vs_failed {
+            if !vs_err.trim().is_empty() {
+                format!("VapourSynth/QTGMC failed: {}", vs_err.trim())
+            } else {
+                format!("VapourSynth/QTGMC exited prematurely with error code: {:?}", vs_exit)
+            }
+        } else if is_truncated {
+            let pct = if planned.expected_frames > 0 {
+                (accumulator.current_frame as f64 / planned.expected_frames as f64 * 100.0).round()
+            } else {
+                0.0
+            };
+            format!(
+                "Restoration pipeline ended prematurely at frame {}/{} ({}%)",
+                accumulator.current_frame, planned.expected_frames, pct
+            )
+        } else {
+            format!("FFmpeg exited with error status: {status}")
+        };
+
         if !err_text.trim().is_empty() {
-            err_msg = format!("{err_msg} | Stderr: {}", err_text.trim());
+            err_msg = format!("{err_msg} | FFmpeg stderr: {}", err_text.trim());
         }
+        if !vs_failed && !vs_err.trim().is_empty() {
+            err_msg = format!("{err_msg} | VSPipe stderr: {}", vs_err.trim());
+        }
+
         if let Some(l) = listener {
             l.on_log(&format!("[ERROR] {err_msg}"));
         }

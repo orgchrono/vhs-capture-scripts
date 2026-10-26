@@ -21,6 +21,7 @@ pub struct RawStream {
     pub height: Option<u32>,
     pub r_frame_rate: Option<String>,
     pub duration: Option<String>,
+    pub nb_frames: Option<String>,
     pub pix_fmt: Option<String>,
     pub field_order: Option<String>,
     pub color_space: Option<String>,
@@ -196,6 +197,28 @@ pub fn parse_ffprobe_json(json_content: &str, file_path: &str) -> Result<MediaPr
             .unwrap_or(0.0);
     }
 
+    let parsed_nb_frames = v_stream
+        .and_then(|s| s.nb_frames.as_deref())
+        .and_then(|nf| nf.parse::<u64>().ok())
+        .unwrap_or(0);
+
+    if duration <= 0.0 && parsed_nb_frames > 0 && fps > 0.0 {
+        duration = parsed_nb_frames as f64 / fps;
+    }
+
+    if duration <= 0.0 {
+        if let (Some(size_str), Some(br_str)) = (
+            raw.format.as_ref().and_then(|f| f.size.as_deref()),
+            raw.format.as_ref().and_then(|f| f.bit_rate.as_deref()),
+        ) {
+            if let (Ok(size), Ok(br)) = (size_str.parse::<f64>(), br_str.parse::<f64>()) {
+                if br > 0.0 {
+                    duration = (size * 8.0) / br;
+                }
+            }
+        }
+    }
+
     let video_codec = v_stream
         .and_then(|s| s.codec_name.as_deref())
         .unwrap_or("unknown")
@@ -247,7 +270,11 @@ pub fn parse_ffprobe_json(json_content: &str, file_path: &str) -> Result<MediaPr
         .to_string();
 
     let standard = classify_broadcast_standard(width, height, fps).to_string();
-    let total_frames = calculate_expected_frames(duration, fps);
+    let total_frames = if parsed_nb_frames > 0 {
+        parsed_nb_frames
+    } else {
+        calculate_expected_frames(duration, fps)
+    };
 
     Ok(MediaProbeResult {
         file_path: file_path.to_string(),

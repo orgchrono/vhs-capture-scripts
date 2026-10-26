@@ -227,11 +227,18 @@ pub fn format_eta_duration(seconds: f64) -> String {
 #[must_use]
 pub fn format_progress_log_line(acc: &ProgressAccumulator) -> String {
     let snapshot = acc.build_snapshot();
+    let total_frames = if acc.total_expected_frames > 0 {
+        acc.total_expected_frames
+    } else if acc.total_expected_duration > 0.0 && snapshot.fps > 0.0 {
+        (acc.total_expected_duration * snapshot.fps as f64).round() as u64
+    } else {
+        0
+    };
     format!(
         "PROGRESS: {:.0}% | Frames: {} / {} | FPS: {:.1} | Speed: {:.2}x | ETA: {}",
         snapshot.progress_percent,
         snapshot.frame,
-        acc.total_expected_frames,
+        total_frames,
         snapshot.fps,
         snapshot.speed,
         snapshot.eta_formatted

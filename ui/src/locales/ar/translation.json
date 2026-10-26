@@ -129,6 +129,7 @@
     "scopes_tab_vectorscope": "Chroma",
     "scopes_tab_audio": "صوت",
     "live_restoration_stream": "بث الترميم المباشر",
+    "generating_preview": "مزامنة بث الاستعادة...",
     "source_stream_proxy": "وكيل البث المصدر",
     "standby_no_signal": "في وضع الاستعداد / لا توجد إشارة"
   },

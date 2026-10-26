@@ -122,8 +122,8 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = (pr
       aria-label={t('monitor.split_title')}
       data-testid="split-comparison-monitor"
     >
-      {/* Top Header Bar: Zero Overflow Guaranteed Floating HUD */}
-      <div className="absolute top-2 left-2 right-2 z-20 flex flex-wrap items-center justify-between pointer-events-auto gap-1.5 min-w-0">
+      {/* Top Header Bar: Zero Overflow Guaranteed Single-Line Ribbon */}
+      <div className="absolute top-2 left-2 right-2 z-20 flex flex-nowrap items-center justify-between pointer-events-auto gap-1.5 min-w-0 overflow-hidden">
         {/* Left: Compact A/B Monitor Title & Split Percentage Badge */}
         <div className="flex items-center gap-1.5 shrink-0 min-w-0">
           <button
@@ -162,7 +162,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = (pr
               type="button"
               aria-pressed={splitLayout === 'wipe'}
               onClick={() => setSplitLayout('wipe')}
-              className={`h-6 px-1.5 min-w-[24px] flex items-center justify-center rounded-xs transition cursor-pointer text-[9px] font-mono ${
+              className={`h-6 px-1.5 min-w-[22px] flex items-center justify-center rounded-xs transition cursor-pointer text-[9px] font-mono ${
                 splitLayout === 'wipe'
                   ? 'bg-amber-500/25 text-amber-300 font-semibold border border-amber-400/40'
                   : 'text-slate-400 hover:text-slate-200 border border-transparent'
@@ -177,7 +177,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = (pr
               type="button"
               aria-pressed={splitLayout === 'dual'}
               onClick={() => setSplitLayout('dual')}
-              className={`h-6 px-1.5 min-w-[24px] flex items-center justify-center rounded-xs transition cursor-pointer text-[9px] font-mono ${
+              className={`h-6 px-1.5 min-w-[22px] flex items-center justify-center rounded-xs transition cursor-pointer text-[9px] font-mono ${
                 splitLayout === 'dual'
                   ? 'bg-amber-500/25 text-amber-300 font-semibold border border-amber-400/40'
                   : 'text-slate-400 hover:text-slate-200 border border-transparent'
@@ -192,14 +192,14 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = (pr
 
           {/* Quick Split Presets (only in Wipe mode) */}
           {splitLayout === 'wipe' && (
-            <div className="flex items-center gap-0.5 bg-black/85 backdrop-blur-md p-0.5 rounded-sm border border-studio-border text-[8.5px] font-mono shadow-sm shrink-0" role="group">
+            <div className="flex items-center gap-0.5 bg-black/85 backdrop-blur-md p-0.5 rounded-sm border border-studio-border text-[8px] font-mono shadow-sm shrink-0" role="group">
               {SPLIT_PRESETS.map((p) => (
                 <button
                   key={p}
                   type="button"
                   aria-pressed={splitPos === p}
                   onClick={() => handlePresetSelect(p)}
-                  className={`h-5 px-1.5 min-w-[20px] flex items-center justify-center rounded-xs transition-colors cursor-pointer border ${
+                  className={`h-5 px-1 min-w-[17px] flex items-center justify-center rounded-xs transition-colors cursor-pointer border ${
                     splitPos === p
                       ? 'bg-amber-500/25 text-amber-300 font-semibold border-amber-400/50'
                       : 'text-slate-400 hover:text-slate-200 border-transparent'
@@ -220,7 +220,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = (pr
               type="button"
               aria-pressed={viewMode === 'stream'}
               onClick={() => handleModeChange('stream')}
-              className={`h-6 px-1.5 min-w-[24px] flex items-center justify-center rounded-xs transition cursor-pointer ${
+              className={`h-6 px-1.5 min-w-[22px] flex items-center justify-center rounded-xs transition cursor-pointer ${
                 viewMode === 'stream'
                   ? 'bg-amber-500/20 text-amber-300 font-semibold'
                   : 'text-slate-400 hover:text-slate-200'
@@ -235,7 +235,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = (pr
               type="button"
               aria-pressed={viewMode === 'freeze'}
               onClick={() => handleModeChange('freeze')}
-              className={`h-6 px-1.5 min-w-[24px] flex items-center justify-center rounded-xs transition cursor-pointer ${
+              className={`h-6 px-1.5 min-w-[22px] flex items-center justify-center rounded-xs transition cursor-pointer ${
                 viewMode === 'freeze'
                   ? 'bg-amber-500/20 text-amber-300 font-semibold'
                   : 'text-slate-400 hover:text-slate-200'

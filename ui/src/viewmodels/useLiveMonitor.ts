@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback, startTransition } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStudioStore } from '../store/useStudioStore';
 import { usePreferencesStore } from '../store/usePreferencesStore';
@@ -21,6 +21,8 @@ export interface UseLiveMonitorResult {
   isRestoring: boolean;
   selectedFile: string | null;
   liveFrameSrc: string | null;
+  monitorView: 'live' | 'restore';
+  setMonitorView: React.Dispatch<React.SetStateAction<'live' | 'restore'>>;
   isSplitMode: boolean;
   setIsSplitMode: React.Dispatch<React.SetStateAction<boolean>>;
   showScopes: boolean;
@@ -75,8 +77,19 @@ export function useLiveMonitor(): UseLiveMonitorResult {
   const isActive = isCapturing && isStreamActive;
 
   const [isSplitMode, setIsSplitMode] = useState<boolean>(false);
+  const [monitorView, setMonitorView] = useState<'live' | 'restore'>('live');
   const [showScopes, setShowScopes] = useState<boolean>(false);
   const [liveFrameSrc, setLiveFrameSrc] = useState<string | null>(null);
+
+  const prevRestoringRef = useRef<boolean>(isRestoring);
+  useEffect(() => {
+    if (!prevRestoringRef.current && isRestoring) {
+      startTransition(() => {
+        setMonitorView('restore');
+      });
+    }
+    prevRestoringRef.current = isRestoring;
+  }, [isRestoring]);
 
   const { data: obsStats } = useGetObsStatsQuery(undefined, {
     pollingInterval: 1000,
@@ -297,6 +310,8 @@ export function useLiveMonitor(): UseLiveMonitorResult {
     isRestoring,
     selectedFile,
     liveFrameSrc,
+    monitorView,
+    setMonitorView,
     sourceImageSrc,
     isSplitMode,
     setIsSplitMode,

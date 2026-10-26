@@ -114,7 +114,7 @@ export function useStudioViewModel() {
     if (match && match[1]) {
       const pct = parseInt(match[1], 10);
       const current = activeTaskRef.current;
-      if (current && current.type !== 'idle' && current.type !== 'restore') {
+      if (current && current.type !== 'idle') {
         setActiveTaskRef.current({ ...current, progressPercent: pct });
       }
     }

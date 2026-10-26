@@ -129,6 +129,7 @@
     "scopes_tab_vectorscope": "Chroma",
     "scopes_tab_audio": "Audio",
     "live_restoration_stream": "Live Restoration Stream",
+    "generating_preview": "Synchronizing restoration stream...",
     "source_stream_proxy": "Source Stream Proxy",
     "standby_no_signal": "STANDBY / NO SIGNAL"
   },

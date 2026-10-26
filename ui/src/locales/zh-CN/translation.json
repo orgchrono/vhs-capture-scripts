@@ -129,6 +129,7 @@
     "scopes_tab_vectorscope": "色度 (Chroma)",
     "scopes_tab_audio": "音频",
     "live_restoration_stream": "实时修复流",
+    "generating_preview": "正在同步修复流...",
     "source_stream_proxy": "源流代理",
     "standby_no_signal": "待机 / 无信号"
   },

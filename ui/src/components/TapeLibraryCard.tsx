@@ -49,16 +49,16 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
   return (
     <div className="bg-studio-panel border border-studio-border rounded-md p-2.5 flex flex-col gap-2 select-none">
       {/* Top Header: Title, File Count, and Refresh Button */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5 font-mono text-[11px] text-slate-300 font-bold uppercase tracking-wider">
-          <Film className="w-3.5 h-3.5 text-slate-400" />
-          <span>{t('files.library_explorer_title')}</span>
-          <span className="text-[10px] bg-studio-surface px-1.5 py-0.5 rounded-sm text-slate-400 border border-studio-border">
+      <div className="flex items-center justify-between gap-1.5 min-w-0">
+        <div className="flex items-center gap-1.5 font-mono text-[11px] text-slate-300 font-bold uppercase tracking-wider min-w-0 flex-1">
+          <Film className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <span className="truncate">{t('files.library_explorer_title')}</span>
+          <span className="text-[10px] bg-studio-surface px-1.5 py-0.5 rounded-sm text-slate-400 border border-studio-border shrink-0">
             {files.length + orphanJobs.length}
           </span>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0">
           <button
             type="button"
             onClick={onRefresh}
@@ -169,27 +169,27 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5 pt-1 border-t border-amber-800/40">
+          <div className="flex items-center gap-1.5 pt-1 border-t border-amber-800/40 min-w-0">
             <button
               type="button"
               disabled={isRestoring || isPerformingAction}
               onClick={() => handleAction(selectedIncompleteJob, 'finalize')}
-              className="flex-1 bg-emerald-800/80 hover:bg-emerald-700 disabled:opacity-50 text-emerald-100 py-1 px-1.5 rounded-xs flex items-center justify-center gap-1 font-semibold border border-emerald-600/40 cursor-pointer transition whitespace-nowrap"
+              className="flex-1 min-w-0 bg-emerald-800/80 hover:bg-emerald-700 disabled:opacity-50 text-emerald-100 py-1 px-1.5 rounded-xs flex items-center justify-center gap-1 font-semibold border border-emerald-600/40 cursor-pointer transition"
               title={t('recovery.finalize_tooltip')}
             >
-              <CheckCircle2 className="w-2.5 h-2.5" />
-              <span>{t('recovery.finalize_button')}</span>
+              <CheckCircle2 className="w-2.5 h-2.5 shrink-0" />
+              <span className="truncate">{t('recovery.finalize_button')}</span>
             </button>
 
             <button
               type="button"
               disabled={isRestoring || isPerformingAction}
               onClick={() => handleAction(selectedIncompleteJob, 'discard')}
-              className="bg-studio-surface hover:bg-red-950/80 hover:text-red-300 disabled:opacity-50 text-slate-400 py-1 px-2 rounded-xs flex items-center justify-center gap-1 font-semibold border border-studio-border cursor-pointer transition whitespace-nowrap"
+              className="bg-studio-surface hover:bg-red-950/80 hover:text-red-300 disabled:opacity-50 text-slate-400 py-1 px-2 rounded-xs flex items-center justify-center gap-1 font-semibold border border-studio-border cursor-pointer transition shrink-0"
               title={t('recovery.discard_tooltip')}
             >
-              <Trash2 className="w-2.5 h-2.5" />
-              <span>{t('recovery.discard_button')}</span>
+              <Trash2 className="w-2.5 h-2.5 shrink-0" />
+              <span className="truncate">{t('recovery.discard_button')}</span>
             </button>
           </div>
         </div>
