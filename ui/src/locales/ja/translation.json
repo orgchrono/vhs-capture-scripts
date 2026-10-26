@@ -190,14 +190,18 @@
     "hotplug_tooltip": "ディスクおよびUSBアダプターの常時自動検出が有効です",
     "hotplug_disabled_label": "ホットプラグ一時停止",
     "hotplug_disabled_tooltip": "設定で自動検出が一時停止されています",
-    "qc_report_button": "QCレポート"
+    "qc_report_button": "QCレポート",
+    "tab_raw": "未編集テープ",
+    "tab_masters": "完成マスター",
+    "no_masters_yet": "完成したマスターはまだありません",
+    "master_tape_badge": "マスター"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
     "drop_formats": "Supported formats: .mkv, .mp4, .avi, .mov (Automatic Ingestion)",
     "sidebar_capture_title": "1. Acquisition & Ingest",
     "sidebar_library_title": "2. Tape Library",
-    "crt_monitor_title": "CRT Signal Monitor",
+    "crt_monitor_title": "モニター",
     "crt_monitor_badge": "DIRECT-SHOW / OBS VIRTUAL CAM",
     "engine_title": "Processing Engine",
     "engine_badge": "PRESETS & RESTORATION",

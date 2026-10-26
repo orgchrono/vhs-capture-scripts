@@ -12,11 +12,24 @@ const mockFiles: RawFile[] = [
   { name: 'vacation_trip.mp4', path: 'C:/media/raw/vacation_trip.mp4', size_mb: 720.0, date: '2001-05-20' },
 ];
 
-const renderComponent = (files: RawFile[] = mockFiles, isRefetching = false) => {
+const mockRestoredFiles: RawFile[] = [
+  { name: 'family_1994_restored.mp4', path: 'C:/media/restored/family_1994_restored.mp4', size_mb: 1850.0, date: '2026-10-25' },
+];
+
+const renderComponent = (
+  files: RawFile[] = mockFiles,
+  restoredFiles: RawFile[] = mockRestoredFiles,
+  isRefetching = false
+) => {
   const onRefresh = vi.fn();
   const utils = render(
     <Provider store={store}>
-      <TapeLibraryCard files={files} onRefresh={onRefresh} isRefetching={isRefetching} />
+      <TapeLibraryCard
+        files={files}
+        restoredFiles={restoredFiles}
+        onRefresh={onRefresh}
+        isRefetching={isRefetching}
+      />
     </Provider>
   );
   return { ...utils, onRefresh };
@@ -53,5 +66,29 @@ describe('TapeLibraryCard Component', () => {
 
     fireEvent.click(toggle);
     expect(screen.getByText('family_1994.mkv')).toBeInTheDocument();
+  });
+
+  it('switches to masters tab and selects a restored master file', () => {
+    renderComponent();
+
+    const mastersTabBtn = screen.getByTestId('tab-masters-btn');
+    fireEvent.click(mastersTabBtn);
+
+    expect(screen.getByText('family_1994_restored.mp4')).toBeInTheDocument();
+    expect(screen.getByText('MASTER')).toBeInTheDocument();
+
+    const masterCard = screen.getByText('family_1994_restored.mp4');
+    fireEvent.click(masterCard);
+
+    expect(store.getState().studio.selectedFile).toBe('C:/media/restored/family_1994_restored.mp4');
+  });
+
+  it('displays empty state when no master files exist', () => {
+    renderComponent(mockFiles, []);
+
+    const mastersTabBtn = screen.getByTestId('tab-masters-btn');
+    fireEvent.click(mastersTabBtn);
+
+    expect(screen.getByText(/nenhum master concluído/i)).toBeInTheDocument();
   });
 });

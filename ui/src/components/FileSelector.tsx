@@ -5,12 +5,14 @@ import type { RawFile } from '../types';
 
 export interface FileSelectorProps {
   files: RawFile[];
+  restoredFiles?: RawFile[];
   onRefresh: () => void;
   isRefetching: boolean;
 }
 
 export const FileSelector: React.FC<FileSelectorProps> = ({
   files,
+  restoredFiles = [],
   onRefresh,
   isRefetching,
 }) => {
@@ -18,6 +20,7 @@ export const FileSelector: React.FC<FileSelectorProps> = ({
     <div className="flex flex-col gap-3">
       <TapeLibraryCard
         files={files}
+        restoredFiles={restoredFiles}
         onRefresh={onRefresh}
         isRefetching={isRefetching}
       />

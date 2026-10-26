@@ -1,6 +1,8 @@
 //! OS-level block device enumeration and drive hardware scanner.
 
-use crate::domain::panasonic_format::{parse_drive_entries_from_json, PanasonicDiskInfo};
+use crate::domain::panasonic_format::PanasonicDiskInfo;
+#[cfg(windows)]
+use crate::domain::panasonic_format::parse_drive_entries_from_json;
 
 /// Scan connected physical disks and return structured hardware diagnostics without window flashing.
 #[must_use]

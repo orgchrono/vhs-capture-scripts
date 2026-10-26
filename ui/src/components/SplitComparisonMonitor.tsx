@@ -450,14 +450,6 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = (pr
           </button>
         </div>
 
-        {isRestoring && (
-          <LiveEdgeIndicator
-            isAtLiveEdge={isAtLiveEdge}
-            onJumpToLive={handleJumpToLive}
-            testId="split-live-indicator-badge"
-          />
-        )}
-
         <TimelineScrubber
           currentTimestamp={effectiveTimestamp}
           totalDuration={totalDuration}
