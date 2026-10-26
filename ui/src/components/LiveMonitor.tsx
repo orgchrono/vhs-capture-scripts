@@ -75,8 +75,8 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
       {/* Top Console Bar (Header) - OUTSIDE the View Window */}
       <div className="flex items-center justify-between mb-2 shrink-0 h-6 min-w-0 gap-2">
         {/* Left Side: Monitor Title & Device Status */}
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2 font-mono shrink-0 whitespace-nowrap">
+        <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
+          <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2 font-mono min-w-0 truncate">
             <span
               className={`led-lamp ${
                 isCapturing
@@ -89,7 +89,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
             />
             <span className="truncate">{t('app.crt_monitor_title')}</span>
           </h2>
-          <span className="hidden xl:inline-flex text-[10px] font-mono text-slate-400 bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border shrink-0 whitespace-nowrap">
+          <span className="hidden 2xl:inline-flex text-[10px] font-mono text-slate-400 bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border shrink-0 whitespace-nowrap">
             {t('app.crt_monitor_badge')}
           </span>
         </div>
@@ -124,13 +124,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
                     : 'led-idle'
                 }`}
               />
-              <span className="shrink-0 whitespace-nowrap">
-                {isActive
-                  ? t('monitor.live_preview')
-                  : selectedFile
-                  ? t('monitor.tape_loaded_preview')
-                  : t('monitor.live_preview')}
-              </span>
+              <span className="shrink-0 whitespace-nowrap">{t('monitor.live_preview')}</span>
             </button>
 
             {/* Screen 2: Real-time Restoration Screen (visible when restoring or frames ready) */}
@@ -265,6 +259,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
                 liveFrameSrc ? (
                   <img
                     src={liveFrameSrc}
+                    crossOrigin="anonymous"
                     alt={t('monitor.live_restoration_stream')}
                     className="w-full h-full object-contain pointer-events-none"
                     data-testid="live-restoration-stream"
@@ -297,6 +292,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
               ) : selectedFile && livePreviewEnabled ? (
                 <img
                   src={streamUrl}
+                  crossOrigin="anonymous"
                   alt={t('monitor.source_stream_proxy')}
                   className="w-full h-full object-contain pointer-events-none"
                   data-testid="live-stream-proxy"
