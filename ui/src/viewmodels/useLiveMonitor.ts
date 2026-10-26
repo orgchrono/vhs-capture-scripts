@@ -164,6 +164,8 @@ export function useLiveMonitor(): UseLiveMonitorResult {
   const rawTimestamp = previewTimestamp ?? 5.0;
   const [isScrubbing, setIsScrubbing] = useState<boolean>(false);
   const [scrubTimestamp, setScrubTimestamp] = useState<number>(rawTimestamp);
+  const scrubTimestampRef = useRef<number>(rawTimestamp);
+
   const displayTime = isScrubbing ? scrubTimestamp : rawTimestamp;
   const isAtLiveEdge = !isRestoring || Math.abs(displayTime - liveSec) <= 2.0;
   const currentTimestamp = isScrubbing
@@ -174,11 +176,12 @@ export function useLiveMonitor(): UseLiveMonitorResult {
 
   const [debouncedTimestamp, setDebouncedTimestamp] = useState<number>(currentTimestamp);
   useEffect(() => {
+    if (isScrubbing) return;
     const timer = setTimeout(() => {
       setDebouncedTimestamp(currentTimestamp);
     }, 200);
     return () => clearTimeout(timer);
-  }, [currentTimestamp]);
+  }, [currentTimestamp, isScrubbing]);
 
   const [streamAnchor, setStreamAnchor] = useState<number>(currentTimestamp);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -195,7 +198,7 @@ export function useLiveMonitor(): UseLiveMonitorResult {
       overscan: overscanBlanking ?? true,
       dropout: dropoutClean ?? false,
     },
-    { skip: !selectedFile || isActive || isPlaying }
+    { skip: !selectedFile || isActive || isPlaying || isScrubbing }
   );
 
   const totalDuration = frameData?.duration && frameData.duration > 0 ? frameData.duration : 0;
@@ -218,11 +221,13 @@ export function useLiveMonitor(): UseLiveMonitorResult {
     };
   }, [isPlaying, selectedFile, isActive, isRestoring, currentTimestamp, totalDuration, setPreviewTimestamp]);
 
+
   const maxSeekLimit = totalDuration > 0 ? totalDuration : 3600;
 
   const handleSeek = (delta: number) => {
     const current = isScrubbing ? scrubTimestamp : currentTimestamp;
     const nextTime = Math.max(0, Math.min(maxSeekLimit, current + delta));
+    scrubTimestampRef.current = nextTime;
     setPreviewTimestamp(nextTime);
     setScrubTimestamp(nextTime);
     setStreamAnchor(nextTime);
@@ -231,12 +236,15 @@ export function useLiveMonitor(): UseLiveMonitorResult {
 
   const handleTimelineInput = (newTime: number) => {
     const safeTime = Math.max(0, Math.min(maxSeekLimit, newTime));
+    scrubTimestampRef.current = safeTime;
     setScrubTimestamp(safeTime);
     setPreviewTimestamp(safeTime);
   };
 
   const handleTimelineCommit = () => {
-    const target = isScrubbing ? scrubTimestamp : currentTimestamp;
+    const target = scrubTimestampRef.current;
+    setIsScrubbing(false);
+    setPreviewTimestamp(target);
     setStreamAnchor(target);
     setStreamKey((k) => k + 1);
   };

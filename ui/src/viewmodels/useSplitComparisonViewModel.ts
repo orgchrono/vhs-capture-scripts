@@ -46,6 +46,9 @@ export function useSplitComparisonViewModel({
   const timestamp = previewTimestamp ?? 5.0;
   const [isScrubbing, setIsScrubbing] = useState<boolean>(false);
   const [scrubTimestamp, setScrubTimestamp] = useState<number>(timestamp);
+  const scrubTimestampRef = useRef<number>(timestamp);
+  const containerRectRef = useRef<DOMRect | null>(null);
+  const rAFRef = useRef<number | null>(null);
   const [streamAnchor, setStreamAnchor] = useState<number>(timestamp);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [splitLayout, setSplitLayout] = useState<'wipe' | 'dual'>('wipe');
@@ -82,11 +85,12 @@ export function useSplitComparisonViewModel({
   const [debouncedTimestamp, setDebouncedTimestamp] = useState<number>(timestamp);
 
   useEffect(() => {
+    if (isScrubbing) return;
     const timer = setTimeout(() => {
       setDebouncedTimestamp(effectiveTimestamp);
     }, 200);
     return () => clearTimeout(timer);
-  }, [effectiveTimestamp]);
+  }, [effectiveTimestamp, isScrubbing]);
 
   const { data: frameData, isFetching } = useGetComparisonFrameQuery(
     {
@@ -99,11 +103,12 @@ export function useSplitComparisonViewModel({
       overscan: overscanBlanking ?? true,
       dropout: dropoutClean ?? false,
     },
-    { skip: !hasMedia || isStreamActive }
+    { skip: !hasMedia || isStreamActive || isScrubbing }
   );
 
-  // Reflect frame extraction telemetry in activeTask
+  // Reflect frame extraction telemetry in activeTask only when not scrubbing
   useEffect(() => {
+    if (isScrubbing) return;
     if (isFetching && !isRestoring) {
       setActiveTask({
         type: 'image_generation',
@@ -121,7 +126,7 @@ export function useSplitComparisonViewModel({
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [isFetching, isRestoring, activeTask?.type, setActiveTask]);
+  }, [isFetching, isRestoring, isScrubbing, activeTask?.type, setActiveTask]);
 
   // Atomically derive frame pair only when BOTH raw and processed are returned
   const displayedFrames = useMemo<ComparisonFrameState>(() => {
@@ -157,19 +162,35 @@ export function useSplitComparisonViewModel({
     };
   }, [activePlaying, totalDuration, timestamp, setPreviewTimestamp]);
 
+  useEffect(() => {
+    return () => {
+      if (rAFRef.current !== null) {
+        cancelAnimationFrame(rAFRef.current);
+      }
+    };
+  }, []);
+
   const updateSplitFromClientX = useCallback((clientX: number) => {
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    if (rect.width <= 0) return;
+    const rect = containerRectRef.current || containerRef.current?.getBoundingClientRect();
+    if (!rect || rect.width <= 0) return;
     const x = clientX - rect.left;
     const pct = Math.max(0, Math.min(100, (x / rect.width) * 100));
     const rounded = Math.round(pct);
     splitPosRef.current = rounded;
-    setSplitPos(rounded);
+
+    if (rAFRef.current === null) {
+      rAFRef.current = requestAnimationFrame(() => {
+        setSplitPos(splitPosRef.current);
+        rAFRef.current = null;
+      });
+    }
   }, []);
 
   const handleDividerPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
+    if (containerRef.current) {
+      containerRectRef.current = containerRef.current.getBoundingClientRect();
+    }
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
     } catch {
@@ -190,11 +211,17 @@ export function useSplitComparisonViewModel({
     if (isDraggingRef.current) {
       isDraggingRef.current = false;
       setIsDragging(false);
+      containerRectRef.current = null;
+      if (rAFRef.current !== null) {
+        cancelAnimationFrame(rAFRef.current);
+        rAFRef.current = null;
+      }
       try {
         e.currentTarget.releasePointerCapture(e.pointerId);
       } catch {
         // safe fallback
       }
+      setSplitPos(splitPosRef.current);
       setSplitPosition(splitPosRef.current);
     }
   };
@@ -248,6 +275,7 @@ export function useSplitComparisonViewModel({
   const handleSeek = (offsetSec: number) => {
     const origin = isScrubbing ? scrubTimestamp : effectiveTimestamp;
     const bounded = clampBoundedTime(origin + offsetSec);
+    scrubTimestampRef.current = bounded;
     setScrubTimestamp(bounded);
     setStreamAnchor(bounded);
     setPreviewTimestamp(bounded);
@@ -256,15 +284,17 @@ export function useSplitComparisonViewModel({
 
   const handleTimelineInput = (newVal: number) => {
     const clamped = clampBoundedTime(newVal);
+    scrubTimestampRef.current = clamped;
     setScrubTimestamp(clamped);
     setPreviewTimestamp(clamped);
   };
 
   const handleTimelineCommit = () => {
-    const target = isScrubbing ? scrubTimestamp : effectiveTimestamp;
+    const target = scrubTimestampRef.current;
+    setIsScrubbing(false);
     setStreamAnchor(target);
     setPreviewTimestamp(target);
-    setStreamKey((k) => k + 1);
+    setStreamKey((prev) => prev + 1);
   };
 
   return {

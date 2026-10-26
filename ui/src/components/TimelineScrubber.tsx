@@ -28,6 +28,25 @@ export const TimelineScrubber: React.FC<TimelineScrubberProps> = ({
   const { t } = useTranslation();
   const maxLimit = totalDuration > 0 ? totalDuration : Math.max(3600, currentTimestamp);
 
+  const handlePointerDown = (e: React.PointerEvent<HTMLInputElement>) => {
+    if (disabled) return;
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // safe fallback for jsdom
+    }
+    onScrubStart?.();
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLInputElement>) => {
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      // safe fallback for jsdom
+    }
+    onScrubCommit();
+  };
+
   return (
     <div className="flex-1 min-w-0 flex items-center gap-2.5">
       <input
@@ -37,10 +56,11 @@ export const TimelineScrubber: React.FC<TimelineScrubberProps> = ({
         step={1}
         value={totalDuration > 0 ? Math.min(totalDuration, currentTimestamp) : currentTimestamp}
         disabled={disabled}
-        onPointerDown={onScrubStart}
+        onPointerDown={handlePointerDown}
         onMouseDown={onScrubStart}
         onChange={(e) => onScrubChange(Number(e.target.value))}
-        onPointerUp={onScrubCommit}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
         onMouseUp={onScrubCommit}
         onKeyUp={onScrubCommit}
         className="w-full h-2 rounded-sm appearance-none cursor-pointer accent-amber-400 bg-slate-800/90 border border-slate-700/80 disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-110 transition-all"
