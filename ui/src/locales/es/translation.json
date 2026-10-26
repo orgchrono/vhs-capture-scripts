@@ -190,14 +190,18 @@
     "hotplug_tooltip": "Escaneo automático continuo de discos y adaptadores USB activo",
     "hotplug_disabled_label": "Hotplug Pausado",
     "hotplug_disabled_tooltip": "Escaneo automático pausado en preferencias",
-    "qc_report_button": "Informe QC"
+    "qc_report_button": "Informe QC",
+    "tab_raw": "Cintas Brutas",
+    "tab_masters": "Masters Listos",
+    "no_masters_yet": "Ningún master completado aún",
+    "master_tape_badge": "MASTER"
   },
   "app": {
     "drop_title": "Suelte su cinta de video aquí",
     "drop_formats": "Formatos compatibles: .mkv, .mp4, .avi, .mov (Ingesta automática)",
     "sidebar_capture_title": "1. Adquisición e Ingesta",
     "sidebar_library_title": "2. Biblioteca de Cintas",
-    "crt_monitor_title": "Monitor de Señal CRT",
+    "crt_monitor_title": "Monitor",
     "crt_monitor_badge": "DIRECT-SHOW / OBS VIRTUAL CAM",
     "engine_title": "Motor de Procesamiento",
     "engine_badge": "PREAJUSTES Y RESTAURACIÓN",

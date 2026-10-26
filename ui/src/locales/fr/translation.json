@@ -190,14 +190,18 @@
     "hotplug_tooltip": "Analyse automatique continue des disques et adaptateurs USB active",
     "hotplug_disabled_label": "Hotplug En Pause",
     "hotplug_disabled_tooltip": "Analyse automatique en pause dans les préférences",
-    "qc_report_button": "Rapport QC"
+    "qc_report_button": "Rapport QC",
+    "tab_raw": "Bandes Brutes",
+    "tab_masters": "Masters Prêts",
+    "no_masters_yet": "Aucun master terminé pour l'instant",
+    "master_tape_badge": "MASTER"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
     "drop_formats": "Supported formats: .mkv, .mp4, .avi, .mov (Automatic Ingestion)",
     "sidebar_capture_title": "1. Acquisition & Ingest",
     "sidebar_library_title": "2. Tape Library",
-    "crt_monitor_title": "CRT Signal Monitor",
+    "crt_monitor_title": "Moniteur",
     "crt_monitor_badge": "DIRECT-SHOW / OBS VIRTUAL CAM",
     "engine_title": "Processing Engine",
     "engine_badge": "PRESETS & RESTORATION",

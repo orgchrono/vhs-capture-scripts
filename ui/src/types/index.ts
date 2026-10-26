@@ -74,6 +74,7 @@ export interface SystemStatus {
   obs_connected?: boolean;
   obs_recording?: boolean;
   raw_files: RawFile[];
+  restored_files?: RawFile[];
   hardware?: HardwareProfile;
   health?: SystemHealth;
 }

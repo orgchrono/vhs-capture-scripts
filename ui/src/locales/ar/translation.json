@@ -190,14 +190,18 @@
     "hotplug_tooltip": "المسح التلقائي المستمر للأقراص ومحولات USB نشط",
     "hotplug_disabled_label": "التوصيل الساخن متوقف مؤقتًا",
     "hotplug_disabled_tooltip": "المسح التلقائي متوقف مؤقتًا في التفضيلات",
-    "qc_report_button": "تقرير الجودة"
+    "qc_report_button": "تقرير الجودة",
+    "tab_raw": "أشرطة خام",
+    "tab_masters": "الأشرطة الرئيسية",
+    "no_masters_yet": "لا توجد أشرطة رئيسية مكتملة بعد",
+    "master_tape_badge": "رئيسي"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
     "drop_formats": "Supported formats: .mkv, .mp4, .avi, .mov (Automatic Ingestion)",
     "sidebar_capture_title": "1. Acquisition & Ingest",
     "sidebar_library_title": "2. Tape Library",
-    "crt_monitor_title": "CRT Signal Monitor",
+    "crt_monitor_title": "شاشة",
     "crt_monitor_badge": "DIRECT-SHOW / OBS VIRTUAL CAM",
     "engine_title": "Processing Engine",
     "engine_badge": "PRESETS & RESTORATION",

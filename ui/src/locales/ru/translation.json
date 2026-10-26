@@ -190,14 +190,18 @@
     "hotplug_tooltip": "Непрерывное автоматическое сканирование дисков и USB-адаптеров активно",
     "hotplug_disabled_label": "Hotplug приостановлен",
     "hotplug_disabled_tooltip": "Автоматическое сканирование отключено в настройках",
-    "qc_report_button": "Отчет контроля"
+    "qc_report_button": "Отчет контроля",
+    "tab_raw": "Исходные ленты",
+    "tab_masters": "Готовые мастера",
+    "no_masters_yet": "Готовых мастеров пока нет",
+    "master_tape_badge": "МАСТЕР"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
     "drop_formats": "Supported formats: .mkv, .mp4, .avi, .mov (Automatic Ingestion)",
     "sidebar_capture_title": "1. Acquisition & Ingest",
     "sidebar_library_title": "2. Tape Library",
-    "crt_monitor_title": "CRT Signal Monitor",
+    "crt_monitor_title": "Монитор",
     "crt_monitor_badge": "DIRECT-SHOW / OBS VIRTUAL CAM",
     "engine_title": "Processing Engine",
     "engine_badge": "PRESETS & RESTORATION",

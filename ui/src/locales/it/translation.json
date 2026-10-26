@@ -190,14 +190,18 @@
     "hotplug_tooltip": "Scansione automatica continua di dischi e adattatori USB attiva",
     "hotplug_disabled_label": "Hotplug In Pausa",
     "hotplug_disabled_tooltip": "Scansione automatica in pausa nelle preferenze",
-    "qc_report_button": "Rapporto QC"
+    "qc_report_button": "Rapporto QC",
+    "tab_raw": "Nastri Grezzi",
+    "tab_masters": "Master Pronti",
+    "no_masters_yet": "Nessun master completato ancora",
+    "master_tape_badge": "MASTER"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
     "drop_formats": "Supported formats: .mkv, .mp4, .avi, .mov (Automatic Ingestion)",
     "sidebar_capture_title": "1. Acquisition & Ingest",
     "sidebar_library_title": "2. Tape Library",
-    "crt_monitor_title": "CRT Signal Monitor",
+    "crt_monitor_title": "Monitor",
     "crt_monitor_badge": "DIRECT-SHOW / OBS VIRTUAL CAM",
     "engine_title": "Processing Engine",
     "engine_badge": "PRESETS & RESTORATION",

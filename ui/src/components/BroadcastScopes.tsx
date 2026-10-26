@@ -339,7 +339,7 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
       className={`absolute z-50 bg-black/95 backdrop-blur-md border border-studio-border shadow-2xl rounded-sm font-mono flex flex-col ${
         isExpanded
           ? 'inset-0 !transform-none w-full h-full'
-          : 'top-3 right-3 w-[420px] sm:w-[460px] max-h-[calc(100%-24px)]'
+          : 'top-2.5 right-2.5 w-[330px] sm:w-[360px] max-w-[calc(100%-1.25rem)] max-h-[calc(100%-3.5rem)]'
       }`}
     >
       {/* Header with Grip Drag Handle & Tabs */}
@@ -465,8 +465,8 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
             </div>
             <canvas
               ref={waveformCanvasRef}
-              width={mode === 'waveform' ? 380 : 260}
-              height={mode === 'waveform' ? 180 : 130}
+              width={mode === 'waveform' ? 320 : 240}
+              height={mode === 'waveform' ? 135 : 110}
               className="w-full h-auto rounded-xs bg-[#050811] object-contain border border-white/5"
               data-testid="waveform-scope-canvas"
             />
@@ -481,8 +481,8 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
             </div>
             <canvas
               ref={vectorCanvasRef}
-              width={mode === 'vectorscope' ? 380 : 260}
-              height={mode === 'vectorscope' ? 180 : 130}
+              width={mode === 'vectorscope' ? 320 : 240}
+              height={mode === 'vectorscope' ? 135 : 110}
               className="w-full h-auto rounded-xs bg-[#050811] object-contain border border-white/5"
               data-testid="vectorscope-canvas"
             />

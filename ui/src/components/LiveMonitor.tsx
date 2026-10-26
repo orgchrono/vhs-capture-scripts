@@ -75,8 +75,8 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
       {/* Top Console Bar (Header) - OUTSIDE the View Window */}
       <div className="flex items-center justify-between mb-2 shrink-0 h-6 min-w-0 gap-2">
         {/* Left Side: Monitor Title & Device Status */}
-        <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
-          <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2 font-mono min-w-0 truncate">
+        <div className="flex items-center gap-2 min-w-0 shrink-0">
+          <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2 font-mono shrink-0 whitespace-nowrap">
             <span
               className={`led-lamp ${
                 isCapturing
@@ -87,7 +87,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
               } shrink-0`}
               aria-hidden="true"
             />
-            <span className="truncate">{t('app.crt_monitor_title')}</span>
+            <span className="whitespace-nowrap">{t('app.crt_monitor_title')}</span>
           </h2>
           <span className="hidden 2xl:inline-flex text-[10px] font-mono text-slate-400 bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border shrink-0 whitespace-nowrap">
             {t('app.crt_monitor_badge')}
@@ -211,6 +211,16 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
             {/* Subtle OSD Broadcast Telemetry (Top Right Overlay) */}
             <div className="absolute top-2 right-2 z-20 flex items-center gap-1.5 pointer-events-none">
               <AnimatePresence>
+                {isRestoring && (
+                  <motion.div key="badge-live-edge" {...badgeMotion} className="pointer-events-auto">
+                    <LiveEdgeIndicator
+                      isAtLiveEdge={isAtLiveEdge}
+                      onJumpToLive={handleJumpToLive}
+                      testId="live-header-indicator"
+                      compact
+                    />
+                  </motion.div>
+                )}
                 {(isCapturing || obsStats?.recording) && (
                   <motion.span
                     key="badge-rec"
@@ -386,14 +396,6 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
                   <ChevronsRight className="w-3.5 h-3.5" />
                 </button>
               </div>
-
-              {isRestoring && (
-                <LiveEdgeIndicator
-                  isAtLiveEdge={isAtLiveEdge}
-                  onJumpToLive={handleJumpToLive}
-                  testId="live-footer-indicator"
-                />
-              )}
 
               <TimelineScrubber
                 currentTimestamp={currentTimestamp}

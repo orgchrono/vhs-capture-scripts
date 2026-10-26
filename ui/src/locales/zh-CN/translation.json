@@ -190,14 +190,18 @@
     "hotplug_tooltip": "正在持续自动扫描物理磁盘与 USB 转换器",
     "hotplug_disabled_label": "热插拔已暂停",
     "hotplug_disabled_tooltip": "已在首选项中暂停自动扫描",
-    "qc_report_button": "质检报告"
+    "qc_report_button": "质检报告",
+    "tab_raw": "原始磁带",
+    "tab_masters": "母带成品",
+    "no_masters_yet": "暂无已完成的母带",
+    "master_tape_badge": "母带"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
     "drop_formats": "Supported formats: .mkv, .mp4, .avi, .mov (Automatic Ingestion)",
     "sidebar_capture_title": "1. Acquisition & Ingest",
     "sidebar_library_title": "2. Tape Library",
-    "crt_monitor_title": "CRT Signal Monitor",
+    "crt_monitor_title": "监视器",
     "crt_monitor_badge": "DIRECT-SHOW / OBS VIRTUAL CAM",
     "engine_title": "Processing Engine",
     "engine_badge": "PRESETS & RESTORATION",

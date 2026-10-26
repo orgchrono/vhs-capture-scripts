@@ -190,14 +190,18 @@
     "hotplug_tooltip": "Kontinuierlicher automatischer Scan nach Datenträgern und USB-Adaptern aktiv",
     "hotplug_disabled_label": "Hotplug Pausiert",
     "hotplug_disabled_tooltip": "Automatische Suche in den Einstellungen pausiert",
-    "qc_report_button": "QC-Bericht"
+    "qc_report_button": "QC-Bericht",
+    "tab_raw": "Rohbänder",
+    "tab_masters": "Masterbänder",
+    "no_masters_yet": "Noch keine fertigen Master",
+    "master_tape_badge": "MASTER"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
     "drop_formats": "Supported formats: .mkv, .mp4, .avi, .mov (Automatic Ingestion)",
     "sidebar_capture_title": "1. Acquisition & Ingest",
     "sidebar_library_title": "2. Tape Library",
-    "crt_monitor_title": "CRT Signal Monitor",
+    "crt_monitor_title": "Monitor",
     "crt_monitor_badge": "DIRECT-SHOW / OBS VIRTUAL CAM",
     "engine_title": "Processing Engine",
     "engine_badge": "PRESETS & RESTORATION",

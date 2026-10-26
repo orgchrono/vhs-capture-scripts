@@ -190,14 +190,18 @@
     "hotplug_tooltip": "Varredura automática contínua de discos e adaptadores USB ativada",
     "hotplug_disabled_label": "Hotplug Pausado",
     "hotplug_disabled_tooltip": "Varredura automática pausada nas preferências",
-    "qc_report_button": "Laudo QC"
+    "qc_report_button": "Laudo QC",
+    "tab_raw": "Fitas Brutas",
+    "tab_masters": "Masters Prontos",
+    "no_masters_yet": "Nenhum master concluído",
+    "master_tape_badge": "MASTER"
   },
   "app": {
     "drop_title": "Solte sua Fita de Vídeo Aqui",
     "drop_formats": "Formatos suportados: .mkv, .mp4, .avi, .mov (Ingestão Automática)",
     "sidebar_capture_title": "1. Captura e Ingestão",
     "sidebar_library_title": "2. Biblioteca de Fitas",
-    "crt_monitor_title": "Monitor de Sinal CRT",
+    "crt_monitor_title": "Monitor",
     "crt_monitor_badge": "DIRECT-SHOW / OBS VIRTUAL CAM",
     "engine_title": "Motor de Processamento",
     "engine_badge": "PRESETS & RESTAURAÇÃO",

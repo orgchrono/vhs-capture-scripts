@@ -225,6 +225,7 @@ const StudioMain: React.FC<{
                   </h2>
                   <FileSelector
                     files={status?.raw_files || []}
+                    restoredFiles={status?.restored_files || []}
                     onRefresh={refetchStatus}
                     isRefetching={isRefetching}
                   />
