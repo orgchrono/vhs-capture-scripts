@@ -33,7 +33,7 @@ interface ComparisonPaneProps {
   testId: string;
 }
 
-const ComparisonPane: React.FC<ComparisonPaneProps> = ({
+const ComparisonPane = React.memo<ComparisonPaneProps>(({
   type,
   imageSrc,
   label,
@@ -68,7 +68,8 @@ const ComparisonPane: React.FC<ComparisonPaneProps> = ({
       </div>
     </>
   );
-};
+});
+ComparisonPane.displayName = 'ComparisonPane';
 
 export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = (props) => {
   const {
@@ -294,7 +295,10 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = (pr
             {/* Side A: Raw / Original */}
             <div
               className="absolute inset-0 overflow-hidden pointer-events-none flex items-center justify-center"
-              style={{ clipPath: `polygon(0 0, ${splitPos}% 0, ${splitPos}% 100%, 0 100%)` }}
+              style={{
+                clipPath: `polygon(0 0, ${splitPos}% 0, ${splitPos}% 100%, 0 100%)`,
+                willChange: 'clip-path',
+              }}
             >
               <ComparisonPane
                 type="raw"
@@ -309,7 +313,11 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = (pr
               className={`absolute top-0 bottom-0 z-20 cursor-ew-resize flex items-center justify-center group ${
                 isDragging ? 'cursor-grabbing' : 'cursor-grab'
               }`}
-              style={{ left: `${splitPos}%`, transform: 'translateX(-50%)' }}
+              style={{
+                left: `${splitPos}%`,
+                transform: 'translateX(-50%)',
+                willChange: 'left',
+              }}
               onPointerDown={handleDividerPointerDown}
               onPointerMove={handleDividerPointerMove}
               onPointerUp={handleDividerPointerUp}
