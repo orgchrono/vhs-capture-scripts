@@ -243,9 +243,9 @@ export const Header: React.FC<HeaderProps> = ({
       
         <div className="hidden xl:flex items-center gap-1.5 bg-studio-surface border border-studio-border px-2 py-1 rounded-sm text-xs h-8 shrink-0 whitespace-nowrap">
           <Video className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-          {status?.obs_connected ? (
+          {status?.obs_installed ? (
             <span className="flex items-center gap-1.5 text-slate-200 font-semibold text-[11px] bg-studio-panel border border-studio-border px-2 py-0.5 rounded-sm font-mono shrink-0 whitespace-nowrap">
-              <span className="led-lamp led-live shrink-0" />
+              <span className={`led-lamp ${status?.obs_connected ? 'led-live' : 'led-idle'} shrink-0`} />
               <span className="shrink-0 whitespace-nowrap">{t('header.obs_installed')}</span>
             </span>
           ) : (

@@ -24,6 +24,7 @@ pub fn handle_obs_route(req: &ApiRequest, ctx: &AppContext) -> Option<ApiRespons
         ("POST", "/api/obs/virtualcam") => Some(handle_obs_virtualcam(req)),
         ("POST", "/api/obs/watcher/start") => Some(handle_obs_watcher_start(ctx)),
         ("POST", "/api/obs/watcher/stop") => Some(handle_obs_watcher_stop(ctx)),
+        ("POST", "/api/obs/install") => Some(handle_obs_install(ctx)),
         _ => None,
     }
 }
@@ -158,6 +159,30 @@ fn handle_obs_watcher_stop(ctx: &AppContext) -> ApiResponse {
         "message": "OBS Auto-Watcher daemon stopped.",
         "watcher_active": false
     }))
+}
+
+pub fn handle_obs_install(ctx: &AppContext) -> ApiResponse {
+    if is_obs_installed() {
+        return ApiResponse::ok(&json!({
+            "status": "ok",
+            "message": "obs_already_installed"
+        }));
+    }
+    if ctx.process.is_running() {
+        return ApiResponse::error(400, "A process is already running. Wait for completion.");
+    }
+    let current_exe = match std::env::current_exe() {
+        Ok(exe) => exe,
+        Err(e) => return ApiResponse::error(500, &format!("Could not determine executable path: {e}")),
+    };
+    let args = vec!["setup-obs".to_string()];
+    match ctx.process.start(&current_exe, &args) {
+        Ok(()) => ApiResponse::ok(&json!({
+            "status": "ok",
+            "message": "obs_install_started"
+        })),
+        Err(e) => ApiResponse::error(500, &e),
+    }
 }
 
 #[cfg(test)]

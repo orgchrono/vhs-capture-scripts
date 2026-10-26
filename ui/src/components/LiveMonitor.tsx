@@ -40,7 +40,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
     showScopes,
     setShowScopes,
     isPlaying,
-    setIsPlaying,
+    handleTogglePlay,
     streamKey,
     streamAnchor,
     currentTimestamp,
@@ -48,6 +48,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
     progressPct,
     isAtLiveEdge,
     livePreviewEnabled,
+    pausedFrameSrc,
     setIsScrubbing,
     handleJumpToLive,
     handleSeek,
@@ -301,7 +302,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
                 />
               ) : selectedFile && livePreviewEnabled ? (
                 <img
-                  src={streamUrl}
+                  src={isPlaying ? streamUrl : pausedFrameSrc || streamUrl}
                   crossOrigin="anonymous"
                   alt={t('monitor.source_stream_proxy')}
                   className="w-full h-full object-contain pointer-events-none"
@@ -360,7 +361,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
                 <button
                   type="button"
                   aria-pressed={isPlaying}
-                  onClick={() => setIsPlaying(!isPlaying)}
+                  onClick={handleTogglePlay}
                   disabled={!selectedFile || isActive || isRestoring}
                   className={`w-6 h-6 flex items-center justify-center rounded-sm border transition cursor-pointer shrink-0 disabled:opacity-40 disabled:cursor-not-allowed ${
                     isPlaying

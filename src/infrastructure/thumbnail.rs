@@ -147,10 +147,12 @@ pub fn get_or_generate_thumbnail(
         return std::fs::read(&cached_path).ok();
     }
 
-    // Generate via FFmpeg if binary is provided (with fallback seek positions for short videos)
+    // Generate via FFmpeg if binary is provided (with fallback seek positions for short videos and black leader bypass)
     if let Some(ffmpeg) = ffmpeg_bin {
         let seek_attempts = [
             crate::models::constants::DEFAULT_THUMBNAIL_SEEK_SEC,
+            30.0,
+            5.0,
             1.0,
             0.0,
         ];

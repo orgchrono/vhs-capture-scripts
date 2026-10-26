@@ -29,6 +29,7 @@ export interface UseLiveMonitorResult {
   setShowScopes: React.Dispatch<React.SetStateAction<boolean>>;
   isPlaying: boolean;
   setIsPlaying: React.Dispatch<React.SetStateAction<boolean>>;
+  handleTogglePlay: () => void;
   streamKey: number;
   streamAnchor: number;
   currentTimestamp: number;
@@ -37,6 +38,7 @@ export interface UseLiveMonitorResult {
   isAtLiveEdge: boolean;
   livePreviewEnabled: boolean;
   sourceImageSrc: string | null;
+  pausedFrameSrc: string | null;
   isScrubbing: boolean;
   setIsScrubbing: React.Dispatch<React.SetStateAction<boolean>>;
   scrubTimestamp: number;
@@ -161,7 +163,7 @@ export function useLiveMonitor(): UseLiveMonitorResult {
   }, [logs, isRestoring, preset]);
 
   const liveSec = telemetry.currentSeconds;
-  const rawTimestamp = previewTimestamp ?? 5.0;
+  const rawTimestamp = previewTimestamp ?? 0.0;
   const [isScrubbing, setIsScrubbing] = useState<boolean>(false);
   const [scrubTimestamp, setScrubTimestamp] = useState<number>(rawTimestamp);
   const scrubTimestampRef = useRef<number>(rawTimestamp);
@@ -187,6 +189,21 @@ export function useLiveMonitor(): UseLiveMonitorResult {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [streamKey, setStreamKey] = useState<number>(0);
 
+  // Synchronize player state when the selected tape changes
+  const prevSelectedFileRef = useRef<string | null>(selectedFile);
+  useEffect(() => {
+    if (prevSelectedFileRef.current !== selectedFile) {
+      prevSelectedFileRef.current = selectedFile;
+      setIsPlaying(false);
+      setIsScrubbing(false);
+      setPreviewTimestamp(0.0);
+      setScrubTimestamp(0.0);
+      scrubTimestampRef.current = 0.0;
+      setStreamAnchor(0.0);
+      setStreamKey((k) => k + 1);
+    }
+  }, [selectedFile, setPreviewTimestamp]);
+
   const { data: frameData } = useGetComparisonFrameQuery(
     {
       source: selectedFile || '',
@@ -206,14 +223,28 @@ export function useLiveMonitor(): UseLiveMonitorResult {
     ? Math.min(100, Math.max(0, (currentTimestamp / totalDuration) * 100)).toFixed(1)
     : '0.0';
 
+  const handleTogglePlay = () => {
+    if (!isPlaying) {
+      setStreamAnchor(currentTimestamp);
+      setStreamKey((k) => k + 1);
+      setIsPlaying(true);
+    } else {
+      setIsPlaying(false);
+      setPreviewTimestamp(currentTimestamp);
+    }
+  };
+
   // Playback timer
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | undefined;
     if (isPlaying && selectedFile && !isActive && !isRestoring) {
       interval = setInterval(() => {
-        setPreviewTimestamp(
-          currentTimestamp >= totalDuration ? 0 : Math.round((currentTimestamp + 1) * 10) / 10
-        );
+        if (totalDuration > 0 && currentTimestamp >= totalDuration) {
+          setIsPlaying(false);
+          setPreviewTimestamp(0.0);
+        } else {
+          setPreviewTimestamp(Math.round((currentTimestamp + 1) * 10) / 10);
+        }
       }, 1000);
     }
     return () => {
@@ -307,6 +338,7 @@ export function useLiveMonitor(): UseLiveMonitorResult {
   }, [isRestoring]);
 
   const sourceImageSrc = liveFrameSrc || frameData?.processed_image || frameData?.raw_image || null;
+  const pausedFrameSrc = frameData?.processed_image || frameData?.raw_image || null;
 
   return {
     t,
@@ -321,12 +353,14 @@ export function useLiveMonitor(): UseLiveMonitorResult {
     monitorView,
     setMonitorView,
     sourceImageSrc,
+    pausedFrameSrc,
     isSplitMode,
     setIsSplitMode,
     showScopes,
     setShowScopes,
     isPlaying,
     setIsPlaying,
+    handleTogglePlay,
     streamKey,
     streamAnchor,
     currentTimestamp,

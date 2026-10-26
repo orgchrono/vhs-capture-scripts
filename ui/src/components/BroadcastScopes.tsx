@@ -339,7 +339,7 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
       className={`absolute z-50 bg-black/95 backdrop-blur-md border border-studio-border shadow-2xl rounded-sm font-mono flex flex-col ${
         isExpanded
           ? 'inset-0 !transform-none w-full h-full'
-          : 'top-2.5 right-2.5 w-[330px] sm:w-[360px] max-w-[calc(100%-1.25rem)] max-h-[calc(100%-3.5rem)]'
+          : 'top-2.5 right-2.5 w-[340px] sm:w-[470px] max-w-[calc(100%-1.25rem)] max-h-[calc(100%-3.5rem)]'
       }`}
     >
       {/* Header with Grip Drag Handle & Tabs */}
@@ -351,15 +351,15 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
         }}
         className="flex items-center justify-between px-2.5 py-1.5 bg-studio-panel border-b border-studio-border shrink-0 select-none cursor-grab active:cursor-grabbing gap-2"
       >
-        {/* Left: Grip Handle, Title & LIVE Acronym */}
+        {/* Left: Grip Handle, Activity Icon & LIVE Acronym (Title text removed to prevent truncation) */}
         <div className="flex items-center gap-1.5 min-w-0 shrink">
           <GripHorizontal className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-          <Activity className="w-3.5 h-3.5 text-sky-400 shrink-0" />
           <span
-            className="text-xs font-bold text-slate-200 uppercase tracking-wider truncate"
             title={t('monitor.scopes_title')}
+            aria-label={t('monitor.scopes_title')}
+            className="inline-flex items-center"
           >
-            {t('monitor.scopes_title')}
+            <Activity className="w-3.5 h-3.5 text-sky-400 shrink-0" aria-hidden="true" />
           </span>
           <span className="inline-flex items-center gap-1 text-[8px] font-bold text-emerald-400 bg-emerald-950/80 px-1 py-0.5 rounded-xs border border-emerald-500/30 shrink-0 whitespace-nowrap">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
@@ -453,92 +453,154 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
 
       {/* Scope Canvases and Audio Meters */}
       <div
-        className={`p-2 grid gap-2 overflow-auto ${
-          mode === 'all' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'
+        className={`p-2 overflow-auto ${
+          mode === 'all'
+            ? 'grid grid-cols-1 sm:grid-cols-2 gap-2'
+            : 'grid grid-cols-1 gap-2'
         }`}
       >
-        {(mode === 'all' || mode === 'waveform') && (
-          <div className="flex flex-col gap-1 bg-black/60 p-1.5 rounded-sm border border-white/5">
+        {mode === 'all' ? (
+          <>
+            {/* Left Column: Waveform (Row 1) & Audio (Row 2) */}
+            <div className="flex flex-col gap-2">
+              {/* Row 1: Waveform (0 - 100 IRE) */}
+              <div className="flex flex-col gap-1 bg-black/60 p-1.5 rounded-sm border border-white/5">
+                <div className="flex items-center justify-between text-[10px] text-slate-400">
+                  <span className="font-bold text-slate-300">{t('monitor.scopes_waveform')}</span>
+                  <span className="text-[9px] text-emerald-400">0 - 100 IRE</span>
+                </div>
+                <canvas
+                  ref={waveformCanvasRef}
+                  width={220}
+                  height={115}
+                  className="w-full h-auto rounded-xs bg-[#050811] object-contain border border-white/5 shadow-inner"
+                  data-testid="waveform-scope-canvas"
+                />
+              </div>
+
+              {/* Row 2: Audio Channels (Compact EBU R128 VU Meters) */}
+              <div className="flex flex-col gap-1 bg-black/60 p-1.5 rounded-sm border border-white/5 flex-1 justify-between">
+                <div className="flex items-center justify-between text-[10px] text-slate-400">
+                  <span className="font-bold text-slate-300">{t('monitor.scopes_audio')}</span>
+                  <span className="text-[8.5px] text-amber-300 font-bold truncate max-w-[125px]">EBU R128 (-23 LUFS)</span>
+                </div>
+                <div className="flex flex-col gap-1 py-0.5">
+                  {/* Channel 1 (L) */}
+                  <div className="flex items-center gap-1.5 text-[8.5px] font-mono">
+                    <span className="w-3 text-slate-400 shrink-0 font-bold">L</span>
+                    <div className="flex-1 h-2.5 bg-slate-900 rounded-xs overflow-hidden relative border border-white/10">
+                      <div
+                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-600 via-emerald-500 to-amber-500 transition-all duration-300"
+                        style={{ width: `${calculateMeterWidth(activeLufsLeft)}%` }}
+                      />
+                      <div className="absolute inset-y-0 left-[67%] w-[1.5px] bg-sky-400" title="-23 LUFS" />
+                      <div className="absolute inset-y-0 left-[98%] w-[1.5px] bg-red-500" title="-1 dBTP" />
+                    </div>
+                    <span className="w-16 text-right text-slate-300 shrink-0 tabular-nums">
+                      {activeLufsLeft.toFixed(1)} LUFS
+                    </span>
+                  </div>
+                  {/* Channel 2 (R) */}
+                  <div className="flex items-center gap-1.5 text-[8.5px] font-mono">
+                    <span className="w-3 text-slate-400 shrink-0 font-bold">R</span>
+                    <div className="flex-1 h-2.5 bg-slate-900 rounded-xs overflow-hidden relative border border-white/10">
+                      <div
+                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-600 via-emerald-500 to-amber-500 transition-all duration-300"
+                        style={{ width: `${calculateMeterWidth(activeLufsRight)}%` }}
+                      />
+                      <div className="absolute inset-y-0 left-[67%] w-[1.5px] bg-sky-400" title="-23 LUFS" />
+                      <div className="absolute inset-y-0 left-[98%] w-[1.5px] bg-red-500" title="-1 dBTP" />
+                    </div>
+                    <span className="w-16 text-right text-slate-300 shrink-0 tabular-nums">
+                      {activeLufsRight.toFixed(1)} LUFS
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Vectorscope (Chroma) spanning 2 rows in a perfect square */}
+            <div className="flex flex-col gap-1 bg-black/60 p-1.5 rounded-sm border border-white/5 h-full">
+              <div className="flex items-center justify-between text-[10px] text-slate-400">
+                <span className="font-bold text-slate-300">{t('monitor.scopes_vectorscope')}</span>
+                <span className="text-[9px] text-sky-400 font-bold">SMPTE 75%</span>
+              </div>
+              <div className="flex-1 flex items-center justify-center min-h-0 py-0.5">
+                <canvas
+                  ref={vectorCanvasRef}
+                  width={220}
+                  height={220}
+                  className="aspect-square w-full h-full max-w-[200px] max-h-[200px] rounded-xs bg-[#050811] object-contain border border-white/5 shadow-inner"
+                  data-testid="vectorscope-canvas"
+                />
+              </div>
+            </div>
+          </>
+        ) : mode === 'waveform' ? (
+          <div className="flex flex-col gap-1 bg-black/60 p-2 rounded-sm border border-white/5">
             <div className="flex items-center justify-between text-[10px] text-slate-400">
               <span className="font-bold text-slate-300">{t('monitor.scopes_waveform')}</span>
               <span className="text-[9px] text-emerald-400">0 - 100 IRE</span>
             </div>
             <canvas
               ref={waveformCanvasRef}
-              width={mode === 'waveform' ? 320 : 240}
-              height={mode === 'waveform' ? 135 : 110}
-              className="w-full h-auto rounded-xs bg-[#050811] object-contain border border-white/5"
+              width={420}
+              height={190}
+              className="w-full h-[180px] sm:h-[210px] rounded-xs bg-[#050811] object-contain border border-white/5 shadow-inner"
               data-testid="waveform-scope-canvas"
             />
           </div>
-        )}
-
-        {(mode === 'all' || mode === 'vectorscope') && (
-          <div className="flex flex-col gap-1 bg-black/60 p-1.5 rounded-sm border border-white/5">
-            <div className="flex items-center justify-between text-[10px] text-slate-400">
+        ) : mode === 'vectorscope' ? (
+          <div className="flex flex-col gap-1 bg-black/60 p-2 rounded-sm border border-white/5 items-center justify-center">
+            <div className="flex items-center justify-between text-[10px] text-slate-400 w-full max-w-[260px]">
               <span className="font-bold text-slate-300">{t('monitor.scopes_vectorscope')}</span>
-              <span className="text-[9px] text-sky-400">SMPTE 75%</span>
+              <span className="text-[9px] text-sky-400 font-bold">SMPTE 75%</span>
             </div>
-            <canvas
-              ref={vectorCanvasRef}
-              width={mode === 'vectorscope' ? 320 : 240}
-              height={mode === 'vectorscope' ? 135 : 110}
-              className="w-full h-auto rounded-xs bg-[#050811] object-contain border border-white/5"
-              data-testid="vectorscope-canvas"
-            />
+            <div className="flex items-center justify-center w-full py-1">
+              <canvas
+                ref={vectorCanvasRef}
+                width={260}
+                height={260}
+                className="aspect-square w-[220px] h-[220px] sm:w-[250px] sm:h-[250px] rounded-xs bg-[#050811] object-contain border border-white/5 shadow-inner"
+                data-testid="vectorscope-canvas"
+              />
+            </div>
           </div>
-        )}
-
-        {(mode === 'all' || mode === 'audio') && (
-          <div
-            className={`flex flex-col gap-1 bg-black/60 p-1.5 rounded-sm border border-white/5 ${
-              mode === 'all' ? 'col-span-1 md:col-span-2' : 'col-span-1'
-            }`}
-          >
+        ) : (
+          /* mode === 'audio' */
+          <div className="flex flex-col gap-1.5 bg-black/60 p-2.5 rounded-sm border border-white/5">
             <div className="flex items-center justify-between text-[10px] text-slate-400">
               <span className="font-bold text-slate-300">{t('monitor.scopes_audio')}</span>
               <span className="text-[9px] text-amber-300 font-bold">EBU R128 (-23 LUFS / -1 dBTP)</span>
             </div>
-            <div className="flex flex-col gap-1.5 py-1">
+            <div className="flex flex-col gap-2 py-2">
               {/* Channel 1 (L) */}
-              <div className="flex items-center gap-2 text-[9px] font-mono">
-                <span className="w-4 text-slate-400 shrink-0">L</span>
-                <div className="flex-1 h-3 bg-slate-900 rounded-xs overflow-hidden relative border border-white/10">
+              <div className="flex items-center gap-2 text-[10px] font-mono">
+                <span className="w-4 text-slate-400 shrink-0 font-bold">L</span>
+                <div className="flex-1 h-3.5 bg-slate-900 rounded-xs overflow-hidden relative border border-white/10">
                   <div
                     className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-600 via-emerald-500 to-amber-500 transition-all duration-300"
                     style={{ width: `${calculateMeterWidth(activeLufsLeft)}%` }}
                   />
-                  <div
-                    className="absolute inset-y-0 left-[67%] w-[1.5px] bg-sky-400"
-                    title="-23 LUFS"
-                  />
-                  <div
-                    className="absolute inset-y-0 left-[98%] w-[1.5px] bg-red-500"
-                    title="-1 dBTP"
-                  />
+                  <div className="absolute inset-y-0 left-[67%] w-[1.5px] bg-sky-400" title="-23 LUFS" />
+                  <div className="absolute inset-y-0 left-[98%] w-[1.5px] bg-red-500" title="-1 dBTP" />
                 </div>
-                <span className="w-16 text-right text-slate-300 shrink-0">
+                <span className="w-16 text-right text-slate-300 shrink-0 tabular-nums">
                   {activeLufsLeft.toFixed(1)} LUFS
                 </span>
               </div>
               {/* Channel 2 (R) */}
-              <div className="flex items-center gap-2 text-[9px] font-mono">
-                <span className="w-4 text-slate-400 shrink-0">R</span>
-                <div className="flex-1 h-3 bg-slate-900 rounded-xs overflow-hidden relative border border-white/10">
+              <div className="flex items-center gap-2 text-[10px] font-mono">
+                <span className="w-4 text-slate-400 shrink-0 font-bold">R</span>
+                <div className="flex-1 h-3.5 bg-slate-900 rounded-xs overflow-hidden relative border border-white/10">
                   <div
                     className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-600 via-emerald-500 to-amber-500 transition-all duration-300"
                     style={{ width: `${calculateMeterWidth(activeLufsRight)}%` }}
                   />
-                  <div
-                    className="absolute inset-y-0 left-[67%] w-[1.5px] bg-sky-400"
-                    title="-23 LUFS"
-                  />
-                  <div
-                    className="absolute inset-y-0 left-[98%] w-[1.5px] bg-red-500"
-                    title="-1 dBTP"
-                  />
+                  <div className="absolute inset-y-0 left-[67%] w-[1.5px] bg-sky-400" title="-23 LUFS" />
+                  <div className="absolute inset-y-0 left-[98%] w-[1.5px] bg-red-500" title="-1 dBTP" />
                 </div>
-                <span className="w-16 text-right text-slate-300 shrink-0">
+                <span className="w-16 text-right text-slate-300 shrink-0 tabular-nums">
                   {activeLufsRight.toFixed(1)} LUFS
                 </span>
               </div>

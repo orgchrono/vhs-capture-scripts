@@ -72,6 +72,7 @@ export interface SystemStatus {
   encoder: string;
   vapoursynth_available: boolean;
   obs_connected?: boolean;
+  obs_installed?: boolean;
   obs_recording?: boolean;
   raw_files: RawFile[];
   restored_files?: RawFile[];

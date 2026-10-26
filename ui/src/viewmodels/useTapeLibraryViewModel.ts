@@ -13,7 +13,7 @@ export interface UseTapeLibraryViewModelProps {
 
 export function useTapeLibraryViewModel({ files, onRefreshParent }: UseTapeLibraryViewModelProps) {
   const { t } = useTranslation();
-  const { selectedFile, setSelectedFile, addLog, isPaused } = useStudioStore();
+  const { selectedFile, setSelectedFile, setPreviewTimestamp, addLog, isPaused } = useStudioStore();
   const [isLibraryExpanded, setIsLibraryExpanded] = useState(true);
 
   // Compose the recovery ViewModel directly (DRY + SRP)
@@ -22,6 +22,7 @@ export function useTapeLibraryViewModel({ files, onRefreshParent }: UseTapeLibra
   const handleSelectTape = (file: RawFile) => {
     if (selectedFile === file.path) return;
     setSelectedFile(file.path);
+    setPreviewTimestamp(0.0);
     addLog(t('logs.tape_loaded', { name: file.name }));
     toast.success(t('toast.file_loaded_title'), {
       description: `${file.name} (${formatMbSize(file.size_mb)})`,
