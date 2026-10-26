@@ -5,7 +5,7 @@ use crate::infrastructure::app_context::AppContext;
 use crate::infrastructure::cpu_usage::sample_cpu_percent;
 use crate::infrastructure::hardware::{detect_system_ram_gb, get_active_hardware_profile};
 use crate::infrastructure::toolchain::{
-    detect_best_ffmpeg_encoder, is_obs_running, is_vapoursynth_available,
+    detect_best_ffmpeg_encoder, is_obs_installed, is_obs_running, is_vapoursynth_available,
 };
 use crate::models::media::scan_media_directory;
 use crate::models::preferences::{merge_preferences, to_ui_json};
@@ -45,6 +45,7 @@ fn status(ctx: &AppContext) -> ApiResponse {
     let encoder = detect_best_ffmpeg_encoder("h264");
     let vs = is_vapoursynth_available();
     let obs = is_obs_running();
+    let obs_installed = is_obs_installed();
     let raw = list_media(&dirs.raw);
     let restored = list_media(&dirs.restored);
     let hw = get_active_hardware_profile();
@@ -55,6 +56,7 @@ fn status(ctx: &AppContext) -> ApiResponse {
         "encoder": encoder,
         "vapoursynth_available": vs,
         "obs_connected": obs,
+        "obs_installed": obs_installed,
         "obs_recording": false,
         "raw_files": raw,
         "restored_files": restored,

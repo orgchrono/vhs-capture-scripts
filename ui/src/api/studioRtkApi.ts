@@ -410,7 +410,7 @@ export const studioRtkApi = createApi({
           url: 'api/monitor/comparison-frame',
           params: {
             source: params.source || '',
-            timestamp: params.timestamp ?? 5.0,
+            timestamp: params.timestamp ?? 0.0,
             deinterlacer: params.deinterlacer || 'qtgmc',
             denoise: params.denoise ?? true,
             chroma_fix: params.chroma_fix ?? true,

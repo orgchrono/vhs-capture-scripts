@@ -86,7 +86,7 @@ pub const MAX_HTTP_HEAD_BYTES: usize = 64 * 1024;
 pub const HTTP_READ_TIMEOUT_SECS: u64 = 15;
 
 /// Seconds a preview thumbnail extraction may take before it is abandoned.
-pub const DEFAULT_THUMBNAIL_SEEK_SEC: f64 = 5.0;
+pub const DEFAULT_THUMBNAIL_SEEK_SEC: f64 = 15.0;
 
 /// Loopback host names accepted by the origin/host verification middleware.
 pub const LOOPBACK_HOSTS: [&str; 5] = ["127.0.0.1", "localhost", "[::1]", "tauri.localhost", "testserver"];

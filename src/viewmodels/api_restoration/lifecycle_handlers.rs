@@ -4,7 +4,6 @@ use serde_json::{json, Value};
 
 use crate::infrastructure::app_context::AppContext;
 use crate::infrastructure::security::is_safe_media_path;
-use crate::infrastructure::toolchain::is_obs_installed;
 use crate::models::presets::{PresetConfig, RestorationPreset};
 use crate::viewmodels::api_support::{media_dirs, resolve_media_input};
 use crate::viewmodels::api_types::{ApiRequest, ApiResponse};
@@ -72,29 +71,7 @@ pub fn handle_action(req: &ApiRequest, ctx: &AppContext) -> ApiResponse {
         "stop_process" | "abort_process" => handle_abort(ctx),
         "pause_process" => handle_pause(ctx),
         "resume_process" => handle_resume(ctx),
-        "install_obs" => {
-            if is_obs_installed() {
-                ApiResponse::ok(&json!({
-                    "status": "ok",
-                    "message": "obs_already_installed"
-                }))
-            } else if ctx.process.is_running() {
-                ApiResponse::error(400, "A process is already running. Wait for completion.")
-            } else {
-                let current_exe = match std::env::current_exe() {
-                    Ok(exe) => exe,
-                    Err(e) => return ApiResponse::error(500, &format!("Could not determine executable path: {e}")),
-                };
-                let args = vec!["setup-obs".to_string()];
-                match ctx.process.start(&current_exe, &args) {
-                    Ok(()) => ApiResponse::ok(&json!({
-                        "status": "ok",
-                        "message": "obs_install_started"
-                    })),
-                    Err(e) => ApiResponse::error(500, &e),
-                }
-            }
-        }
+        "install_obs" => crate::viewmodels::api_obs::handle_obs_install(ctx),
         "install_vapoursynth" => super::qc_handlers::handle_install_qtgmc(ctx),
         "detect_whisper_language" => super::whisper_service::handle_detect_whisper_language(&params),
         "generate_subtitles" => super::whisper_service::handle_generate_subtitles(&params, ctx),

@@ -16,7 +16,7 @@ describe('BroadcastScopes Component', () => {
     expect(screen.getByTestId('broadcast-scopes-panel')).toBeInTheDocument();
     expect(screen.getByTestId('waveform-scope-canvas')).toBeInTheDocument();
     expect(screen.getByTestId('vectorscope-canvas')).toBeInTheDocument();
-    expect(screen.getByText('monitor.scopes_title')).toBeInTheDocument();
+    expect(screen.getByTitle('monitor.scopes_title')).toBeInTheDocument();
   });
 
   it('switches tabs to isolate waveform, vectorscope and audio', () => {

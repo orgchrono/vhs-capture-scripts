@@ -43,7 +43,7 @@ export function useSplitComparisonViewModel({
   } = useStudioStore();
 
   const [splitPos, setSplitPos] = useState<number>(splitPosition ?? 50);
-  const timestamp = previewTimestamp ?? 5.0;
+  const timestamp = previewTimestamp ?? 0.0;
   const [isScrubbing, setIsScrubbing] = useState<boolean>(false);
   const [scrubTimestamp, setScrubTimestamp] = useState<number>(timestamp);
   const scrubTimestampRef = useRef<number>(timestamp);
@@ -59,6 +59,20 @@ export function useSplitComparisonViewModel({
   const containerRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef<boolean>(false);
   const splitPosRef = useRef<number>(splitPos);
+
+  const prevSourceRef = useRef<string | undefined>(source);
+  useEffect(() => {
+    if (prevSourceRef.current !== source) {
+      prevSourceRef.current = source;
+      setIsPlaying(false);
+      setIsScrubbing(false);
+      setPreviewTimestamp(0.0);
+      setScrubTimestamp(0.0);
+      scrubTimestampRef.current = 0.0;
+      setStreamAnchor(0.0);
+      setStreamKey((k) => k + 1);
+    }
+  }, [source, setPreviewTimestamp]);
 
   useEffect(() => {
     splitPosRef.current = splitPos;

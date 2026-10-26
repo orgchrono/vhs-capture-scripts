@@ -113,6 +113,12 @@ pub fn get_tool_search_candidates(
         if tool_name == "obs" || tool_name == "obs64" {
             candidates.push(PathBuf::from(r"C:\Program Files\obs-studio\bin\64bit\obs64.exe"));
             candidates.push(PathBuf::from(r"C:\Program Files (x86)\obs-studio\bin\64bit\obs64.exe"));
+            if let Some(pf) = std::env::var_os("ProgramFiles") {
+                candidates.push(PathBuf::from(pf).join("obs-studio").join("bin").join("64bit").join("obs64.exe"));
+            }
+            if let Some(pf86) = std::env::var_os("ProgramFiles(x86)") {
+                candidates.push(PathBuf::from(pf86).join("obs-studio").join("bin").join("64bit").join("obs64.exe"));
+            }
         }
         if tool_name == "vspipe" || tool_name == "vapoursynth" {
             candidates.push(PathBuf::from(r"C:\Program Files\VapourSynth\vspipe.exe"));

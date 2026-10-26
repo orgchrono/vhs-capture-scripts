@@ -106,7 +106,7 @@ export const initialStudioState: StudioState = {
   sidebarCollapsed: false,
   consoleCollapsed: false,
   workspacePreset: 'default',
-  previewTimestamp: 5.0,
+  previewTimestamp: 0.0,
   splitPosition: 50,
   previewMode: 'stream',
 };
