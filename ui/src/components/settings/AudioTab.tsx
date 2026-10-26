@@ -33,7 +33,7 @@ export const AudioTab: React.FC<AudioTabProps> = ({
   return (
     <TabsContent value="audio" className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 space-y-4">
       <TabTransition>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5 items-stretch">
           {matches(['áudio', 'audio', 'stereo', 'mono']) && (
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-slate-400 block font-mono">{t('settings.audio_mode_label')}</label>
@@ -57,7 +57,7 @@ export const AudioTab: React.FC<AudioTabProps> = ({
           )}
 
           {matches(['áudio', 'audio', 'tratamento', 'normalização']) && (
-            <div className="flex items-center justify-between bg-studio-surface p-3.5 rounded-sm border border-studio-border">
+            <div className="h-full flex items-center justify-between bg-studio-surface p-3.5 rounded-sm border border-studio-border">
               <div className="space-y-0.5">
                 <label className="text-xs font-medium text-slate-200 font-mono">{t('settings.audio_treatment_label')}</label>
                 <p className="text-[11px] text-slate-400 font-mono">{t('settings.audio_treatment_desc')}</p>

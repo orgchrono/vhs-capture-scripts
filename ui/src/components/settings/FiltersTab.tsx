@@ -34,9 +34,9 @@ export const FiltersTab: React.FC<FiltersTabProps> = ({
   return (
     <TabsContent value="filters" className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 space-y-3">
       <TabTransition>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5 items-stretch">
           {matches(['chroma', 'cores', 'filtros']) && (
-            <div className="flex items-center justify-between bg-studio-surface p-3.5 rounded-sm border border-studio-border">
+            <div className="h-full flex items-center justify-between bg-studio-surface p-3.5 rounded-sm border border-studio-border">
               <div className="space-y-0.5">
                 <label className="text-xs font-medium text-slate-200 font-mono">{t('settings.chroma_fix_label')}</label>
                 <p className="text-[11px] text-slate-400 font-mono">{t('settings.chroma_fix_desc')}</p>
@@ -46,7 +46,7 @@ export const FiltersTab: React.FC<FiltersTabProps> = ({
           )}
 
           {matches(['denoise', 'ruído', 'filtros']) && (
-            <div className="flex items-center justify-between bg-studio-surface p-3.5 rounded-sm border border-studio-border">
+            <div className="h-full flex items-center justify-between bg-studio-surface p-3.5 rounded-sm border border-studio-border">
               <div className="space-y-0.5">
                 <label className="text-xs font-medium text-slate-200 font-mono">{t('settings.denoise_label')}</label>
                 <p className="text-[11px] text-slate-400 font-mono">{t('settings.denoise_desc')}</p>
@@ -56,7 +56,7 @@ export const FiltersTab: React.FC<FiltersTabProps> = ({
           )}
 
           {matches(['dotcrawl', 'comb', 'filtros']) && (
-            <div className="flex items-center justify-between bg-studio-surface p-3.5 rounded-sm border border-studio-border">
+            <div className="h-full flex items-center justify-between bg-studio-surface p-3.5 rounded-sm border border-studio-border">
               <div className="space-y-0.5">
                 <label className="text-xs font-medium text-slate-200 font-mono">{t('settings.comb_filter_label')}</label>
                 <p className="text-[11px] text-slate-400 font-mono">{t('settings.comb_filter_desc')}</p>
@@ -66,7 +66,7 @@ export const FiltersTab: React.FC<FiltersTabProps> = ({
           )}
 
           {matches(['overscan', 'bordas', 'filtros']) && (
-            <div className="flex items-center justify-between bg-studio-surface p-3.5 rounded-sm border border-studio-border">
+            <div className="h-full flex items-center justify-between bg-studio-surface p-3.5 rounded-sm border border-studio-border">
               <div className="space-y-0.5">
                 <label className="text-xs font-medium text-slate-200 font-mono">{t('settings.overscan_label')}</label>
                 <p className="text-[11px] text-slate-400 font-mono">{t('settings.overscan_desc')}</p>

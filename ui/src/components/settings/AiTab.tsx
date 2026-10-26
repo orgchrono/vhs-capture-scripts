@@ -156,82 +156,88 @@ export const AiTab: React.FC<AiTabProps> = ({
                 <Zap className="w-3.5 h-3.5 text-amber-500" /> {t('ai.modules_title')}
               </h4>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-stretch">
                 {/* Áudio Neural DeepFilterNet */}
                 {matches(['deepfilter', 'audio', 'áudio', 'denoise', 'neural', 'ai', 'ia']) && (
-                  <div className="bg-studio-surface p-3 rounded-sm border border-studio-border flex items-start justify-between gap-3 min-h-[72px] overflow-hidden">
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <div className="flex flex-wrap items-center gap-1.5 min-w-0">
-                        <label className="text-xs font-medium text-slate-200 font-mono truncate" title={t('ai.deepfilter_label')}>{t('ai.deepfilter_label')}</label>
-                        <span className="text-[9px] bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded-sm font-mono whitespace-nowrap shrink-0">
-                          {t('ai.realtime_cpu')}
-                        </span>
+                  <div className="h-full bg-studio-surface p-3 rounded-sm border border-studio-border flex flex-col justify-between min-h-[82px] overflow-hidden">
+                    <div className="flex items-start justify-between gap-3 min-w-0">
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+                          <label className="text-xs font-medium text-slate-200 font-mono truncate" title={t('ai.deepfilter_label')}>{t('ai.deepfilter_label')}</label>
+                          <span className="text-[9px] bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded-sm font-mono whitespace-nowrap shrink-0">
+                            {t('ai.realtime_cpu')}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 leading-relaxed font-mono break-words">
+                          {t('ai.deepfilter_desc')}
+                        </p>
                       </div>
-                      <p className="text-[11px] text-slate-400 leading-relaxed font-mono break-words">
-                        {t('ai.deepfilter_desc')}
-                      </p>
+                      <Switch
+                        aria-label={t('ai.deepfilter_label')}
+                        checked={aiAudioDenoise}
+                        onCheckedChange={setAiAudioDenoise}
+                        disabled={isLocked}
+                        className="shrink-0 self-start ml-2 mt-0.5"
+                      />
                     </div>
-                    <Switch
-                      aria-label={t('ai.deepfilter_label')}
-                      checked={aiAudioDenoise}
-                      onCheckedChange={setAiAudioDenoise}
-                      disabled={isLocked}
-                      className="shrink-0 self-center ml-2"
-                    />
                   </div>
                 )}
 
                 {/* Dropout Cleaner */}
                 {matches(['dropout', 'cleaner', 'tape', 'fita', 'ai', 'ia']) && (
-                  <div className="bg-studio-surface p-3 rounded-sm border border-studio-border flex items-start justify-between gap-3 min-h-[72px] overflow-hidden">
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <div className="flex flex-wrap items-center gap-1.5 min-w-0">
-                        <label className="text-xs font-medium text-slate-200 font-mono truncate" title={t('ai.dropout_label')}>{t('ai.dropout_label')}</label>
-                        <span className="text-[9px] bg-slate-800 text-slate-300 border border-studio-border px-1.5 py-0.5 rounded-sm font-mono whitespace-nowrap shrink-0">
-                          {t('ai.fast_cpu')}
-                        </span>
+                  <div className="h-full bg-studio-surface p-3 rounded-sm border border-studio-border flex flex-col justify-between min-h-[82px] overflow-hidden">
+                    <div className="flex items-start justify-between gap-3 min-w-0">
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+                          <label className="text-xs font-medium text-slate-200 font-mono truncate" title={t('ai.dropout_label')}>{t('ai.dropout_label')}</label>
+                          <span className="text-[9px] bg-slate-800 text-slate-300 border border-studio-border px-1.5 py-0.5 rounded-sm font-mono whitespace-nowrap shrink-0">
+                            {t('ai.fast_cpu')}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 leading-relaxed font-mono break-words">
+                          {t('ai.dropout_desc')}
+                        </p>
                       </div>
-                      <p className="text-[11px] text-slate-400 leading-relaxed font-mono break-words">
-                        {t('ai.dropout_desc')}
-                      </p>
+                      <Switch
+                        aria-label={t('ai.dropout_label')}
+                        checked={dropoutClean}
+                        onCheckedChange={setDropoutClean}
+                        disabled={isLocked}
+                        className="shrink-0 self-start ml-2 mt-0.5"
+                      />
                     </div>
-                    <Switch
-                      aria-label={t('ai.dropout_label')}
-                      checked={dropoutClean}
-                      onCheckedChange={setDropoutClean}
-                      disabled={isLocked}
-                      className="shrink-0 self-center ml-2"
-                    />
                   </div>
                 )}
 
                 {/* RIFE 60fps */}
                 {matches(['rife', '60fps', 'fps', 'interpolação', 'interpolation', 'vulkan', 'ai', 'ia']) && (
-                  <div className="bg-studio-surface p-3 rounded-sm border border-studio-border flex items-start justify-between gap-3 min-h-[72px] overflow-hidden">
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <div className="flex flex-wrap items-center gap-1.5 min-w-0">
-                        <label className="text-xs font-medium text-slate-200 font-mono truncate" title={t('ai.rife_label')}>{t('ai.rife_label')}</label>
-                        <span className="text-[9px] bg-amber-950/60 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded-sm font-mono whitespace-nowrap shrink-0">
-                          {hardwareProfile?.gpu?.vulkan_available ? t('ai.vulkan_speed') : t('ai.slow_cpu')}
-                        </span>
+                  <div className="h-full bg-studio-surface p-3 rounded-sm border border-studio-border flex flex-col justify-between min-h-[82px] overflow-hidden">
+                    <div className="flex items-start justify-between gap-3 min-w-0">
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+                          <label className="text-xs font-medium text-slate-200 font-mono truncate" title={t('ai.rife_label')}>{t('ai.rife_label')}</label>
+                          <span className="text-[9px] bg-amber-950/60 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded-sm font-mono whitespace-nowrap shrink-0">
+                            {hardwareProfile?.gpu?.vulkan_available ? t('ai.vulkan_speed') : t('ai.slow_cpu')}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 leading-relaxed font-mono break-words">
+                          {t('ai.rife_desc')}
+                        </p>
                       </div>
-                      <p className="text-[11px] text-slate-400 leading-relaxed font-mono break-words">
-                        {t('ai.rife_desc')}
-                      </p>
+                      <Switch
+                        aria-label={t('ai.rife_label')}
+                        checked={aiRife60fps}
+                        onCheckedChange={setAiRife60fps}
+                        disabled={isLocked}
+                        className="shrink-0 self-start ml-2 mt-0.5"
+                      />
                     </div>
-                    <Switch
-                      aria-label={t('ai.rife_label')}
-                      checked={aiRife60fps}
-                      onCheckedChange={setAiRife60fps}
-                      disabled={isLocked}
-                      className="shrink-0 self-center ml-2"
-                    />
                   </div>
                 )}
 
                 {/* Super Resolução / Upscaler */}
                 {matches(['upscaler', 'super', 'resolução', 'realesrgan', 'compact', 'ai', 'ia']) && (
-                  <div className="bg-studio-surface p-3 rounded-sm border border-studio-border flex flex-col justify-between gap-2.5 min-h-[72px] overflow-hidden">
+                  <div className="h-full bg-studio-surface p-3 rounded-sm border border-studio-border flex flex-col justify-between min-h-[82px] overflow-hidden">
                     <div className="flex items-start justify-between gap-3 min-w-0">
                       <div className="min-w-0 flex-1 space-y-1">
                         <div className="flex flex-wrap items-center gap-1.5 min-w-0">
@@ -249,7 +255,7 @@ export const AiTab: React.FC<AiTabProps> = ({
                         checked={aiUpscaler}
                         onCheckedChange={setAiUpscaler}
                         disabled={isLocked}
-                        className="shrink-0 self-center ml-2"
+                        className="shrink-0 self-start ml-2 mt-0.5"
                       />
                     </div>
 

@@ -35,32 +35,26 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
     left: -22.8,
     right: -23.4,
   });
+
   const waveformCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const vectorCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const cachedImageRef = useRef<HTMLImageElement | null>(null);
+  const lastLufsRef = useRef({ left: -22.8, right: -23.4 });
 
   const activeLufsLeft = lufsLeft ?? derivedLufs.left;
   const activeLufsRight = lufsRight ?? derivedLufs.right;
 
-  const drawScopes = useCallback(() => {
-    const waveCanvas = waveformCanvasRef.current;
-    const vectorCanvas = vectorCanvasRef.current;
-
-    if (!waveCanvas && !vectorCanvas) {
-      return;
-    }
-
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-
-    const renderGraticules = (
+  const renderGraticules = useCallback(
+    (
       ctxWave: CanvasRenderingContext2D | null,
       ctxVec: CanvasRenderingContext2D | null,
       imgData?: ImageData
     ) => {
-      // 1. Draw Waveform
-      if (ctxWave && waveCanvas) {
-        const w = waveCanvas.width;
-        const h = waveCanvas.height;
+      // 1. Draw Waveform (IRE graticules + trace)
+      if (ctxWave && waveformCanvasRef.current) {
+        const w = waveformCanvasRef.current.width;
+        const h = waveformCanvasRef.current.height;
         ctxWave.fillStyle = '#050811';
         ctxWave.fillRect(0, 0, w, h);
 
@@ -94,14 +88,14 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
         // Signal trace
         if (imgData) {
           const { data, width: imgW, height: imgH } = imgData;
-          ctxWave.fillStyle = 'rgba(34, 197, 94, 0.35)'; // Phosphor green
-          const stepX = Math.max(1, Math.floor(imgW / (w - 30)));
+          ctxWave.fillStyle = 'rgba(34, 197, 94, 0.45)'; // Phosphor green
+          const stepX = Math.max(1, Math.floor(imgW / (w - 32)));
           const stepY = Math.max(1, Math.floor(imgH / 120));
           let sumLuma = 0;
           let sampleCount = 0;
 
           for (let ix = 0; ix < imgW; ix += stepX) {
-            const plotX = 30 + Math.floor((ix / imgW) * (w - 32));
+            const plotX = 30 + Math.floor((ix / imgW) * (w - 34));
             for (let iy = 0; iy < imgH; iy += stepY) {
               const idx = (iy * imgW + ix) * 4;
               const r = data[idx];
@@ -121,15 +115,33 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
             const avg = sumLuma / sampleCount;
             const derivedLeft = Math.round((-23.0 + (avg / 255.0 - 0.5) * 6) * 10) / 10;
             const derivedRight = Math.round((-23.4 + (avg / 255.0 - 0.5) * 6) * 10) / 10;
-            setDerivedLufs({ left: derivedLeft, right: derivedRight });
+            if (
+              Math.abs(derivedLeft - lastLufsRef.current.left) >= 0.3 ||
+              Math.abs(derivedRight - lastLufsRef.current.right) >= 0.3
+            ) {
+              lastLufsRef.current = { left: derivedLeft, right: derivedRight };
+              setDerivedLufs({ left: derivedLeft, right: derivedRight });
+            }
           }
+        } else {
+          // CRT Standby baseline at 7.5 IRE (pedestal)
+          ctxWave.strokeStyle = 'rgba(34, 197, 94, 0.35)';
+          ctxWave.lineWidth = 1.2;
+          ctxWave.beginPath();
+          const pedestalY = h * 0.85;
+          ctxWave.moveTo(28, pedestalY);
+          for (let x = 28; x < w; x += 4) {
+            const noise = Math.sin(x * 0.2 + Date.now() * 0.005) * 0.8;
+            ctxWave.lineTo(x, pedestalY + noise);
+          }
+          ctxWave.stroke();
         }
       }
 
-      // 2. Draw Vectorscope
-      if (ctxVec && vectorCanvas) {
-        const w = vectorCanvas.width;
-        const h = vectorCanvas.height;
+      // 2. Draw Vectorscope (Polar graticule + targets + trace)
+      if (ctxVec && vectorCanvasRef.current) {
+        const w = vectorCanvasRef.current.width;
+        const h = vectorCanvasRef.current.height;
         const cx = w / 2;
         const cy = h / 2;
         const radius = Math.min(cx, cy) - 16;
@@ -183,8 +195,8 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
         // Trace plot
         if (imgData) {
           const { data, width: imgW, height: imgH } = imgData;
-          ctxVec.fillStyle = 'rgba(56, 189, 248, 0.4)'; // Phosphor cyan
-          const step = Math.max(1, Math.floor((imgW * imgH) / 15000));
+          ctxVec.fillStyle = 'rgba(56, 189, 248, 0.45)'; // Phosphor cyan
+          const step = Math.max(1, Math.floor((imgW * imgH) / 12000));
 
           for (let i = 0; i < data.length; i += step * 4) {
             const r = data[i];
@@ -199,71 +211,122 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
             const py = cy - v * scale;
             ctxVec.fillRect(px, py, 1.2, 1.2);
           }
+        } else {
+          // Zero subcarrier carrier dot at center
+          ctxVec.fillStyle = 'rgba(56, 189, 248, 0.55)';
+          ctxVec.beginPath();
+          ctxVec.arc(cx, cy, 2, 0, Math.PI * 2);
+          ctxVec.fill();
         }
       }
-    };
+    },
+    []
+  );
 
-    if (sourceImageSrc) {
-      img.onload = () => {
-        try {
-          const offscreen = document.createElement('canvas');
-          offscreen.width = 160;
-          offscreen.height = 120;
-          const offCtx = offscreen.getContext('2d');
-          if (offCtx) {
-            offCtx.drawImage(img, 0, 0, 160, 120);
-            const imgData = offCtx.getImageData(0, 0, 160, 120);
-            renderGraticules(
-              waveformCanvasRef.current?.getContext('2d') ?? null,
-              vectorCanvasRef.current?.getContext('2d') ?? null,
-              imgData
-            );
-            return;
-          }
-        } catch {
-          // Ignored if canvas reading is restricted
+  const sampleFrame = useCallback(() => {
+    let sourceEl: CanvasImageSource | null = null;
+    let sw = 0;
+    let sh = 0;
+
+    // 1. Check live video element (DirectShow)
+    const vid = videoRef?.current;
+    if (vid && vid.readyState >= 2 && vid.videoWidth > 0 && !vid.paused) {
+      sourceEl = vid;
+      sw = vid.videoWidth;
+      sh = vid.videoHeight;
+    }
+
+    // 2. Check DOM stream proxy or restoration image
+    if (!sourceEl) {
+      const liveImg =
+        document.querySelector<HTMLImageElement>('[data-testid="live-restoration-stream"]') ||
+        document.querySelector<HTMLImageElement>('[data-testid="live-stream-proxy"]') ||
+        document.querySelector<HTMLImageElement>('[data-testid="comparison-frame"]');
+      if (liveImg && liveImg.complete && liveImg.naturalWidth > 0) {
+        sourceEl = liveImg;
+        sw = liveImg.naturalWidth;
+        sh = liveImg.naturalHeight;
+      }
+    }
+
+    // 3. Check cached sourceImageSrc image
+    if (
+      !sourceEl &&
+      cachedImageRef.current &&
+      cachedImageRef.current.complete &&
+      cachedImageRef.current.naturalWidth > 0
+    ) {
+      sourceEl = cachedImageRef.current;
+      sw = cachedImageRef.current.naturalWidth;
+      sh = cachedImageRef.current.naturalHeight;
+    }
+
+    let imgData: ImageData | undefined;
+    if (sourceEl && sw > 0 && sh > 0) {
+      try {
+        if (!offscreenCanvasRef.current) {
+          offscreenCanvasRef.current = document.createElement('canvas');
         }
-        renderGraticules(
-          waveformCanvasRef.current?.getContext('2d') ?? null,
-          vectorCanvasRef.current?.getContext('2d') ?? null
-        );
+        const offCanvas = offscreenCanvasRef.current;
+        const targetW = 160;
+        const targetH = 120;
+        if (offCanvas.width !== targetW || offCanvas.height !== targetH) {
+          offCanvas.width = targetW;
+          offCanvas.height = targetH;
+        }
+        const offCtx = offCanvas.getContext('2d', { willReadFrequently: true });
+        if (offCtx) {
+          offCtx.drawImage(sourceEl, 0, 0, targetW, targetH);
+          imgData = offCtx.getImageData(0, 0, targetW, targetH);
+        }
+      } catch {
+        // Tainted canvas or restricted access - continue with graticules
+      }
+    }
+
+    renderGraticules(
+      waveformCanvasRef.current?.getContext('2d') ?? null,
+      vectorCanvasRef.current?.getContext('2d') ?? null,
+      imgData
+    );
+  }, [videoRef, renderGraticules]);
+
+  // Load sourceImageSrc when provided
+  useEffect(() => {
+    if (sourceImageSrc) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        cachedImageRef.current = img;
+        sampleFrame();
       };
       img.src = sourceImageSrc;
     } else {
-      renderGraticules(
-        waveformCanvasRef.current?.getContext('2d') ?? null,
-        vectorCanvasRef.current?.getContext('2d') ?? null
-      );
+      cachedImageRef.current = null;
+      sampleFrame();
     }
-  }, [sourceImageSrc]);
+  }, [sourceImageSrc, sampleFrame]);
 
-  useEffect(() => {
-    drawScopes();
-  }, [drawScopes, mode, isExpanded]);
-
+  // Continuous animation loop for real-time video/stream tracking
   useEffect(() => {
     let animId: number;
     let lastDraw = 0;
 
-    const sampleLiveVideo = (now: number) => {
-      const video = videoRef?.current;
-      if (video && !video.paused && !video.ended && video.readyState >= 2) {
-        if (now - lastDraw >= 66) {
-          lastDraw = now;
-          drawScopes();
-        }
-        animId = requestAnimationFrame(sampleLiveVideo);
+    const sampleLoop = (now: number) => {
+      // Throttle sampling to ~22-25 FPS (42ms)
+      if (now - lastDraw >= 42) {
+        lastDraw = now;
+        sampleFrame();
       }
+      animId = requestAnimationFrame(sampleLoop);
     };
 
-    if (videoRef?.current) {
-      animId = requestAnimationFrame(sampleLiveVideo);
-    }
+    animId = requestAnimationFrame(sampleLoop);
 
     return () => {
       if (animId) cancelAnimationFrame(animId);
     };
-  }, [videoRef, drawScopes]);
+  }, [sampleFrame]);
 
   return (
     <motion.div
@@ -271,40 +334,46 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
       dragControls={dragControls}
       dragListener={false}
       dragMomentum={false}
+      animate={isExpanded ? { x: 0, y: 0 } : undefined}
       data-testid="broadcast-scopes-panel"
       className={`absolute z-50 bg-black/95 backdrop-blur-md border border-studio-border shadow-2xl rounded-sm font-mono flex flex-col ${
         isExpanded
-          ? 'inset-0 !transform-none'
-          : 'bottom-12 right-2.5 w-[360px] max-h-[330px]'
+          ? 'inset-0 !transform-none w-full h-full'
+          : 'top-3 right-3 w-[420px] sm:w-[460px] max-h-[calc(100%-24px)]'
       }`}
     >
-      {/* Header with Grip Drag Handle */}
+      {/* Header with Grip Drag Handle & Tabs */}
       <div
         onPointerDown={(e) => {
           if (!isExpanded) {
             dragControls.start(e);
           }
         }}
-        className="flex items-center justify-between px-3 py-2 bg-studio-panel border-b border-studio-border shrink-0 select-none cursor-grab active:cursor-grabbing"
+        className="flex items-center justify-between px-2.5 py-1.5 bg-studio-panel border-b border-studio-border shrink-0 select-none cursor-grab active:cursor-grabbing gap-2"
       >
-        <div className="flex items-center gap-1.5 min-w-0">
-          <GripHorizontal className="w-4 h-4 text-slate-500 shrink-0" />
+        {/* Left: Grip Handle, Title & LIVE Acronym */}
+        <div className="flex items-center gap-1.5 min-w-0 shrink">
+          <GripHorizontal className="w-3.5 h-3.5 text-slate-500 shrink-0" />
           <Activity className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-          <span className="text-xs font-bold text-slate-200 uppercase tracking-wider truncate">
+          <span
+            className="text-xs font-bold text-slate-200 uppercase tracking-wider truncate"
+            title={t('monitor.scopes_title')}
+          >
             {t('monitor.scopes_title')}
           </span>
-          <span className="hidden sm:inline-flex items-center gap-1 text-[8.5px] font-bold text-emerald-400 bg-emerald-950/80 px-1.5 py-0.5 rounded-xs border border-emerald-500/30 shrink-0">
+          <span className="inline-flex items-center gap-1 text-[8px] font-bold text-emerald-400 bg-emerald-950/80 px-1 py-0.5 rounded-xs border border-emerald-500/30 shrink-0 whitespace-nowrap">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
             LIVE
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5">
-          <div className="flex items-center bg-black/60 rounded-sm border border-studio-border p-0.5 text-[10px]">
+        {/* Right: Mode Tabs, Refresh, Maximize, Close */}
+        <div className="flex items-center gap-1 shrink-0">
+          <div className="flex items-center bg-black/60 rounded-sm border border-studio-border p-0.5 text-[9.5px] shrink-0">
             <button
               type="button"
               onClick={() => setMode('all')}
-              className={`px-1.5 py-0.5 rounded-xs transition cursor-pointer ${
+              className={`px-1.5 py-0.5 rounded-xs transition cursor-pointer shrink-0 whitespace-nowrap ${
                 mode === 'all'
                   ? 'bg-sky-950/80 text-sky-300 font-bold'
                   : 'text-slate-400 hover:text-slate-200'
@@ -315,7 +384,7 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
             <button
               type="button"
               onClick={() => setMode('waveform')}
-              className={`px-1.5 py-0.5 rounded-xs transition cursor-pointer ${
+              className={`px-1.5 py-0.5 rounded-xs transition cursor-pointer shrink-0 whitespace-nowrap ${
                 mode === 'waveform'
                   ? 'bg-sky-950/80 text-sky-300 font-bold'
                   : 'text-slate-400 hover:text-slate-200'
@@ -326,7 +395,7 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
             <button
               type="button"
               onClick={() => setMode('vectorscope')}
-              className={`px-1.5 py-0.5 rounded-xs transition cursor-pointer ${
+              className={`px-1.5 py-0.5 rounded-xs transition cursor-pointer shrink-0 whitespace-nowrap ${
                 mode === 'vectorscope'
                   ? 'bg-sky-950/80 text-sky-300 font-bold'
                   : 'text-slate-400 hover:text-slate-200'
@@ -337,7 +406,7 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
             <button
               type="button"
               onClick={() => setMode('audio')}
-              className={`px-1.5 py-0.5 rounded-xs transition cursor-pointer ${
+              className={`px-1.5 py-0.5 rounded-xs transition cursor-pointer shrink-0 whitespace-nowrap ${
                 mode === 'audio'
                   ? 'bg-sky-950/80 text-sky-300 font-bold'
                   : 'text-slate-400 hover:text-slate-200'
@@ -349,10 +418,10 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
 
           <button
             type="button"
-            onClick={drawScopes}
+            onClick={sampleFrame}
             title={t('common.refresh')}
             aria-label={t('common.refresh')}
-            className="p-1 rounded-sm text-slate-400 hover:text-white hover:bg-studio-surface transition cursor-pointer"
+            className="p-1 rounded-sm text-slate-400 hover:text-white hover:bg-studio-surface transition cursor-pointer shrink-0"
           >
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
@@ -362,7 +431,7 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
             onClick={() => setIsExpanded(!isExpanded)}
             title={isExpanded ? t('common.minimize') : t('common.maximize')}
             aria-label={isExpanded ? t('common.minimize') : t('common.maximize')}
-            className="p-1 rounded-sm text-slate-400 hover:text-white hover:bg-studio-surface transition cursor-pointer"
+            className="p-1 rounded-sm text-slate-400 hover:text-white hover:bg-studio-surface transition cursor-pointer shrink-0"
           >
             {isExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
           </button>
@@ -374,7 +443,7 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
               title={t('common.close')}
               aria-label={t('common.close')}
               data-testid="close-scopes-btn"
-              className="p-1 rounded-sm text-slate-400 hover:text-red-400 hover:bg-studio-surface transition cursor-pointer"
+              className="p-1 rounded-sm text-slate-400 hover:text-red-400 hover:bg-studio-surface transition cursor-pointer shrink-0"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -383,7 +452,11 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
       </div>
 
       {/* Scope Canvases and Audio Meters */}
-      <div className="flex-1 p-2 grid gap-2 overflow-auto auto-rows-fr grid-cols-1 md:grid-cols-2">
+      <div
+        className={`p-2 grid gap-2 overflow-auto ${
+          mode === 'all' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'
+        }`}
+      >
         {(mode === 'all' || mode === 'waveform') && (
           <div className="flex flex-col gap-1 bg-black/60 p-1.5 rounded-sm border border-white/5">
             <div className="flex items-center justify-between text-[10px] text-slate-400">
@@ -392,9 +465,9 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
             </div>
             <canvas
               ref={waveformCanvasRef}
-              width={260}
-              height={140}
-              className="w-full h-full rounded-xs bg-[#050811] object-contain border border-white/5"
+              width={mode === 'waveform' ? 380 : 260}
+              height={mode === 'waveform' ? 180 : 130}
+              className="w-full h-auto rounded-xs bg-[#050811] object-contain border border-white/5"
               data-testid="waveform-scope-canvas"
             />
           </div>
@@ -408,16 +481,20 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
             </div>
             <canvas
               ref={vectorCanvasRef}
-              width={260}
-              height={140}
-              className="w-full h-full rounded-xs bg-[#050811] object-contain border border-white/5"
+              width={mode === 'vectorscope' ? 380 : 260}
+              height={mode === 'vectorscope' ? 180 : 130}
+              className="w-full h-auto rounded-xs bg-[#050811] object-contain border border-white/5"
               data-testid="vectorscope-canvas"
             />
           </div>
         )}
 
         {(mode === 'all' || mode === 'audio') && (
-          <div className="flex flex-col gap-1 bg-black/60 p-1.5 rounded-sm border border-white/5 col-span-1 md:col-span-2">
+          <div
+            className={`flex flex-col gap-1 bg-black/60 p-1.5 rounded-sm border border-white/5 ${
+              mode === 'all' ? 'col-span-1 md:col-span-2' : 'col-span-1'
+            }`}
+          >
             <div className="flex items-center justify-between text-[10px] text-slate-400">
               <span className="font-bold text-slate-300">{t('monitor.scopes_audio')}</span>
               <span className="text-[9px] text-amber-300 font-bold">EBU R128 (-23 LUFS / -1 dBTP)</span>
