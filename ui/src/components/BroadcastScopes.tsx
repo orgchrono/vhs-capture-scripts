@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { X, Activity, Maximize2, Minimize2, RefreshCw } from 'lucide-react';
+import { X, Activity, Maximize2, Minimize2, RefreshCw, GripHorizontal } from 'lucide-react';
+import { motion, useDragControls } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 
 export interface BroadcastScopesProps {
   sourceImageSrc?: string | null;
+  videoRef?: React.RefObject<HTMLVideoElement | null>;
   onClose?: () => void;
   lufsLeft?: number;
   lufsRight?: number;
@@ -20,11 +22,13 @@ const calculateMeterWidth = (lufs: number): number => {
 
 export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
   sourceImageSrc,
+  videoRef,
   onClose,
   lufsLeft,
   lufsRight,
 }) => {
   const { t } = useTranslation();
+  const dragControls = useDragControls();
   const [mode, setMode] = useState<ScopeMode>('all');
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const [derivedLufs, setDerivedLufs] = useState<{ left: number; right: number }>({
@@ -237,21 +241,61 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
     drawScopes();
   }, [drawScopes, mode, isExpanded]);
 
+  useEffect(() => {
+    let animId: number;
+    let lastDraw = 0;
+
+    const sampleLiveVideo = (now: number) => {
+      const video = videoRef?.current;
+      if (video && !video.paused && !video.ended && video.readyState >= 2) {
+        if (now - lastDraw >= 66) {
+          lastDraw = now;
+          drawScopes();
+        }
+        animId = requestAnimationFrame(sampleLiveVideo);
+      }
+    };
+
+    if (videoRef?.current) {
+      animId = requestAnimationFrame(sampleLiveVideo);
+    }
+
+    return () => {
+      if (animId) cancelAnimationFrame(animId);
+    };
+  }, [videoRef, drawScopes]);
+
   return (
-    <div
+    <motion.div
+      drag={!isExpanded}
+      dragControls={dragControls}
+      dragListener={false}
+      dragMomentum={false}
       data-testid="broadcast-scopes-panel"
-      className={`absolute z-40 bg-black/92 backdrop-blur-md border border-studio-border shadow-2xl rounded-sm transition-all duration-200 overflow-hidden font-mono flex flex-col ${
+      className={`absolute z-50 bg-black/95 backdrop-blur-md border border-studio-border shadow-2xl rounded-sm font-mono flex flex-col ${
         isExpanded
-          ? 'inset-2.5'
-          : 'bottom-12 right-2.5 w-[360px] max-h-[320px]'
+          ? 'inset-0 !transform-none'
+          : 'bottom-12 right-2.5 w-[360px] max-h-[330px]'
       }`}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 bg-studio-panel border-b border-studio-border shrink-0 select-none">
-        <div className="flex items-center gap-2">
-          <Activity className="w-3.5 h-3.5 text-sky-400" />
-          <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+      {/* Header with Grip Drag Handle */}
+      <div
+        onPointerDown={(e) => {
+          if (!isExpanded) {
+            dragControls.start(e);
+          }
+        }}
+        className="flex items-center justify-between px-3 py-2 bg-studio-panel border-b border-studio-border shrink-0 select-none cursor-grab active:cursor-grabbing"
+      >
+        <div className="flex items-center gap-1.5 min-w-0">
+          <GripHorizontal className="w-4 h-4 text-slate-500 shrink-0" />
+          <Activity className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+          <span className="text-xs font-bold text-slate-200 uppercase tracking-wider truncate">
             {t('monitor.scopes_title')}
+          </span>
+          <span className="hidden sm:inline-flex items-center gap-1 text-[8.5px] font-bold text-emerald-400 bg-emerald-950/80 px-1.5 py-0.5 rounded-xs border border-emerald-500/30 shrink-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
+            LIVE
           </span>
         </div>
 
@@ -425,6 +469,6 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 };

@@ -26,13 +26,13 @@ export const BroadcastProgress: React.FC = () => {
     <div
       role="region"
       aria-label={t('telemetry.title')}
-      className="bg-studio-panel border border-studio-border rounded-md p-2.5 flex flex-col justify-between gap-2 text-slate-200 select-none h-full"
+      className="bg-studio-panel border border-studio-border rounded-md p-2 flex flex-col justify-between gap-1.5 text-slate-200 select-none h-full"
     >
       {/* Top Header: Title, Active Stage and Tally LED */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-2 min-w-0">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
           <span
-            className={`led-lamp ${
+            className={`led-lamp shrink-0 ${
               isBusy
                 ? isPaused
                   ? 'led-warn animate-pulse'
@@ -41,10 +41,10 @@ export const BroadcastProgress: React.FC = () => {
             }`}
             aria-hidden="true"
           />
-          <span className="text-[11px] font-bold uppercase tracking-wider font-mono text-slate-200">
+          <span className="text-[11px] font-bold uppercase tracking-wider font-mono text-slate-200 shrink-0">
             {t('telemetry.title')}
           </span>
-          <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-studio-surface border border-studio-border text-slate-300">
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-sm bg-studio-surface border border-studio-border text-slate-300 truncate max-w-[160px]">
             {isBusy
               ? isPaused
                 ? t('telemetry.status_paused')
@@ -56,9 +56,9 @@ export const BroadcastProgress: React.FC = () => {
         {/* Live Percent Readout */}
         <div
           aria-live="polite"
-          className="text-xs font-mono font-bold tracking-tight text-white flex items-center gap-1.5"
+          className="text-xs font-mono font-bold tracking-tight text-white flex items-center gap-1.5 shrink-0"
         >
-          <span className="text-slate-400 text-[10px] font-normal uppercase">
+          <span className="text-slate-400 text-[10px] font-normal uppercase hidden xs:inline">
             {isBusy
               ? isPaused
                 ? t('telemetry.status_paused')
@@ -66,7 +66,7 @@ export const BroadcastProgress: React.FC = () => {
               : t('telemetry.status_idle')}
           </span>
           <span
-            className={`bg-studio-surface border border-studio-border px-2 py-0.5 rounded-sm tabular-nums ${
+            className={`bg-studio-surface border border-studio-border px-1.5 py-0.5 rounded-sm tabular-nums ${
               isPaused ? 'text-amber-400' : 'text-emerald-400'
             }`}
           >
@@ -86,18 +86,18 @@ export const BroadcastProgress: React.FC = () => {
               : t(telemetry.stageNameKey)
             : t('telemetry.stage_idle')
         }`}
-        className="h-2"
+        className="h-1.5"
       />
 
       {/* Dynamic Stage Step Breadcrumbs (Matches Selected Preset Strategy) */}
-      <div className="flex flex-wrap gap-1.5 pt-0.5">
+      <div className="flex flex-wrap gap-1 pt-0.5 min-w-0">
         {stages.map((st) => {
           const isDone = telemetry.stage > st.step || (!isRestoring && telemetry.stage === stages.length);
           const isCurrent = isRestoring && telemetry.stage === st.step;
           return (
             <div
               key={st.id}
-              className={`flex items-center gap-1.5 px-2 py-1 rounded-sm text-[10px] font-mono border transition-colors flex-1 min-w-[110px] ${
+              className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded-sm text-[9.5px] font-mono border transition-colors flex-1 min-w-[75px] sm:min-w-[90px] ${
                 isCurrent
                   ? 'bg-emerald-950/50 border-emerald-500/50 text-emerald-300 font-semibold'
                   : isDone
@@ -123,8 +123,8 @@ export const BroadcastProgress: React.FC = () => {
       </div>
 
       {/* Hardware Telemetry Strip (Frames, FPS, ETA, Speed) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-1 border-t border-studio-border text-[11px] font-mono">
-        <div className="flex items-center gap-1.5 bg-studio-surface px-2 py-1 rounded-sm border border-studio-border">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 pt-1 border-t border-studio-border text-[10px] font-mono">
+        <div className="flex items-center gap-1.5 bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border">
           <Film className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           <span className="text-slate-400 text-[10px]">{t('telemetry.frames')}:</span>
           <span className="text-white font-medium truncate tabular-nums">
@@ -136,19 +136,19 @@ export const BroadcastProgress: React.FC = () => {
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5 bg-studio-surface px-2 py-1 rounded-sm border border-studio-border">
+        <div className="flex items-center gap-1.5 bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border">
           <Gauge className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
           <span className="text-slate-400 text-[10px]">{t('telemetry.fps')}:</span>
           <span className="text-white font-medium tabular-nums">{telemetry.fps.toFixed(2)}</span>
         </div>
 
-        <div className="flex items-center gap-1.5 bg-studio-surface px-2 py-1 rounded-sm border border-studio-border">
+        <div className="flex items-center gap-1.5 bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border">
           <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
           <span className="text-slate-400 text-[10px]">{t('telemetry.eta')}:</span>
           <span className="text-white font-medium tabular-nums">{telemetry.eta}</span>
         </div>
 
-        <div className="flex items-center gap-1.5 bg-studio-surface px-2 py-1 rounded-sm border border-studio-border">
+        <div className="flex items-center gap-1.5 bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border">
           <Activity className="w-3.5 h-3.5 text-slate-300 shrink-0" />
           <span className="text-slate-400 text-[10px]">{t('telemetry.speed')}:</span>
           <span className="text-white font-medium tabular-nums">{telemetry.speed}</span>
@@ -166,7 +166,7 @@ export const BroadcastProgressRibbon: React.FC = () => {
       role="region"
       data-testid="broadcast-progress-ribbon"
       aria-label={t('telemetry.progress_label')}
-      className="w-full bg-studio-surface border border-studio-border rounded-sm px-2.5 py-1.5 flex flex-wrap items-center justify-between gap-2 text-xs font-mono select-none shrink-0"
+      className="w-full bg-studio-surface border border-studio-border rounded-sm px-2.5 py-1 flex items-center justify-between gap-2 text-xs font-mono select-none shrink-0 min-w-0"
     >
       {/* Left: Stage LED & Active Stage */}
       <div className="flex items-center gap-2 shrink-0">
@@ -181,7 +181,7 @@ export const BroadcastProgressRibbon: React.FC = () => {
           aria-hidden="true"
         />
         {isBusy && (
-          <span className="text-[11px] font-bold text-slate-200 truncate max-w-[200px]">
+          <span className="text-[11px] font-bold text-slate-200 truncate max-w-[140px] sm:max-w-[200px]">
             {isPaused
               ? t('telemetry.status_paused')
               : isRestoring
@@ -192,14 +192,14 @@ export const BroadcastProgressRibbon: React.FC = () => {
       </div>
 
       {/* Center: Expanded Progress Bar & Percentage */}
-      <div className="flex-1 flex items-center gap-2.5 min-w-[160px]">
+      <div className="flex-1 flex items-center gap-2 min-w-[120px]">
         <div
           role="progressbar"
           aria-valuenow={telemetry.progressPercent}
           aria-valuemin={0}
           aria-valuemax={100}
           aria-label={t('telemetry.progress_label')}
-          className="flex-1 h-2 bg-studio-panel rounded-xs overflow-hidden border border-studio-border"
+          className="flex-1 h-1.5 bg-studio-panel rounded-xs overflow-hidden border border-studio-border"
         >
           <div
             className={`h-full transition-all duration-300 ${
@@ -218,7 +218,7 @@ export const BroadcastProgressRibbon: React.FC = () => {
       </div>
 
       {/* Right: Metrics Strip */}
-      <div className="flex items-center gap-3 text-[10px] text-slate-300 shrink-0">
+      <div className="flex items-center gap-2 sm:gap-2.5 text-[10px] text-slate-300 shrink-0">
         <span className="flex items-center gap-1">
           <Film className="w-3 h-3 text-slate-400" />
           <span className="text-slate-400">{t('telemetry.frames')}:</span>

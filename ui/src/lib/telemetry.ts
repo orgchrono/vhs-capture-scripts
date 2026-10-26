@@ -183,6 +183,8 @@ export const createTelemetryParser = () => {
         ? Math.min(100, Math.max(0, explicitPercent))
         : totalFrames > 0 && currentFrames > 0
         ? Math.min(100, Math.round((currentFrames / totalFrames) * 100))
+        : activeTask?.type === 'restore' && activeTask.progressPercent > 0
+        ? Math.min(100, Math.max(0, activeTask.progressPercent))
         : 0;
 
     const stagePatternLine = reversedLogs.find((line) => /STAGE:\s*(\d+)\/(\d+)/i.test(line));

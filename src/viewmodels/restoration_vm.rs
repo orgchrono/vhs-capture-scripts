@@ -200,6 +200,7 @@ pub fn ipc_execute_restoration_job(
     cancel_flag: Option<&std::sync::atomic::AtomicBool>,
 ) -> Result<RestorationSummary, String> {
     let ctx = crate::viewmodels::api_router::default_app_context();
+    ctx.process.set_in_process_active(true);
     let total_stages: usize = planned
         .request_json
         .as_deref()
@@ -252,10 +253,22 @@ pub fn ipc_execute_restoration_job(
         },
     };
 
-    let summary = execute_restoration_job(&planned, cancel_flag, Some(&listener))?;
-    ctx.process.append_log(format!(
-        "STAGE:{total_stages}/{total_stages} | Restoration finished: success={} output={}",
-        summary.success, summary.final_output_path
-    ));
-    Ok(summary)
+    let res = execute_restoration_job(&planned, cancel_flag, Some(&listener));
+    match res {
+        Ok(summary) => {
+            ctx.process.append_log(format!(
+                "STAGE:{total_stages}/{total_stages} | Restoration finished: success={} output={}",
+                summary.success, summary.final_output_path
+            ));
+            ctx.process.set_result(summary.success, if summary.success { Some(0) } else { Some(1) });
+            Ok(summary)
+        }
+        Err(e) => {
+            ctx.process.append_log(format!(
+                "STAGE:{total_stages}/{total_stages} | Restoration failed: {e}"
+            ));
+            ctx.process.set_result(false, Some(1));
+            Err(e)
+        }
+    }
 }

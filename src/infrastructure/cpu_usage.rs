@@ -5,7 +5,17 @@ use std::sync::Mutex;
 /// Cumulative `(idle, total)` CPU time counters in arbitrary but consistent units.
 pub type CpuTimes = (u64, u64);
 
-static LAST_SAMPLE: Mutex<Option<CpuTimes>> = Mutex::new(None);
+struct CpuSamplerState {
+    last_sample: Option<CpuTimes>,
+    last_instant: Option<std::time::Instant>,
+    last_percent: f32,
+}
+
+static CPU_STATE: Mutex<CpuSamplerState> = Mutex::new(CpuSamplerState {
+    last_sample: None,
+    last_instant: None,
+    last_percent: 0.0,
+});
 
 /// Pure utilisation (0–100, one decimal) between two cumulative samples.
 #[must_use]
@@ -72,12 +82,28 @@ pub fn sample_cpu_percent() -> f32 {
     let Some(current) = read_cpu_times() else {
         return 0.0;
     };
-    let mut last = LAST_SAMPLE
+    let mut state = CPU_STATE
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner);
-    let percent = last.map_or(0.0, |previous| compute_cpu_percent(previous, current));
-    *last = Some(current);
-    percent
+
+    let now = std::time::Instant::now();
+    if let (Some(prev_times), Some(prev_instant)) = (state.last_sample, state.last_instant) {
+        let elapsed = now.duration_since(prev_instant);
+        // Only recompute if at least 200ms has elapsed, avoiding sub-tick 0.0 returns
+        if elapsed.as_millis() >= 200 {
+            let pct = compute_cpu_percent(prev_times, current);
+            state.last_sample = Some(current);
+            state.last_instant = Some(now);
+            state.last_percent = pct;
+            return pct;
+        }
+        return state.last_percent;
+    }
+
+    state.last_sample = Some(current);
+    state.last_instant = Some(now);
+    state.last_percent = 0.0;
+    0.0
 }
 
 #[cfg(test)]
@@ -101,8 +127,10 @@ mod tests {
 
     #[test]
     fn test_live_sampling_is_bounded() {
-        let _ = sample_cpu_percent();
+        let first = sample_cpu_percent();
+        std::thread::sleep(std::time::Duration::from_millis(210));
         let percent = sample_cpu_percent();
+        assert!((0.0..=100.0).contains(&first));
         assert!((0.0..=100.0).contains(&percent));
     }
 }

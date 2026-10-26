@@ -129,6 +129,7 @@
     "scopes_tab_vectorscope": "Chroma",
     "scopes_tab_audio": "Audio",
     "live_restoration_stream": "Stream di Restauro in Tempo Reale",
+    "generating_preview": "Sincronizzazione flusso di restauro...",
     "source_stream_proxy": "Proxy dello Stream Sorgente",
     "standby_no_signal": "IN ATTESA / NESSUN SEGNALE"
   },

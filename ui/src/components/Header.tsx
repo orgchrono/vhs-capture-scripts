@@ -82,17 +82,17 @@ export const Header: React.FC<HeaderProps> = ({
   }, [prefs.theme]);
 
   return (
-    <header className="border-b border-studio-border bg-studio-panel px-4 sm:px-6 flex items-center justify-between shrink-0 h-14 sm:h-15 z-20 select-none overflow-x-auto custom-scrollbar">
-      <div className="flex items-center gap-3 shrink-0">
+    <header className="border-b border-studio-border bg-studio-panel px-3 sm:px-5 flex items-center justify-between shrink-0 h-13 sm:h-14 z-20 select-none overflow-x-auto custom-scrollbar gap-2">
+      <div className="flex items-center gap-2.5 shrink-0 min-w-0">
         <h1
-          className="bg-studio-surface border border-studio-border text-slate-100 text-xs px-3 py-1.5 rounded-sm tracking-wider font-mono font-bold flex items-center gap-2 select-none shadow-sm cursor-default shrink-0 whitespace-nowrap"
+          className="bg-studio-surface border border-studio-border text-slate-100 text-xs px-2.5 py-1.5 rounded-sm tracking-wider font-mono font-bold flex items-center gap-2 select-none shadow-sm cursor-default shrink-0 whitespace-nowrap"
           title={t('app.title')}
           aria-label={t('app.title')}
         >
           <span className="sr-only">{t('app.title')}</span>
           <Film className="w-3.5 h-3.5 text-amber-500 shrink-0" aria-hidden="true" />
           <span className="text-white tracking-wider shrink-0 whitespace-nowrap">{t('app.brand_name')}</span>
-          <span className="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] px-1.5 py-0.5 rounded font-bold font-mono shrink-0 whitespace-nowrap">
+          <span className="hidden sm:inline-block bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[9px] px-1.5 py-0.5 rounded font-bold font-mono shrink-0 whitespace-nowrap">
             {t('app.brand_badge')}
           </span>
         </h1>
@@ -226,7 +226,7 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
 
-        <div className="hidden sm:flex items-center gap-2 bg-studio-surface border border-studio-border px-2.5 py-1 rounded-sm text-xs h-8 shrink-0 whitespace-nowrap">
+        <div className="hidden md:flex items-center gap-1.5 bg-studio-surface border border-studio-border px-2 py-1 rounded-sm text-xs h-8 shrink-0 whitespace-nowrap">
           <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
           {status?.vapoursynth_available ? (
             <span className="flex items-center gap-1.5 text-slate-200 font-semibold text-[11px] bg-studio-panel border border-studio-border px-2 py-0.5 rounded-sm font-mono shrink-0 whitespace-nowrap">
@@ -241,7 +241,7 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
       
-        <div className="hidden sm:flex items-center gap-2 bg-studio-surface border border-studio-border px-2.5 py-1 rounded-sm text-xs h-8 shrink-0 whitespace-nowrap">
+        <div className="hidden xl:flex items-center gap-1.5 bg-studio-surface border border-studio-border px-2 py-1 rounded-sm text-xs h-8 shrink-0 whitespace-nowrap">
           <Video className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           {status?.obs_connected ? (
             <span className="flex items-center gap-1.5 text-slate-200 font-semibold text-[11px] bg-studio-panel border border-studio-border px-2 py-0.5 rounded-sm font-mono shrink-0 whitespace-nowrap">

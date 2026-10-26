@@ -1,7 +1,10 @@
 //! VHS Studio Pro - Restoration Checkpoint & Recovery State Manager (`executor/checkpoint.rs`).
 
 use std::fs;
+use std::sync::atomic::{AtomicBool, Ordering};
 use super::planner::PlannedRestoration;
+
+static FRAME_EXTRACTION_IN_FLIGHT: AtomicBool = AtomicBool::new(false);
 
 pub fn write_checkpoint(planned: &PlannedRestoration, status: &str, kept_frames: u64, elapsed: f64) {
     let fps = if elapsed > 0.0 {
@@ -33,8 +36,22 @@ pub fn write_checkpoint(planned: &PlannedRestoration, status: &str, kept_frames:
 }
 
 pub fn update_live_restoration_frame(input_path: &str, current_sec: f64) {
+    if FRAME_EXTRACTION_IN_FLIGHT
+        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+        .is_err()
+    {
+        return;
+    }
     let input_path = input_path.to_string();
     std::thread::spawn(move || {
+        struct FlightGuard;
+        impl Drop for FlightGuard {
+            fn drop(&mut self) {
+                FRAME_EXTRACTION_IN_FLIGHT.store(false, Ordering::SeqCst);
+            }
+        }
+        let _guard = FlightGuard;
+
         let dirs = crate::viewmodels::api_support::media_dirs();
         let live_frame_path = dirs.work.join("live_frame.jpg");
         if let Some(ffmpeg) =

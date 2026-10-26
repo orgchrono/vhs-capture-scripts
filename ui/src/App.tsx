@@ -14,7 +14,9 @@ import {
   AppPreferencesModal,
   FooterStatusBar,
   RestorationConflictModal,
+  ProgressBar,
 } from './components'
+import { TooltipProvider } from './components/ui/tooltip'
 import { getPresetLabels, createTelemetryParser } from './lib/telemetry'
 import { Toaster } from './components/ui/sonner'
 import {
@@ -152,22 +154,13 @@ const StudioMain: React.FC<{
       onDrop={handleDrop}
     >
       {/* Precision Broadcast Header Progress Stripe */}
-      {(isRestoring || (activeTask && activeTask.type !== 'idle')) && (
-        <div
-          role="progressbar"
-          aria-valuenow={telemetry.progressPercent}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-label={t('telemetry.progress_label')}
-          aria-valuetext={`${telemetry.progressPercent}%`}
-          className="w-full h-[2px] bg-studio-bg overflow-hidden shrink-0 z-50"
-        >
-          <div
-            className="h-full bg-emerald-500 transition-all duration-300 ease-out"
-            style={{ width: `${telemetry.progressPercent}%` }}
-          />
-        </div>
-      )}
+      <ProgressBar
+        isBusy={isRestoring || (activeTask !== null && activeTask.type !== 'idle')}
+        isRestoring={isRestoring}
+        isPaused={isPaused}
+        progressPercent={telemetry.progressPercent}
+        activeTask={activeTask}
+      />
 
       <Header
         status={status}
@@ -257,38 +250,27 @@ const StudioMain: React.FC<{
                 <div className="w-full h-full min-h-0 grid grid-cols-1 lg:grid-cols-[minmax(320px,1.05fr)_minmax(420px,1.35fr)] 2xl:grid-cols-[minmax(420px,1.15fr)_minmax(540px,1.45fr)] gap-4 lg:gap-5 items-stretch">
                   {/* Left Column: Video Monitor (Expansível) */}
                   <div className="flex flex-col h-full min-h-[320px] lg:min-h-[380px]">
-                    <div className="flex items-center justify-between mb-2 shrink-0 h-6">
-                      <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2 font-mono shrink-0 whitespace-nowrap">
-                        <span className="led-lamp led-live animate-pulse shrink-0"></span>
-                        {t('app.crt_monitor_title')}
-                      </h2>
-                      <span className="text-[10px] font-mono text-slate-300 bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border shrink-0 whitespace-nowrap">
-                        {t('app.crt_monitor_badge')}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-h-[260px] bg-black rounded-md overflow-hidden border border-studio-border relative flex items-center justify-center">
-                      <LiveMonitor health={status?.health} />
-                    </div>
+                    <LiveMonitor health={status?.health} />
                   </div>
 
                   {/* Right Column: Engine Settings (Nivelado perfeitamente com o Monitor CRT) */}
                   <div className="flex flex-col h-full min-h-[320px] lg:min-h-[380px]">
-                    <div className="flex items-center justify-between mb-2 shrink-0 h-6">
-                      <div className="flex items-center gap-2 min-w-0 flex-1 flex-nowrap overflow-hidden">
-                        <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2 font-mono shrink-0 whitespace-nowrap">
-                          <span className="bg-slate-500 w-1 h-3 rounded-sm shrink-0"></span>
-                          {t('app.engine_title')}
+                    <div className="flex items-center justify-between mb-2 shrink-0 h-6 min-w-0 gap-2">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 font-mono shrink-0 whitespace-nowrap">
+                          <span className="bg-slate-500 w-1 h-3 rounded-sm shrink-0" aria-hidden="true"></span>
+                          <span className="truncate">{t('app.engine_title')}</span>
                         </h2>
-                        <span className="text-[10px] font-mono text-slate-300 bg-studio-surface px-2 py-0.5 rounded-sm border border-studio-border uppercase shrink-0 whitespace-nowrap">
+                        <span className="hidden xl:inline-flex text-[10px] font-mono text-slate-400 bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border uppercase shrink-0 whitespace-nowrap">
                           {t('app.engine_badge')}
                         </span>
-                        <span
-                          className="inline-flex items-center gap-1.5 text-[10px] font-mono font-medium text-slate-300 bg-studio-surface border border-studio-border px-2 py-0.5 rounded-sm shrink-0 whitespace-nowrap max-w-[180px]"
-                          title={currentPresetLabel}
-                        >
-                          <span className="led-lamp led-live shrink-0"></span>
-                          <span className="truncate">{currentPresetLabel}</span>
-                        </span>
+                      </div>
+                      <div
+                        className="inline-flex items-center gap-1.5 text-[10px] font-mono font-medium text-slate-300 bg-studio-surface border border-studio-border px-2 py-0.5 rounded-sm shrink-0 whitespace-nowrap max-w-[140px] sm:max-w-[190px]"
+                        title={currentPresetLabel}
+                      >
+                        <span className="led-lamp led-live shrink-0" aria-hidden="true"></span>
+                        <span className="truncate">{currentPresetLabel}</span>
                       </div>
                     </div>
                     <div className="flex-1 min-h-0 flex flex-col">
@@ -373,7 +355,7 @@ export default function App() {
   }, [serverPrefs, updatePreferences])
 
   return (
-    <>
+    <TooltipProvider delayDuration={150}>
       <PrivacyModal isOpen={privacyOpen} onClose={() => setPrivacyOpen(false)} />
       <AppPreferencesModal
         isOpen={preferencesOpen}
@@ -385,6 +367,6 @@ export default function App() {
         onOpenPreferences={() => setPreferencesOpen(true)}
       />
       <Toaster />
-    </>
+    </TooltipProvider>
   )
 }
