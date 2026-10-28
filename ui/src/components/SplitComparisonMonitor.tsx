@@ -116,7 +116,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = (pr
 
   return (
     <div
-      className="relative w-full h-full bg-black flex flex-col items-center justify-center overflow-hidden select-none"
+      className="@container relative w-full h-full bg-black flex flex-col items-center justify-center overflow-hidden select-none"
       onKeyDown={handleKeyDown}
       tabIndex={0}
       role="region"
@@ -172,7 +172,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = (pr
               aria-label={t('monitor.split_wipe')}
               data-testid="split-layout-wipe-btn"
             >
-              <Layers className="w-3 h-3 shrink-0" aria-hidden="true" />
+              <Layers className="w-3 h-3 shrink-0 pointer-events-none" aria-hidden="true" />
             </button>
             <button
               type="button"
@@ -187,13 +187,13 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = (pr
               aria-label={t('monitor.split_dual')}
               data-testid="split-layout-dual-btn"
             >
-              <Columns2 className="w-3 h-3 shrink-0" aria-hidden="true" />
+              <Columns2 className="w-3 h-3 shrink-0 pointer-events-none" aria-hidden="true" />
             </button>
           </div>
 
           {/* Quick Split Presets (only in Wipe mode) */}
           {splitLayout === 'wipe' && (
-            <div className="flex items-center gap-0.5 bg-black/85 backdrop-blur-md p-0.5 rounded-sm border border-studio-border text-[8px] font-mono shadow-sm shrink-0" role="group">
+            <div className="hidden @md:flex items-center gap-0.5 bg-black/85 backdrop-blur-md p-0.5 rounded-sm border border-studio-border text-[8px] font-mono shadow-sm shrink-0" role="group">
               {SPLIT_PRESETS.map((p) => (
                 <button
                   key={p}
@@ -377,7 +377,7 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = (pr
       </div>
 
       {/* Bottom Transport Controls */}
-      <div className="absolute bottom-0 left-0 right-0 z-30 bg-studio-panel/95 border-t border-studio-border px-2.5 py-1.5 flex items-center justify-between gap-2.5 text-xs font-mono select-none flex-nowrap min-w-0">
+      <div className="absolute bottom-0 left-0 right-0 z-30 bg-studio-panel/95 border-t border-studio-border px-2.5 py-1.5 flex items-center justify-between gap-x-2.5 gap-y-1.5 text-xs font-mono select-none flex-wrap min-w-0">
         <div className="flex items-center gap-1 shrink-0">
           <button
             type="button"

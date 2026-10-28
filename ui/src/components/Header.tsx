@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { Cpu, Film, Sparkles, Wrench, Globe, Eye, Video, Type, PanelLeft, PanelBottom, ShieldCheck, Settings } from 'lucide-react'
+import { Cpu, Film, Sparkles, Wrench, Globe, Eye, Video, Type, PanelLeft, PanelBottom, PanelRight, ShieldCheck, Settings } from 'lucide-react'
 import { Button } from './ui/button'
 import type { OutputCodec, SystemStatus } from '../types'
 import { useTranslation } from 'react-i18next'
@@ -20,6 +20,8 @@ interface HeaderProps {
   onToggleSidebar?: () => void
   consoleCollapsed?: boolean
   onToggleConsole?: () => void
+  rightPanelCollapsed?: boolean
+  onToggleRightPanel?: () => void
   onOpenPrivacy?: () => void
   onOpenPreferences?: () => void
 }
@@ -36,6 +38,8 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleSidebar,
   consoleCollapsed,
   onToggleConsole,
+  rightPanelCollapsed,
+  onToggleRightPanel,
   onOpenPrivacy,
   onOpenPreferences,
 }) => {
@@ -196,6 +200,20 @@ export const Header: React.FC<HeaderProps> = ({
               aria-expanded={!consoleCollapsed}
             >
               <PanelBottom className="w-3.5 h-3.5" />
+            </Button>
+          )}
+          {onToggleRightPanel && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`w-7 h-7 rounded-sm hover:bg-studio-surface-hover shrink-0 ${rightPanelCollapsed ? 'text-slate-600' : 'text-amber-400'}`}
+              onClick={onToggleRightPanel}
+              title={rightPanelCollapsed ? t('header.expand_right_panel') : t('header.collapse_right_panel')}
+              aria-label={rightPanelCollapsed ? t('header.expand_right_panel') : t('header.collapse_right_panel')}
+              aria-expanded={!rightPanelCollapsed}
+              data-testid="toggle-right-panel-btn"
+            >
+              <PanelRight className="w-3.5 h-3.5" />
             </Button>
           )}
         </div>

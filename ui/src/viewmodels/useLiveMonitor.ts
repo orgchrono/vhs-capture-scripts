@@ -26,7 +26,9 @@ export interface UseLiveMonitorResult {
   isSplitMode: boolean;
   setIsSplitMode: React.Dispatch<React.SetStateAction<boolean>>;
   showScopes: boolean;
-  setShowScopes: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowScopes: (val: boolean) => void;
+  scopeDockMode: 'docked' | 'floating';
+  setScopeDockMode: (val: 'docked' | 'floating') => void;
   isPlaying: boolean;
   setIsPlaying: React.Dispatch<React.SetStateAction<boolean>>;
   handleTogglePlay: () => void;
@@ -70,6 +72,10 @@ export function useLiveMonitor(): UseLiveMonitorResult {
     setPreviewTimestamp,
     logs,
     preset,
+    scopesVisible,
+    setScopesVisible,
+    scopeDockMode,
+    setScopeDockMode,
   } = useStudioStore();
   const { livePreviewEnabled } = usePreferencesStore();
 
@@ -80,7 +86,8 @@ export function useLiveMonitor(): UseLiveMonitorResult {
 
   const [isSplitMode, setIsSplitMode] = useState<boolean>(false);
   const [monitorView, setMonitorView] = useState<'live' | 'restore'>('live');
-  const [showScopes, setShowScopes] = useState<boolean>(false);
+  const showScopes = scopesVisible;
+  const setShowScopes = setScopesVisible;
   const [liveFrameSrc, setLiveFrameSrc] = useState<string | null>(null);
 
   const prevRestoringRef = useRef<boolean>(isRestoring);
@@ -358,6 +365,8 @@ export function useLiveMonitor(): UseLiveMonitorResult {
     setIsSplitMode,
     showScopes,
     setShowScopes,
+    scopeDockMode,
+    setScopeDockMode,
     isPlaying,
     setIsPlaying,
     handleTogglePlay,
