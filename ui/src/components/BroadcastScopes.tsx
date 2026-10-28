@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { X, Activity, Maximize2, Minimize2, RefreshCw, GripHorizontal } from 'lucide-react';
+import { X, Activity, Maximize2, Minimize2, RefreshCw, GripHorizontal, PanelRightClose, PictureInPicture } from 'lucide-react';
 import { motion, useDragControls } from 'motion/react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
+import { SCOPES_FLOAT_CONFIG } from '../lib/constants';
 
 export interface BroadcastScopesProps {
   sourceImageSrc?: string | null;
@@ -9,6 +11,10 @@ export interface BroadcastScopesProps {
   onClose?: () => void;
   lufsLeft?: number;
   lufsRight?: number;
+  docked?: boolean;
+  onToggleDock?: () => void;
+  /** Element the floating window covers when maximized (the live preview area). */
+  anchorRef?: React.RefObject<HTMLElement | null>;
 }
 
 type ScopeMode = 'all' | 'waveform' | 'vectorscope' | 'audio';
@@ -26,11 +32,16 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
   onClose,
   lufsLeft,
   lufsRight,
+  docked = false,
+  onToggleDock,
+  anchorRef,
 }) => {
   const { t } = useTranslation();
   const dragControls = useDragControls();
   const [mode, setMode] = useState<ScopeMode>('all');
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
+  const [expandedRect, setExpandedRect] = useState<DOMRect | null>(null);
+  const constraintsRef = useRef<HTMLDivElement | null>(null);
   const [derivedLufs, setDerivedLufs] = useState<{ left: number; right: number }>({
     left: -22.8,
     right: -23.4,
@@ -328,137 +339,161 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
     };
   }, [sampleFrame]);
 
-  return (
-    <motion.div
-      drag={!isExpanded}
-      dragControls={dragControls}
-      dragListener={false}
-      dragMomentum={false}
-      animate={isExpanded ? { x: 0, y: 0 } : undefined}
-      data-testid="broadcast-scopes-panel"
-      className={`absolute z-50 bg-black/95 backdrop-blur-md border border-studio-border shadow-2xl rounded-sm font-mono flex flex-col ${
-        isExpanded
-          ? 'inset-0 !transform-none w-full h-full'
-          : 'top-2.5 right-2.5 w-[340px] sm:w-[470px] max-w-[calc(100%-1.25rem)] max-h-[calc(100%-3.5rem)]'
+  const measureAnchor = useCallback(() => anchorRef?.current?.getBoundingClientRect() ?? null, [anchorRef]);
+
+  const handleToggleExpand = () => {
+    setExpandedRect(isExpanded ? null : measureAnchor());
+    setIsExpanded(!isExpanded);
+  };
+
+  useEffect(() => {
+    if (!isExpanded) return;
+    const onResize = () => setExpandedRect(measureAnchor());
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [isExpanded, measureAnchor]);
+
+  const headerContent = (
+    <div
+      onPointerDown={(e) => {
+        if (!docked && !isExpanded) {
+          dragControls.start(e);
+        }
+      }}
+      className={`flex flex-wrap items-center justify-between px-2.5 py-1.5 bg-studio-panel border-b border-studio-border shrink-0 select-none gap-x-2 gap-y-1 ${
+        docked ? '' : 'cursor-grab active:cursor-grabbing'
       }`}
     >
-      {/* Header with Grip Drag Handle & Tabs */}
-      <div
-        onPointerDown={(e) => {
-          if (!isExpanded) {
-            dragControls.start(e);
-          }
-        }}
-        className="flex items-center justify-between px-2.5 py-1.5 bg-studio-panel border-b border-studio-border shrink-0 select-none cursor-grab active:cursor-grabbing gap-2"
-      >
-        {/* Left: Grip Handle, Activity Icon & LIVE Acronym (Title text removed to prevent truncation) */}
-        <div className="flex items-center gap-1.5 min-w-0 shrink">
-          <GripHorizontal className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-          <span
-            title={t('monitor.scopes_title')}
-            aria-label={t('monitor.scopes_title')}
-            className="inline-flex items-center"
+      {/* Left: Grip Handle (only in floating mode), Activity Icon & LIVE Acronym */}
+      <div className="flex items-center gap-1.5 min-w-0 shrink">
+        {!docked && <GripHorizontal className="w-3.5 h-3.5 text-slate-500 shrink-0" />}
+        <span
+          title={t('monitor.scopes_title')}
+          aria-label={t('monitor.scopes_title')}
+          className="inline-flex items-center"
+        >
+          <Activity className="w-3.5 h-3.5 text-sky-400 shrink-0" aria-hidden="true" />
+        </span>
+        <span className="inline-flex items-center gap-1 text-[8px] font-bold text-emerald-400 bg-emerald-950/80 px-1 py-0.5 rounded-xs border border-emerald-500/30 shrink-0 whitespace-nowrap">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
+          LIVE
+        </span>
+      </div>
+
+      {/* Right: Mode Tabs, Refresh, Dock/Float, Maximize, Close */}
+      <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center bg-black/60 rounded-sm border border-studio-border p-0.5 text-[9.5px] shrink-0">
+          <button
+            type="button"
+            onClick={() => setMode('all')}
+            className={`px-1.5 py-0.5 rounded-xs transition cursor-pointer shrink-0 whitespace-nowrap ${
+              mode === 'all'
+                ? 'bg-sky-950/80 text-sky-300 font-bold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
           >
-            <Activity className="w-3.5 h-3.5 text-sky-400 shrink-0" aria-hidden="true" />
-          </span>
-          <span className="inline-flex items-center gap-1 text-[8px] font-bold text-emerald-400 bg-emerald-950/80 px-1 py-0.5 rounded-xs border border-emerald-500/30 shrink-0 whitespace-nowrap">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
-            LIVE
-          </span>
+            {t('monitor.scopes_tab_all')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode('waveform')}
+            className={`px-1.5 py-0.5 rounded-xs transition cursor-pointer shrink-0 whitespace-nowrap ${
+              mode === 'waveform'
+                ? 'bg-sky-950/80 text-sky-300 font-bold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            {t('monitor.scopes_tab_waveform')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode('vectorscope')}
+            className={`px-1.5 py-0.5 rounded-xs transition cursor-pointer shrink-0 whitespace-nowrap ${
+              mode === 'vectorscope'
+                ? 'bg-sky-950/80 text-sky-300 font-bold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            {t('monitor.scopes_tab_vectorscope')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode('audio')}
+            className={`px-1.5 py-0.5 rounded-xs transition cursor-pointer shrink-0 whitespace-nowrap ${
+              mode === 'audio'
+                ? 'bg-sky-950/80 text-sky-300 font-bold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            {t('monitor.scopes_tab_audio')}
+          </button>
         </div>
 
-        {/* Right: Mode Tabs, Refresh, Maximize, Close */}
-        <div className="flex items-center gap-1 shrink-0">
-          <div className="flex items-center bg-black/60 rounded-sm border border-studio-border p-0.5 text-[9.5px] shrink-0">
-            <button
-              type="button"
-              onClick={() => setMode('all')}
-              className={`px-1.5 py-0.5 rounded-xs transition cursor-pointer shrink-0 whitespace-nowrap ${
-                mode === 'all'
-                  ? 'bg-sky-950/80 text-sky-300 font-bold'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              {t('monitor.scopes_tab_all')}
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode('waveform')}
-              className={`px-1.5 py-0.5 rounded-xs transition cursor-pointer shrink-0 whitespace-nowrap ${
-                mode === 'waveform'
-                  ? 'bg-sky-950/80 text-sky-300 font-bold'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              {t('monitor.scopes_tab_waveform')}
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode('vectorscope')}
-              className={`px-1.5 py-0.5 rounded-xs transition cursor-pointer shrink-0 whitespace-nowrap ${
-                mode === 'vectorscope'
-                  ? 'bg-sky-950/80 text-sky-300 font-bold'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              {t('monitor.scopes_tab_vectorscope')}
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode('audio')}
-              className={`px-1.5 py-0.5 rounded-xs transition cursor-pointer shrink-0 whitespace-nowrap ${
-                mode === 'audio'
-                  ? 'bg-sky-950/80 text-sky-300 font-bold'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              {t('monitor.scopes_tab_audio')}
-            </button>
-          </div>
+        <button
+          type="button"
+          onClick={sampleFrame}
+          title={t('common.refresh')}
+          aria-label={t('common.refresh')}
+          className="p-1 rounded-sm text-slate-400 hover:text-white hover:bg-studio-surface transition cursor-pointer shrink-0"
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+        </button>
 
+        {onToggleDock && (
           <button
             type="button"
-            onClick={sampleFrame}
-            title={t('common.refresh')}
-            aria-label={t('common.refresh')}
-            className="p-1 rounded-sm text-slate-400 hover:text-white hover:bg-studio-surface transition cursor-pointer shrink-0"
+            onClick={onToggleDock}
+            title={docked ? t('monitor.scopes_float_window') : t('monitor.scopes_dock_side')}
+            aria-label={docked ? t('monitor.scopes_float_window') : t('monitor.scopes_dock_side')}
+            data-testid="toggle-dock-scopes-btn"
+            className="p-1 rounded-sm text-slate-400 hover:text-amber-300 hover:bg-studio-surface transition cursor-pointer shrink-0"
           >
-            <RefreshCw className="w-3.5 h-3.5" />
+            {docked ? (
+              <PictureInPicture className="w-3.5 h-3.5" />
+            ) : (
+              <PanelRightClose className="w-3.5 h-3.5" />
+            )}
           </button>
+        )}
 
+        {!docked && (
           <button
             type="button"
-            onClick={() => setIsExpanded(!isExpanded)}
+            onClick={handleToggleExpand}
             title={isExpanded ? t('common.minimize') : t('common.maximize')}
             aria-label={isExpanded ? t('common.minimize') : t('common.maximize')}
             className="p-1 rounded-sm text-slate-400 hover:text-white hover:bg-studio-surface transition cursor-pointer shrink-0"
           >
             {isExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
           </button>
+        )}
 
-          {onClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              title={t('common.close')}
-              aria-label={t('common.close')}
-              data-testid="close-scopes-btn"
-              className="p-1 rounded-sm text-slate-400 hover:text-red-400 hover:bg-studio-surface transition cursor-pointer shrink-0"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            title={t('common.close')}
+            aria-label={t('common.close')}
+            data-testid="close-scopes-btn"
+            className="p-1 rounded-sm text-slate-400 hover:text-red-400 hover:bg-studio-surface transition cursor-pointer shrink-0"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
       </div>
+    </div>
+  );
 
-      {/* Scope Canvases and Audio Meters */}
-      <div
-        className={`p-2 overflow-auto ${
-          mode === 'all'
-            ? 'grid grid-cols-1 sm:grid-cols-2 gap-2'
-            : 'grid grid-cols-1 gap-2'
-        }`}
-      >
+  // Container queries: the layout follows the width of the scopes panel itself (docked column or floating window), not the browser window.
+  const scopesBody = (
+    <div className="@container flex-1 min-h-0 flex flex-col">
+    <div
+      className={`p-2 overflow-auto custom-scrollbar flex-1 min-h-0 ${
+        mode === 'all'
+          ? 'grid grid-cols-1 @md:grid-cols-2 gap-2'
+          : 'grid grid-cols-1 gap-2'
+      }`}
+    >
         {mode === 'all' ? (
           <>
             {/* Left Column: Waveform (Row 1) & Audio (Row 2) */}
@@ -561,7 +596,7 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
                 ref={vectorCanvasRef}
                 width={260}
                 height={260}
-                className="aspect-square w-[220px] h-[220px] sm:w-[250px] sm:h-[250px] rounded-xs bg-[#050811] object-contain border border-white/5 shadow-inner"
+                className="aspect-square w-full max-w-[260px] h-auto rounded-xs bg-[#050811] object-contain border border-white/5 shadow-inner"
                 data-testid="vectorscope-canvas"
               />
             </div>
@@ -608,6 +643,65 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
           </div>
         )}
       </div>
-    </motion.div>
+    </div>
+    );
+
+  if (docked) {
+    return (
+      <div
+        data-testid="broadcast-scopes-panel"
+        className="w-full h-full bg-studio-panel border border-studio-border rounded-md shadow-inner flex flex-col font-mono overflow-hidden"
+      >
+        {headerContent}
+        {scopesBody}
+      </div>
+    );
+  }
+
+  const floatingStyle: React.CSSProperties =
+    isExpanded && expandedRect
+      ? {
+          position: 'fixed',
+          left: expandedRect.left,
+          top: expandedRect.top,
+          width: expandedRect.width,
+          height: Math.max(
+            SCOPES_FLOAT_CONFIG.MIN_HEIGHT_PX,
+            expandedRect.height - SCOPES_FLOAT_CONFIG.TRANSPORT_RESERVE_PX
+          ),
+        }
+      : {
+          top: SCOPES_FLOAT_CONFIG.INITIAL_TOP_PX,
+          right: SCOPES_FLOAT_CONFIG.INITIAL_RIGHT_PX,
+          width: SCOPES_FLOAT_CONFIG.DEFAULT_WIDTH_PX,
+          height: SCOPES_FLOAT_CONFIG.DEFAULT_HEIGHT_PX,
+          minWidth: SCOPES_FLOAT_CONFIG.MIN_WIDTH_PX,
+          minHeight: SCOPES_FLOAT_CONFIG.MIN_HEIGHT_PX,
+          maxWidth: '100%',
+          maxHeight: '100%',
+          resize: 'both',
+        };
+
+  // Floating window lives in a portal on <body>, so it is never clipped by the live preview frame.
+  // The full-viewport layer keeps it draggable anywhere inside the app window, but never lost off-screen.
+  return createPortal(
+    <div ref={constraintsRef} className="fixed inset-0 z-[60] pointer-events-none">
+      <motion.div
+        drag={!isExpanded}
+        dragControls={dragControls}
+        dragListener={false}
+        dragMomentum={false}
+        dragElastic={0}
+        dragConstraints={constraintsRef}
+        animate={isExpanded ? { x: 0, y: 0 } : undefined}
+        data-testid="broadcast-scopes-panel"
+        style={floatingStyle}
+        className="pointer-events-auto absolute bg-slate-950/90 backdrop-blur-md border border-slate-700/60 shadow-2xl rounded-sm font-mono flex flex-col overflow-hidden"
+      >
+        {headerContent}
+        {scopesBody}
+      </motion.div>
+    </div>,
+    document.body
   );
 };

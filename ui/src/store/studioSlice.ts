@@ -62,6 +62,9 @@ export interface StudioState {
   logs: string[];
   sidebarCollapsed: boolean;
   consoleCollapsed: boolean;
+  rightPanelCollapsed: boolean;
+  scopesVisible: boolean;
+  scopeDockMode: 'docked' | 'floating';
   workspacePreset: WorkspacePreset;
   previewTimestamp: number;
   splitPosition: number;
@@ -105,6 +108,9 @@ export const initialStudioState: StudioState = {
   logs: [],
   sidebarCollapsed: false,
   consoleCollapsed: false,
+  rightPanelCollapsed: false,
+  scopesVisible: false,
+  scopeDockMode: 'floating',
   workspacePreset: 'default',
   previewTimestamp: 0.0,
   splitPosition: 50,
@@ -356,6 +362,21 @@ export const studioSlice = createSlice({
     setConsoleCollapsed: (state, action: PayloadAction<boolean>) => {
       state.consoleCollapsed = action.payload;
     },
+    toggleRightPanel: (state) => {
+      state.rightPanelCollapsed = !state.rightPanelCollapsed;
+    },
+    setRightPanelCollapsed: (state, action: PayloadAction<boolean>) => {
+      state.rightPanelCollapsed = action.payload;
+    },
+    setScopesVisible: (state, action: PayloadAction<boolean>) => {
+      state.scopesVisible = action.payload;
+      if (action.payload && state.rightPanelCollapsed) {
+        state.scopeDockMode = 'docked';
+      }
+    },
+    setScopeDockMode: (state, action: PayloadAction<'docked' | 'floating'>) => {
+      state.scopeDockMode = action.payload;
+    },
     setWorkspacePreset: (state, action: PayloadAction<WorkspacePreset>) => {
       state.workspacePreset = action.payload;
       if (action.payload === 'capture') {
@@ -422,6 +443,10 @@ export const {
   setSidebarCollapsed,
   toggleConsole,
   setConsoleCollapsed,
+  toggleRightPanel,
+  setRightPanelCollapsed,
+  setScopesVisible,
+  setScopeDockMode,
   setWorkspacePreset,
   setPreviewTimestamp,
   setSplitPosition,

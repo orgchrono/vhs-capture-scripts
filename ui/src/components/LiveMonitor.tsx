@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   Video,
   AlertTriangle,
@@ -20,6 +20,8 @@ import { LiveEdgeIndicator } from './LiveEdgeIndicator';
 import { TimelineScrubber } from './TimelineScrubber';
 import { BroadcastScopes } from './BroadcastScopes';
 import { MonitorReticleOverlay } from './MonitorReticleOverlay';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from './ui/resizable';
+import { LAYOUT_CONFIG } from '../lib/constants';
 
 export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => {
   const {
@@ -39,6 +41,8 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
     setIsSplitMode,
     showScopes,
     setShowScopes,
+    scopeDockMode,
+    setScopeDockMode,
     isPlaying,
     handleTogglePlay,
     streamKey,
@@ -70,6 +74,39 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
   const streamUrl = `/api/monitor/stream-proxy?mode=processed&source=${encodeURIComponent(
     selectedFile || ''
   )}&fps=15&timestamp=${streamAnchor}&k=${streamKey}`;
+
+  const monitorAreaRef = useRef<HTMLDivElement | null>(null);
+  const scopesDocked = showScopes && scopeDockMode === 'docked';
+  const scopesFloating = showScopes && scopeDockMode === 'floating';
+
+  const handleToggleDock = () => setScopeDockMode(scopeDockMode === 'docked' ? 'floating' : 'docked');
+
+  // Docked scopes sit side-by-side with the video, separated by a draggable handle.
+  const renderWithDock = (canvas: React.ReactNode) =>
+    scopesDocked ? (
+      <ResizablePanelGroup orientation="horizontal" className="flex-1 min-h-0 h-auto">
+        <ResizablePanel id="monitor-video-panel" minSize={LAYOUT_CONFIG.MONITOR_MIN_SIZE} className="flex flex-col min-w-0">
+          {canvas}
+        </ResizablePanel>
+        <ResizableHandle withHandle className="mx-1 rounded-sm" />
+        <ResizablePanel
+          id="monitor-scopes-panel"
+          defaultSize={LAYOUT_CONFIG.SCOPES_DOCKED_DEFAULT_SIZE}
+          minSize={LAYOUT_CONFIG.SCOPES_DOCKED_MIN_SIZE}
+          className="flex flex-col min-w-0"
+        >
+          <BroadcastScopes
+            docked
+            sourceImageSrc={sourceImageSrc}
+            videoRef={videoRef}
+            onToggleDock={handleToggleDock}
+            onClose={() => setShowScopes(false)}
+          />
+        </ResizablePanel>
+      </ResizablePanelGroup>
+    ) : (
+      canvas
+    );
 
   return (
     <div className="flex flex-col h-full w-full select-none">
@@ -196,7 +233,9 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
       </div>
 
       {/* Main Video Presentation Canvas */}
+      {renderWithDock(
       <div
+        ref={monitorAreaRef}
         data-testid="live-monitor-container"
         role="region"
         aria-label={t('monitor.live_preview')}
@@ -334,7 +373,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
             </div>
 
             {/* Bottom Transport Bar */}
-            <div className="absolute bottom-0 left-0 right-0 z-30 bg-studio-panel/95 backdrop-blur-md border-t border-studio-border px-3 py-1.5 flex items-center justify-between gap-2.5 text-xs font-mono select-none flex-nowrap min-w-0">
+            <div className="absolute bottom-0 left-0 right-0 z-30 bg-studio-panel/95 backdrop-blur-md border-t border-studio-border px-3 py-1.5 flex items-center justify-between gap-x-2.5 gap-y-1.5 text-xs font-mono select-none flex-wrap min-w-0">
               <div className="flex items-center gap-1 shrink-0">
                 <button
                   type="button"
@@ -415,16 +454,19 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
             </div>
           </>
         )}
-
-        {/* Real-time Oscilloscope & Vectorscope Overlay (Top-level z-50 with Draggable Window) */}
-        {showScopes && (
-          <BroadcastScopes
-            sourceImageSrc={sourceImageSrc}
-            videoRef={videoRef}
-            onClose={() => setShowScopes(false)}
-          />
-        )}
       </div>
+      )}
+
+      {/* Floating Oscilloscope: portal on <body>, free to drag anywhere, never clipped by the preview frame */}
+      {scopesFloating && (
+        <BroadcastScopes
+          sourceImageSrc={sourceImageSrc}
+          videoRef={videoRef}
+          anchorRef={monitorAreaRef}
+          onToggleDock={handleToggleDock}
+          onClose={() => setShowScopes(false)}
+        />
+      )}
     </div>
   );
 };

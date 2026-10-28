@@ -52,4 +52,36 @@ describe('BroadcastScopes Component', () => {
     expect(screen.getByText('-18.5 LUFS')).toBeInTheDocument();
     expect(screen.getByText('-21.2 LUFS')).toBeInTheDocument();
   });
+
+  it('renders floating in a portal on <body>, outside any clipping parent', () => {
+    const { container } = render(<BroadcastScopes />);
+    const panel = screen.getByTestId('broadcast-scopes-panel');
+    expect(container.contains(panel)).toBe(false);
+    expect(document.body.contains(panel)).toBe(true);
+  });
+
+  it('renders docked inline, without drag handle or maximize button', () => {
+    const { container } = render(<BroadcastScopes docked onToggleDock={vi.fn()} />);
+    const panel = screen.getByTestId('broadcast-scopes-panel');
+    expect(container.contains(panel)).toBe(true);
+    expect(screen.queryByTitle('common.maximize')).not.toBeInTheDocument();
+  });
+
+  it('offers to float when docked and to dock when floating', () => {
+    const onToggleDock = vi.fn();
+    const { unmount } = render(<BroadcastScopes docked onToggleDock={onToggleDock} />);
+    const dockedBtn = screen.getByTestId('toggle-dock-scopes-btn');
+    expect(dockedBtn).toHaveAttribute('title', 'monitor.scopes_float_window');
+    fireEvent.click(dockedBtn);
+    expect(onToggleDock).toHaveBeenCalledTimes(1);
+    unmount();
+
+    render(<BroadcastScopes onToggleDock={onToggleDock} />);
+    expect(screen.getByTestId('toggle-dock-scopes-btn')).toHaveAttribute('title', 'monitor.scopes_dock_side');
+  });
+
+  it('hides the dock button when no handler is provided', () => {
+    render(<BroadcastScopes />);
+    expect(screen.queryByTestId('toggle-dock-scopes-btn')).not.toBeInTheDocument();
+  });
 });

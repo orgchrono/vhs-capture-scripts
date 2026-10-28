@@ -60,6 +60,8 @@ const StudioMain: React.FC<{
     toggleSidebar,
     consoleCollapsed,
     toggleConsole,
+    rightPanelCollapsed,
+    toggleRightPanel,
     selectedFile,
     setSelectedFile,
     addLog,
@@ -174,6 +176,8 @@ const StudioMain: React.FC<{
         onToggleSidebar={toggleSidebar}
         consoleCollapsed={consoleCollapsed}
         onToggleConsole={toggleConsole}
+        rightPanelCollapsed={rightPanelCollapsed}
+        onToggleRightPanel={toggleRightPanel}
         onOpenPrivacy={onOpenPrivacy}
         onOpenPreferences={onOpenPreferences}
       />
@@ -248,38 +252,52 @@ const StudioMain: React.FC<{
                 minSize={LAYOUT_CONFIG.WORKSPACE_TOP_MIN_SIZE}
                 className="overflow-y-auto custom-scrollbar p-3 lg:p-4 bg-studio-bg"
               >
-                <div className="w-full h-full min-h-0 grid grid-cols-1 lg:grid-cols-[minmax(320px,1.05fr)_minmax(420px,1.35fr)] 2xl:grid-cols-[minmax(420px,1.15fr)_minmax(540px,1.45fr)] gap-4 lg:gap-5 items-stretch">
-                  {/* Left Column: Video Monitor (Expansível) */}
-                  <div className="flex flex-col h-full min-h-[320px] lg:min-h-[380px]">
+                <ResizablePanelGroup orientation="horizontal" className="w-full h-full min-h-0">
+                  {/* Left: Video Monitor (+ docked scopes) - takes the whole width when the right panel is hidden */}
+                  <ResizablePanel
+                    id="monitor-panel"
+                    defaultSize={rightPanelCollapsed ? '100%' : LAYOUT_CONFIG.MONITOR_DEFAULT_SIZE}
+                    minSize={LAYOUT_CONFIG.MONITOR_MIN_SIZE}
+                    className="flex flex-col h-full min-h-[320px] lg:min-h-[380px] min-w-0"
+                  >
                     <LiveMonitor health={status?.health} />
-                  </div>
+                  </ResizablePanel>
 
-                  {/* Right Column: Engine Settings (Nivelado perfeitamente com o Monitor CRT) */}
-                  <div className="flex flex-col h-full min-h-[320px] lg:min-h-[380px]">
-                    <div className="flex items-center justify-between mb-2 shrink-0 h-6 min-w-0 gap-2">
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 font-mono shrink-0 whitespace-nowrap">
-                          <span className="bg-slate-500 w-1 h-3 rounded-sm shrink-0" aria-hidden="true"></span>
-                          <span className="truncate">{t('app.engine_title')}</span>
-                        </h2>
-                        <span className="hidden xl:inline-flex text-[10px] font-mono text-slate-400 bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border uppercase shrink-0 whitespace-nowrap">
-                          {t('app.engine_badge')}
-                        </span>
-                      </div>
-                      <div
-                        className="inline-flex items-center gap-1.5 text-[10px] font-mono font-medium text-slate-300 bg-studio-surface border border-studio-border px-2 py-0.5 rounded-sm shrink-0 whitespace-nowrap max-w-[140px] sm:max-w-[190px]"
-                        title={currentPresetLabel}
+                  {/* Right: Engine Settings (collapsible from the header) */}
+                  {!rightPanelCollapsed && (
+                    <>
+                      <ResizableHandle withHandle className="mx-1.5 rounded-sm" />
+                      <ResizablePanel
+                        id="settings-panel"
+                        defaultSize={LAYOUT_CONFIG.RIGHT_WORKSPACE_DEFAULT_SIZE}
+                        minSize={LAYOUT_CONFIG.RIGHT_WORKSPACE_MIN_SIZE}
+                        className="flex flex-col h-full min-h-[320px] lg:min-h-[380px] min-w-0"
                       >
-                        <span className="led-lamp led-live shrink-0" aria-hidden="true"></span>
-                        <span className="truncate">{currentPresetLabel}</span>
-                      </div>
-                    </div>
-                    <div className="flex-1 min-h-0 flex flex-col">
-                      <RestorationSettings />
-                    </div>
-                  </div>
-                </div>
-              </ResizablePanel>
+                        <div className="flex items-center justify-between mb-2 shrink-0 h-6 min-w-0 gap-2">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 font-mono shrink-0 whitespace-nowrap">
+                              <span className="bg-slate-500 w-1 h-3 rounded-sm shrink-0" aria-hidden="true"></span>
+                              <span className="truncate">{t('app.engine_title')}</span>
+                            </h2>
+                            <span className="hidden xl:inline-flex text-[10px] font-mono text-slate-400 bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border uppercase shrink-0 whitespace-nowrap">
+                              {t('app.engine_badge')}
+                            </span>
+                          </div>
+                          <div
+                            className="inline-flex items-center gap-1.5 text-[10px] font-mono font-medium text-slate-300 bg-studio-surface border border-studio-border px-2 py-0.5 rounded-sm shrink-0 whitespace-nowrap max-w-[140px] sm:max-w-[190px]"
+                            title={currentPresetLabel}
+                          >
+                            <span className="led-lamp led-live shrink-0" aria-hidden="true"></span>
+                            <span className="truncate">{currentPresetLabel}</span>
+                          </div>
+                        </div>
+                        <div className="flex-1 min-h-0 flex flex-col">
+                          <RestorationSettings />
+                        </div>
+                      </ResizablePanel>
+                    </>
+                  )}
+                </ResizablePanelGroup>              </ResizablePanel>
 
               {/* Bottom Half: Console & Action */}
               {!consoleCollapsed && (

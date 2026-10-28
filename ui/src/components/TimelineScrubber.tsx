@@ -48,7 +48,7 @@ export const TimelineScrubber: React.FC<TimelineScrubberProps> = ({
   };
 
   return (
-    <div className="flex-1 min-w-0 flex items-center gap-2.5">
+    <div className="flex-1 min-w-[240px] flex items-center gap-2.5">
       <input
         type="range"
         min={0}

@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import '@testing-library/jest-dom/vitest'
 import { Header } from './Header'
@@ -40,6 +40,33 @@ describe('Studio Pro Workspace Layout & UX Cohesion ("Feng Shui")', () => {
     expect(screen.getByTitle(/Acessibilidade: Alto Contraste/i)).toBeInTheDocument()
   })
 
+  it('exposes a header toggle for the right panel that reflects its state', () => {
+    const onToggleRightPanel = vi.fn()
+    const { rerender } = render(
+      <Header
+        onInstallQtgmc={vi.fn()}
+        isInstallingQtgmc={false}
+        rightPanelCollapsed={false}
+        onToggleRightPanel={onToggleRightPanel}
+      />,
+      { wrapper }
+    )
+
+    const btn = screen.getByTestId('toggle-right-panel-btn')
+    expect(btn).toHaveAttribute('aria-expanded', 'true')
+    fireEvent.click(btn)
+    expect(onToggleRightPanel).toHaveBeenCalledTimes(1)
+
+    rerender(
+      <Header
+        onInstallQtgmc={vi.fn()}
+        isInstallingQtgmc={false}
+        rightPanelCollapsed
+        onToggleRightPanel={onToggleRightPanel}
+      />
+    )
+    expect(screen.getByTestId('toggle-right-panel-btn')).toHaveAttribute('aria-expanded', 'false')
+  })
   it('renders CaptureBar with hardware integration indicators and DeckLink badges', () => {
     render(<CaptureBar />, { wrapper })
 
