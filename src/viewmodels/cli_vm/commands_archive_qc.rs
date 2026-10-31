@@ -10,7 +10,7 @@ use crate::domain::archive::{
     generate_bag_info_txt, generate_bagit_declaration, generate_bagit_manifest,
     generate_full_premis_v3_xml, ArchivalFileEntry, PremisAgent, PremisEvent,
 };
-use crate::domain::fixity::compute_file_sha256_hex;
+use crate::infrastructure::storage::compute_file_sha256_hex;
 
 /// Summary report for an OAIS SIP/AIP archival directory package.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -41,7 +41,7 @@ pub fn collect_entries(
                     .unwrap_or(&path)
                     .to_string_lossy()
                     .to_string();
-                let hex = crate::domain::fixity::compute_file_sha256_hex(&path)
+                let hex = compute_file_sha256_hex(&path)
                     .map_err(io::Error::other)?;
                 let meta = fs::metadata(&path)?;
                 entries.push(ArchivalFileEntry {
@@ -258,7 +258,7 @@ pub fn handle_archive_qc(subcmd: &str, args: &[String]) -> Result<bool, Box<dyn 
                     std::process::exit(1);
                 }
             };
-            match crate::domain::archive::verify_oais_directory(Path::new(target_dir)) {
+            match crate::infrastructure::storage::verify_oais_directory(Path::new(target_dir)) {
                 Ok(report) => {
                     println!("{}", serde_json::to_string_pretty(&report)?);
                     if !report.is_valid {

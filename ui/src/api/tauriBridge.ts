@@ -1166,7 +1166,7 @@ export const tauriBridge = {
     }
     return [
       {
-        device_id: '\\\\.\\PHYSICALDRIVE0',
+        device_id: 'mock_system_drive',
         name: 'System Drive (500.0 GB)',
         model: 'Generic System Drive',
         size_gb: 500.0,
@@ -1189,7 +1189,7 @@ export const tauriBridge = {
     return {
       provider: 'local_nas_usb',
       config: {
-        path: 'C:\\Users\\MockUser\\Videos\\VHS_Archive',
+        path: '',
       },
       status: {
         ready: true,

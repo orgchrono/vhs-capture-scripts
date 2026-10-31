@@ -169,10 +169,7 @@ pub struct PanasonicDriveHeuristic {
 /// Pure zero-copy signature scanner across binary probe buffers.
 #[must_use]
 pub fn locate_signature(haystack: &[u8], needle: &[u8]) -> Option<usize> {
-    if needle.is_empty() || haystack.len() < needle.len() {
-        return None;
-    }
-    haystack.windows(needle.len()).position(|w| w == needle)
+    find_signature_offset(haystack, needle)
 }
 
 /// Pure zero-copy occurrence counter.

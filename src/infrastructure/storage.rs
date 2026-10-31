@@ -418,22 +418,8 @@ pub fn copy_and_verify_file(source: &Path, destination: &Path) -> Result<u64, St
 
 /// Computes a lowercase hexadecimal SHA-256 digest of an on-disk file in streaming chunks.
 pub fn compute_file_sha256_hex(path: &Path) -> Result<String, std::io::Error> {
-    use std::io::Read;
-    use sha2::{Digest, Sha256};
-    let mut file = std::fs::File::open(path)?;
-    let mut hasher = Sha256::new();
-    let mut buffer = [0u8; crate::models::constants::DEFAULT_IO_BUFFER_BYTES];
-
-    loop {
-        let count = file.read(&mut buffer)?;
-        if count == 0 {
-            break;
-        }
-        hasher.update(&buffer[..count]);
-    }
-
-    let result = hasher.finalize();
-    Ok(result.iter().map(|b| format!("{b:02x}")).collect())
+    let file = std::fs::File::open(path)?;
+    crate::domain::fixity::compute_reader_sha256_hex(file)
 }
 
 /// Sets read-only permissions on an archival master file to prevent accidental deletion or modification.
@@ -684,6 +670,41 @@ mod tests {
         assert!(copy_res.is_ok());
         assert_eq!(copy_res.unwrap(), 31);
         assert_eq!(std::fs::read(&dst).unwrap(), b"VHS Studio Archive Test Payload");
+
+        let _ = std::fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn test_verify_oais_directory() {
+        let temp_dir = std::env::temp_dir().join(format!("vhs_test_oais_verify_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&temp_dir);
+        std::fs::create_dir_all(&temp_dir).expect("create test dir");
+
+        let master_file = temp_dir.join("tape_master.mkv");
+        let proxy_file = temp_dir.join("tape_proxy.mp4");
+        std::fs::write(&master_file, b"MASTER_CONTENT_12345").unwrap();
+        std::fs::write(&proxy_file, b"PROXY_CONTENT_67890").unwrap();
+
+        let master_hash = compute_file_sha256_hex(&master_file).unwrap();
+        let proxy_hash = compute_file_sha256_hex(&proxy_file).unwrap();
+
+        let manifest_file = temp_dir.join("tape_manifest-sha256.txt");
+        let manifest_content = format!("{master_hash}  tape_master.mkv\n{proxy_hash}  tape_proxy.mp4\n");
+        std::fs::write(&manifest_file, manifest_content).unwrap();
+
+        let report = verify_oais_directory(&temp_dir).expect("verification should succeed");
+        assert!(report.is_valid);
+        assert_eq!(report.total_files_checked, 2);
+        assert_eq!(report.valid_files.len(), 2);
+        assert!(report.corrupted_files.is_empty());
+        assert!(report.missing_files.is_empty());
+
+        // Test corruption detection
+        std::fs::write(&proxy_file, b"TAMPERED_CONTENT").unwrap();
+        let report_bad = verify_oais_directory(&temp_dir).expect("verification should run");
+        assert!(!report_bad.is_valid);
+        assert_eq!(report_bad.corrupted_files.len(), 1);
+        assert_eq!(report_bad.corrupted_files[0], "tape_proxy.mp4");
 
         let _ = std::fs::remove_dir_all(&temp_dir);
     }

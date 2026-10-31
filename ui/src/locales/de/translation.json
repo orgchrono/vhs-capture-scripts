@@ -140,7 +140,21 @@
     "live_restoration_stream": "Live-Restaurierungs-Stream",
     "generating_preview": "Restaurierungs-Stream wird synchronisiert...",
     "source_stream_proxy": "Quell-Stream-Proxy",
-    "standby_no_signal": "BEREITSCHAFT / KEIN SIGNAL"
+    "standby_no_signal": "BEREITSCHAFT / KEIN SIGNAL",
+    "scopes_channel_l": "L",
+    "scopes_channel_r": "R",
+    "scopes_short_raw": "RAW",
+    "scopes_short_proc": "REST",
+    "scopes_ire_range": "0 - 100 IRE",
+    "scopes_smpte_75": "SMPTE 75%",
+    "scopes_ebu_targets": "-23 LUFS / -1 dBTP",
+    "scopes_ebu_r128_spec": "EBU R128 (-23 LUFS / -1 dBTP)",
+    "scopes_target_lufs_title": "EBU R128 Zielpegel: -23 LUFS",
+    "scopes_max_dbtp_title": "EBU R128 True Peak Limit: -1 dBTP",
+    "scopes_lufs_value": "{{value}} LUFS",
+    "rec_badge": "AUFN",
+    "rec_with_timecode": "AUFN {{timecode}}",
+    "fps_badge": "{{fps}} FPS"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -272,7 +286,8 @@
     "tier_1_rec": "Bescheidene Hardware erkannt. Wir empfehlen schnelles Deinterlacing (BWDIF) und klassische DSP-Filter. Vermeiden Sie schwere neuronale Upscaler, um eine Überlastung zu verhindern.",
     "tier_2_rec": "Multi-Core-CPU mit {{cores}} Kernen und {{ram}} GB RAM. Ideal für BWDIF/Lanczos-Restauration (~60-120 fps), Echtzeit-DeepFilterNet und Whisper. Ehrlicher Hinweis: Schwere neuronale Modelle (CodeFormer / Real-ESRGAN) laufen über CPU/iGPU mit ~1-2 fps.",
     "tier_3_rec": "Beschleunigte GPU erkannt. RIFE und Real-ESRGAN laufen reibungslos. CodeFormer ist für gezielte Restaurationen geeignet.",
-    "tier_4_rec": "Dedizierte Hochleistungs-GPU erkannt. Alle neuronalen KI-Funktionen (CodeFormer, Real-ESRGAN und RIFE 60fps) laufen mit maximaler Geschwindigkeit."
+    "tier_4_rec": "Dedizierte Hochleistungs-GPU erkannt. Alle neuronalen KI-Funktionen (CodeFormer, Real-ESRGAN und RIFE 60fps) laufen mit maximaler Geschwindigkeit.",
+    "ram_gb_suffix": "• {{gb}} GB"
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",

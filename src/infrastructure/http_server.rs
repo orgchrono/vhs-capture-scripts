@@ -25,10 +25,13 @@ use std::time::Duration;
 
 /// Helper to launch the default system browser pointing to the server URL.
 pub fn launch_default_browser(url: &str) {
+    if !url.starts_with("http://127.0.0.1:") && !url.starts_with("http://localhost:") {
+        return;
+    }
     #[cfg(target_os = "windows")]
     {
         let _ = std::process::Command::new("cmd")
-            .args(["/c", "start", url])
+            .args(["/c", "start", "", url])
             .spawn();
     }
     #[cfg(target_os = "macos")]
@@ -321,7 +324,8 @@ fn handle_connection(mut stream: TcpStream, ctx: &AppContext) {
         .headers
         .iter()
         .find(|(k, _)| k == "origin")
-        .map(|(_, v)| v.as_str());
+        .map(|(_, v)| v.as_str())
+        .filter(|o| crate::infrastructure::security::is_origin_allowed(o));
 
     if req.method == "OPTIONS" {
         let resp = format_http_response(204, "text/plain", b"", origin);
@@ -329,30 +333,33 @@ fn handle_connection(mut stream: TcpStream, ctx: &AppContext) {
         return;
     }
 
-    // SSE Log Streaming endpoint
-    if req.path == "/api/logs/stream" {
-        let _ = handle_sse_stream(stream, ctx, origin);
-        return;
-    }
-
     // API routing
     if req.path.starts_with("/api/") {
-        // Enforce loopback and session token security (exempt /api/token for bootstrapping)
-        if req.path != "/api/token" {
-            match verify_api_request(&req.method, &req.headers, &ctx.session_token) {
-                SecurityVerdict::Allow => {}
-                SecurityVerdict::Deny { status, error } => {
-                    let err_body = json!({ "status": "error", "error": error }).to_string();
-                    let resp = format_http_response(
-                        status,
-                        "application/json; charset=utf-8",
-                        err_body.as_bytes(),
-                        origin,
-                    );
-                    let _ = stream.write_all(&resp);
-                    return;
-                }
+        // Enforce loopback and session token security (exempt /api/token and /api/logs/stream from token header, still enforce Host)
+        let expected_token = if req.path == "/api/token" || req.path == "/api/logs/stream" {
+            ""
+        } else {
+            &ctx.session_token
+        };
+        match verify_api_request(&req.method, &req.headers, expected_token) {
+            SecurityVerdict::Allow => {}
+            SecurityVerdict::Deny { status, error } => {
+                let err_body = json!({ "status": "error", "error": error }).to_string();
+                let resp = format_http_response(
+                    status,
+                    "application/json; charset=utf-8",
+                    err_body.as_bytes(),
+                    origin,
+                );
+                let _ = stream.write_all(&resp);
+                return;
             }
+        }
+
+        // SSE Log Streaming endpoint
+        if req.path == "/api/logs/stream" {
+            let _ = handle_sse_stream(stream, ctx, origin);
+            return;
         }
 
         // Thumbnail endpoint (raw binary JPEG)

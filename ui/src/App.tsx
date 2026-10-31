@@ -86,12 +86,15 @@ const StudioMain: React.FC<{
   const dragCounterRef = useRef<number>(0)
   const shouldReduceMotion = useReducedMotion()
 
-  const executeStartRestoration = (resume = false) => {
-    if (!handleStartRestoration(resume ? { resume: true } : undefined)) {
+  const executeStartRestoration = async (resume = false) => {
+    if (!selectedFile) {
       toast.error(t('toast.no_file_title'), {
         description: t('toast.no_file_desc'),
       })
-    } else {
+      return
+    }
+    const started = await handleStartRestoration(resume ? { resume: true } : undefined)
+    if (started) {
       toast.success(t('toast.restoration_started_title'), {
         description: t('toast.restoration_started_desc'),
       })

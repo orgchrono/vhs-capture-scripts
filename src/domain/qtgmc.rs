@@ -47,7 +47,28 @@ impl Default for QtgmcScriptParams {
 /// Pure generator creating the content of a VapourSynth (.vpy) QTGMC script.
 #[must_use]
 pub fn build_qtgmc_script_content(params: &QtgmcScriptParams) -> String {
-    let clean_input = params.input_path.replace('\\', "/");
+    let clean_input = params
+        .input_path
+        .replace('\\', "/")
+        .replace(['"', '\r', '\n', '\0'], "");
+    const ALLOWED_PRESETS: [&str; 11] = [
+        "Placebo",
+        "Very Slow",
+        "Slower",
+        "Slow",
+        "Medium",
+        "Fast",
+        "Faster",
+        "Very Fast",
+        "Super Fast",
+        "Ultra Fast",
+        "Draft",
+    ];
+    let clean_preset = ALLOWED_PRESETS
+        .iter()
+        .copied()
+        .find(|p| p.eq_ignore_ascii_case(params.preset.trim()))
+        .unwrap_or("Slower");
     let tff_str = match params.field_order {
         FieldOrder::Tff => "True",
         FieldOrder::Bff => "False",
@@ -122,7 +143,7 @@ clip.set_output()
         clean_input = clean_input,
         trim_str = trim_str,
         comb_str = comb_str,
-        preset = params.preset,
+        preset = clean_preset,
         tff_str = tff_str,
         fps_divisor = fps_divisor,
         tbc_hold_str = tbc_hold_str
@@ -202,5 +223,19 @@ mod tests {
         assert!(script.contains("TBC FRAME-HOLD"));
         assert!(script.contains("PlaneStatsAverage"));
         assert!(script.contains("FrameEval"));
+    }
+
+    #[test]
+    fn test_qtgmc_script_sanitizes_injection_payloads() {
+        let params = QtgmcScriptParams {
+            input_path: "C:/media/tape.avi\")\nimport os\nos.system(\"calc\")\n#".to_string(),
+            preset: "Slower\", TFF=False)\nimport os\n#".to_string(),
+            ..Default::default()
+        };
+        let script = build_qtgmc_script_content(&params);
+        assert!(!script.contains("\nimport os"));
+        assert!(!script.contains("\nos.system"));
+        assert!(script.contains("Preset=\"Slower\""));
+        assert!(script.contains(r#"source=r"C:/media/tape.avi)import osos.system(calc)#""#));
     }
 }

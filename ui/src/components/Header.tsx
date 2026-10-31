@@ -240,7 +240,7 @@ export const Header: React.FC<HeaderProps> = ({
           </select>
           {status?.hardware?.ram?.total_gb !== undefined && (
             <span className="text-slate-500 font-mono text-[10px] shrink-0">
-              • {status.hardware.ram.total_gb.toFixed(1)}GB
+              {t('hardware.ram_gb_suffix', { gb: status.hardware.ram.total_gb.toFixed(1) })}
             </span>
           )}
         </div>

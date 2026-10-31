@@ -287,13 +287,6 @@ pub fn generate_tape_sidecar_json(
     serde_json::to_string_pretty(&payload).unwrap_or_else(|_| "{}".to_string())
 }
 
-/// Sets read-only permissions on an archival master file to prevent accidental deletion or modification.
-///
-/// NOTE: Direct filesystem I/O belongs to `crate::infrastructure::storage::set_file_readonly`.
-pub fn set_file_readonly(path: &std::path::Path) -> std::io::Result<()> {
-    crate::infrastructure::storage::set_file_readonly(path)
-}
-
 /// Evaluates whether an archival backup plan satisfies the 3-2-1 digital preservation rule:
 /// At least 3 copies, on 2 different media formats/locations, with at least 1 offsite/cloud copy.
 #[must_use]
@@ -315,15 +308,6 @@ pub struct OaisVerificationReport {
     pub corrupted_files: Vec<String>,
     pub missing_files: Vec<String>,
     pub is_valid: bool,
-}
-
-/// Cryptographically audits an OAIS package directory against its SHA-256 manifest.
-///
-/// NOTE: Direct filesystem I/O belongs to `crate::infrastructure::storage::verify_oais_directory`.
-pub fn verify_oais_directory(
-    package_dir: &std::path::Path,
-) -> Result<OaisVerificationReport, Box<dyn std::error::Error>> {
-    crate::infrastructure::storage::verify_oais_directory(package_dir)
 }
 
 
@@ -477,41 +461,6 @@ mod tests {
         assert!(xml.contains("<formatName>video/mp4</formatName>"));
         assert!(xml.contains("<messageDigest>ccc333</messageDigest>"));
         assert!(xml.contains("<relatedObjectIdentifierValue>master.mkv</relatedObjectIdentifierValue>"));
-    }
-
-    #[test]
-    fn test_verify_oais_directory() {
-        let temp_dir = std::env::temp_dir().join(format!("vhs_test_oais_verify_{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&temp_dir);
-        std::fs::create_dir_all(&temp_dir).expect("create test dir");
-
-        let master_file = temp_dir.join("tape_master.mkv");
-        let proxy_file = temp_dir.join("tape_proxy.mp4");
-        std::fs::write(&master_file, b"MASTER_CONTENT_12345").unwrap();
-        std::fs::write(&proxy_file, b"PROXY_CONTENT_67890").unwrap();
-
-        let master_hash = crate::domain::fixity::compute_file_sha256_hex(&master_file).unwrap();
-        let proxy_hash = crate::domain::fixity::compute_file_sha256_hex(&proxy_file).unwrap();
-
-        let manifest_file = temp_dir.join("tape_manifest-sha256.txt");
-        let manifest_content = format!("{master_hash}  tape_master.mkv\n{proxy_hash}  tape_proxy.mp4\n");
-        std::fs::write(&manifest_file, manifest_content).unwrap();
-
-        let report = verify_oais_directory(&temp_dir).expect("verification should succeed");
-        assert!(report.is_valid);
-        assert_eq!(report.total_files_checked, 2);
-        assert_eq!(report.valid_files.len(), 2);
-        assert!(report.corrupted_files.is_empty());
-        assert!(report.missing_files.is_empty());
-
-        // Test corruption detection
-        std::fs::write(&proxy_file, b"TAMPERED_CONTENT").unwrap();
-        let report_bad = verify_oais_directory(&temp_dir).expect("verification should run");
-        assert!(!report_bad.is_valid);
-        assert_eq!(report_bad.corrupted_files.len(), 1);
-        assert_eq!(report_bad.corrupted_files[0], "tape_proxy.mp4");
-
-        let _ = std::fs::remove_dir_all(&temp_dir);
     }
 }
 

@@ -81,15 +81,24 @@ pub fn verify_api_request(
             error: "Access denied.",
         };
     }
-    if method.eq_ignore_ascii_case("POST")
-        && find_header(headers, "origin").is_some_and(|o| !is_origin_allowed(o))
+    if method.eq_ignore_ascii_case("POST") {
+        if find_header(headers, "origin").is_some_and(|o| !is_origin_allowed(o)) {
+            return SecurityVerdict::Deny {
+                status: 403,
+                error: "Invalid origin.",
+            };
+        }
+        if !session_token.is_empty()
+            && !find_header(headers, "x-session-token").is_some_and(|t| tokens_match(t, session_token))
+        {
+            return SecurityVerdict::Deny {
+                status: 403,
+                error: "Invalid session token.",
+            };
+        }
+    } else if !session_token.is_empty()
+        && find_header(headers, "x-session-token").is_some_and(|t| !tokens_match(t, session_token))
     {
-        return SecurityVerdict::Deny {
-            status: 403,
-            error: "Invalid origin.",
-        };
-    }
-    if find_header(headers, "x-session-token").is_some_and(|t| !tokens_match(t, session_token)) {
         return SecurityVerdict::Deny {
             status: 403,
             error: "Invalid session token.",
@@ -156,8 +165,11 @@ pub fn is_safe_media_path(raw: &str, roots: &MediaRoots<'_>) -> bool {
             .media_dir
             .to_string_lossy()
             .replace('\\', "/")
+            .trim_end_matches('/')
             .to_lowercase();
-        if norm_path.starts_with(&norm_media) {
+        if !norm_media.is_empty()
+            && (norm_path == norm_media || norm_path.starts_with(&format!("{norm_media}/")))
+        {
             return true;
         }
     }
@@ -228,6 +240,14 @@ mod tests {
             verify_api_request("GET", &bad_origin, "abc"),
             SecurityVerdict::Allow
         );
+        let post_missing_token = headers(&[("Host", "127.0.0.1:8088")]);
+        assert_eq!(
+            verify_api_request("POST", &post_missing_token, "abc"),
+            SecurityVerdict::Deny {
+                status: 403,
+                error: "Invalid session token."
+            }
+        );
     }
 
     #[test]
@@ -256,6 +276,8 @@ mod tests {
         assert!(!is_safe_media_path("a\0b.mkv", &roots));
         assert!(is_safe_media_path("media/raw/x.mkv", &roots));
         assert!(is_safe_media_path(raw.join("tape.mkv").to_str().expect("utf8"), &roots));
+        let sibling_evil = format!("{}_evil/payload.mkv", tmp.to_string_lossy().replace('\\', "/"));
+        assert!(!is_safe_media_path(&sibling_evil, &roots));
         assert!(is_safe_ingest_path("\\\\.\\PhysicalDrive1", &roots));
         assert!(is_safe_ingest_path("dump.img", &roots));
         assert!(!is_safe_ingest_path("notes.txt", &roots));

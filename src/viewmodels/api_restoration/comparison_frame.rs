@@ -88,24 +88,17 @@ pub fn extract_comparison_frame_unified(
             ]);
 
             // Faithful pipeline filter chain matching chosen restoration specs in strict physical order.
-            let mut filters = Vec::new();
-            if !deinterlacer.eq_ignore_ascii_case("none") {
-                filters.push("bwdif=mode=0:parity=-1:deint=1".to_string());
-            }
-            if dropout {
-                filters.push("removegrain=m=1".to_string());
-            }
-            if chroma_fix {
-                filters.push("chromashift=cbh=2:cbv=1:crh=2:crv=1:edge=smear".to_string());
-            }
-            if denoise {
-                filters.push("hqdn3d=4.0:3.0:6.0:4.5".to_string());
-            }
-            if overscan {
-                filters.push("drawbox=y=ih-16:color=black:width=iw:height=16:t=fill".to_string());
-            }
-            filters.push(scale_filter);
-            let proc_vf = filters.join(",");
+            let preview_spec = crate::domain::pipeline::ComparisonPreviewSpec {
+                deinterlacer: deinterlacer.to_string(),
+                denoise,
+                chroma_fix,
+                comb_filter: false,
+                overscan,
+                dropout,
+                target_width: width,
+                target_height: height,
+            };
+            let proc_vf = crate::domain::pipeline::build_comparison_preview_filtergraph(&preview_spec);
 
             let mut proc_cmd = crate::infrastructure::toolchain::create_silent_command(&ffmpeg);
             proc_cmd.args([

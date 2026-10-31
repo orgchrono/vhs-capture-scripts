@@ -54,6 +54,7 @@ const LufsMeterBar: React.FC<LufsMeterBarProps> = ({
   valueColorClass,
   isCompact = true,
 }) => {
+  const { t } = useTranslation();
   const widthPct = calculateMeterWidth(lufs);
   const valColor = valueColorClass ?? getLufsColorClass(lufs);
   const heightClass = isCompact ? 'h-2' : 'h-3.5';
@@ -67,11 +68,11 @@ const LufsMeterBar: React.FC<LufsMeterBarProps> = ({
           className={`absolute inset-y-0 left-0 ${barColorClass} transition-all duration-300`}
           style={{ width: `${widthPct}%` }}
         />
-        <div className="absolute inset-y-0 left-[67%] w-[1.5px] bg-sky-400 z-10" title="-23 LUFS" />
-        <div className="absolute inset-y-0 left-[98%] w-[1.5px] bg-red-500 z-10" title="-1 dBTP" />
+        <div className="absolute inset-y-0 left-[67%] w-[1.5px] bg-sky-400 z-10" title={t('monitor.scopes_target_lufs_title')} />
+        <div className="absolute inset-y-0 left-[98%] w-[1.5px] bg-red-500 z-10" title={t('monitor.scopes_max_dbtp_title')} />
       </div>
       <span className={`w-16 text-right shrink-0 tabular-nums translate-y-[0.5px] ${valColor}`}>
-        {lufs.toFixed(1)} LUFS
+        {t('monitor.scopes_lufs_value', { value: lufs.toFixed(1) })}
       </span>
     </div>
   );
@@ -586,8 +587,8 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
           <Activity className="w-3.5 h-3.5 text-sky-400 shrink-0" aria-hidden="true" />
         </span>
         <Badge variant="live" size="xs">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block shrink-0" />
-          <span>LIVE</span>
+          <span className="led-lamp led-live shrink-0" />
+          <span className="translate-y-[0.5px]">{t('monitor.live_badge')}</span>
         </Badge>
 
         {hasComparison && (
@@ -746,7 +747,7 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
 
   const scopesBody = (
     <div className="@container flex-1 min-h-0 flex flex-col">
-      <div className="p-1.5 overflow-y-auto custom-scrollbar flex-1 min-h-0 flex flex-col gap-1.5">
+      <div className="p-1.5 overflow-hidden flex-1 min-h-0 flex flex-col gap-1.5">
         {mode === 'all' ? (
           <div className="grid grid-cols-1 @md:grid-cols-2 gap-1.5 flex-1 min-h-0">
             {/* Scope 1: Waveform (Luma 0 - 100 IRE) - Col 1, Row 1 */}
@@ -765,7 +766,7 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
                     </span>
                   </div>
                 ) : (
-                  <span className="text-[9px] text-emerald-400 font-bold translate-y-[0.5px]">0 - 100 IRE</span>
+                  <span className="text-[9px] text-emerald-400 font-bold translate-y-[0.5px]">{t('monitor.scopes_ire_range')}</span>
                 )}
               </div>
               <div className="flex items-center justify-center w-full flex-1 min-h-0 overflow-hidden py-0.5">
@@ -773,7 +774,7 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
                   ref={waveformCanvasRef}
                   width={400}
                   height={200}
-                  className="w-full h-full max-h-[115px] aspect-[2/1] rounded-xs bg-[#050811] object-contain border border-white/5 shadow-inner"
+                  className="w-full h-full aspect-[2/1] rounded-xs bg-[#050811] object-contain border border-white/5 shadow-inner"
                   data-testid="waveform-scope-canvas"
                 />
               </div>
@@ -783,20 +784,20 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
             <div className="order-3 @md:order-2 @md:col-start-1 @md:row-start-2 flex flex-col gap-1 bg-black/60 p-1.5 rounded-sm border border-white/5 overflow-hidden shrink-0 justify-between">
               <div className="flex items-center justify-between text-[10px] text-slate-400 shrink-0 gap-1 leading-none">
                 <span className="font-bold text-slate-300 truncate">{t('monitor.scopes_tab_audio')}</span>
-                <span className="text-[8.5px] text-amber-300 font-bold shrink-0 whitespace-nowrap translate-y-[0.5px]">-23 LUFS / -1 dBTP</span>
+                <span className="text-[8.5px] text-amber-300 font-bold shrink-0 whitespace-nowrap translate-y-[0.5px]">{t('monitor.scopes_ebu_targets')}</span>
               </div>
               <div className="flex flex-col gap-1 py-0.5">
                 {hasComparison && comparisonView === 'both' ? (
                   <>
                     <LufsMeterBar
-                      label="RAW"
+                      label={t('monitor.scopes_short_raw')}
                       labelColorClass="text-amber-400"
                       lufs={activeRawLufsLeft}
                       barColorClass="bg-gradient-to-r from-amber-600 via-amber-500 to-amber-400"
                       valueColorClass="text-amber-300 font-semibold"
                     />
                     <LufsMeterBar
-                      label="REST"
+                      label={t('monitor.scopes_short_proc')}
                       labelColorClass="text-emerald-400"
                       lufs={activeLufsLeft}
                     />
@@ -804,11 +805,11 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
                 ) : (
                   <>
                     <LufsMeterBar
-                      label="L"
+                      label={t('monitor.scopes_channel_l')}
                       lufs={comparisonView === 'raw' ? activeRawLufsLeft : activeLufsLeft}
                     />
                     <LufsMeterBar
-                      label="R"
+                      label={t('monitor.scopes_channel_r')}
                       lufs={comparisonView === 'raw' ? activeRawLufsRight : activeLufsRight}
                     />
                   </>
@@ -832,7 +833,7 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
                     </span>
                   </div>
                 ) : (
-                  <span className="text-[9px] text-sky-400 font-bold translate-y-[0.5px]">SMPTE 75%</span>
+                  <span className="text-[9px] text-sky-400 font-bold translate-y-[0.5px]">{t('monitor.scopes_smpte_75')}</span>
                 )}
               </div>
               <div className="flex-1 flex items-center justify-center w-full min-h-0 overflow-hidden py-0.5">
@@ -840,7 +841,7 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
                   ref={vectorCanvasRef}
                   width={360}
                   height={360}
-                  className="aspect-square w-auto h-full max-h-[180px] max-w-full rounded-xs bg-[#050811] object-contain border border-white/5 shadow-inner"
+                  className="aspect-square w-auto h-full max-w-full rounded-xs bg-[#050811] object-contain border border-white/5 shadow-inner"
                   data-testid="vectorscope-canvas"
                 />
               </div>
@@ -862,7 +863,7 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
                   </span>
                 </div>
               ) : (
-                <span className="text-[9px] text-emerald-400 font-bold">0 - 100 IRE</span>
+                <span className="text-[9px] text-emerald-400 font-bold">{t('monitor.scopes_ire_range')}</span>
               )}
             </div>
             <div className="flex-1 flex items-center justify-center min-h-0 w-full overflow-hidden py-1">
@@ -891,7 +892,7 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
                   </span>
                 </div>
               ) : (
-                <span className="text-[9px] text-sky-400 font-bold">SMPTE 75%</span>
+                <span className="text-[9px] text-sky-400 font-bold">{t('monitor.scopes_smpte_75')}</span>
               )}
             </div>
             <div className="flex-1 flex items-center justify-center min-h-0 w-full overflow-hidden py-1">
@@ -909,7 +910,7 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
           <div className="flex flex-col gap-2 bg-black/60 p-3 rounded-sm border border-white/5 flex-1 min-h-0 overflow-hidden justify-center">
             <div className="flex items-center justify-between text-[10px] text-slate-400 shrink-0">
               <span className="font-bold text-slate-300">{t('monitor.scopes_audio')}</span>
-              <span className="text-[9px] text-amber-300 font-bold">EBU R128 (-23 LUFS / -1 dBTP)</span>
+              <span className="text-[9px] text-amber-300 font-bold">{t('monitor.scopes_ebu_r128_spec')}</span>
             </div>
             <div className="flex flex-col gap-3 py-2">
               {hasComparison && comparisonView === 'both' ? (
@@ -918,7 +919,7 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
                   <div className="flex flex-col gap-1.5 p-1.5 rounded-xs bg-amber-950/20 border border-amber-500/20">
                     <span className="text-[9px] font-bold text-amber-400">{t('monitor.scopes_legend_raw')}</span>
                     <LufsMeterBar
-                      label="L"
+                      label={t('monitor.scopes_channel_l')}
                       labelColorClass="text-amber-400"
                       lufs={activeRawLufsLeft}
                       barColorClass="bg-gradient-to-r from-amber-600 via-amber-500 to-amber-400"
@@ -926,7 +927,7 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
                       isCompact={false}
                     />
                     <LufsMeterBar
-                      label="R"
+                      label={t('monitor.scopes_channel_r')}
                       labelColorClass="text-amber-400"
                       lufs={activeRawLufsRight}
                       barColorClass="bg-gradient-to-r from-amber-600 via-amber-500 to-amber-400"
@@ -939,13 +940,13 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
                   <div className="flex flex-col gap-1.5 p-1.5 rounded-xs bg-emerald-950/20 border border-emerald-500/20">
                     <span className="text-[9px] font-bold text-emerald-400">{t('monitor.scopes_legend_proc')}</span>
                     <LufsMeterBar
-                      label="L"
+                      label={t('monitor.scopes_channel_l')}
                       labelColorClass="text-emerald-400"
                       lufs={activeLufsLeft}
                       isCompact={false}
                     />
                     <LufsMeterBar
-                      label="R"
+                      label={t('monitor.scopes_channel_r')}
                       labelColorClass="text-emerald-400"
                       lufs={activeLufsRight}
                       isCompact={false}
@@ -955,12 +956,12 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
               ) : (
                 <>
                   <LufsMeterBar
-                    label="L"
+                    label={t('monitor.scopes_channel_l')}
                     lufs={comparisonView === 'raw' ? activeRawLufsLeft : activeLufsLeft}
                     isCompact={false}
                   />
                   <LufsMeterBar
-                    label="R"
+                    label={t('monitor.scopes_channel_r')}
                     lufs={comparisonView === 'raw' ? activeRawLufsRight : activeLufsRight}
                     isCompact={false}
                   />

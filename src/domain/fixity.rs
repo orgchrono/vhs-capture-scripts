@@ -17,11 +17,21 @@ pub fn compute_sha256_hex(payload: &[u8]) -> String {
     digest.iter().map(|b| format!("{b:02x}")).collect()
 }
 
-/// Computes a lowercase hexadecimal SHA-256 digest of an on-disk file in streaming chunks.
-///
-/// NOTE: Direct filesystem I/O is encapsulated in `crate::infrastructure::storage::compute_file_sha256_hex`.
-pub fn compute_file_sha256_hex(path: &std::path::Path) -> Result<String, std::io::Error> {
-    crate::infrastructure::storage::compute_file_sha256_hex(path)
+/// Computes a lowercase hexadecimal SHA-256 digest from any streaming byte reader.
+pub fn compute_reader_sha256_hex<R: std::io::Read>(mut reader: R) -> Result<String, std::io::Error> {
+    let mut hasher = Sha256::new();
+    let mut buffer = [0u8; crate::models::constants::DEFAULT_IO_BUFFER_BYTES];
+
+    loop {
+        let count = reader.read(&mut buffer)?;
+        if count == 0 {
+            break;
+        }
+        hasher.update(&buffer[..count]);
+    }
+
+    let result = hasher.finalize();
+    Ok(result.iter().map(|b| format!("{b:02x}")).collect())
 }
 
 /// Pure verification of a byte payload against an expected SHA-256 hex digest.
@@ -49,16 +59,9 @@ mod tests {
     }
 
     #[test]
-    fn test_compute_file_sha256_hex_streams_correctly() {
-        use std::io::Write;
-        let mut temp_file = std::env::temp_dir();
-        temp_file.push("vhs_test_fixity.tmp");
-        {
-            let mut f = std::fs::File::create(&temp_file).expect("Failed to create temp file");
-            f.write_all(b"VHS_STUDIO_PRO_STREAMING_FIXITY").expect("Failed to write temp bytes");
-        }
-        let digest = compute_file_sha256_hex(&temp_file).expect("Failed to compute hash");
-        let _ = std::fs::remove_file(&temp_file);
+    fn test_compute_reader_sha256_hex_streams_correctly() {
+        let cursor = std::io::Cursor::new(b"VHS_STUDIO_PRO_STREAMING_FIXITY");
+        let digest = compute_reader_sha256_hex(cursor).expect("Failed to compute hash");
         let expected = compute_sha256_hex(b"VHS_STUDIO_PRO_STREAMING_FIXITY");
         assert_eq!(digest, expected);
     }

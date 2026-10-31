@@ -140,7 +140,21 @@
     "live_restoration_stream": "リアルタイム修復ストリーム",
     "generating_preview": "修復ストリームを同期中...",
     "source_stream_proxy": "ソースストリームプロキシ",
-    "standby_no_signal": "スタンバイ / 信号なし"
+    "standby_no_signal": "スタンバイ / 信号なし",
+    "scopes_channel_l": "L",
+    "scopes_channel_r": "R",
+    "scopes_short_raw": "RAW",
+    "scopes_short_proc": "REST",
+    "scopes_ire_range": "0 - 100 IRE",
+    "scopes_smpte_75": "SMPTE 75%",
+    "scopes_ebu_targets": "-23 LUFS / -1 dBTP",
+    "scopes_ebu_r128_spec": "EBU R128 (-23 LUFS / -1 dBTP)",
+    "scopes_target_lufs_title": "EBU R128 ターゲット: -23 LUFS",
+    "scopes_max_dbtp_title": "EBU R128 最大トゥルーピーク: -1 dBTP",
+    "scopes_lufs_value": "{{value}} LUFS",
+    "rec_badge": "録画",
+    "rec_with_timecode": "録画 {{timecode}}",
+    "fps_badge": "{{fps}} FPS"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -272,7 +286,8 @@
     "tier_1_rec": "控えめなハードウェアが検出されました。高速デインターレース（BWDIF）と古典的DSPフィルターを推奨します。過負荷を防ぐため、高負荷なAIアップスケーラーの有効化はお控えください。",
     "tier_2_rec": "{{cores}} コアCPUおよび {{ram}}GB RAMを検出。BWDIF/Lanczosレストレーション（~60-120 fps）、リアルタイムDeepFilterNet、Whisperに最適です。注意：高負荷ニューラルモデル（CodeFormer / Real-ESRGAN）はCPU/iGPU経由で ~1-2 fps で動作します。",
     "tier_3_rec": "アクセラレーション対応GPUを検出。RIFEとReal-ESRGANがスムーズに動作します。CodeFormerも局所的な復元に実用的です。",
-    "tier_4_rec": "高性能独立GPUを検出。すべてのニューラルAI機能（CodeFormer、Real-ESRGAN、RIFE 60fps）が最高速度で動作します。"
+    "tier_4_rec": "高性能独立GPUを検出。すべてのニューラルAI機能（CodeFormer、Real-ESRGAN、RIFE 60fps）が最高速度で動作します。",
+    "ram_gb_suffix": "• {{gb}}GB"
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",

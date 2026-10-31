@@ -10,9 +10,10 @@ use std::process::Stdio;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 
-use crate::fixity::compute_file_sha256_hex;
+use crate::storage::compute_file_sha256_hex;
 use crate::media::get_part_path;
 use crate::models::constants::CHECKPOINT_FLUSH_INTERVAL_FRAMES;
+use crate::process_control::kill_process_tree;
 use crate::runner::ProgressAccumulator;
 use crate::toolchain::create_compute_command;
 
@@ -225,8 +226,10 @@ pub fn execute_restoration_job(
                 if let Some(flag) = cancel_flag {
                     if flag.load(Ordering::Relaxed) {
                         was_cancelled = true;
+                        let _ = kill_process_tree(ffmpeg_child.id());
                         let _ = ffmpeg_child.kill();
                         if let Some(ref mut vs) = vspipe_child {
+                            let _ = kill_process_tree(vs.id());
                             let _ = vs.kill();
                         }
                         break;
@@ -234,8 +237,10 @@ pub fn execute_restoration_job(
                 }
             }
             Err(e) => {
+                let _ = kill_process_tree(ffmpeg_child.id());
                 let _ = ffmpeg_child.kill();
                 if let Some(ref mut vs) = vspipe_child {
+                    let _ = kill_process_tree(vs.id());
                     let _ = vs.kill();
                 }
                 write_checkpoint(
@@ -262,7 +267,7 @@ pub fn execute_restoration_job(
 
     let elapsed = start_time.elapsed().as_secs_f64();
 
-    if was_cancelled {
+    if was_cancelled || cancel_flag.is_some_and(|f| f.load(Ordering::Relaxed)) {
         write_checkpoint(planned, "cancelled", accumulator.current_frame, elapsed);
         cleanup_vpy_only(planned);
         return Ok(build_restoration_summary(

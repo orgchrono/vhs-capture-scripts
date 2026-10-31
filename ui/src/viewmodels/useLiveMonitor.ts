@@ -105,6 +105,7 @@ export function useLiveMonitor(): UseLiveMonitorResult {
   // WebRTC / OBS Virtual Cam negotiation
   useEffect(() => {
     let activeStream: MediaStream | null = null;
+    let cancelled = false;
 
     if (!isCapturing) {
       return;
@@ -113,13 +114,16 @@ export function useLiveMonitor(): UseLiveMonitorResult {
     const startMonitor = async () => {
       try {
         await toggleVirtualCam({ enable: true }).unwrap();
+        if (cancelled) return;
         await new Promise((resolve) => setTimeout(resolve, 1000));
+        if (cancelled) return;
 
         if (typeof navigator === 'undefined' || !navigator.mediaDevices?.enumerateDevices) {
           return;
         }
 
         const devices = await navigator.mediaDevices.enumerateDevices();
+        if (cancelled) return;
         const videoDevices = devices.filter((d) => d.kind === 'videoinput');
 
         const obsDeviceId = videoDevices.find(
@@ -132,7 +136,12 @@ export function useLiveMonitor(): UseLiveMonitorResult {
           ? { video: { deviceId: { exact: obsDeviceId } } }
           : { video: true };
 
-        activeStream = await navigator.mediaDevices.getUserMedia(constraints);
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        if (cancelled) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        activeStream = stream;
 
         if (videoRef.current) {
           videoRef.current.srcObject = activeStream;
@@ -140,15 +149,18 @@ export function useLiveMonitor(): UseLiveMonitorResult {
           setError(null);
         }
       } catch (err: unknown) {
-        logger.error('Failed to start Live Monitor:', err);
-        setError(t('monitor.camera_not_detected'));
-        setIsStreamActive(false);
+        if (!cancelled) {
+          logger.error('Failed to start Live Monitor:', err);
+          setError(t('monitor.camera_not_detected'));
+          setIsStreamActive(false);
+        }
       }
     };
 
-    startMonitor();
+    void startMonitor();
 
     return () => {
+      cancelled = true;
       setIsStreamActive(false);
       if (activeStream) {
         activeStream.getTracks().forEach((track) => track.stop());

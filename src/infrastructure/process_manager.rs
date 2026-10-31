@@ -11,6 +11,7 @@ use crate::models::constants::MAX_PROCESS_LOGS_HISTORY;
 use std::io::Read;
 use std::path::Path;
 use std::process::Stdio;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread::{self, JoinHandle};
 
@@ -38,6 +39,7 @@ pub struct ProcessSnapshot {
 #[derive(Debug, Clone)]
 pub struct ProcessManager {
     shared: Arc<Mutex<ProcessState>>,
+    in_process_cancel: Arc<AtomicBool>,
 }
 
 fn lock(shared: &Mutex<ProcessState>) -> MutexGuard<'_, ProcessState> {
@@ -89,7 +91,14 @@ impl ProcessManager {
                 last_exit_code: None,
                 last_success: None,
             })),
+            in_process_cancel: Arc::new(AtomicBool::new(false)),
         }
+    }
+
+    /// Accessor for the atomic cancellation flag used by in-process tasks.
+    #[must_use]
+    pub fn cancel_flag(&self) -> Arc<AtomicBool> {
+        self.in_process_cancel.clone()
     }
 
     #[must_use]
@@ -110,6 +119,9 @@ impl ProcessManager {
 
     /// Sets the in-process execution active state (used when running native tasks without subprocess pid).
     pub fn set_in_process_active(&self, active: bool) {
+        if active {
+            self.in_process_cancel.store(false, Ordering::SeqCst);
+        }
         let mut state = lock(&self.shared);
         state.in_process_active = active;
         if active {
@@ -211,12 +223,16 @@ impl ProcessManager {
 
     /// Kills the active process tree or signals active in-process job. Returns `false` when nothing was running.
     pub fn terminate(&self) -> bool {
+        self.in_process_cancel.store(true, Ordering::SeqCst);
         let mut state = lock(&self.shared);
         if state.in_process_active {
             state.in_process_active = false;
             state.terminated_by_user = true;
             state.last_exit_code = Some(1);
             state.last_success = Some(false);
+            if let Some(pid) = state.pid {
+                let _ = kill_process_tree(pid);
+            }
             return true;
         }
         let Some(pid) = state.pid else {

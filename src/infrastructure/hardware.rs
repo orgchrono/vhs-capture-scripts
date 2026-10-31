@@ -1,4 +1,6 @@
+use std::path::Path;
 use serde::{Deserialize, Serialize};
+use crate::infrastructure::toolchain::create_silent_command;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum GpuType {
@@ -126,7 +128,7 @@ pub fn detect_system_ram_gb() -> (f32, f32) {
 pub fn detect_cpu_model() -> String {
     #[cfg(target_os = "windows")]
     {
-        if let Ok(output) = std::process::Command::new("reg")
+        if let Ok(output) = create_silent_command(Path::new("reg"))
             .args([
                 "query",
                 r"HKLM\HARDWARE\DESCRIPTION\System\CentralProcessor\0",
@@ -210,7 +212,7 @@ pub fn detect_gpu_info() -> (GpuType, String, bool, f32) {
     }
 
     // 1. Check NVIDIA SMI for dedicated NVIDIA VRAM and name
-    if let Ok(output) = std::process::Command::new("nvidia-smi")
+    if let Ok(output) = create_silent_command(Path::new("nvidia-smi"))
         .args([
             "--query-gpu=name,memory.total",
             "--format=csv,noheader,nounits",
@@ -235,7 +237,7 @@ pub fn detect_gpu_info() -> (GpuType, String, bool, f32) {
     }
 
     // 2. Check Vulkan via vulkaninfo
-    if let Ok(output) = std::process::Command::new("vulkaninfo")
+    if let Ok(output) = create_silent_command(Path::new("vulkaninfo"))
         .arg("--summary")
         .output()
     {
@@ -273,7 +275,7 @@ pub fn detect_gpu_info() -> (GpuType, String, bool, f32) {
     #[cfg(target_os = "windows")]
     {
         if gpu_name == "None (CPU Software Rendering)" || gpu_name.is_empty() {
-            if let Ok(output) = std::process::Command::new("reg")
+            if let Ok(output) = create_silent_command(Path::new("reg"))
                 .args(["query", r"HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}\0000", "/v", "DriverDesc"])
                 .output()
             {

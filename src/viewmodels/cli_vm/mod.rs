@@ -95,7 +95,7 @@ mod tests {
         assert!(premis_content.contains("<eventType>fixity check</eventType>"));
 
         // Verify OAIS package with verification report
-        let report = crate::domain::archive::verify_oais_directory(&temp_dir).expect("verify oais directory");
+        let report = crate::infrastructure::storage::verify_oais_directory(&temp_dir).expect("verify oais directory");
         assert!(report.is_valid);
         assert_eq!(report.missing_files.len(), 0);
         assert_eq!(report.corrupted_files.len(), 0);

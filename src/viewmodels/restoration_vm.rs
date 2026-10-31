@@ -253,7 +253,9 @@ pub fn ipc_execute_restoration_job(
         },
     };
 
-    let res = execute_restoration_job(&planned, cancel_flag, Some(&listener));
+    let process_cancel = ctx.process.cancel_flag();
+    let effective_cancel = cancel_flag.unwrap_or(&process_cancel);
+    let res = execute_restoration_job(&planned, Some(effective_cancel), Some(&listener));
     match res {
         Ok(summary) => {
             ctx.process.append_log(format!(

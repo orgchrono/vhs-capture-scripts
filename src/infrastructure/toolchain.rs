@@ -304,7 +304,13 @@ pub fn is_qtgmc_viable() -> bool {
         }
     };
 
-    let temp_vpy = std::env::temp_dir().join("vhs_qtgmc_probe.vpy");
+    static PROBE_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let count = PROBE_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let temp_vpy = std::env::temp_dir().join(format!(
+        "vhs_qtgmc_probe_{}_{}.vpy",
+        std::process::id(),
+        count
+    ));
     let script_content = concat!(
         "import vapoursynth as vs\n",
         "from vapoursynth import core\n",

@@ -140,7 +140,21 @@
     "live_restoration_stream": "بث الترميم المباشر",
     "generating_preview": "مزامنة بث الاستعادة...",
     "source_stream_proxy": "وكيل البث المصدر",
-    "standby_no_signal": "في وضع الاستعداد / لا توجد إشارة"
+    "standby_no_signal": "في وضع الاستعداد / لا توجد إشارة",
+    "scopes_channel_l": "L",
+    "scopes_channel_r": "R",
+    "scopes_short_raw": "RAW",
+    "scopes_short_proc": "REST",
+    "scopes_ire_range": "0 - 100 IRE",
+    "scopes_smpte_75": "SMPTE 75%",
+    "scopes_ebu_targets": "-23 LUFS / -1 dBTP",
+    "scopes_ebu_r128_spec": "EBU R128 (-23 LUFS / -1 dBTP)",
+    "scopes_target_lufs_title": "هدف EBU R128: -23 LUFS",
+    "scopes_max_dbtp_title": "أقصى ذروة حقيقية EBU R128: -1 dBTP",
+    "scopes_lufs_value": "{{value}} LUFS",
+    "rec_badge": "تسجيل",
+    "rec_with_timecode": "تسجيل {{timecode}}",
+    "fps_badge": "{{fps}} إطار/ث"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -272,7 +286,8 @@
     "tier_1_rec": "تم اكتشاف عتاد متواضع. نوصي بإلغاء التشابك السريع (BWDIF) ومرشحات DSP الكلاسيكية. تجنب تمكين نماذج رفع الدقة العصبية الثقيلة لمنع إجهاد الجهاز.",
     "tier_2_rec": "معالج متعدد الأنوية بـ {{cores}} نواة و {{ram}} جيجابايت رام. مثالي لترميم BWDIF/Lanczos (~60-120 إطار/ثانية)، وDeepFilterNet في الوقت الفعلي، وWhisper. تنبيه شفاف: ستعمل النماذج العصبية الثقيلة (CodeFormer / Real-ESRGAN) عبر المعالج/الرسومي المدمج بسرعة ~1-2 إطار/ثانية.",
     "tier_3_rec": "تم اكتشاف معالج رسومي مسرّع. سيعمل RIFE وReal-ESRGAN بسلاسة. يعد CodeFormer قابلاً للتطبيق للترميم المستهدف.",
-    "tier_4_rec": "تم اكتشاف معالج رسومي منفصل عالي الأداء. ستعمل جميع ميزات الذكاء الاصطناعي العصبية (CodeFormer وReal-ESRGAN وRIFE 60fps) بأقصى سرعة."
+    "tier_4_rec": "تم اكتشاف معالج رسومي منفصل عالي الأداء. ستعمل جميع ميزات الذكاء الاصطناعي العصبية (CodeFormer وReal-ESRGAN وRIFE 60fps) بأقصى سرعة.",
+    "ram_gb_suffix": "• {{gb}} جيجابايت"
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",

@@ -320,11 +320,15 @@ pub async fn ipc_execute_restoration_job(
 // ============================================================================
 
 #[tauri::command]
-pub fn ipc_probe_media_file(
+pub async fn ipc_probe_media_file(
     file_path: String,
     ffprobe_binary: String,
 ) -> Result<MediaProbeResult, String> {
-    crate::viewmodels::ingest_vm::ipc_probe_media_file(&file_path, &ffprobe_binary)
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::viewmodels::ingest_vm::ipc_probe_media_file(&file_path, &ffprobe_binary)
+    })
+    .await
+    .map_err(|e| format!("Worker join error: {e}"))?
 }
 
 #[tauri::command]
@@ -341,8 +345,12 @@ pub fn ipc_build_ffprobe_args(file_path: String) -> Vec<String> {
 }
 
 #[tauri::command]
-pub fn ipc_detect_connected_drives() -> Vec<PanasonicDiskInfo> {
-    crate::viewmodels::ingest_vm::ipc_detect_connected_drives()
+pub async fn ipc_detect_connected_drives() -> Vec<PanasonicDiskInfo> {
+    tauri::async_runtime::spawn_blocking(|| {
+        crate::viewmodels::ingest_vm::ipc_detect_connected_drives()
+    })
+    .await
+    .unwrap_or_default()
 }
 
 #[tauri::command]
@@ -568,8 +576,12 @@ pub fn ipc_plan_chunk_upload(
 }
 
 #[tauri::command]
-pub fn ipc_copy_storage_file(source: String, destination: String) -> Result<u64, String> {
-    crate::viewmodels::storage_vm::ipc_copy_storage_file(&source, &destination)
+pub async fn ipc_copy_storage_file(source: String, destination: String) -> Result<u64, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::viewmodels::storage_vm::ipc_copy_storage_file(&source, &destination)
+    })
+    .await
+    .map_err(|e| format!("Worker join error: {e}"))?
 }
 
 // ============================================================================
@@ -577,80 +589,92 @@ pub fn ipc_copy_storage_file(source: String, destination: String) -> Result<u64,
 // ============================================================================
 
 #[tauri::command]
-pub fn ipc_get_incomplete_jobs() -> Value {
-    let dirs = crate::viewmodels::api_support::media_dirs();
-    let search_dirs = [dirs.restored.clone(), dirs.work.clone()];
-    let raw_dirs = [dirs.raw.clone(), dirs.media.clone()];
-    let jobs = crate::infrastructure::job_recovery::scan_incomplete_jobs(&search_dirs, &raw_dirs);
-    let total = jobs.len();
-    json!({
-        "incomplete_jobs": jobs,
-        "total": total
+pub async fn ipc_get_incomplete_jobs() -> Value {
+    tauri::async_runtime::spawn_blocking(|| {
+        let dirs = crate::viewmodels::api_support::media_dirs();
+        let search_dirs = [dirs.restored.clone(), dirs.work.clone()];
+        let raw_dirs = [dirs.raw.clone(), dirs.media.clone()];
+        let jobs = crate::infrastructure::job_recovery::scan_incomplete_jobs(&search_dirs, &raw_dirs);
+        let total = jobs.len();
+        json!({
+            "incomplete_jobs": jobs,
+            "total": total
+        })
     })
+    .await
+    .unwrap_or_else(|_| json!({ "incomplete_jobs": [], "total": 0 }))
 }
 
 #[tauri::command]
-pub fn ipc_handle_incomplete_job(
+pub async fn ipc_handle_incomplete_job(
     output_path: String,
     action: String,
     source: Option<String>,
 ) -> Result<Value, String> {
-    let target = Path::new(&output_path);
-    match action.to_ascii_lowercase().as_str() {
-        "finalize" => {
-            let ffmpeg_bin = crate::infrastructure::toolchain::resolve_executable_path("ffmpeg", None, None)
-                .ok_or_else(|| "FFmpeg binary could not be resolved.".to_string())?;
-            let finalized = crate::infrastructure::job_recovery::finalize_partial_video(target, &ffmpeg_bin)?;
-            Ok(json!({
-                "status": "ok",
-                "message": "Partial video container finalized successfully.",
-                "finalized_file": finalized.to_string_lossy()
-            }))
+    tauri::async_runtime::spawn_blocking(move || {
+        let target = Path::new(&output_path);
+        match action.to_ascii_lowercase().as_str() {
+            "finalize" => {
+                let ffmpeg_bin = crate::infrastructure::toolchain::resolve_executable_path("ffmpeg", None, None)
+                    .ok_or_else(|| "FFmpeg binary could not be resolved.".to_string())?;
+                let finalized = crate::infrastructure::job_recovery::finalize_partial_video(target, &ffmpeg_bin)?;
+                Ok(json!({
+                    "status": "ok",
+                    "message": "Partial video container finalized successfully.",
+                    "finalized_file": finalized.to_string_lossy()
+                }))
+            }
+            "discard" => {
+                let count = crate::infrastructure::job_recovery::discard_incomplete_job(target)?;
+                Ok(json!({
+                    "status": "ok",
+                    "message": format!("Discarded {count} partial files and checkpoint artifacts.")
+                }))
+            }
+            "resume" => {
+                Ok(json!({
+                    "status": "ok",
+                    "message": "Resume planned",
+                    "output_path": output_path,
+                    "source": source
+                }))
+            }
+            other => Err(format!("Unknown incomplete job action: {other}")),
         }
-        "discard" => {
-            let count = crate::infrastructure::job_recovery::discard_incomplete_job(target)?;
-            Ok(json!({
-                "status": "ok",
-                "message": format!("Discarded {count} partial files and checkpoint artifacts.")
-            }))
-        }
-        "resume" => {
-            Ok(json!({
-                "status": "ok",
-                "message": "Resume planned",
-                "output_path": output_path,
-                "source": source
-            }))
-        }
-        other => Err(format!("Unknown incomplete job action: {other}")),
-    }
+    })
+    .await
+    .map_err(|e| format!("Worker join error: {e}"))?
 }
 
 #[tauri::command]
-pub fn ipc_get_comparison_frame(
+pub async fn ipc_get_comparison_frame(
     source: Option<String>,
     timestamp: Option<f64>,
     deinterlacer: Option<String>,
     denoise: Option<bool>,
     chroma_fix: Option<bool>,
 ) -> Value {
-    let ts = timestamp.unwrap_or(5.0).max(0.0);
-    let deint = deinterlacer.unwrap_or_else(|| "qtgmc".to_string());
-    let do_denoise = denoise.unwrap_or(true);
-    let do_chroma = chroma_fix.unwrap_or(true);
-    let src = source.unwrap_or_default();
+    tauri::async_runtime::spawn_blocking(move || {
+        let ts = timestamp.unwrap_or(5.0).max(0.0);
+        let deint = deinterlacer.unwrap_or_else(|| "qtgmc".to_string());
+        let do_denoise = denoise.unwrap_or(true);
+        let do_chroma = chroma_fix.unwrap_or(true);
+        let src = source.unwrap_or_default();
 
-    let res = crate::viewmodels::api_restoration::extract_comparison_frame_unified(
-        &src,
-        ts,
-        &deint,
-        do_denoise,
-        do_chroma,
-        false,
-        false,
-    );
+        let res = crate::viewmodels::api_restoration::extract_comparison_frame_unified(
+            &src,
+            ts,
+            &deint,
+            do_denoise,
+            do_chroma,
+            false,
+            false,
+        );
 
-    serde_json::to_value(&res).unwrap_or_else(|_| json!({}))
+        serde_json::to_value(&res).unwrap_or_else(|_| json!({}))
+    })
+    .await
+    .unwrap_or_else(|_| json!({}))
 }
 
 // ============================================================================
@@ -674,6 +698,8 @@ pub fn run_desktop_app() {
     tauri::Builder::default()
         .on_window_event(|_window, event| {
             if let tauri::WindowEvent::CloseRequested { .. } = event {
+                let ctx = crate::viewmodels::api_router::default_app_context();
+                let _ = ctx.process.terminate();
                 std::process::exit(0);
             }
         })

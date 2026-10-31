@@ -140,7 +140,21 @@
     "live_restoration_stream": "实时修复流",
     "generating_preview": "正在同步修复流...",
     "source_stream_proxy": "源流代理",
-    "standby_no_signal": "待机 / 无信号"
+    "standby_no_signal": "待机 / 无信号",
+    "scopes_channel_l": "L",
+    "scopes_channel_r": "R",
+    "scopes_short_raw": "RAW",
+    "scopes_short_proc": "REST",
+    "scopes_ire_range": "0 - 100 IRE",
+    "scopes_smpte_75": "SMPTE 75%",
+    "scopes_ebu_targets": "-23 LUFS / -1 dBTP",
+    "scopes_ebu_r128_spec": "EBU R128 (-23 LUFS / -1 dBTP)",
+    "scopes_target_lufs_title": "EBU R128 目标响度: -23 LUFS",
+    "scopes_max_dbtp_title": "EBU R128 最大真实峰值: -1 dBTP",
+    "scopes_lufs_value": "{{value}} LUFS",
+    "rec_badge": "录制",
+    "rec_with_timecode": "录制 {{timecode}}",
+    "fps_badge": "{{fps}} FPS"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -272,7 +286,8 @@
     "tier_1_rec": "检测到基础硬件。建议使用快速反交错（BWDIF）和传统 DSP 滤镜。请避免启用高负载的神经超分辨率模型以防机器过载。",
     "tier_2_rec": "检测到配备 {{cores}} 核与 {{ram}}GB 内存的多核 CPU。非常适合 BWDIF/Lanczos 修复（~60-120 fps）、实时 DeepFilterNet 降噪以及 Whisper 转录。提示：高负载神经网络模型（CodeFormer / Real-ESRGAN）通过 CPU/核显运行时约为 ~1-2 fps。",
     "tier_3_rec": "检测到加速 GPU。RIFE 和 Real-ESRGAN 将流畅运行。CodeFormer 可用于定向局部面部修复。",
-    "tier_4_rec": "检测到高性能独立 GPU。所有 AI 神经网络功能（CodeFormer、Real-ESRGAN 以及 RIFE 60fps）均将全速运行。"
+    "tier_4_rec": "检测到高性能独立 GPU。所有 AI 神经网络功能（CodeFormer、Real-ESRGAN 以及 RIFE 60fps）均将全速运行。",
+    "ram_gb_suffix": "• {{gb}}GB"
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",

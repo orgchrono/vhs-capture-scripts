@@ -252,7 +252,11 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
                     className="bg-red-900/90 h-5 px-2 rounded-xs text-[9px] font-bold text-white border border-red-600/50 shadow-xs flex items-center gap-1 animate-pulse tracking-wider font-mono shrink-0 whitespace-nowrap leading-none"
                   >
                     <span className="led-lamp led-rec shrink-0"></span>
-                    <span className="translate-y-[0.5px]">{obsStats?.timecode ? `REC ${obsStats.timecode}` : 'REC'}</span>
+                    <span className="translate-y-[0.5px]">
+                      {obsStats?.timecode
+                        ? t('monitor.rec_with_timecode', { timecode: obsStats.timecode })
+                        : t('monitor.rec_badge')}
+                    </span>
                   </motion.span>
                 )}
                 {obsStats?.connected && obsStats?.bitrate_kbps !== undefined && obsStats.bitrate_kbps > 0 && (
@@ -271,7 +275,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
                     {...badgeMotion}
                     className="bg-black/75 backdrop-blur-xs h-5 px-2 rounded-xs text-[9px] font-mono text-slate-300 border border-white/10 shadow-xs tabular-nums shrink-0 whitespace-nowrap leading-none"
                   >
-                    <span className="translate-y-[0.5px]">{obsStats.fps} FPS</span>
+                    <span className="translate-y-[0.5px]">{t('monitor.fps_badge', { fps: obsStats.fps })}</span>
                   </motion.span>
                 )}
                 {Boolean(health?.dropped_frames && health.dropped_frames > 0) && (

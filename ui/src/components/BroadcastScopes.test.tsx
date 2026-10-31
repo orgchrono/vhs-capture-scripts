@@ -4,7 +4,12 @@ import { BroadcastScopes } from './BroadcastScopes';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string) => key,
+    t: (key: string, options?: { value?: string | number }) => {
+      if (options?.value !== undefined) {
+        return `${options.value} LUFS`;
+      }
+      return key;
+    },
   }),
 }));
 
@@ -36,7 +41,7 @@ describe('BroadcastScopes Component', () => {
     fireEvent.click(screen.getByText('monitor.scopes_tab_audio'));
     expect(screen.queryByTestId('waveform-scope-canvas')).not.toBeInTheDocument();
     expect(screen.queryByTestId('vectorscope-canvas')).not.toBeInTheDocument();
-    expect(screen.getByText('EBU R128 (-23 LUFS / -1 dBTP)')).toBeInTheDocument();
+    expect(screen.getByText('monitor.scopes_ebu_r128_spec')).toBeInTheDocument();
   });
 
   it('calls onClose when close button is clicked', () => {
@@ -137,15 +142,15 @@ describe('BroadcastScopes Component', () => {
     expect(screen.getAllByText('monitor.scopes_legend_proc').length).toBeGreaterThanOrEqual(1);
 
     // Check dual audio meters (RAW and REST)
-    expect(screen.getByText('RAW')).toBeInTheDocument();
-    expect(screen.getByText('REST')).toBeInTheDocument();
+    expect(screen.getByText('monitor.scopes_short_raw')).toBeInTheDocument();
+    expect(screen.getByText('monitor.scopes_short_proc')).toBeInTheDocument();
     expect(screen.getByText('-24.5 LUFS')).toBeInTheDocument();
     expect(screen.getByText('-22.0 LUFS')).toBeInTheDocument();
 
     // Switch comparison view to RAW only
     fireEvent.click(screen.getByText('monitor.scopes_comp_raw'));
-    expect(screen.getByText('L')).toBeInTheDocument();
-    expect(screen.getByText('R')).toBeInTheDocument();
+    expect(screen.getAllByText('monitor.scopes_channel_l').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('monitor.scopes_channel_r').length).toBeGreaterThanOrEqual(1);
 
     // Cleanup mock elements
     document.body.removeChild(rawImg);

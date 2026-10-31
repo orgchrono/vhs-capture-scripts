@@ -2,8 +2,11 @@
  * Functional pure helpers for safe error extraction and type narrowing.
  */
 
-export function getErrorMessage(error: unknown, fallback = 'Erro inesperado'): string {
-  if (!error) return fallback;
+import i18n from '../i18n';
+
+export function getErrorMessage(error: unknown, fallback?: string): string {
+  const defaultFallback = fallback || (i18n.isInitialized ? i18n.t('toast.unexpected_error') : 'Unexpected error');
+  if (!error) return defaultFallback;
   if (typeof error === 'string') return error;
   if (error instanceof Error && error.message) return error.message;
   if (typeof error === 'object' && error !== null) {
@@ -15,5 +18,5 @@ export function getErrorMessage(error: unknown, fallback = 'Erro inesperado'): s
     if (typeof candidate.data?.message === 'string') return candidate.data.message;
     if (typeof candidate.message === 'string') return candidate.message;
   }
-  return fallback;
+  return defaultFallback;
 }

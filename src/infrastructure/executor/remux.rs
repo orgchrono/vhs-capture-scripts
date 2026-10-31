@@ -21,8 +21,15 @@ pub fn finalize_restoration_output(
 
     if is_resuming && Path::new(&original_part).is_file() && !planned.ffmpeg_cli_args.is_empty() {
         let concat_list_path = format!("{}.concat.txt", planned.final_output_path);
-        let part1_esc = original_part.replace('\\', "/");
-        let part2_esc = planned.part_output_path.replace('\\', "/");
+        let part1_esc = original_part
+            .replace('\\', "/")
+            .replace(['\r', '\n'], "")
+            .replace('\'', r"'\''");
+        let part2_esc = planned
+            .part_output_path
+            .replace('\\', "/")
+            .replace(['\r', '\n'], "")
+            .replace('\'', r"'\''");
         let concat_body = format!("file '{part1_esc}'\nfile '{part2_esc}'\n");
         if fs::write(&concat_list_path, concat_body).is_ok() {
             let mut concat_cmd = create_silent_command(Path::new(&planned.ffmpeg_cli_args[0]));

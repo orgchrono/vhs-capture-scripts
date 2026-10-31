@@ -10,7 +10,7 @@ use crate::archive::{
     generate_bag_info_txt, generate_full_premis_v3_xml_with_dip,
     PremisAgent, PremisEvent,
 };
-use crate::fixity::compute_file_sha256_hex;
+use crate::storage::compute_file_sha256_hex;
 use crate::models::constants::{DIP_PROXY_AUDIO_BITRATE, DIP_PROXY_CRF};
 use crate::runner::ProgressAccumulator;
 use super::planner::PlannedRestoration;

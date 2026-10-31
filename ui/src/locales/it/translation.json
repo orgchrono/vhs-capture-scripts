@@ -140,7 +140,21 @@
     "live_restoration_stream": "Stream di Restauro in Tempo Reale",
     "generating_preview": "Sincronizzazione flusso di restauro...",
     "source_stream_proxy": "Proxy dello Stream Sorgente",
-    "standby_no_signal": "IN ATTESA / NESSUN SEGNALE"
+    "standby_no_signal": "IN ATTESA / NESSUN SEGNALE",
+    "scopes_channel_l": "L",
+    "scopes_channel_r": "R",
+    "scopes_short_raw": "RAW",
+    "scopes_short_proc": "REST",
+    "scopes_ire_range": "0 - 100 IRE",
+    "scopes_smpte_75": "SMPTE 75%",
+    "scopes_ebu_targets": "-23 LUFS / -1 dBTP",
+    "scopes_ebu_r128_spec": "EBU R128 (-23 LUFS / -1 dBTP)",
+    "scopes_target_lufs_title": "Obiettivo EBU R128: -23 LUFS",
+    "scopes_max_dbtp_title": "Picco Massimo EBU R128: -1 dBTP",
+    "scopes_lufs_value": "{{value}} LUFS",
+    "rec_badge": "REC",
+    "rec_with_timecode": "REC {{timecode}}",
+    "fps_badge": "{{fps}} FPS"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -272,7 +286,8 @@
     "tier_1_rec": "Rilevato hardware modesto. Consigliamo deinterlacciamento rapido (BWDIF) e filtri DSP classici. Evitare upscaler neurali pesanti per non sovraccaricare il computer.",
     "tier_2_rec": "CPU multi-core con {{cores}} core e {{ram}} GB di RAM. Ideale per restauro BWDIF/Lanczos (~60-120 fps), DeepFilterNet in tempo reale e Whisper. Avviso trasparente: i modelli neurali pesanti (CodeFormer / Real-ESRGAN) funzioneranno via CPU/iGPU a ~1-2 fps.",
     "tier_3_rec": "Rilevata GPU accelerata. RIFE e Real-ESRGAN funzioneranno in modo fluido. CodeFormer è utilizzabile per restauri mirati.",
-    "tier_4_rec": "Rilevata GPU dedicata ad alte prestazioni. Tutte le funzionalità IA neurali (CodeFormer, Real-ESRGAN e RIFE a 60fps) funzioneranno alla massima velocità."
+    "tier_4_rec": "Rilevata GPU dedicata ad alte prestazioni. Tutte le funzionalità IA neurali (CodeFormer, Real-ESRGAN e RIFE a 60fps) funzioneranno alla massima velocità.",
+    "ram_gb_suffix": "• {{gb}} GB"
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",

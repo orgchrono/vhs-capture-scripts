@@ -140,7 +140,21 @@
     "live_restoration_stream": "Stream de Restauração em Tempo Real",
     "generating_preview": "Sincronizando stream de restauração...",
     "source_stream_proxy": "Proxy de Stream de Origem",
-    "standby_no_signal": "EM ESPERA / SEM SINAL"
+    "standby_no_signal": "EM ESPERA / SEM SINAL",
+    "scopes_channel_l": "L",
+    "scopes_channel_r": "R",
+    "scopes_short_raw": "RAW",
+    "scopes_short_proc": "REST",
+    "scopes_ire_range": "0 - 100 IRE",
+    "scopes_smpte_75": "SMPTE 75%",
+    "scopes_ebu_targets": "-23 LUFS / -1 dBTP",
+    "scopes_ebu_r128_spec": "EBU R128 (-23 LUFS / -1 dBTP)",
+    "scopes_target_lufs_title": "Alvo EBU R128: -23 LUFS",
+    "scopes_max_dbtp_title": "Pico Máximo EBU R128: -1 dBTP",
+    "scopes_lufs_value": "{{value}} LUFS",
+    "rec_badge": "REC",
+    "rec_with_timecode": "REC {{timecode}}",
+    "fps_badge": "{{fps}} FPS"
   },
   "files": {
     "input_file_label": "Arquivo de Entrada (media/raw/)",
@@ -272,7 +286,8 @@
     "tier_1_rec": "Hardware modesto detectado. Recomendamos desentrelaçamento rápido (BWDIF) e filtros DSP clássicos. Evite habilitar upscalers neurais pesados para não sobrecarregar a máquina.",
     "tier_2_rec": "CPU multi-core com {{cores}} núcleos e {{ram}}GB de RAM. Ideal para restauração BWDIF/Lanczos (~60-120 fps), DeepFilterNet em tempo real e Whisper. Aviso sincero: modelos neurais pesados (CodeFormer / Real-ESRGAN) rodarão via CPU/iGPU a ~1-2 fps.",
     "tier_3_rec": "GPU acelerada detectada. RIFE e Real-ESRGAN rodarão com fluidez. CodeFormer é viável para restaurações pontuais.",
-    "tier_4_rec": "GPU dedicada de alto desempenho detectada. Todos os recursos neurais de IA (CodeFormer, Real-ESRGAN e RIFE 60fps) rodarão na velocidade máxima."
+    "tier_4_rec": "GPU dedicada de alto desempenho detectada. Todos os recursos neurais de IA (CodeFormer, Real-ESRGAN e RIFE 60fps) rodarão na velocidade máxima.",
+    "ram_gb_suffix": "• {{gb}}GB"
   },
   "ai": {
     "diagnostic_title": "Diagnóstico Honesto do Hardware",

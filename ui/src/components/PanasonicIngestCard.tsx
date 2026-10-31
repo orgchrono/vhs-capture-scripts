@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatMbSize } from '../lib/formatters';
 import {
   Disc,
   Search,
@@ -78,7 +79,7 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
               className="hidden sm:flex items-center gap-1 text-[9px] bg-studio-surface px-1.5 py-0.5 rounded-xs border border-studio-border text-slate-500 font-normal cursor-help shrink-0"
               title={t('files.hotplug_disabled_tooltip')}
             >
-              <span className="led-lamp led-off shrink-0" aria-hidden="true" />
+              <span className="led-lamp led-idle shrink-0" aria-hidden="true" />
               <span className="shrink-0">{t('files.hotplug_disabled_label')}</span>
             </span>
           )}
@@ -384,9 +385,7 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
                               {title.title}
                             </span>
                             <span className="text-[9px] bg-studio-panel px-1 py-0.5 rounded-xs border border-studio-border text-slate-400 shrink-0">
-                              {title.size_mb >= 1024
-                                ? `${(title.size_mb / 1024).toFixed(1)} GB`
-                                : `${title.size_mb} MB`}
+                              {formatMbSize(title.size_mb)}
                             </span>
                           </div>
 

@@ -140,7 +140,21 @@
     "live_restoration_stream": "Поток реставрации в реальном времени",
     "generating_preview": "Синхронизация потока реставрации...",
     "source_stream_proxy": "Прокси исходного потока",
-    "standby_no_signal": "ОЖИДАНИЕ / НЕТ СИГНАЛА"
+    "standby_no_signal": "ОЖИДАНИЕ / НЕТ СИГНАЛА",
+    "scopes_channel_l": "L",
+    "scopes_channel_r": "R",
+    "scopes_short_raw": "RAW",
+    "scopes_short_proc": "REST",
+    "scopes_ire_range": "0 - 100 IRE",
+    "scopes_smpte_75": "SMPTE 75%",
+    "scopes_ebu_targets": "-23 LUFS / -1 dBTP",
+    "scopes_ebu_r128_spec": "EBU R128 (-23 LUFS / -1 dBTP)",
+    "scopes_target_lufs_title": "Целевой уровень EBU R128: -23 LUFS",
+    "scopes_max_dbtp_title": "Предел True Peak EBU R128: -1 dBTP",
+    "scopes_lufs_value": "{{value}} LUFS",
+    "rec_badge": "ЗАП",
+    "rec_with_timecode": "ЗАП {{timecode}}",
+    "fps_badge": "{{fps}} FPS"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -272,7 +286,8 @@
     "tier_1_rec": "Обнаружено скромное оборудование. Рекомендуем быстрый деинтерлейсинг (BWDIF) и классические DSP-фильтры. Избегайте тяжелых нейросетевых апскейлеров, чтобы не перегружать систему.",
     "tier_2_rec": "Многоядерный процессор ({{cores}} ядер) и {{ram}} ГБ ОЗУ. Идеально для реставрации BWDIF/Lanczos (~60-120 кадров/с), DeepFilterNet в реальном времени и Whisper. Честное предупреждение: тяжелые нейросети (CodeFormer / Real-ESRGAN) будут работать через CPU/iGPU со скоростью ~1-2 кадра/с.",
     "tier_3_rec": "Обнаружен ускоренный GPU. RIFE и Real-ESRGAN будут работать плавно. CodeFormer подходит для точечной реставрации.",
-    "tier_4_rec": "Обнаружен высокопроизводительный дискретный GPU. Все нейросетевые функции ИИ (CodeFormer, Real-ESRGAN и RIFE 60fps) будут работать на максимальной скорости."
+    "tier_4_rec": "Обнаружен высокопроизводительный дискретный GPU. Все нейросетевые функции ИИ (CodeFormer, Real-ESRGAN и RIFE 60fps) будут работать на максимальной скорости.",
+    "ram_gb_suffix": "• {{gb}} ГБ"
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",
