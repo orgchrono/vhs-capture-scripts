@@ -20,7 +20,7 @@ use super::checkpoint::{remove_checkpoint, update_live_restoration_frame, write_
 use super::neural_chain::execute_neural_post_chain;
 use super::oais_packager::{emit_oais_archival_sidecars, emit_restoration_qc_reports};
 use super::planner::{
-    bounded_tail, build_restoration_summary, PlannedRestoration, RestorationJobRequest,
+    bounded_tail, build_restoration_summary, is_output_truncated, PlannedRestoration, RestorationJobRequest,
     RestorationSummary, STDERR_TAIL_MAX_BYTES,
 };
 use super::remux::finalize_restoration_output;
@@ -276,8 +276,12 @@ pub fn execute_restoration_job(
     }
 
     let vs_failed = vs_exit.as_ref().map(|s| !s.success()).unwrap_or(false);
-    let is_truncated = planned.expected_frames > 0
-        && accumulator.current_frame < (planned.expected_frames * 90 / 100);
+    let is_truncated = is_output_truncated(
+        planned.expected_duration_sec,
+        accumulator.current_out_time_seconds,
+        planned.expected_frames,
+        accumulator.current_frame,
+    );
 
     if !status.success() || vs_failed || is_truncated {
         write_checkpoint(planned, "failed", accumulator.current_frame, elapsed);

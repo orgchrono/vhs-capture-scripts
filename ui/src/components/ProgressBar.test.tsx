@@ -33,6 +33,8 @@ describe('ProgressBar Component', () => {
     expect(progressBar).toBeInTheDocument()
     expect(progressBar).toHaveAttribute('aria-valuenow', '65')
     expect(progressBar).toHaveAttribute('aria-valuetext', '65%')
+    const determinateFill = screen.getByTestId('progress-bar-determinate')
+    expect(determinateFill).toHaveStyle({ width: '65%' })
   })
 
   it('renders indeterminate mode when progressPercent is 0', () => {
@@ -52,6 +54,7 @@ describe('ProgressBar Component', () => {
     const progressBar = screen.getByRole('progressbar')
     expect(progressBar).toBeInTheDocument()
     expect(progressBar).toHaveAttribute('aria-valuenow', '0')
+    expect(screen.getByTestId('progress-bar-indeterminate')).toBeInTheDocument()
   })
 
   it('supports paused state', () => {
@@ -66,5 +69,51 @@ describe('ProgressBar Component', () => {
     const progressBar = screen.getByRole('progressbar')
     expect(progressBar).toBeInTheDocument()
     expect(progressBar).toHaveAttribute('aria-valuenow', '50')
+  })
+
+  it('clamps negative percentages to 0 and values exceeding 100 to 100', () => {
+    const { rerender } = render(
+      <ProgressBar
+        isBusy={true}
+        isRestoring={true}
+        isPaused={false}
+        progressPercent={-15}
+      />
+    )
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '0')
+
+    rerender(
+      <ProgressBar
+        isBusy={true}
+        isRestoring={true}
+        isPaused={false}
+        progressPercent={145}
+      />
+    )
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '100')
+    expect(screen.getByTestId('progress-bar-determinate')).toHaveStyle({ width: '100%' })
+  })
+
+  it('safely handles non-finite numbers and rounds fractional percentages', () => {
+    const { rerender } = render(
+      <ProgressBar
+        isBusy={true}
+        isRestoring={true}
+        isPaused={false}
+        progressPercent={Number.NaN}
+      />
+    )
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '0')
+
+    rerender(
+      <ProgressBar
+        isBusy={true}
+        isRestoring={true}
+        isPaused={false}
+        progressPercent={73.6}
+      />
+    )
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '74')
+    expect(screen.getByTestId('progress-bar-determinate')).toHaveStyle({ width: '74%' })
   })
 })
