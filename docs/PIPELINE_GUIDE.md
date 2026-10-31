@@ -69,7 +69,7 @@ for (step_name, enabled, step_fn) in post_step_specs {
 - **Fail-Safe Boundary:** If an optional model fails (e.g. GPU out-of-memory or missing weights), the pipeline gracefully preserves the preceding video without crashing the studio.
 - **Atomic Master Commit:** Once all stages complete, `std::fs::rename` commits the final video to `self.output_path` in a single atomic filesystem operation.
 - **Intermediate Artifact Purging:** Intermediate files recorded in `intermediate_files` are safely deleted, freeing disk space.
-- **Deterministic Audio Cleanup:** The temporary uncompressed WAV file (`_temp.wav`) generated during Whisper transcription is enclosed in a `try ... finally` block, guaranteeing deletion even on unhandled errors or cancellations.
+- **Deterministic Audio Cleanup:** The temporary uncompressed WAV file (`_temp.wav`) generated during Whisper transcription is managed via an RAII drop guard lifecycle, guaranteeing deletion even on unhandled errors or cancellations.
 
 ---
 
@@ -159,7 +159,7 @@ Long restoration runs (tapes spanning 2 to 6 hours) require deterministic operat
 
 In the event of unexpected power loss or system restarts during digitization:
 
-- **Automatic Residual Detection:** The backend detects unfinished files ending in `.tmp.mp4` or `.tmp.mkv` in `media/restored/` and evaluates recovered frame counts.
+- **Automatic Residual Detection:** The backend detects unfinished files ending in `.part` and `.checkpoint.json` in `media/restored/` and evaluates recovered frame counts via [`src/infrastructure/job_recovery.rs`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/infrastructure/job_recovery.rs).
 - **Recovery Actions (`POST /api/restoration/incomplete/action`):**
   1. **`resume`**: Continues the restoration job from the last recorded frame checkpoint.
   2. **`finalize`**: Uses FFmpeg stream-copy mode (`-c copy -movflags +faststart`) to rewrite the container indices and relocate the `moov` atom to the file header, making the partial video immediately playable and editable.

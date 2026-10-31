@@ -99,7 +99,7 @@ Executes deep host hardware diagnostics via the HAL, classifying host capability
 ---
 
 ### `GET /api/system/metrics`
-Returns non-blocking, real-time host hardware resource utilization and pipeline operational status via `psutil`.
+Returns non-blocking, real-time host hardware resource utilization and pipeline operational status via native OS probes ([`src/infrastructure/cpu_usage.rs`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/infrastructure/cpu_usage.rs)).
 
 - **Response (HTTP 200):**
   ```json
@@ -307,12 +307,12 @@ Returns a continuous, low-latency live MJPEG stream (`multipart/x-mixed-replace`
   - `color`: Boolean flag enabling live preview color matrix calibration.
 - **Aspect Ratio & Subprocess Protection:**
   - Standard 4:3 VHS tapes receive automatic pillarbox scaling to fit the 16:9 monitor viewport without distortion.
-  - On client disconnect (modal close or timeline seek), [`kill_process_tree`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/infrastructure/process_tree.rs) traverses the OS process tree and forcefully terminates all child FFmpeg processes, preventing background process leaks on Windows.
+  - On client disconnect (modal close or timeline seek), [`kill_process_tree`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/infrastructure/process_manager.rs) traverses the OS process tree and forcefully terminates all child FFmpeg processes, preventing background process leaks on Windows.
 
 ---
 
 ### `GET /api/restoration/incomplete`
-Scans `media/restored/` for incomplete jobs (`.tmp.mp4`, `.tmp.mkv`) left after system reboots.
+Scans `media/restored/` for incomplete jobs (`.part`, `.checkpoint.json`) left after system reboots or interruptions via [`src/infrastructure/job_recovery.rs`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/infrastructure/job_recovery.rs).
 
 ---
 
@@ -389,13 +389,13 @@ Retrieves (or optionally generates on demand) the synchronized museum-grade JSON
 
 - **Query Parameters:**
   - `file_path`: Path to the raw or restored media file.
-  - `generate`: Boolean (`true`/`false`) to trigger `QualityControl.run_qc` if the report does not yet exist on disk.
+  - `generate`: Boolean (`true`/`false`) to trigger `QualityControl::run_qc` if the report does not yet exist on disk.
 
 ### Programmatic & CLI Invocation:
 ```rust
 use vhs_studio_core::domain::qc::*;
 
-# Standalone inspection
+// Standalone inspection
 let json_path = QualityControl::run_qc("media/raw/tape_01.mkv")?;
 ```
 

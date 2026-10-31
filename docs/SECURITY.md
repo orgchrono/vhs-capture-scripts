@@ -26,21 +26,46 @@ Our security framework is anchored in four core tenets:
   - Arguments are passed exclusively via operating system argument vectors (`&[&str]`), making it impossible for quotes, semicolons, or line breaks to alter program execution.
 
 ### 2.2 Path Traversal Prevention (CWE-22)
-- All ingestion routes (`/api/run`, `/api/queue/enqueue`, `/api/action`) pass parameters through canonical validation in [`src/infrastructure/http_server.rs`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/infrastructure/http_server.rs):
+- All ingestion routes (`/api/run`, `/api/queue/enqueue`, `/api/action`) pass parameters through canonical validation in [`src/infrastructure/security.rs`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/infrastructure/security.rs):
   ```rust
-  pub fn is_safe_media_path(raw_path: &str) -> bool {
-      if raw_path.is_empty() || raw_path.contains('\0') || raw_path.contains("..") {
+  pub fn is_safe_media_path(raw: &str, roots: &MediaRoots<'_>) -> bool {
+      if has_path_traversal(raw) {
           return false;
       }
-      let norm = raw_path.replace('\\', "/");
-      if norm.starts_with("media/") || norm == "media" {
+      let normalized = raw.replace('\\', "/");
+      let normalized = normalized.trim_start_matches("./");
+      if normalized == "media"
+          || normalized.starts_with("media/")
+          || normalized.starts_with("raw/")
+          || normalized.starts_with("restored/")
+      {
           return true;
       }
-      let path = std::path::Path::new(raw_path);
-      if let (Ok(canon), Ok(media_canon)) = (path.canonicalize(), std::fs::canonicalize("media")) {
-          return canon.starts_with(media_canon);
+      if is_plain_file_name(raw) {
+          let name = raw.trim();
+          if roots.raw_dir.join(name).exists()
+              || roots.media_dir.join(name).exists()
+              || roots.media_dir.join("restored").join(name).exists()
+          {
+              return true;
+          }
       }
-      false
+      let path = Path::new(raw);
+      if path.is_absolute() {
+          let norm_path = path.to_string_lossy().replace('\\', "/").to_lowercase();
+          let norm_media = roots
+              .media_dir
+              .to_string_lossy()
+              .replace('\\', "/")
+              .trim_end_matches('/')
+              .to_lowercase();
+          if !norm_media.is_empty()
+              && (norm_path == norm_media || norm_path.starts_with(&format!("{norm_media}/")))
+          {
+              return true;
+          }
+      }
+      path.is_absolute() && path.is_file() && is_valid_media_extension(&extension_of(raw))
   }
   ```
 - **Guarantees enforced by this validator:**
