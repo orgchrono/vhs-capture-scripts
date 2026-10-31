@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react'
 import { Cpu, Film, Sparkles, Wrench, Globe, Eye, Video, Type, PanelLeft, PanelBottom, PanelRight, ShieldCheck, Settings } from 'lucide-react'
 import { Button } from './ui/button'
+import { Badge } from './ui/badge'
 import type { OutputCodec, SystemStatus } from '../types'
 import { useTranslation } from 'react-i18next'
 import { SUPPORTED_LANGUAGES } from '../i18n'
@@ -96,9 +97,9 @@ export const Header: React.FC<HeaderProps> = ({
           <span className="sr-only">{t('app.title')}</span>
           <Film className="w-3.5 h-3.5 text-amber-500 shrink-0" aria-hidden="true" />
           <span className="text-white tracking-wider shrink-0 whitespace-nowrap">{t('app.brand_name')}</span>
-          <span className="hidden sm:inline-block bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[9px] px-1.5 py-0.5 rounded font-bold font-mono shrink-0 whitespace-nowrap">
+          <Badge variant="warn" size="sm" className="hidden sm:inline-flex">
             {t('app.brand_badge')}
-          </span>
+          </Badge>
         </h1>
       </div>
 

@@ -84,4 +84,71 @@ describe('BroadcastScopes Component', () => {
     render(<BroadcastScopes />);
     expect(screen.queryByTestId('toggle-dock-scopes-btn')).not.toBeInTheDocument();
   });
+
+  it('offers maximize button when floating and toggles maximize state', () => {
+    render(<BroadcastScopes />);
+    const maxBtn = screen.getByTestId('maximize-scopes-btn');
+    expect(maxBtn).toHaveAttribute('title', 'common.maximize');
+
+    fireEvent.click(maxBtn);
+    expect(maxBtn).toHaveAttribute('title', 'common.minimize');
+
+    fireEvent.click(maxBtn);
+    expect(maxBtn).toHaveAttribute('title', 'common.maximize');
+  });
+
+  it('detects comparison mode and shows dual-trace comparison controls and legends', async () => {
+    // Create mock DOM elements for split-raw-stream and split-proc-stream
+    const rawImg = document.createElement('img');
+    rawImg.setAttribute('data-testid', 'split-raw-stream');
+    Object.defineProperty(rawImg, 'complete', { value: true });
+    Object.defineProperty(rawImg, 'naturalWidth', { value: 640 });
+    Object.defineProperty(rawImg, 'naturalHeight', { value: 480 });
+    document.body.appendChild(rawImg);
+
+    const procImg = document.createElement('img');
+    procImg.setAttribute('data-testid', 'split-proc-stream');
+    Object.defineProperty(procImg, 'complete', { value: true });
+    Object.defineProperty(procImg, 'naturalWidth', { value: 640 });
+    Object.defineProperty(procImg, 'naturalHeight', { value: 480 });
+    document.body.appendChild(procImg);
+
+    render(
+      <BroadcastScopes
+        rawLufsLeft={-24.5}
+        rawLufsRight={-25.0}
+        lufsLeft={-22.0}
+        lufsRight={-22.5}
+      />
+    );
+
+    // Refresh sample to trigger comparison detection
+    fireEvent.click(screen.getByTitle('common.refresh'));
+
+    // Check comparison selector
+    const toggle = screen.getByTestId('scopes-comparison-view-toggle');
+    expect(toggle).toBeInTheDocument();
+    expect(screen.getByText('monitor.scopes_comp_both')).toBeInTheDocument();
+    expect(screen.getByText('monitor.scopes_comp_proc')).toBeInTheDocument();
+    expect(screen.getByText('monitor.scopes_comp_raw')).toBeInTheDocument();
+
+    // Check dual trace legends in scope headers
+    expect(screen.getAllByText('monitor.scopes_legend_raw').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('monitor.scopes_legend_proc').length).toBeGreaterThanOrEqual(1);
+
+    // Check dual audio meters (RAW and REST)
+    expect(screen.getByText('RAW')).toBeInTheDocument();
+    expect(screen.getByText('REST')).toBeInTheDocument();
+    expect(screen.getByText('-24.5 LUFS')).toBeInTheDocument();
+    expect(screen.getByText('-22.0 LUFS')).toBeInTheDocument();
+
+    // Switch comparison view to RAW only
+    fireEvent.click(screen.getByText('monitor.scopes_comp_raw'));
+    expect(screen.getByText('L')).toBeInTheDocument();
+    expect(screen.getByText('R')).toBeInTheDocument();
+
+    // Cleanup mock elements
+    document.body.removeChild(rawImg);
+    document.body.removeChild(procImg);
+  });
 });

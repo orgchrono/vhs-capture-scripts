@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo, useCallback, startTransition } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStudioStore } from '../store/useStudioStore';
 import { usePreferencesStore } from '../store/usePreferencesStore';
@@ -92,11 +92,7 @@ export function useLiveMonitor(): UseLiveMonitorResult {
 
   const prevRestoringRef = useRef<boolean>(isRestoring);
   useEffect(() => {
-    if (!prevRestoringRef.current && isRestoring) {
-      startTransition(() => {
-        setMonitorView('restore');
-      });
-    }
+    // Preserve user view rather than forcing screen hijack during render
     prevRestoringRef.current = isRestoring;
   }, [isRestoring]);
 

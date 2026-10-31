@@ -101,7 +101,10 @@ export const AiTab: React.FC<AiTabProps> = ({
                         : 'bg-studio-panel text-slate-300 border-studio-border'
                     }`}
                 >
-                  {t('settings.tier_label', { tier: hardwareProfile.tier, name: hardwareProfile.tier_name })}
+                  {t('settings.tier_label', {
+                    tier: hardwareProfile.tier,
+                    name: hardwareProfile.tier_key ? t(hardwareProfile.tier_key, { defaultValue: hardwareProfile.tier_name }) : hardwareProfile.tier_name,
+                  })}
                 </span>
               )}
             </div>
@@ -133,7 +136,15 @@ export const AiTab: React.FC<AiTabProps> = ({
 
                 <div className="bg-studio-panel/60 border border-studio-border rounded-sm p-2.5 text-xs leading-relaxed text-slate-300 flex items-start gap-2">
                   <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <span>{hardwareProfile.recommendation}</span>
+                  <span>
+                    {hardwareProfile.recommendation_key
+                      ? t(hardwareProfile.recommendation_key, {
+                          cores: hardwareProfile.cpu?.cores,
+                          ram: Number(hardwareProfile.ram?.total_gb || 0).toFixed(1),
+                          defaultValue: hardwareProfile.recommendation,
+                        })
+                      : hardwareProfile.recommendation}
+                  </span>
                 </div>
               </div>
             ) : null}

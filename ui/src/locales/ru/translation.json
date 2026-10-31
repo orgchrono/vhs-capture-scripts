@@ -132,6 +132,11 @@
     "scopes_tab_audio": "Звук",
     "scopes_dock_side": "Закрепить осциллограф на боковой панели",
     "scopes_float_window": "Открепить в плавающее окно",
+    "scopes_comp_both": "Оба (A/B)",
+    "scopes_comp_proc": "После (REST)",
+    "scopes_comp_raw": "До (RAW)",
+    "scopes_legend_raw": "До (RAW)",
+    "scopes_legend_proc": "После (REST)",
     "live_restoration_stream": "Поток реставрации в реальном времени",
     "generating_preview": "Синхронизация потока реставрации...",
     "source_stream_proxy": "Прокси исходного потока",
@@ -258,6 +263,16 @@
     "tabs_aria_label": "Abas de Configuração",
     "output_codec_hint": "Формат кодирования и сжатия выходного видео.",
     "tier_label": "Уровень {{tier}}: {{name}}"
+  },
+  "hardware": {
+    "tier_1": "Базовый (Ограниченный CPU)",
+    "tier_2": "Многоядерный CPU + Vulkan iGPU",
+    "tier_3": "Современный ПК (Дискретная GPU / Apple Silicon)",
+    "tier_4": "Рабочая станция ИИ (Высокопроизводительная GPU)",
+    "tier_1_rec": "Обнаружено скромное оборудование. Рекомендуем быстрый деинтерлейсинг (BWDIF) и классические DSP-фильтры. Избегайте тяжелых нейросетевых апскейлеров, чтобы не перегружать систему.",
+    "tier_2_rec": "Многоядерный процессор ({{cores}} ядер) и {{ram}} ГБ ОЗУ. Идеально для реставрации BWDIF/Lanczos (~60-120 кадров/с), DeepFilterNet в реальном времени и Whisper. Честное предупреждение: тяжелые нейросети (CodeFormer / Real-ESRGAN) будут работать через CPU/iGPU со скоростью ~1-2 кадра/с.",
+    "tier_3_rec": "Обнаружен ускоренный GPU. RIFE и Real-ESRGAN будут работать плавно. CodeFormer подходит для точечной реставрации.",
+    "tier_4_rec": "Обнаружен высокопроизводительный дискретный GPU. Все нейросетевые функции ИИ (CodeFormer, Real-ESRGAN и RIFE 60fps) будут работать на максимальной скорости."
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",
@@ -396,7 +411,9 @@
     "watcher_error": "Не удалось переключить статус автонаблюдателя.",
     "capture_failed_title": "Сбой захвата",
     "capture_start_failed": "Не удалось запустить захват",
-    "capture_stop_failed": "Не удалось остановить захват"
+    "capture_stop_failed": "Не удалось остановить захват",
+    "invalid_video_format_title": "Неподдерживаемый формат видео",
+    "invalid_video_format_desc": "Неподдерживаемый файл. Используйте видеоформаты (.mkv, .mp4, .avi, .mov, .ts, .vob)."
   },
   "telemetry": {
     "title": "Телеметрия аналогового мастеринга",

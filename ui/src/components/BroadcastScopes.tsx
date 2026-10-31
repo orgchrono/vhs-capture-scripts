@@ -1,16 +1,20 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { X, Activity, Maximize2, Minimize2, RefreshCw, GripHorizontal, PanelRightClose, PictureInPicture } from 'lucide-react';
-import { motion, useDragControls } from 'motion/react';
+import { X, Activity, RefreshCw, GripHorizontal, PanelRightClose, PictureInPicture, Maximize2, Minimize2 } from 'lucide-react';
+import { Rnd } from 'react-rnd';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { SCOPES_FLOAT_CONFIG } from '../lib/constants';
+import { Badge } from './ui/badge';
 
 export interface BroadcastScopesProps {
   sourceImageSrc?: string | null;
+  rawImageSrc?: string | null;
   videoRef?: React.RefObject<HTMLVideoElement | null>;
   onClose?: () => void;
   lufsLeft?: number;
   lufsRight?: number;
+  rawLufsLeft?: number;
+  rawLufsRight?: number;
   docked?: boolean;
   onToggleDock?: () => void;
   /** Element the floating window covers when maximized (the live preview area). */
@@ -18,6 +22,7 @@ export interface BroadcastScopesProps {
 }
 
 type ScopeMode = 'all' | 'waveform' | 'vectorscope' | 'audio';
+type ComparisonView = 'both' | 'proc' | 'raw';
 
 const calculateMeterWidth = (lufs: number): number => {
   const minLufs = -70;
@@ -26,41 +31,164 @@ const calculateMeterWidth = (lufs: number): number => {
   return Math.round(((clamped - minLufs) / (maxLufs - minLufs)) * 100);
 };
 
+const getLufsColorClass = (lufs: number): string => {
+  if (lufs >= -18) return 'text-red-400 font-bold';
+  if (lufs >= -21 || lufs <= -26) return 'text-amber-300 font-semibold';
+  return 'text-emerald-400 font-semibold';
+};
+
+interface LufsMeterBarProps {
+  label: string;
+  labelColorClass?: string;
+  lufs: number;
+  barColorClass?: string;
+  valueColorClass?: string;
+  isCompact?: boolean;
+}
+
+const LufsMeterBar: React.FC<LufsMeterBarProps> = ({
+  label,
+  labelColorClass = 'text-slate-400',
+  lufs,
+  barColorClass = 'bg-gradient-to-r from-emerald-600 via-emerald-500 to-amber-500',
+  valueColorClass,
+  isCompact = true,
+}) => {
+  const widthPct = calculateMeterWidth(lufs);
+  const valColor = valueColorClass ?? getLufsColorClass(lufs);
+  const heightClass = isCompact ? 'h-2' : 'h-3.5';
+  const textClass = isCompact ? 'text-[8.5px]' : 'text-[10px]';
+
+  return (
+    <div className={`flex items-center gap-1.5 ${textClass} font-mono leading-none`}>
+      <span className={`w-7 shrink-0 font-bold translate-y-[0.5px] ${labelColorClass}`}>{label}</span>
+      <div className={`flex-1 ${heightClass} bg-slate-900 rounded-xs overflow-hidden relative border border-white/10`}>
+        <div
+          className={`absolute inset-y-0 left-0 ${barColorClass} transition-all duration-300`}
+          style={{ width: `${widthPct}%` }}
+        />
+        <div className="absolute inset-y-0 left-[67%] w-[1.5px] bg-sky-400 z-10" title="-23 LUFS" />
+        <div className="absolute inset-y-0 left-[98%] w-[1.5px] bg-red-500 z-10" title="-1 dBTP" />
+      </div>
+      <span className={`w-16 text-right shrink-0 tabular-nums translate-y-[0.5px] ${valColor}`}>
+        {lufs.toFixed(1)} LUFS
+      </span>
+    </div>
+  );
+};
+
 export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
   sourceImageSrc,
+  rawImageSrc,
   videoRef,
   onClose,
   lufsLeft,
   lufsRight,
+  rawLufsLeft,
+  rawLufsRight,
   docked = false,
   onToggleDock,
-  anchorRef,
 }) => {
   const { t } = useTranslation();
-  const dragControls = useDragControls();
   const [mode, setMode] = useState<ScopeMode>('all');
-  const [isExpanded, setIsExpanded] = useState<boolean>(false);
-  const [expandedRect, setExpandedRect] = useState<DOMRect | null>(null);
-  const constraintsRef = useRef<HTMLDivElement | null>(null);
+  const [comparisonView, setComparisonView] = useState<ComparisonView>('both');
+  const [hasComparison, setHasComparison] = useState<boolean>(false);
+  const [isMaximized, setIsMaximized] = useState<boolean>(false);
+  const [maximizedRect, setMaximizedRect] = useState<DOMRect | null>(null);
+  const [floatState, setFloatState] = useState<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }>(() => {
+    const vw = typeof window !== 'undefined' ? window.innerWidth : 1280;
+    const initialWidth = SCOPES_FLOAT_CONFIG.DEFAULT_WIDTH_PX;
+    const initialHeight = SCOPES_FLOAT_CONFIG.DEFAULT_HEIGHT_PX;
+    const initialX = Math.max(16, vw - initialWidth - SCOPES_FLOAT_CONFIG.INITIAL_RIGHT_PX);
+    const initialY = SCOPES_FLOAT_CONFIG.INITIAL_TOP_PX;
+    return {
+      x: initialX,
+      y: initialY,
+      width: initialWidth,
+      height: initialHeight,
+    };
+  });
+  const savedStateRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
+
   const [derivedLufs, setDerivedLufs] = useState<{ left: number; right: number }>({
     left: -22.8,
     right: -23.4,
   });
+  const lastLufsRef = useRef({ left: -22.8, right: -23.4 });
+
+  const [derivedRawLufs, setDerivedRawLufs] = useState<{ left: number; right: number }>({
+    left: -24.2,
+    right: -24.8,
+  });
+  const lastRawLufsRef = useRef({ left: -24.2, right: -24.8 });
+
+  const measureRightPanel = useCallback((): DOMRect | null => {
+    // Priority 1: Match the settings panel on the right side if mounted
+    const settingsPanel = document.getElementById('settings-panel');
+    if (settingsPanel) {
+      const rect = settingsPanel.getBoundingClientRect();
+      if (rect.width > 50 && rect.height > 50) {
+        return rect;
+      }
+    }
+    // Fallback: Fill the right 45% of viewport, leaving the live video on the left untouched
+    if (typeof window !== 'undefined') {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const top = 56;
+      const width = Math.min(Math.max(vw * 0.45, 360), 720);
+      const height = Math.max(vh - top - 40, 320);
+      const left = Math.max(vw - width - 16, 0);
+      return new DOMRect(left, top, width, height);
+    }
+    return null;
+  }, []);
+
+  const handleToggleMaximize = () => {
+    if (isMaximized) {
+      if (savedStateRef.current) {
+        setFloatState(savedStateRef.current);
+      }
+      setIsMaximized(false);
+      setMaximizedRect(null);
+    } else {
+      savedStateRef.current = { ...floatState };
+      setMaximizedRect(measureRightPanel());
+      setIsMaximized(true);
+    }
+  };
+
+  useEffect(() => {
+    if (!isMaximized) return;
+    const onResize = () => setMaximizedRect(measureRightPanel());
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [isMaximized, measureRightPanel]);
 
   const waveformCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const vectorCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const offscreenProcRef = useRef<HTMLCanvasElement | null>(null);
+  const offscreenRawRef = useRef<HTMLCanvasElement | null>(null);
   const cachedImageRef = useRef<HTMLImageElement | null>(null);
-  const lastLufsRef = useRef({ left: -22.8, right: -23.4 });
+  const cachedRawImageRef = useRef<HTMLImageElement | null>(null);
 
   const activeLufsLeft = lufsLeft ?? derivedLufs.left;
   const activeLufsRight = lufsRight ?? derivedLufs.right;
+  const activeRawLufsLeft = rawLufsLeft ?? derivedRawLufs.left;
+  const activeRawLufsRight = rawLufsRight ?? derivedRawLufs.right;
 
   const renderGraticules = useCallback(
     (
       ctxWave: CanvasRenderingContext2D | null,
       ctxVec: CanvasRenderingContext2D | null,
-      imgData?: ImageData
+      procImgData?: ImageData,
+      rawImgData?: ImageData,
+      compView: ComparisonView = 'both'
     ) => {
       // 1. Draw Waveform (IRE graticules + trace)
       if (ctxWave && waveformCanvasRef.current) {
@@ -96,10 +224,9 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
           ctxWave.fillText(lvl.label, 4, y);
         }
 
-        // Signal trace
-        if (imgData) {
-          const { data, width: imgW, height: imgH } = imgData;
-          ctxWave.fillStyle = 'rgba(34, 197, 94, 0.45)'; // Phosphor green
+        const drawWaveformTrace = (img: ImageData, traceColor: string, isRaw: boolean) => {
+          const { data, width: imgW, height: imgH } = img;
+          ctxWave.fillStyle = traceColor;
           const stepX = Math.max(1, Math.floor(imgW / (w - 32)));
           const stepY = Math.max(1, Math.floor(imgH / 120));
           let sumLuma = 0;
@@ -126,16 +253,39 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
             const avg = sumLuma / sampleCount;
             const derivedLeft = Math.round((-23.0 + (avg / 255.0 - 0.5) * 6) * 10) / 10;
             const derivedRight = Math.round((-23.4 + (avg / 255.0 - 0.5) * 6) * 10) / 10;
-            if (
-              Math.abs(derivedLeft - lastLufsRef.current.left) >= 0.3 ||
-              Math.abs(derivedRight - lastLufsRef.current.right) >= 0.3
-            ) {
-              lastLufsRef.current = { left: derivedLeft, right: derivedRight };
-              setDerivedLufs({ left: derivedLeft, right: derivedRight });
+
+            if (isRaw) {
+              if (
+                Math.abs(derivedLeft - lastRawLufsRef.current.left) >= 0.3 ||
+                Math.abs(derivedRight - lastRawLufsRef.current.right) >= 0.3
+              ) {
+                lastRawLufsRef.current = { left: derivedLeft, right: derivedRight };
+                setDerivedRawLufs({ left: derivedLeft, right: derivedRight });
+              }
+            } else {
+              if (
+                Math.abs(derivedLeft - lastLufsRef.current.left) >= 0.3 ||
+                Math.abs(derivedRight - lastLufsRef.current.right) >= 0.3
+              ) {
+                lastLufsRef.current = { left: derivedLeft, right: derivedRight };
+                setDerivedLufs({ left: derivedLeft, right: derivedRight });
+              }
             }
           }
-        } else {
-          // CRT Standby baseline at 7.5 IRE (pedestal)
+        };
+
+        // Render Raw trace first in warm amber phosphor
+        if ((compView === 'both' || compView === 'raw') && rawImgData) {
+          drawWaveformTrace(rawImgData, 'rgba(251, 191, 36, 0.40)', true);
+        }
+
+        // Render Restored trace on top in emerald green phosphor
+        if ((compView === 'both' || compView === 'proc') && procImgData) {
+          drawWaveformTrace(procImgData, 'rgba(34, 197, 94, 0.60)', false);
+        }
+
+        // CRT Standby baseline at 7.5 IRE (pedestal) if no source is active
+        if (!rawImgData && !procImgData) {
           ctxWave.strokeStyle = 'rgba(34, 197, 94, 0.35)';
           ctxWave.lineWidth = 1.2;
           ctxWave.beginPath();
@@ -178,6 +328,17 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
         ctxVec.lineTo(cx, cy + 8);
         ctxVec.stroke();
 
+        // Skin Tone / I-Axis Graticule Vector (123°) for analog color-phase & face calibration
+        ctxVec.strokeStyle = 'rgba(251, 146, 60, 0.45)';
+        ctxVec.lineWidth = 1;
+        ctxVec.setLineDash([2, 3]);
+        ctxVec.beginPath();
+        const skinRad = ((123 - 90) * Math.PI) / 180;
+        ctxVec.moveTo(cx + Math.cos(skinRad) * radius * 0.2, cy + Math.sin(skinRad) * radius * 0.2);
+        ctxVec.lineTo(cx + Math.cos(skinRad) * radius * 0.88, cy + Math.sin(skinRad) * radius * 0.88);
+        ctxVec.stroke();
+        ctxVec.setLineDash([]);
+
         // SMPTE 75% target boxes (Angle in degrees for R, Mg, B, Cy, G, Yl)
         const targets = [
           { name: 'R', angleDeg: 103, color: '#ef4444' },
@@ -203,11 +364,11 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
           ctxVec.fillText(tgt.name, tx, ty - 8);
         }
 
-        // Trace plot
-        if (imgData) {
-          const { data, width: imgW, height: imgH } = imgData;
-          ctxVec.fillStyle = 'rgba(56, 189, 248, 0.45)'; // Phosphor cyan
+        const drawVectorTrace = (img: ImageData, traceColor: string) => {
+          const { data, width: imgW, height: imgH } = img;
+          ctxVec.fillStyle = traceColor;
           const step = Math.max(1, Math.floor((imgW * imgH) / 12000));
+          const scale = (radius / 128) * 0.85;
 
           for (let i = 0; i < data.length; i += step * 4) {
             const r = data[i];
@@ -217,13 +378,24 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
             const u = -0.147 * r - 0.289 * g + 0.436 * b;
             const v = 0.615 * r - 0.515 * g - 0.100 * b;
 
-            const scale = (radius / 128) * 0.85;
             const px = cx + u * scale;
             const py = cy - v * scale;
             ctxVec.fillRect(px, py, 1.2, 1.2);
           }
-        } else {
-          // Zero subcarrier carrier dot at center
+        };
+
+        // Render Raw trace first in amber chroma cloud
+        if ((compView === 'both' || compView === 'raw') && rawImgData) {
+          drawVectorTrace(rawImgData, 'rgba(251, 191, 36, 0.38)');
+        }
+
+        // Render Restored trace on top in cyan chroma cloud
+        if ((compView === 'both' || compView === 'proc') && procImgData) {
+          drawVectorTrace(procImgData, 'rgba(56, 189, 248, 0.60)');
+        }
+
+        // Zero subcarrier carrier dot at center if no source is active
+        if (!rawImgData && !procImgData) {
           ctxVec.fillStyle = 'rgba(56, 189, 248, 0.55)';
           ctxVec.beginPath();
           ctxVec.arc(cx, cy, 2, 0, Math.PI * 2);
@@ -234,73 +406,115 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
     []
   );
 
-  const sampleFrame = useCallback(() => {
-    let sourceEl: CanvasImageSource | null = null;
-    let sw = 0;
-    let sh = 0;
+  const extractImageData = (
+    canvasRef: React.MutableRefObject<HTMLCanvasElement | null>,
+    source: CanvasImageSource,
+    w: number,
+    h: number
+  ): ImageData | undefined => {
+    if (w <= 0 || h <= 0) return undefined;
+    try {
+      if (!canvasRef.current) {
+        canvasRef.current = document.createElement('canvas');
+      }
+      const canvas = canvasRef.current;
+      const targetW = 160;
+      const targetH = 120;
+      if (canvas.width !== targetW || canvas.height !== targetH) {
+        canvas.width = targetW;
+        canvas.height = targetH;
+      }
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      if (ctx) {
+        ctx.drawImage(source, 0, 0, targetW, targetH);
+        return ctx.getImageData(0, 0, targetW, targetH);
+      }
+    } catch {
+      // Tainted canvas or restricted access - fallback gracefully
+    }
+    return undefined;
+  };
 
-    // 1. Check live video element (DirectShow)
-    const vid = videoRef?.current;
-    if (vid && vid.readyState >= 2 && vid.videoWidth > 0 && !vid.paused) {
-      sourceEl = vid;
-      sw = vid.videoWidth;
-      sh = vid.videoHeight;
+  const sampleFrame = useCallback(() => {
+    // 1. Detect comparison streams or comparison monitor
+    const splitComparison = document.querySelector('[data-testid="split-comparison-monitor"]');
+    const splitRawEl = document.querySelector<HTMLImageElement>('[data-testid="split-raw-stream"]');
+    const splitProcEl = document.querySelector<HTMLImageElement>('[data-testid="split-proc-stream"]');
+
+    let procSource: CanvasImageSource | null = null;
+    let procW = 0;
+    let procH = 0;
+
+    let rawSource: CanvasImageSource | null = null;
+    let rawW = 0;
+    let rawH = 0;
+
+    if (splitRawEl && splitRawEl.complete && splitRawEl.naturalWidth > 0) {
+      rawSource = splitRawEl;
+      rawW = splitRawEl.naturalWidth;
+      rawH = splitRawEl.naturalHeight;
+    } else if (cachedRawImageRef.current && cachedRawImageRef.current.complete && cachedRawImageRef.current.naturalWidth > 0) {
+      rawSource = cachedRawImageRef.current;
+      rawW = cachedRawImageRef.current.naturalWidth;
+      rawH = cachedRawImageRef.current.naturalHeight;
     }
 
-    // 2. Check DOM stream proxy or restoration image
-    if (!sourceEl) {
+    if (splitProcEl && splitProcEl.complete && splitProcEl.naturalWidth > 0) {
+      procSource = splitProcEl;
+      procW = splitProcEl.naturalWidth;
+      procH = splitProcEl.naturalHeight;
+    }
+
+    // 2. Fallback to live video element (DirectShow)
+    if (!procSource) {
+      const vid = videoRef?.current;
+      if (vid && vid.readyState >= 2 && vid.videoWidth > 0 && !vid.paused) {
+        procSource = vid;
+        procW = vid.videoWidth;
+        procH = vid.videoHeight;
+      }
+    }
+
+    // 3. Fallback to restoration stream / DOM stream proxy
+    if (!procSource) {
       const liveImg =
         document.querySelector<HTMLImageElement>('[data-testid="live-restoration-stream"]') ||
-        document.querySelector<HTMLImageElement>('[data-testid="live-stream-proxy"]') ||
-        document.querySelector<HTMLImageElement>('[data-testid="comparison-frame"]');
+        document.querySelector<HTMLImageElement>('[data-testid="live-stream-proxy"]');
       if (liveImg && liveImg.complete && liveImg.naturalWidth > 0) {
-        sourceEl = liveImg;
-        sw = liveImg.naturalWidth;
-        sh = liveImg.naturalHeight;
+        procSource = liveImg;
+        procW = liveImg.naturalWidth;
+        procH = liveImg.naturalHeight;
       }
     }
 
-    // 3. Check cached sourceImageSrc image
-    if (
-      !sourceEl &&
-      cachedImageRef.current &&
-      cachedImageRef.current.complete &&
-      cachedImageRef.current.naturalWidth > 0
-    ) {
-      sourceEl = cachedImageRef.current;
-      sw = cachedImageRef.current.naturalWidth;
-      sh = cachedImageRef.current.naturalHeight;
+    // 4. Fallback to cached sourceImageSrc
+    if (!procSource && cachedImageRef.current && cachedImageRef.current.complete && cachedImageRef.current.naturalWidth > 0) {
+      procSource = cachedImageRef.current;
+      procW = cachedImageRef.current.naturalWidth;
+      procH = cachedImageRef.current.naturalHeight;
     }
 
-    let imgData: ImageData | undefined;
-    if (sourceEl && sw > 0 && sh > 0) {
-      try {
-        if (!offscreenCanvasRef.current) {
-          offscreenCanvasRef.current = document.createElement('canvas');
-        }
-        const offCanvas = offscreenCanvasRef.current;
-        const targetW = 160;
-        const targetH = 120;
-        if (offCanvas.width !== targetW || offCanvas.height !== targetH) {
-          offCanvas.width = targetW;
-          offCanvas.height = targetH;
-        }
-        const offCtx = offCanvas.getContext('2d', { willReadFrequently: true });
-        if (offCtx) {
-          offCtx.drawImage(sourceEl, 0, 0, targetW, targetH);
-          imgData = offCtx.getImageData(0, 0, targetW, targetH);
-        }
-      } catch {
-        // Tainted canvas or restricted access - continue with graticules
-      }
+    const isComparing = Boolean(splitComparison || (rawSource && procSource));
+    setHasComparison(isComparing);
+
+    let procData: ImageData | undefined;
+    let rawData: ImageData | undefined;
+
+    if (procSource && procW > 0 && procH > 0) {
+      procData = extractImageData(offscreenProcRef, procSource, procW, procH);
+    }
+    if (rawSource && rawW > 0 && rawH > 0) {
+      rawData = extractImageData(offscreenRawRef, rawSource, rawW, rawH);
     }
 
     renderGraticules(
       waveformCanvasRef.current?.getContext('2d') ?? null,
       vectorCanvasRef.current?.getContext('2d') ?? null,
-      imgData
+      procData,
+      rawData,
+      isComparing ? comparisonView : 'proc'
     );
-  }, [videoRef, renderGraticules]);
+  }, [videoRef, renderGraticules, comparisonView]);
 
   // Load sourceImageSrc when provided
   useEffect(() => {
@@ -317,6 +531,22 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
       sampleFrame();
     }
   }, [sourceImageSrc, sampleFrame]);
+
+  // Load rawImageSrc when provided
+  useEffect(() => {
+    if (rawImageSrc) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        cachedRawImageRef.current = img;
+        sampleFrame();
+      };
+      img.src = rawImageSrc;
+    } else {
+      cachedRawImageRef.current = null;
+      sampleFrame();
+    }
+  }, [rawImageSrc, sampleFrame]);
 
   // Continuous animation loop for real-time video/stream tracking
   useEffect(() => {
@@ -339,33 +569,14 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
     };
   }, [sampleFrame]);
 
-  const measureAnchor = useCallback(() => anchorRef?.current?.getBoundingClientRect() ?? null, [anchorRef]);
-
-  const handleToggleExpand = () => {
-    setExpandedRect(isExpanded ? null : measureAnchor());
-    setIsExpanded(!isExpanded);
-  };
-
-  useEffect(() => {
-    if (!isExpanded) return;
-    const onResize = () => setExpandedRect(measureAnchor());
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, [isExpanded, measureAnchor]);
-
   const headerContent = (
     <div
-      onPointerDown={(e) => {
-        if (!docked && !isExpanded) {
-          dragControls.start(e);
-        }
-      }}
-      className={`flex flex-wrap items-center justify-between px-2.5 py-1.5 bg-studio-panel border-b border-studio-border shrink-0 select-none gap-x-2 gap-y-1 ${
-        docked ? '' : 'cursor-grab active:cursor-grabbing'
+      className={`scopes-drag-handle flex items-center justify-between px-2.5 py-1.5 bg-studio-panel border-b border-studio-border shrink-0 select-none gap-2 ${
+        docked || isMaximized ? '' : 'cursor-grab active:cursor-grabbing'
       }`}
     >
-      {/* Left: Grip Handle (only in floating mode), Activity Icon & LIVE Acronym */}
-      <div className="flex items-center gap-1.5 min-w-0 shrink">
+      {/* Left: Grip Handle, Activity Icon, LIVE Badge & Comparison Toggle */}
+      <div className="flex items-center gap-1.5 shrink-0">
         {!docked && <GripHorizontal className="w-3.5 h-3.5 text-slate-500 shrink-0" />}
         <span
           title={t('monitor.scopes_title')}
@@ -374,14 +585,55 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
         >
           <Activity className="w-3.5 h-3.5 text-sky-400 shrink-0" aria-hidden="true" />
         </span>
-        <span className="inline-flex items-center gap-1 text-[8px] font-bold text-emerald-400 bg-emerald-950/80 px-1 py-0.5 rounded-xs border border-emerald-500/30 shrink-0 whitespace-nowrap">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
-          LIVE
-        </span>
+        <Badge variant="live" size="xs">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block shrink-0" />
+          <span>LIVE</span>
+        </Badge>
+
+        {hasComparison && (
+          <div
+            className="flex items-center bg-black/60 rounded-sm border border-amber-500/40 p-0.5 text-[8.5px] shrink-0"
+            data-testid="scopes-comparison-view-toggle"
+          >
+            <button
+              type="button"
+              onClick={() => setComparisonView('both')}
+              className={`px-1.5 py-0.5 rounded-xs transition cursor-pointer shrink-0 whitespace-nowrap ${
+                comparisonView === 'both'
+                  ? 'bg-amber-500/30 text-amber-300 font-bold'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              {t('monitor.scopes_comp_both')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setComparisonView('proc')}
+              className={`px-1.5 py-0.5 rounded-xs transition cursor-pointer shrink-0 whitespace-nowrap ${
+                comparisonView === 'proc'
+                  ? 'bg-emerald-950/80 text-emerald-300 font-bold'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              {t('monitor.scopes_comp_proc')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setComparisonView('raw')}
+              className={`px-1.5 py-0.5 rounded-xs transition cursor-pointer shrink-0 whitespace-nowrap ${
+                comparisonView === 'raw'
+                  ? 'bg-amber-950/80 text-amber-300 font-bold'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              {t('monitor.scopes_comp_raw')}
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Right: Mode Tabs, Refresh, Dock/Float, Maximize, Close */}
-      <div className="flex items-center gap-1 shrink-0">
+      {/* Center: Centered Mode Tabs */}
+      <div className="flex-1 flex justify-center min-w-0">
         <div className="flex items-center bg-black/60 rounded-sm border border-studio-border p-0.5 text-[9.5px] shrink-0">
           <button
             type="button"
@@ -428,7 +680,10 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
             {t('monitor.scopes_tab_audio')}
           </button>
         </div>
+      </div>
 
+      {/* Right: Actions (Refresh, Dock/Float, Maximize, Close) */}
+      <div className="flex items-center gap-1 shrink-0">
         <button
           type="button"
           onClick={sampleFrame}
@@ -459,12 +714,17 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
         {!docked && (
           <button
             type="button"
-            onClick={handleToggleExpand}
-            title={isExpanded ? t('common.minimize') : t('common.maximize')}
-            aria-label={isExpanded ? t('common.minimize') : t('common.maximize')}
-            className="p-1 rounded-sm text-slate-400 hover:text-white hover:bg-studio-surface transition cursor-pointer shrink-0"
+            onClick={handleToggleMaximize}
+            title={isMaximized ? t('common.minimize') : t('common.maximize')}
+            aria-label={isMaximized ? t('common.minimize') : t('common.maximize')}
+            data-testid="maximize-scopes-btn"
+            className="p-1 rounded-sm text-slate-400 hover:text-sky-300 hover:bg-studio-surface transition cursor-pointer shrink-0"
           >
-            {isExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+            {isMaximized ? (
+              <Minimize2 className="w-3.5 h-3.5" />
+            ) : (
+              <Maximize2 className="w-3.5 h-3.5" />
+            )}
           </button>
         )}
 
@@ -484,167 +744,234 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
     </div>
   );
 
-  // Container queries: the layout follows the width of the scopes panel itself (docked column or floating window), not the browser window.
   const scopesBody = (
     <div className="@container flex-1 min-h-0 flex flex-col">
-    <div
-      className={`p-2 overflow-auto custom-scrollbar flex-1 min-h-0 ${
-        mode === 'all'
-          ? 'grid grid-cols-1 @md:grid-cols-2 gap-2'
-          : 'grid grid-cols-1 gap-2'
-      }`}
-    >
+      <div className="p-1.5 overflow-y-auto custom-scrollbar flex-1 min-h-0 flex flex-col gap-1.5">
         {mode === 'all' ? (
-          <>
-            {/* Left Column: Waveform (Row 1) & Audio (Row 2) */}
-            <div className="flex flex-col gap-2">
-              {/* Row 1: Waveform (0 - 100 IRE) */}
-              <div className="flex flex-col gap-1 bg-black/60 p-1.5 rounded-sm border border-white/5">
-                <div className="flex items-center justify-between text-[10px] text-slate-400">
-                  <span className="font-bold text-slate-300">{t('monitor.scopes_waveform')}</span>
-                  <span className="text-[9px] text-emerald-400">0 - 100 IRE</span>
-                </div>
+          <div className="grid grid-cols-1 @md:grid-cols-2 gap-1.5 flex-1 min-h-0">
+            {/* Scope 1: Waveform (Luma 0 - 100 IRE) - Col 1, Row 1 */}
+            <div className="order-1 @md:col-start-1 @md:row-start-1 flex flex-col gap-1 bg-black/60 p-1.5 rounded-sm border border-white/5 overflow-hidden justify-between">
+              <div className="flex items-center justify-between text-[10px] text-slate-400 shrink-0 leading-none">
+                <span className="font-bold text-slate-300">{t('monitor.scopes_waveform')}</span>
+                {hasComparison ? (
+                  <div className="flex items-center gap-1.5 text-[8.5px] font-mono leading-none">
+                    <span className="text-amber-400 font-bold flex items-center gap-0.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
+                      {t('monitor.scopes_legend_raw')}
+                    </span>
+                    <span className="text-emerald-400 font-bold flex items-center gap-0.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+                      {t('monitor.scopes_legend_proc')}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-[9px] text-emerald-400 font-bold translate-y-[0.5px]">0 - 100 IRE</span>
+                )}
+              </div>
+              <div className="flex items-center justify-center w-full flex-1 min-h-0 overflow-hidden py-0.5">
                 <canvas
                   ref={waveformCanvasRef}
-                  width={220}
-                  height={115}
-                  className="w-full h-auto rounded-xs bg-[#050811] object-contain border border-white/5 shadow-inner"
+                  width={400}
+                  height={200}
+                  className="w-full h-full max-h-[115px] aspect-[2/1] rounded-xs bg-[#050811] object-contain border border-white/5 shadow-inner"
                   data-testid="waveform-scope-canvas"
                 />
               </div>
+            </div>
 
-              {/* Row 2: Audio Channels (Compact EBU R128 VU Meters) */}
-              <div className="flex flex-col gap-1 bg-black/60 p-1.5 rounded-sm border border-white/5 flex-1 justify-between">
-                <div className="flex items-center justify-between text-[10px] text-slate-400">
-                  <span className="font-bold text-slate-300">{t('monitor.scopes_audio')}</span>
-                  <span className="text-[8.5px] text-amber-300 font-bold truncate max-w-[125px]">EBU R128 (-23 LUFS)</span>
-                </div>
-                <div className="flex flex-col gap-1 py-0.5">
-                  {/* Channel 1 (L) */}
-                  <div className="flex items-center gap-1.5 text-[8.5px] font-mono">
-                    <span className="w-3 text-slate-400 shrink-0 font-bold">L</span>
-                    <div className="flex-1 h-2.5 bg-slate-900 rounded-xs overflow-hidden relative border border-white/10">
-                      <div
-                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-600 via-emerald-500 to-amber-500 transition-all duration-300"
-                        style={{ width: `${calculateMeterWidth(activeLufsLeft)}%` }}
-                      />
-                      <div className="absolute inset-y-0 left-[67%] w-[1.5px] bg-sky-400" title="-23 LUFS" />
-                      <div className="absolute inset-y-0 left-[98%] w-[1.5px] bg-red-500" title="-1 dBTP" />
-                    </div>
-                    <span className="w-16 text-right text-slate-300 shrink-0 tabular-nums">
-                      {activeLufsLeft.toFixed(1)} LUFS
-                    </span>
-                  </div>
-                  {/* Channel 2 (R) */}
-                  <div className="flex items-center gap-1.5 text-[8.5px] font-mono">
-                    <span className="w-3 text-slate-400 shrink-0 font-bold">R</span>
-                    <div className="flex-1 h-2.5 bg-slate-900 rounded-xs overflow-hidden relative border border-white/10">
-                      <div
-                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-600 via-emerald-500 to-amber-500 transition-all duration-300"
-                        style={{ width: `${calculateMeterWidth(activeLufsRight)}%` }}
-                      />
-                      <div className="absolute inset-y-0 left-[67%] w-[1.5px] bg-sky-400" title="-23 LUFS" />
-                      <div className="absolute inset-y-0 left-[98%] w-[1.5px] bg-red-500" title="-1 dBTP" />
-                    </div>
-                    <span className="w-16 text-right text-slate-300 shrink-0 tabular-nums">
-                      {activeLufsRight.toFixed(1)} LUFS
-                    </span>
-                  </div>
-                </div>
+            {/* Audio: EBU R128 Loudness VU Meters - Nested in Col 1 below Waveform to eliminate dead space */}
+            <div className="order-3 @md:order-2 @md:col-start-1 @md:row-start-2 flex flex-col gap-1 bg-black/60 p-1.5 rounded-sm border border-white/5 overflow-hidden shrink-0 justify-between">
+              <div className="flex items-center justify-between text-[10px] text-slate-400 shrink-0 gap-1 leading-none">
+                <span className="font-bold text-slate-300 truncate">{t('monitor.scopes_tab_audio')}</span>
+                <span className="text-[8.5px] text-amber-300 font-bold shrink-0 whitespace-nowrap translate-y-[0.5px]">-23 LUFS / -1 dBTP</span>
+              </div>
+              <div className="flex flex-col gap-1 py-0.5">
+                {hasComparison && comparisonView === 'both' ? (
+                  <>
+                    <LufsMeterBar
+                      label="RAW"
+                      labelColorClass="text-amber-400"
+                      lufs={activeRawLufsLeft}
+                      barColorClass="bg-gradient-to-r from-amber-600 via-amber-500 to-amber-400"
+                      valueColorClass="text-amber-300 font-semibold"
+                    />
+                    <LufsMeterBar
+                      label="REST"
+                      labelColorClass="text-emerald-400"
+                      lufs={activeLufsLeft}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <LufsMeterBar
+                      label="L"
+                      lufs={comparisonView === 'raw' ? activeRawLufsLeft : activeLufsLeft}
+                    />
+                    <LufsMeterBar
+                      label="R"
+                      lufs={comparisonView === 'raw' ? activeRawLufsRight : activeLufsRight}
+                    />
+                  </>
+                )}
               </div>
             </div>
 
-            {/* Right Column: Vectorscope (Chroma) spanning 2 rows in a perfect square */}
-            <div className="flex flex-col gap-1 bg-black/60 p-1.5 rounded-sm border border-white/5 h-full">
-              <div className="flex items-center justify-between text-[10px] text-slate-400">
+            {/* Scope 2: Vectorscope (Chroma SMPTE 75%) - Spanning Col 2, Row 1 & 2 in 2-col mode */}
+            <div className="order-2 @md:order-3 @md:col-start-2 @md:row-start-1 @md:row-span-2 flex flex-col gap-1 bg-black/60 p-1.5 rounded-sm border border-white/5 overflow-hidden justify-between">
+              <div className="flex items-center justify-between text-[10px] text-slate-400 shrink-0 leading-none">
                 <span className="font-bold text-slate-300">{t('monitor.scopes_vectorscope')}</span>
-                <span className="text-[9px] text-sky-400 font-bold">SMPTE 75%</span>
+                {hasComparison ? (
+                  <div className="flex items-center gap-1.5 text-[8.5px] font-mono leading-none">
+                    <span className="text-amber-400 font-bold flex items-center gap-0.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
+                      {t('monitor.scopes_legend_raw')}
+                    </span>
+                    <span className="text-sky-400 font-bold flex items-center gap-0.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-sky-400 inline-block" />
+                      {t('monitor.scopes_legend_proc')}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-[9px] text-sky-400 font-bold translate-y-[0.5px]">SMPTE 75%</span>
+                )}
               </div>
-              <div className="flex-1 flex items-center justify-center min-h-0 py-0.5">
+              <div className="flex-1 flex items-center justify-center w-full min-h-0 overflow-hidden py-0.5">
                 <canvas
                   ref={vectorCanvasRef}
-                  width={220}
-                  height={220}
-                  className="aspect-square w-full h-full max-w-[200px] max-h-[200px] rounded-xs bg-[#050811] object-contain border border-white/5 shadow-inner"
+                  width={360}
+                  height={360}
+                  className="aspect-square w-auto h-full max-h-[180px] max-w-full rounded-xs bg-[#050811] object-contain border border-white/5 shadow-inner"
                   data-testid="vectorscope-canvas"
                 />
               </div>
             </div>
-          </>
+          </div>
         ) : mode === 'waveform' ? (
-          <div className="flex flex-col gap-1 bg-black/60 p-2 rounded-sm border border-white/5">
-            <div className="flex items-center justify-between text-[10px] text-slate-400">
+          <div className="flex flex-col gap-1.5 bg-black/60 p-2 rounded-sm border border-white/5 flex-1 min-h-0 overflow-hidden justify-between">
+            <div className="flex items-center justify-between text-[10px] text-slate-400 shrink-0">
               <span className="font-bold text-slate-300">{t('monitor.scopes_waveform')}</span>
-              <span className="text-[9px] text-emerald-400">0 - 100 IRE</span>
+              {hasComparison ? (
+                <div className="flex items-center gap-1.5 text-[8.5px] font-mono leading-none">
+                  <span className="text-amber-400 font-bold flex items-center gap-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
+                    {t('monitor.scopes_legend_raw')}
+                  </span>
+                  <span className="text-emerald-400 font-bold flex items-center gap-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+                    {t('monitor.scopes_legend_proc')}
+                  </span>
+                </div>
+              ) : (
+                <span className="text-[9px] text-emerald-400 font-bold">0 - 100 IRE</span>
+              )}
             </div>
-            <canvas
-              ref={waveformCanvasRef}
-              width={420}
-              height={190}
-              className="w-full h-[180px] sm:h-[210px] rounded-xs bg-[#050811] object-contain border border-white/5 shadow-inner"
-              data-testid="waveform-scope-canvas"
-            />
+            <div className="flex-1 flex items-center justify-center min-h-0 w-full overflow-hidden py-1">
+              <canvas
+                ref={waveformCanvasRef}
+                width={480}
+                height={240}
+                className="w-full h-auto max-h-[280px] sm:max-h-[340px] aspect-[2/1] rounded-xs bg-[#050811] object-contain border border-white/5 shadow-inner"
+                data-testid="waveform-scope-canvas"
+              />
+            </div>
           </div>
         ) : mode === 'vectorscope' ? (
-          <div className="flex flex-col gap-1 bg-black/60 p-2 rounded-sm border border-white/5 items-center justify-center">
-            <div className="flex items-center justify-between text-[10px] text-slate-400 w-full max-w-[260px]">
+          <div className="flex flex-col gap-1.5 bg-black/60 p-2 rounded-sm border border-white/5 flex-1 min-h-0 overflow-hidden justify-between">
+            <div className="flex items-center justify-between text-[10px] text-slate-400 shrink-0">
               <span className="font-bold text-slate-300">{t('monitor.scopes_vectorscope')}</span>
-              <span className="text-[9px] text-sky-400 font-bold">SMPTE 75%</span>
+              {hasComparison ? (
+                <div className="flex items-center gap-1.5 text-[8.5px] font-mono leading-none">
+                  <span className="text-amber-400 font-bold flex items-center gap-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
+                    {t('monitor.scopes_legend_raw')}
+                  </span>
+                  <span className="text-sky-400 font-bold flex items-center gap-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-sky-400 inline-block" />
+                    {t('monitor.scopes_legend_proc')}
+                  </span>
+                </div>
+              ) : (
+                <span className="text-[9px] text-sky-400 font-bold">SMPTE 75%</span>
+              )}
             </div>
-            <div className="flex items-center justify-center w-full py-1">
+            <div className="flex-1 flex items-center justify-center min-h-0 w-full overflow-hidden py-1">
               <canvas
                 ref={vectorCanvasRef}
-                width={260}
-                height={260}
-                className="aspect-square w-full max-w-[260px] h-auto rounded-xs bg-[#050811] object-contain border border-white/5 shadow-inner"
+                width={360}
+                height={360}
+                className="aspect-square w-auto h-full max-h-[280px] sm:max-h-[340px] max-w-full rounded-xs bg-[#050811] object-contain border border-white/5 shadow-inner"
                 data-testid="vectorscope-canvas"
               />
             </div>
           </div>
         ) : (
           /* mode === 'audio' */
-          <div className="flex flex-col gap-1.5 bg-black/60 p-2.5 rounded-sm border border-white/5">
-            <div className="flex items-center justify-between text-[10px] text-slate-400">
+          <div className="flex flex-col gap-2 bg-black/60 p-3 rounded-sm border border-white/5 flex-1 min-h-0 overflow-hidden justify-center">
+            <div className="flex items-center justify-between text-[10px] text-slate-400 shrink-0">
               <span className="font-bold text-slate-300">{t('monitor.scopes_audio')}</span>
               <span className="text-[9px] text-amber-300 font-bold">EBU R128 (-23 LUFS / -1 dBTP)</span>
             </div>
-            <div className="flex flex-col gap-2 py-2">
-              {/* Channel 1 (L) */}
-              <div className="flex items-center gap-2 text-[10px] font-mono">
-                <span className="w-4 text-slate-400 shrink-0 font-bold">L</span>
-                <div className="flex-1 h-3.5 bg-slate-900 rounded-xs overflow-hidden relative border border-white/10">
-                  <div
-                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-600 via-emerald-500 to-amber-500 transition-all duration-300"
-                    style={{ width: `${calculateMeterWidth(activeLufsLeft)}%` }}
+            <div className="flex flex-col gap-3 py-2">
+              {hasComparison && comparisonView === 'both' ? (
+                <>
+                  {/* RAW (Antes) L & R */}
+                  <div className="flex flex-col gap-1.5 p-1.5 rounded-xs bg-amber-950/20 border border-amber-500/20">
+                    <span className="text-[9px] font-bold text-amber-400">{t('monitor.scopes_legend_raw')}</span>
+                    <LufsMeterBar
+                      label="L"
+                      labelColorClass="text-amber-400"
+                      lufs={activeRawLufsLeft}
+                      barColorClass="bg-gradient-to-r from-amber-600 via-amber-500 to-amber-400"
+                      valueColorClass="text-amber-300 font-semibold"
+                      isCompact={false}
+                    />
+                    <LufsMeterBar
+                      label="R"
+                      labelColorClass="text-amber-400"
+                      lufs={activeRawLufsRight}
+                      barColorClass="bg-gradient-to-r from-amber-600 via-amber-500 to-amber-400"
+                      valueColorClass="text-amber-300 font-semibold"
+                      isCompact={false}
+                    />
+                  </div>
+
+                  {/* REST (Depois) L & R */}
+                  <div className="flex flex-col gap-1.5 p-1.5 rounded-xs bg-emerald-950/20 border border-emerald-500/20">
+                    <span className="text-[9px] font-bold text-emerald-400">{t('monitor.scopes_legend_proc')}</span>
+                    <LufsMeterBar
+                      label="L"
+                      labelColorClass="text-emerald-400"
+                      lufs={activeLufsLeft}
+                      isCompact={false}
+                    />
+                    <LufsMeterBar
+                      label="R"
+                      labelColorClass="text-emerald-400"
+                      lufs={activeLufsRight}
+                      isCompact={false}
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <LufsMeterBar
+                    label="L"
+                    lufs={comparisonView === 'raw' ? activeRawLufsLeft : activeLufsLeft}
+                    isCompact={false}
                   />
-                  <div className="absolute inset-y-0 left-[67%] w-[1.5px] bg-sky-400" title="-23 LUFS" />
-                  <div className="absolute inset-y-0 left-[98%] w-[1.5px] bg-red-500" title="-1 dBTP" />
-                </div>
-                <span className="w-16 text-right text-slate-300 shrink-0 tabular-nums">
-                  {activeLufsLeft.toFixed(1)} LUFS
-                </span>
-              </div>
-              {/* Channel 2 (R) */}
-              <div className="flex items-center gap-2 text-[10px] font-mono">
-                <span className="w-4 text-slate-400 shrink-0 font-bold">R</span>
-                <div className="flex-1 h-3.5 bg-slate-900 rounded-xs overflow-hidden relative border border-white/10">
-                  <div
-                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-600 via-emerald-500 to-amber-500 transition-all duration-300"
-                    style={{ width: `${calculateMeterWidth(activeLufsRight)}%` }}
+                  <LufsMeterBar
+                    label="R"
+                    lufs={comparisonView === 'raw' ? activeRawLufsRight : activeLufsRight}
+                    isCompact={false}
                   />
-                  <div className="absolute inset-y-0 left-[67%] w-[1.5px] bg-sky-400" title="-23 LUFS" />
-                  <div className="absolute inset-y-0 left-[98%] w-[1.5px] bg-red-500" title="-1 dBTP" />
-                </div>
-                <span className="w-16 text-right text-slate-300 shrink-0 tabular-nums">
-                  {activeLufsRight.toFixed(1)} LUFS
-                </span>
-              </div>
+                </>
+              )}
             </div>
           </div>
         )}
       </div>
     </div>
-    );
+  );
 
   if (docked) {
     return (
@@ -658,49 +985,62 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
     );
   }
 
-  const floatingStyle: React.CSSProperties =
-    isExpanded && expandedRect
-      ? {
-          position: 'fixed',
-          left: expandedRect.left,
-          top: expandedRect.top,
-          width: expandedRect.width,
-          height: Math.max(
-            SCOPES_FLOAT_CONFIG.MIN_HEIGHT_PX,
-            expandedRect.height - SCOPES_FLOAT_CONFIG.TRANSPORT_RESERVE_PX
-          ),
-        }
-      : {
-          top: SCOPES_FLOAT_CONFIG.INITIAL_TOP_PX,
-          right: SCOPES_FLOAT_CONFIG.INITIAL_RIGHT_PX,
-          width: SCOPES_FLOAT_CONFIG.DEFAULT_WIDTH_PX,
-          height: SCOPES_FLOAT_CONFIG.DEFAULT_HEIGHT_PX,
-          minWidth: SCOPES_FLOAT_CONFIG.MIN_WIDTH_PX,
-          minHeight: SCOPES_FLOAT_CONFIG.MIN_HEIGHT_PX,
-          maxWidth: '100%',
-          maxHeight: '100%',
-          resize: 'both',
-        };
+  const currentSize = isMaximized && maximizedRect
+    ? { width: Math.round(maximizedRect.width), height: Math.round(maximizedRect.height) }
+    : { width: floatState.width, height: floatState.height };
+
+  const currentPosition = isMaximized && maximizedRect
+    ? { x: Math.round(maximizedRect.left), y: Math.round(maximizedRect.top) }
+    : { x: floatState.x, y: floatState.y };
 
   // Floating window lives in a portal on <body>, so it is never clipped by the live preview frame.
-  // The full-viewport layer keeps it draggable anywhere inside the app window, but never lost off-screen.
+  // Rnd provides industry-standard 8-direction resizing and dragging with zero unpredictable side-effects.
   return createPortal(
-    <div ref={constraintsRef} className="fixed inset-0 z-[60] pointer-events-none">
-      <motion.div
-        drag={!isExpanded}
-        dragControls={dragControls}
-        dragListener={false}
-        dragMomentum={false}
-        dragElastic={0}
-        dragConstraints={constraintsRef}
-        animate={isExpanded ? { x: 0, y: 0 } : undefined}
+    <div className="fixed inset-0 z-[35] pointer-events-none">
+      <Rnd
+        size={currentSize}
+        position={currentPosition}
+        onDragStop={(_e, d) => {
+          if (!isMaximized) {
+            setFloatState((prev) => ({ ...prev, x: d.x, y: d.y }));
+          }
+        }}
+        onResizeStop={(_e, _direction, ref, _delta, position) => {
+          if (!isMaximized) {
+            setFloatState({
+              width: ref.offsetWidth,
+              height: ref.offsetHeight,
+              x: position.x,
+              y: position.y,
+            });
+          }
+        }}
+        minWidth={SCOPES_FLOAT_CONFIG.MIN_WIDTH_PX}
+        minHeight={SCOPES_FLOAT_CONFIG.MIN_HEIGHT_PX}
+        bounds="window"
+        dragHandleClassName="scopes-drag-handle"
+        cancel="button, [role='button'], input, select, textarea"
+        disableDragging={isMaximized}
+        enableResizing={!isMaximized}
+        resizeHandleClasses={{
+          left: 'scopes-resize-left',
+          right: 'scopes-resize-right',
+          top: 'scopes-resize-top',
+          bottom: 'scopes-resize-bottom',
+          topLeft: 'scopes-resize-top-left',
+          topRight: 'scopes-resize-top-right',
+          bottomLeft: 'scopes-resize-bottom-left',
+          bottomRight: 'scopes-resize-bottom-right',
+        }}
         data-testid="broadcast-scopes-panel"
-        style={floatingStyle}
-        className="pointer-events-auto absolute bg-slate-950/90 backdrop-blur-md border border-slate-700/60 shadow-2xl rounded-sm font-mono flex flex-col overflow-hidden"
+        className="pointer-events-auto bg-slate-950/90 backdrop-blur-md border border-slate-700/60 shadow-2xl rounded-sm font-mono overflow-hidden"
+        style={{ zIndex: 35 }}
       >
-        {headerContent}
-        {scopesBody}
-      </motion.div>
+        <div className="w-full h-full flex flex-col min-h-0 overflow-hidden">
+          {headerContent}
+          {scopesBody}
+        </div>
+      </Rnd>
     </div>,
     document.body
   );

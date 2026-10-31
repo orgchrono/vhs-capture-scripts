@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react'
-import { UploadCloud } from 'lucide-react'
+import React, { useState, useMemo, useEffect, useRef } from 'react'
+import { UploadCloud, Film } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
@@ -29,7 +29,7 @@ import { useStudioStore } from './store/useStudioStore'
 import { usePreferencesStore } from './store/usePreferencesStore'
 import { useGetPreferencesQuery } from './api/studioRtkApi'
 import { useConflictResolutionViewModel } from './viewmodels/useConflictResolutionViewModel'
-import { LAYOUT_CONFIG } from './lib/constants'
+import { LAYOUT_CONFIG, isSupportedVideoFile } from './lib/constants'
 
 const telemetryParser = createTelemetryParser()
 
@@ -64,6 +64,7 @@ const StudioMain: React.FC<{
     toggleRightPanel,
     selectedFile,
     setSelectedFile,
+    setPreviewTimestamp,
     addLog,
     logs,
     preset,
@@ -82,6 +83,7 @@ const StudioMain: React.FC<{
   }, [t, preset])
 
   const [isDragOver, setIsDragOver] = useState(false)
+  const dragCounterRef = useRef<number>(0)
   const shouldReduceMotion = useReducedMotion()
 
   const executeStartRestoration = (resume = false) => {
@@ -116,16 +118,40 @@ const StudioMain: React.FC<{
     },
   })
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const isFileDragEvent = (e: React.DragEvent) => {
+    if (!e.dataTransfer) return false
+    const types = Array.from(e.dataTransfer.types || [])
+    return types.includes('Files') || types.includes('application/x-moz-file')
+  }
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    if (!isFileDragEvent(e)) return
     e.preventDefault()
     e.stopPropagation()
-    if (!isDragOver) setIsDragOver(true)
+    dragCounterRef.current += 1
+    if (dragCounterRef.current === 1) {
+      setIsDragOver(true)
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (!isFileDragEvent(e)) return
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'copy'
+    }
+    if (!isDragOver) {
+      setIsDragOver(true)
+    }
   }
 
   const handleDragLeave = (e: React.DragEvent) => {
+    if (!isFileDragEvent(e)) return
     e.preventDefault()
     e.stopPropagation()
-    if (e.currentTarget === e.target) {
+    dragCounterRef.current = Math.max(0, dragCounterRef.current - 1)
+    if (dragCounterRef.current === 0) {
       setIsDragOver(false)
     }
   }
@@ -133,14 +159,26 @@ const StudioMain: React.FC<{
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
+    dragCounterRef.current = 0
     setIsDragOver(false)
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const file = e.dataTransfer.files[0]
+      if (!isSupportedVideoFile(file.name)) {
+        toast.error(t('toast.invalid_video_format_title'), {
+          description: t('toast.invalid_video_format_desc', { file: file.name }),
+        })
+        return
+      }
+
       const electronFile = file as File & { path?: string }
-      const matched = status?.raw_files?.find((f) => f.name === file.name)
+      const matched =
+        status?.raw_files?.find((f) => f.name.toLowerCase() === file.name.toLowerCase()) ||
+        status?.restored_files?.find((f) => f.name.toLowerCase() === file.name.toLowerCase())
+
       const filePath = (matched && typeof matched.path === 'string' ? matched.path : electronFile.path) || file.name
       setSelectedFile(filePath)
+      setPreviewTimestamp(0)
       addLog(t('toast.file_loaded_log', { file: filePath }))
       toast.success(t('toast.file_loaded_title'), {
         description: `${file.name} - ${t('toast.file_loaded_desc')}`,
@@ -148,9 +186,29 @@ const StudioMain: React.FC<{
     }
   }
 
+  useEffect(() => {
+    const handleWindowDragLeave = (e: DragEvent) => {
+      if (!e.relatedTarget && e.clientY <= 0) {
+        dragCounterRef.current = 0
+        setIsDragOver(false)
+      }
+    }
+    const handleWindowBlur = () => {
+      dragCounterRef.current = 0
+      setIsDragOver(false)
+    }
+    window.addEventListener('dragleave', handleWindowDragLeave)
+    window.addEventListener('blur', handleWindowBlur)
+    return () => {
+      window.removeEventListener('dragleave', handleWindowDragLeave)
+      window.removeEventListener('blur', handleWindowBlur)
+    }
+  }, [])
+
   return (
     <div
       className="relative h-screen w-screen overflow-hidden bg-studio-bg text-slate-100 flex flex-col font-sans"
+      onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -190,11 +248,32 @@ const StudioMain: React.FC<{
             animate={{ opacity: 1, scale: 1 }}
             exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute inset-0 z-50 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center border-2 border-dashed border-slate-600 m-4 rounded-md pointer-events-none"
+            onDragEnter={handleDragEnter}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className="absolute inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center border-2 border-dashed border-emerald-500/70 shadow-[0_0_80px_rgba(16,185,129,0.25)] m-4 rounded-md select-none"
           >
-            <UploadCloud className="w-12 h-12 text-slate-300 mb-3" />
-            <h3 className="text-xl font-bold text-white mb-1.5 font-mono">{t('app.drop_title')}</h3>
-            <p className="text-xs text-slate-400 font-mono">{t('app.drop_formats')}</p>
+            <div className="w-20 h-20 rounded-full bg-emerald-950/60 border border-emerald-500/40 flex items-center justify-center mb-4 shadow-inner">
+              <Film className="w-10 h-10 text-emerald-400 animate-pulse" />
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2 font-mono tracking-tight flex items-center gap-2">
+              <UploadCloud className="w-5 h-5 text-emerald-400" />
+              {t('app.drop_title')}
+            </h3>
+            <p className="text-xs text-slate-400 font-mono mb-4 text-center max-w-md">
+              {t('app.drop_formats')}
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-1.5 font-mono text-[10px]">
+              {['.MKV', '.MP4', '.AVI', '.MOV', '.TS', '.VOB', '.M2TS', '.ISO'].map((fmt) => (
+                <span
+                  key={fmt}
+                  className="px-2 py-0.5 rounded-xs bg-emerald-950/80 text-emerald-300 border border-emerald-600/40 shadow-xs font-semibold"
+                >
+                  {fmt}
+                </span>
+              ))}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -279,16 +358,16 @@ const StudioMain: React.FC<{
                               <span className="bg-slate-500 w-1 h-3 rounded-sm shrink-0" aria-hidden="true"></span>
                               <span className="truncate">{t('app.engine_title')}</span>
                             </h2>
-                            <span className="hidden xl:inline-flex text-[10px] font-mono text-slate-400 bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border uppercase shrink-0 whitespace-nowrap">
-                              {t('app.engine_badge')}
+                            <span className="hidden xl:inline-flex items-center leading-none text-[10px] font-mono text-slate-400 bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border uppercase shrink-0 whitespace-nowrap">
+                              <span className="translate-y-[0.5px]">{t('app.engine_badge')}</span>
                             </span>
                           </div>
                           <div
-                            className="inline-flex items-center gap-1.5 text-[10px] font-mono font-medium text-slate-300 bg-studio-surface border border-studio-border px-2 py-0.5 rounded-sm shrink-0 whitespace-nowrap max-w-[140px] sm:max-w-[190px]"
+                            className="inline-flex items-center gap-1.5 text-[10px] font-mono font-medium text-slate-300 bg-studio-surface border border-studio-border px-2 py-0.5 rounded-sm shrink-0 whitespace-nowrap max-w-[140px] sm:max-w-[190px] leading-none"
                             title={currentPresetLabel}
                           >
                             <span className="led-lamp led-live shrink-0" aria-hidden="true"></span>
-                            <span className="truncate">{currentPresetLabel}</span>
+                            <span className="truncate translate-y-[0.5px]">{currentPresetLabel}</span>
                           </div>
                         </div>
                         <div className="flex-1 min-h-0 flex flex-col">

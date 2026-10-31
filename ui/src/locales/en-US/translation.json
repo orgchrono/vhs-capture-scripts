@@ -132,6 +132,11 @@
     "scopes_tab_audio": "Audio",
     "scopes_dock_side": "Dock Scopes to Side Panel",
     "scopes_float_window": "Undock to Floating Window",
+    "scopes_comp_both": "Both (A/B)",
+    "scopes_comp_proc": "After (REST)",
+    "scopes_comp_raw": "Before (RAW)",
+    "scopes_legend_raw": "Before (RAW)",
+    "scopes_legend_proc": "After (REST)",
     "live_restoration_stream": "Live Restoration Stream",
     "generating_preview": "Synchronizing restoration stream...",
     "source_stream_proxy": "Source Stream Proxy",
@@ -258,6 +263,16 @@
     "tabs_aria_label": "Settings Tabs",
     "output_codec_hint": "Output encoding format and compression codec.",
     "tier_label": "Tier {{tier}}: {{name}}"
+  },
+  "hardware": {
+    "tier_1": "Basic (Limited CPU)",
+    "tier_2": "Multi-Core CPU + Vulkan iGPU",
+    "tier_3": "Modern PC (Dedicated GPU / Apple Silicon)",
+    "tier_4": "AI Workstation (Dedicated High-End GPU)",
+    "tier_1_rec": "Modest hardware detected. We recommend fast deinterlacing (BWDIF) and classic DSP filters. Avoid enabling heavy neural upscalers to prevent machine overload.",
+    "tier_2_rec": "Multi-core CPU with {{cores}} cores and {{ram}}GB RAM. Ideal for BWDIF/Lanczos restoration (~60-120 fps), real-time DeepFilterNet, and Whisper. Honest notice: Heavy neural models (CodeFormer / Real-ESRGAN) will run via CPU/iGPU at ~1-2 fps.",
+    "tier_3_rec": "Accelerated GPU detected. RIFE and Real-ESRGAN will run smoothly. CodeFormer is viable for targeted restoration.",
+    "tier_4_rec": "High-performance dedicated GPU detected. All neural AI features (CodeFormer, Real-ESRGAN, and RIFE 60fps) will run at maximum speed."
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",
@@ -396,7 +411,9 @@
     "watcher_error": "Failed to toggle Auto-Watcher state.",
     "capture_failed_title": "Capture Failed",
     "capture_start_failed": "Capture start failed",
-    "capture_stop_failed": "Capture stop failed"
+    "capture_stop_failed": "Capture stop failed",
+    "invalid_video_format_title": "Invalid Video Format",
+    "invalid_video_format_desc": "Unsupported file. Please use analog video formats (.mkv, .mp4, .avi, .mov, .ts, .vob)."
   },
   "telemetry": {
     "title": "Analog Mastering Telemetry",

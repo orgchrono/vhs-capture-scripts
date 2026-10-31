@@ -16,7 +16,6 @@ import { SplitComparisonMonitor } from './SplitComparisonMonitor';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import type { SystemHealth } from '../types';
 import { formatBitrate } from '../lib/formatters';
-import { LiveEdgeIndicator } from './LiveEdgeIndicator';
 import { TimelineScrubber } from './TimelineScrubber';
 import { BroadcastScopes } from './BroadcastScopes';
 import { MonitorReticleOverlay } from './MonitorReticleOverlay';
@@ -50,11 +49,9 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
     currentTimestamp,
     totalDuration,
     progressPct,
-    isAtLiveEdge,
     livePreviewEnabled,
     pausedFrameSrc,
     setIsScrubbing,
-    handleJumpToLive,
     handleSeek,
     handleTimelineInput,
     handleTimelineCommit,
@@ -127,9 +124,6 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
             />
             <span className="whitespace-nowrap">{t('app.crt_monitor_title')}</span>
           </h2>
-          <span className="hidden 2xl:inline-flex text-[10px] font-mono text-slate-400 bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border shrink-0 whitespace-nowrap">
-            {t('app.crt_monitor_badge')}
-          </span>
         </div>
 
         {/* Right Side: 3-Screen Command Console + Scopes */}
@@ -184,7 +178,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
                 data-testid="restore-screen-btn"
               >
                 <span className="led-lamp led-live animate-pulse" />
-                <span className="shrink-0 whitespace-nowrap">{t('monitor.rendering_preview')}</span>
+                <span className="hidden sm:inline shrink-0 whitespace-nowrap">{t('monitor.rendering_preview')}</span>
               </button>
             )}
 
@@ -251,53 +245,43 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
             {/* Subtle OSD Broadcast Telemetry (Top Right Overlay) */}
             <div className="absolute top-2 right-2 z-20 flex items-center gap-1.5 pointer-events-none">
               <AnimatePresence>
-                {isRestoring && (
-                  <motion.div key="badge-live-edge" {...badgeMotion} className="pointer-events-auto">
-                    <LiveEdgeIndicator
-                      isAtLiveEdge={isAtLiveEdge}
-                      onJumpToLive={handleJumpToLive}
-                      testId="live-header-indicator"
-                      compact
-                    />
-                  </motion.div>
-                )}
                 {(isCapturing || obsStats?.recording) && (
                   <motion.span
                     key="badge-rec"
                     {...badgeMotion}
-                    className="bg-red-900/90 h-5 px-2 rounded-xs text-[9px] font-bold text-white border border-red-600/50 shadow-xs flex items-center gap-1 animate-pulse tracking-wider font-mono shrink-0 whitespace-nowrap"
+                    className="bg-red-900/90 h-5 px-2 rounded-xs text-[9px] font-bold text-white border border-red-600/50 shadow-xs flex items-center gap-1 animate-pulse tracking-wider font-mono shrink-0 whitespace-nowrap leading-none"
                   >
-                    <span className="led-lamp led-rec"></span>
-                    {obsStats?.timecode ? `REC ${obsStats.timecode}` : 'REC'}
+                    <span className="led-lamp led-rec shrink-0"></span>
+                    <span className="translate-y-[0.5px]">{obsStats?.timecode ? `REC ${obsStats.timecode}` : 'REC'}</span>
                   </motion.span>
                 )}
                 {obsStats?.connected && obsStats?.bitrate_kbps !== undefined && obsStats.bitrate_kbps > 0 && (
                   <motion.span
                     key="badge-bitrate"
                     {...badgeMotion}
-                    className="bg-black/75 backdrop-blur-xs h-5 px-2 rounded-xs text-[9px] font-mono font-medium text-slate-300 border border-white/10 shadow-xs flex items-center gap-1 shrink-0 whitespace-nowrap"
+                    className="bg-black/75 backdrop-blur-xs h-5 px-2 rounded-xs text-[9px] font-mono font-medium text-slate-300 border border-white/10 shadow-xs flex items-center gap-1 shrink-0 whitespace-nowrap leading-none"
                   >
                     <Activity className="w-2.5 h-2.5 text-slate-400 shrink-0" />
-                    <span className="shrink-0 whitespace-nowrap">{formatBitrate(obsStats.bitrate_kbps)}</span>
+                    <span className="shrink-0 whitespace-nowrap translate-y-[0.5px]">{formatBitrate(obsStats.bitrate_kbps)}</span>
                   </motion.span>
                 )}
                 {obsStats?.connected && obsStats?.fps !== undefined && obsStats.fps > 0 && (
                   <motion.span
                     key="badge-fps"
                     {...badgeMotion}
-                    className="bg-black/75 backdrop-blur-xs h-5 px-2 rounded-xs text-[9px] font-mono text-slate-300 border border-white/10 shadow-xs tabular-nums shrink-0 whitespace-nowrap"
+                    className="bg-black/75 backdrop-blur-xs h-5 px-2 rounded-xs text-[9px] font-mono text-slate-300 border border-white/10 shadow-xs tabular-nums shrink-0 whitespace-nowrap leading-none"
                   >
-                    {obsStats.fps} FPS
+                    <span className="translate-y-[0.5px]">{obsStats.fps} FPS</span>
                   </motion.span>
                 )}
                 {Boolean(health?.dropped_frames && health.dropped_frames > 0) && (
                   <motion.span
                     key="badge-drops"
                     {...badgeMotion}
-                    className="bg-amber-900/90 text-amber-200 border border-amber-600/50 h-5 px-1.5 rounded-xs text-[9px] font-mono font-bold flex items-center gap-1 shadow-xs shrink-0 whitespace-nowrap"
+                    className="bg-amber-900/90 text-amber-200 border border-amber-600/50 h-5 px-1.5 rounded-xs text-[9px] font-mono font-bold flex items-center gap-1 shadow-xs shrink-0 whitespace-nowrap leading-none"
                   >
                     <AlertTriangle className="w-2.5 h-2.5 text-amber-400 shrink-0" />
-                    <span>{t('monitor.dropped_frames', { count: health?.dropped_frames })}</span>
+                    <span className="translate-y-[0.5px]">{t('monitor.dropped_frames', { count: health?.dropped_frames })}</span>
                   </motion.span>
                 )}
               </AnimatePresence>
@@ -305,31 +289,14 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
 
             {/* Video / Restoration / Standby Canvas */}
             <div className="absolute inset-0 z-0 flex items-center justify-center bg-black overflow-hidden">
-              {monitorView === 'restore' && (isRestoring || liveFrameSrc) ? (
-                liveFrameSrc ? (
-                  <img
-                    src={liveFrameSrc}
-                    crossOrigin="anonymous"
-                    alt={t('monitor.live_restoration_stream')}
-                    className="w-full h-full object-contain pointer-events-none"
-                    data-testid="live-restoration-stream"
-                  />
-                ) : (
-                  <div className="flex flex-col items-center justify-center text-emerald-400 font-mono text-xs gap-3">
-                    <div className="relative w-16 h-16 rounded-full border border-emerald-500/30 bg-emerald-950/20 flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.15)]">
-                      <div className="absolute inset-0 rounded-full border-2 border-emerald-500/40 border-t-emerald-400 animate-spin" />
-                      <Activity className="w-6 h-6 text-emerald-400 animate-pulse" />
-                    </div>
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="font-bold tracking-wider uppercase text-[11px] text-emerald-300">
-                        {t('monitor.rendering_preview')}
-                      </span>
-                      <span className="text-[10px] text-slate-400">
-                        {t('monitor.generating_preview')}
-                      </span>
-                    </div>
-                  </div>
-                )
+              {monitorView === 'restore' && liveFrameSrc ? (
+                <img
+                  src={liveFrameSrc}
+                  crossOrigin="anonymous"
+                  alt={t('monitor.live_restoration_stream')}
+                  className="w-full h-full object-contain pointer-events-none"
+                  data-testid="live-restoration-stream"
+                />
               ) : isActive ? (
                 <video
                   ref={videoRef}

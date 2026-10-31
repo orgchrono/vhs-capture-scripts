@@ -132,6 +132,11 @@
     "scopes_tab_audio": "Audio",
     "scopes_dock_side": "Ancrer l'oscilloscope au panneau latéral",
     "scopes_float_window": "Détacher en fenêtre flottante",
+    "scopes_comp_both": "Les deux (A/B)",
+    "scopes_comp_proc": "Après (REST)",
+    "scopes_comp_raw": "Avant (RAW)",
+    "scopes_legend_raw": "Avant (RAW)",
+    "scopes_legend_proc": "Après (REST)",
     "live_restoration_stream": "Flux de Restauration en Direct",
     "generating_preview": "Synchronisation du flux de restauration...",
     "source_stream_proxy": "Proxy du Flux Source",
@@ -258,6 +263,16 @@
     "tabs_aria_label": "Abas de Configuração",
     "output_codec_hint": "Format d'encodage et compression de la vidéo finale.",
     "tier_label": "Niveau {{tier}}: {{name}}"
+  },
+  "hardware": {
+    "tier_1": "De base (CPU Limitée)",
+    "tier_2": "CPU Multi-Cœurs + iGPU Vulkan",
+    "tier_3": "PC Moderne (GPU Dédié / Apple Silicon)",
+    "tier_4": "Station de Travail IA (GPU Dédié Haut de Gamme)",
+    "tier_1_rec": "Matériel modeste détecté. Nous recommandons un désentrelacement rapide (BWDIF) et des filtres DSP classiques. Évitez d'activer des upscalers neuronaux lourds pour ne pas surcharger la machine.",
+    "tier_2_rec": "CPU multi-cœurs avec {{cores}} cœurs et {{ram}} Go de RAM. Idéal pour la restauration BWDIF/Lanczos (~60-120 fps), DeepFilterNet en temps réel et Whisper. Avertissement honnête : les modèles neuronaux lourds (CodeFormer / Real-ESRGAN) s'exécuteront via CPU/iGPU à ~1-2 fps.",
+    "tier_3_rec": "GPU accéléré détecté. RIFE et Real-ESRGAN fonctionneront de manière fluide. CodeFormer est viable pour les restaurations ciblées.",
+    "tier_4_rec": "GPU dédié haute performance détecté. Toutes les fonctionnalités d'IA neuronale (CodeFormer, Real-ESRGAN et RIFE 60fps) fonctionneront à vitesse maximale."
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",
@@ -396,7 +411,9 @@
     "watcher_error": "Échec de modification de l’état de l’Auto-Watcher.",
     "capture_failed_title": "Échec de la Capture",
     "capture_start_failed": "Échec du démarrage de la capture",
-    "capture_stop_failed": "Échec de l'arrêt de la capture"
+    "capture_stop_failed": "Échec de l'arrêt de la capture",
+    "invalid_video_format_title": "Format vidéo non valide",
+    "invalid_video_format_desc": "Fichier non pris en charge. Veuillez utiliser des formats vidéo (.mkv, .mp4, .avi, .mov, .ts, .vob)."
   },
   "telemetry": {
     "title": "Télémétrie de Restauration Analogique",

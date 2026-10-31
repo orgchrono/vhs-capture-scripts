@@ -21,8 +21,10 @@ export interface PanasonicInspection {
 export interface HardwareProfile {
   tier: number;
   tier_name: string;
+  tier_key?: string;
   tier_color: string;
   recommendation: string;
+  recommendation_key?: string;
   cpu: {
     cores: number;
     arch: string;

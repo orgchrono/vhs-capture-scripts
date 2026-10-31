@@ -73,4 +73,6 @@ ui/screenshots/
 
 # Rust & Tauri
 target/
+target_lint/
+.cargo_target/
 gen/
