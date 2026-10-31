@@ -12,6 +12,14 @@ import type {
 const ANSI_OSC_ESCAPE_REGEX = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*[a-zA-Z]`, 'g');
 const BARE_COLOR_ESCAPE_REGEX = /\[\d{1,3}m/g;
 
+/**
+ * Detects transient/sequential telemetry progress lines that represent in-place TUI updates
+ * (e.g. `PROGRESS: 18% | Frames: ...` or `Frames: 2500 / 5000 | ...`).
+ */
+export const isProgressLine = (line: string): boolean => {
+  return /^(?:->\s*)?PROGRESS:\s*\d+%/i.test(line) || /^Frames:\s*[\d,.]+/i.test(line);
+};
+
 export type WorkspacePreset = 'default' | 'capture' | 'restore';
 
 export type StudioTaskType =
@@ -313,12 +321,18 @@ export const studioSlice = createSlice({
         .replace(BARE_COLOR_ESCAPE_REGEX, '')
         .trim();
       if (!line) return;
-      if (state.logs.length > 0 && state.logs[state.logs.length - 1] === line) {
+      const lastIndex = state.logs.length - 1;
+      const lastLine = lastIndex >= 0 ? state.logs[lastIndex] : undefined;
+      if (lastLine === line) {
+        return;
+      }
+      if (lastLine && isProgressLine(lastLine) && isProgressLine(line)) {
+        state.logs[lastIndex] = line;
         return;
       }
       const limit = LOG_LIMITS.MAX_LINES;
-      if (state.logs.length > limit) {
-        state.logs = [...state.logs.slice(-limit), line];
+      if (state.logs.length >= limit) {
+        state.logs = [...state.logs.slice(-(limit - 1)), line];
       } else {
         state.logs.push(line);
       }
@@ -326,25 +340,25 @@ export const studioSlice = createSlice({
     addLogs: (state, action: PayloadAction<string[]>) => {
       const incoming = action.payload;
       if (!incoming || incoming.length === 0) return;
-      const cleaned: string[] = [];
-      let lastLine = state.logs.length > 0 ? state.logs[state.logs.length - 1] : undefined;
       for (const raw of incoming) {
         const line = raw
           .replace(ANSI_OSC_ESCAPE_REGEX, '')
           .replace(BARE_COLOR_ESCAPE_REGEX, '')
           .trim();
-        if (line && line !== lastLine) {
-          cleaned.push(line);
-          lastLine = line;
+        if (!line) continue;
+        const lastIndex = state.logs.length - 1;
+        const lastLine = lastIndex >= 0 ? state.logs[lastIndex] : undefined;
+        if (lastLine === line) continue;
+
+        if (lastLine && isProgressLine(lastLine) && isProgressLine(line)) {
+          state.logs[lastIndex] = line;
+        } else {
+          state.logs.push(line);
         }
       }
-      if (cleaned.length === 0) return;
       const limit = LOG_LIMITS.MAX_LINES;
-      const combined = state.logs.concat(cleaned);
-      if (combined.length > limit) {
-        state.logs = combined.slice(-limit);
-      } else {
-        state.logs = combined;
+      if (state.logs.length > limit) {
+        state.logs = state.logs.slice(-limit);
       }
     },
     clearLogs: (state) => {

@@ -97,22 +97,21 @@ fn handle_sse_stream(
     let head = format_sse_head(allow_origin);
     stream.write_all(&head).map_err(|_| ())?;
 
-    let mut cursor = 0usize;
+    let mut cursor = 0u64;
     let mut has_seen_active = false;
     let mut idle_wait_cycles = 0usize;
 
     loop {
         let snapshot = ctx.process.snapshot();
-        let current_logs = ctx.process.logs();
+        let (new_lines, next_cursor) = ctx.process.logs_since(cursor);
+        cursor = next_cursor;
 
         if snapshot.running {
             has_seen_active = true;
         }
 
-        if current_logs.len() > cursor {
-            let new_lines = &current_logs[cursor..];
-            cursor = current_logs.len();
-            for line in new_lines {
+        if !new_lines.is_empty() {
+            for line in &new_lines {
                 let event_json = json!({
                     "line": line,
                     "running": snapshot.running,
@@ -130,7 +129,7 @@ fn handle_sse_stream(
             let _ = stream.flush();
         }
 
-        if !snapshot.running && cursor >= current_logs.len() {
+        if !snapshot.running && new_lines.is_empty() {
             if has_seen_active
                 || snapshot.last_exit_code.is_some()
                 || snapshot.last_success.is_some()
@@ -511,6 +510,7 @@ pub fn run_native_http_server_with_context(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::process_manager::ProcessManager;
 
     #[test]
     fn test_is_safe_relative_asset_path_blocks_traversal() {
@@ -528,5 +528,33 @@ mod tests {
         );
         assert_eq!(guess_mime_type("style.css"), "text/css; charset=utf-8");
         assert_eq!(guess_mime_type("cover.jpg"), "image/jpeg");
+    }
+
+    #[test]
+    fn test_sse_cursor_streams_past_ring_capacity_without_stalling() {
+        // Simulates the exact bug where log ring capacity was 500 lines and SSE previously stalled
+        // at line 500 (frame 63750, 73%) because it used current_logs.len() > cursor.
+        let pm = ProcessManager::default();
+        // Append 600 lines (more than 500 capacity)
+        for i in 1..=600 {
+            pm.append_log(format!("PROGRESS: frame {i}"));
+        }
+        let mut cursor = 0u64;
+        let mut collected = Vec::new();
+        // First batch
+        let (batch1, next_cursor) = pm.logs_since(cursor);
+        cursor = next_cursor;
+        collected.extend(batch1);
+        // Append 100 more
+        for i in 601..=700 {
+            pm.append_log(format!("PROGRESS: frame {i}"));
+        }
+        let (batch2, next_cursor2) = pm.logs_since(cursor);
+        cursor = next_cursor2;
+        assert_eq!(batch2.len(), 100);
+        assert_eq!(batch2.last().unwrap(), "PROGRESS: frame 700");
+        collected.extend(batch2);
+
+        assert_eq!(cursor, 700);
     }
 }

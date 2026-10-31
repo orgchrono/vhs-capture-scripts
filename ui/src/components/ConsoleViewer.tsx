@@ -80,7 +80,7 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
       colorClass = 'text-emerald-400'
     } else if (line.includes('[QTGMC]') || line.includes('[AI UPSCALER]')) {
       colorClass = 'text-sky-400'
-    } else if (line.includes('Frames:') || line.includes('Velocidade:')) {
+    } else if (line.includes('PROGRESS:') || line.includes('Frames:') || line.includes('Velocidade:')) {
       colorClass = 'text-cyan-300 font-medium'
     }
 

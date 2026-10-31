@@ -15,7 +15,8 @@ pub use checkpoint::{remove_checkpoint, update_live_restoration_frame, write_che
 pub use neural_chain::execute_neural_post_chain;
 pub use oais_packager::{emit_oais_archival_sidecars, emit_restoration_qc_reports};
 pub use planner::{
-    bounded_tail, build_restoration_summary, plan_restoration_job, resolve_final_output_path,
+    bounded_tail, build_restoration_summary, expected_output_frames, is_output_truncated,
+    plan_restoration_job, resolve_final_output_path,
     PlannedRestoration, RestorationJobRequest, RestorationOverrides, RestorationSummary,
     STDERR_TAIL_MAX_BYTES,
 };
@@ -57,6 +58,36 @@ mod tests {
             format_name: "avi".to_string(),
             standard: "NTSC".to_string(),
         }
+    }
+
+    #[test]
+    fn test_expected_frames_progressive_source_is_not_doubled_by_ffmpeg_bob() {
+        // Regression: OBS 60 fps progressive recording (87621 frames) was expected to produce
+        // 175242 frames, flagging a fully completed encode as "ended prematurely at 50%".
+        let progressive = expected_output_frames(1460.35, 60.0, DeinterlaceFilter::BwdifBob, false, false);
+        assert_eq!(progressive, 87621);
+        let interlaced = expected_output_frames(1460.35, 60.0, DeinterlaceFilter::BwdifBob, false, true);
+        assert_eq!(interlaced, 175242);
+    }
+
+    #[test]
+    fn test_expected_frames_qtgmc_always_doubles_and_fallback_follows_source() {
+        assert_eq!(expected_output_frames(10.0, 30.0, DeinterlaceFilter::Qtgmc, true, false), 600);
+        assert_eq!(expected_output_frames(10.0, 30.0, DeinterlaceFilter::Qtgmc, false, false), 300);
+        assert_eq!(expected_output_frames(10.0, 30.0, DeinterlaceFilter::None, false, true), 300);
+    }
+
+    #[test]
+    fn test_is_output_truncated_prefers_duration_over_frame_count() {
+        // Full duration reached but frame estimate was 2x too high: must NOT be truncated.
+        assert!(!is_output_truncated(1460.35, 1460.40, 175242, 87621));
+        // Genuinely cut at ~50% of the duration.
+        assert!(is_output_truncated(1460.35, 730.0, 87621, 43810));
+        // No timestamp reported: falls back to frame count.
+        assert!(is_output_truncated(0.0, 0.0, 1000, 500));
+        assert!(!is_output_truncated(0.0, 0.0, 1000, 950));
+        // Nothing known: never flags truncation.
+        assert!(!is_output_truncated(0.0, 0.0, 0, 0));
     }
 
     #[test]

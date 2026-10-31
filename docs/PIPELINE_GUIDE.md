@@ -211,3 +211,80 @@ cargo run -- qc-report media/raw/tape_01.mkv
 
 
 
+## 12. Incident Log — False "Restoration pipeline ended prematurely" (2026-10-28)
+
+### 12.1 Symptom
+A restoration of `media/raw/2026-10-02 13-48-53.mkv` (OBS recording, 708x480, **progressive**, 60 fps, 24:20) ran for 37 min and then failed with:
+
+```
+Restoration pipeline ended prematurely at frame 87621/175242 (50%)
+```
+
+The same FFmpeg log shows the encode actually **finished**: `time=00:24:20.40` against a source `Duration: 00:24:20.35`, `frame=87621`, exit status 0, a `.part` of ~2.0 GB and no FFmpeg error. The progress bar had also reported `18% | 31047/175242 | ETA 00:40:25` for the whole run, which was already inconsistent with a 0.99x speed.
+
+### 12.2 Root Cause
+`plan_restoration_job` (`src/infrastructure/executor/planner.rs`) computed the expected frame total as `duration * fps * multiplier`, with `multiplier = 2.0` for every bob deinterlacer (`Qtgmc`, `BwdifBob`, `Znedi3`, `Nnedi3`, `Yadif`) **regardless of the source scan type**.
+
+| Quantity | Value |
+|---|---|
+| Real frames (60 fps x 1460.35 s) | 87 621 |
+| Expected frames used by the runner (x2) | 175 242 |
+| Completion threshold (90 %) | 157 717 |
+
+The FFmpeg-based bob filters (`bwdif=mode=1:deint=1`, `yadif=mode=1:deint=1`) only double the rate on frames flagged as interlaced; a progressive source passes through 1:1. `process_runner.rs` therefore compared 87 621 against 157 717 and flagged a complete encode as truncated (`is_truncated`), which skipped finalization (`.part` -> `.mp4`), checksum, QC and OAIS sidecars. The check was introduced by commit `5d709b8` ("robust truncation check").
+
+### 12.3 Fix
+1. **`expected_output_frames`** (new pure function in `planner.rs`): the 2x multiplier now applies only when VapourSynth QTGMC is actually active (it always doubles) or when the probed source is interlaced. Progressive sources keep a 1x multiplier. Constants live in `src/models/constants.rs` (`DOUBLE_RATE_FPS_MULTIPLIER`, `IVTC_FPS_MULTIPLIER`).
+2. **`is_output_truncated`** (new pure function in `planner.rs`): the output timestamp (`out_time`) is now the authoritative completeness signal because it is independent of any frame-rate multiplier. Frame count is used only when FFmpeg reported no timestamp. Threshold: `MIN_RESTORATION_COMPLETION_PERCENT` (90 %).
+3. Regression tests in `src/infrastructure/executor/mod.rs`:
+   `test_expected_frames_progressive_source_is_not_doubled_by_ffmpeg_bob`,
+   `test_expected_frames_qtgmc_always_doubles_and_fallback_follows_source`,
+   `test_is_output_truncated_prefers_duration_over_frame_count`.
+
+### 12.4 Recovering the Already-Encoded File
+The failed run left `restored/2026-10-02 13-48-53_custom_1080p_19ea5a59.mp4.part` (fragmented MP4, complete content). Simply re-running the job with the fixed build repeats the 37 min encode; to avoid that, validate the `.part` and finalize it manually:
+
+```powershell
+ffprobe -v error -show_entries format=duration -of csv=p=0 "restored\2026-10-02 13-48-53_custom_1080p_19ea5a59.mp4.part"   # expect ~1460.35
+```
+
+> Note: a finalized `.mp4` with the same name from a previous run (2026-10-25) already exists in `restored/`; back it up or rename it before moving the `.part` over it.
+
+### 12.5 Open Observation (not changed)
+The output stream is declared as **120 fps** while only 87 621 frames (60 fps of real content) are written: `bwdif mode=1` doubles the nominal timebase even on progressive input. For sources already progressive (`field_order=progressive`) the deinterlace step is redundant. Consider skipping deinterlacing, or defaulting to `BwdifSingle`, when the probe reports an explicitly progressive source. Also note that QTGMC with `fps_mode: 2` would double frames of a progressive source, which is undesirable.
+
+
+## 13. Incident Log — Telemetry SSE Stream Freeze at 73% (2026-10-30)
+
+### 13.1 Symptom
+During restoration of a 24-minute tape (`2026-10-02 13-48-53.mkv`), the frontend console and progress bar updated normally until reaching:
+```
+PROGRESS: 73% | Frames: 63750 / 87621 | FPS: 124.1 | Speed: 2.07x | ETA: 00:03:12
+```
+At that exact point, progress stopped streaming completely. Approximately 3 minutes and 12 seconds later, the UI jumped directly to:
+```
+[RESTAURAÇÃO] Processo de restauração concluído com sucesso!
+```
+Although the final video (`.mp4`) was 100% complete (87,621 frames, 1460.43 s verified via `ffprobe`), the user experienced the impression that the process halted prematurely at 73% and claimed success.
+
+### 13.2 Root Cause
+`src/infrastructure/http_server.rs` (`handle_sse_stream`) polled logs using:
+```rust
+let current_logs = ctx.process.logs();
+if current_logs.len() > cursor {
+    let new_lines = &current_logs[cursor..];
+    cursor = current_logs.len();
+    ...
+}
+```
+`ctx.process.logs()` returns a snapshot of `LogRing` (`src/domain/log_buffer.rs`), whose in-memory capacity is bounded by `MAX_PROCESS_LOGS_HISTORY` (500 lines). Once 500 lines were logged:
+1. `current_logs.len()` reached 500 and `cursor` was set to 500.
+2. In subsequent iterations, `LogRing` pushed new lines by dropping the oldest (`pop_front`), keeping `lines.len()` constantly at 500.
+3. The condition `current_logs.len() > cursor` (`500 > 500`) evaluated to `false` for every tick thereafter.
+4. **Zero lines** were pushed across the SSE stream between line 500 (frame 63,750, ~1035 s, 72.7%) and process exit.
+5. Upon process exit, the Tauri IPC command resolved, prompting the UI to append the completion message immediately after the frozen 73% line.
+
+### 13.3 Fix
+1. Switched `handle_sse_stream` to consume logs through `ctx.process.logs_since(cursor: u64)`, which was expressly designed for bounded ring buffers with monotonic sequence numbers.
+2. Verified that all buffered lines are flushed when `!snapshot.running` before transmitting the termination event.
+3. Added regression unit test in `src/infrastructure/http_server.rs`: `test_sse_cursor_streams_past_ring_capacity_without_stalling`.

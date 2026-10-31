@@ -150,6 +150,16 @@ pub const DEFAULT_VPY_CACHE_SIZE_MB: usize = 4000;
 /// Default checkpoint flush interval measured in processed video frames.
 pub const CHECKPOINT_FLUSH_INTERVAL_FRAMES: u64 = 500;
 
+/// Minimum percentage of the expected output duration/frames a restoration must reach
+/// before it is considered complete (below this, the run is flagged as truncated).
+pub const MIN_RESTORATION_COMPLETION_PERCENT: u64 = 90;
+
+/// Frame-rate multiplier produced by bob/double-rate deinterlacers on interlaced sources.
+pub const DOUBLE_RATE_FPS_MULTIPLIER: f64 = 2.0;
+
+/// Frame-rate multiplier of inverse telecine (24 of every 30 frames kept).
+pub const IVTC_FPS_MULTIPLIER: f64 = 0.8;
+
 /// Video CRF quality setting for OAIS DIP Web Distribution Proxy derivatives.
 pub const DIP_PROXY_CRF: u8 = 20;
 

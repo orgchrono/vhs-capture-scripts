@@ -6,7 +6,10 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 
 use crate::media::{get_part_path, seconds_to_timecode};
-use crate::models::constants::DEFAULT_VPY_CACHE_SIZE_MB;
+use crate::models::constants::{
+    DEFAULT_VPY_CACHE_SIZE_MB, DOUBLE_RATE_FPS_MULTIPLIER, IVTC_FPS_MULTIPLIER,
+    MIN_RESTORATION_COMPLETION_PERCENT,
+};
 use crate::pipeline::{
     build_pipeline_plan, AudioChannelPolicy, DeinterlaceFilter, OutputCodec,
     PipelinePlan, PipelineSpec, VideoEncoder,
@@ -428,16 +431,13 @@ pub fn plan_restoration_job(
         0.0
     };
     let expected_duration = request.duration_sec.unwrap_or(raw_duration);
-    let fps_multiplier = match deinterlacer {
-        DeinterlaceFilter::Qtgmc
-        | DeinterlaceFilter::BwdifBob
-        | DeinterlaceFilter::Znedi3
-        | DeinterlaceFilter::Nnedi3
-        | DeinterlaceFilter::Yadif => 2.0,
-        DeinterlaceFilter::Ivtc => 0.8,
-        _ => 1.0,
-    };
-    let expected_frames = (expected_duration * probe.fps * fps_multiplier).round() as u64;
+    let expected_frames = expected_output_frames(
+        expected_duration,
+        probe.fps,
+        deinterlacer,
+        is_qtgmc,
+        probe.is_interlaced,
+    );
 
     Ok(PlannedRestoration {
         input_path: request.input_path.clone(),
@@ -495,6 +495,58 @@ pub fn build_restoration_summary(
         success,
         error_message,
     }
+}
+
+/// Pure estimator of the number of frames the restoration output will contain.
+///
+/// Double-rate (bob) deinterlacing only doubles the frame count when it really runs on
+/// interlaced material: VapourSynth QTGMC always doubles, whereas the FFmpeg-based bob
+/// filters (`bwdif`/`yadif` with `deint=1`) pass progressive frames through untouched.
+/// Assuming a 2x multiplier for a progressive source (e.g. an OBS 60 fps recording)
+/// yields an expected total twice the real one and causes false "truncated" failures.
+#[must_use]
+pub fn expected_output_frames(
+    duration_sec: f64,
+    source_fps: f64,
+    deinterlacer: DeinterlaceFilter,
+    qtgmc_active: bool,
+    source_interlaced: bool,
+) -> u64 {
+    let fps_multiplier = match deinterlacer {
+        DeinterlaceFilter::Qtgmc if qtgmc_active => DOUBLE_RATE_FPS_MULTIPLIER,
+        DeinterlaceFilter::Qtgmc
+        | DeinterlaceFilter::BwdifBob
+        | DeinterlaceFilter::Znedi3
+        | DeinterlaceFilter::Nnedi3
+        | DeinterlaceFilter::Yadif => {
+            if source_interlaced {
+                DOUBLE_RATE_FPS_MULTIPLIER
+            } else {
+                1.0
+            }
+        }
+        DeinterlaceFilter::Ivtc => IVTC_FPS_MULTIPLIER,
+        _ => 1.0,
+    };
+    (duration_sec * source_fps * fps_multiplier).round().max(0.0) as u64
+}
+
+/// Pure completeness check for a finished FFmpeg run.
+///
+/// Output duration (`out_time`) is authoritative because it does not depend on the
+/// frame-rate multiplier of the filter chain; the frame count is only a fallback for
+/// when FFmpeg reported no usable timestamp.
+#[must_use]
+pub fn is_output_truncated(
+    expected_duration_sec: f64,
+    out_time_sec: f64,
+    expected_frames: u64,
+    current_frame: u64,
+) -> bool {
+    if expected_duration_sec > 0.0 && out_time_sec > 0.0 {
+        return out_time_sec < expected_duration_sec * MIN_RESTORATION_COMPLETION_PERCENT as f64 / 100.0;
+    }
+    expected_frames > 0 && current_frame < expected_frames * MIN_RESTORATION_COMPLETION_PERCENT / 100
 }
 
 /// Pure helper keeping only the last `max_bytes` of `text`, cut on a UTF-8 boundary.
