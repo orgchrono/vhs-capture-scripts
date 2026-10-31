@@ -164,44 +164,50 @@ pub fn get_tool_search_candidates(
             }
         }
 
-        // Query Windows Registry for VapourSynth VSPipeEXE and Path
+        // Query Windows Registry for VapourSynth VSPipeEXE and Path (cached via OnceLock)
         if tool_name == "vspipe" || tool_name == "vapoursynth" {
-            for subkey in &[
-                r"HKCU\SOFTWARE\VapourSynth",
-                r"HKLM\SOFTWARE\VapourSynth",
-                r"HKLM\SOFTWARE\WOW6432Node\VapourSynth",
-            ] {
-                if let Ok(output) = run_command_silent(Path::new("reg"), &["query", subkey, "/v", "VSPipeEXE"]) {
-                    if output.status.success() {
-                        let text = String::from_utf8_lossy(&output.stdout);
-                        for line in text.lines() {
-                            if line.contains("REG_SZ") {
-                                if let Some(val) = line.split("REG_SZ").nth(1) {
-                                    let trimmed = val.trim();
-                                    if !trimmed.is_empty() {
-                                        candidates.push(PathBuf::from(trimmed));
+            static VS_REG_PATHS: std::sync::OnceLock<Vec<PathBuf>> = std::sync::OnceLock::new();
+            let cached_paths = VS_REG_PATHS.get_or_init(|| {
+                let mut reg_candidates = Vec::new();
+                for subkey in &[
+                    r"HKCU\SOFTWARE\VapourSynth",
+                    r"HKLM\SOFTWARE\VapourSynth",
+                    r"HKLM\SOFTWARE\WOW6432Node\VapourSynth",
+                ] {
+                    if let Ok(output) = run_command_silent(Path::new("reg"), &["query", subkey, "/v", "VSPipeEXE"]) {
+                        if output.status.success() {
+                            let text = String::from_utf8_lossy(&output.stdout);
+                            for line in text.lines() {
+                                if line.contains("REG_SZ") {
+                                    if let Some(val) = line.split("REG_SZ").nth(1) {
+                                        let trimmed = val.trim();
+                                        if !trimmed.is_empty() {
+                                            reg_candidates.push(PathBuf::from(trimmed));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if let Ok(output) = run_command_silent(Path::new("reg"), &["query", subkey, "/v", "Path"]) {
+                        if output.status.success() {
+                            let text = String::from_utf8_lossy(&output.stdout);
+                            for line in text.lines() {
+                                if line.contains("REG_SZ") {
+                                    if let Some(val) = line.split("REG_SZ").nth(1) {
+                                        let trimmed = val.trim();
+                                        if !trimmed.is_empty() {
+                                            reg_candidates.push(PathBuf::from(trimmed).join("vspipe.exe"));
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 }
-                if let Ok(output) = run_command_silent(Path::new("reg"), &["query", subkey, "/v", "Path"]) {
-                    if output.status.success() {
-                        let text = String::from_utf8_lossy(&output.stdout);
-                        for line in text.lines() {
-                            if line.contains("REG_SZ") {
-                                if let Some(val) = line.split("REG_SZ").nth(1) {
-                                    let trimmed = val.trim();
-                                    if !trimmed.is_empty() {
-                                        candidates.push(PathBuf::from(trimmed).join("vspipe.exe"));
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+                reg_candidates
+            });
+            candidates.extend(cached_paths.iter().cloned());
         }
     } else if cfg!(target_os = "macos") {
         if tool_name == "obs" || tool_name == "obs64" {
@@ -574,13 +580,27 @@ pub fn check_ffmpeg_filter_in_output(output_text: &str, filter_name: &str) -> bo
     })
 }
 
-/// Resolves a tool against the live environment (project root = CWD, user home).
+/// Resolves a tool against the live environment (installed app binary dir, project root = CWD, user home).
 #[must_use]
 pub fn resolve_tool_in_environment(tool_name: &str) -> Option<PathBuf> {
-    let cwd = std::env::current_dir().ok();
     let home = std::env::var_os("USERPROFILE")
         .or_else(|| std::env::var_os("HOME"))
         .map(PathBuf::from);
+
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            if let Some(found) = resolve_executable_path(tool_name, Some(exe_dir), home.as_deref()) {
+                return Some(found);
+            }
+            if let Some(parent_dir) = exe_dir.parent() {
+                if let Some(found) = resolve_executable_path(tool_name, Some(parent_dir), home.as_deref()) {
+                    return Some(found);
+                }
+            }
+        }
+    }
+
+    let cwd = std::env::current_dir().ok();
     resolve_executable_path(tool_name, cwd.as_deref(), home.as_deref())
 }
 

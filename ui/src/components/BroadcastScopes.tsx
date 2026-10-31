@@ -89,6 +89,7 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
   rawLufsRight,
   docked = false,
   onToggleDock,
+  anchorRef: _anchorRef,
 }) => {
   const { t } = useTranslation();
   const [mode, setMode] = useState<ScopeMode>('all');
@@ -437,6 +438,10 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
   };
 
   const sampleFrame = useCallback(() => {
+    if (mode === 'audio' || (!waveformCanvasRef.current && !vectorCanvasRef.current)) {
+      return;
+    }
+
     // 1. Detect comparison streams or comparison monitor
     const splitComparison = document.querySelector('[data-testid="split-comparison-monitor"]');
     const splitRawEl = document.querySelector<HTMLImageElement>('[data-testid="split-raw-stream"]');
@@ -515,7 +520,7 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
       rawData,
       isComparing ? comparisonView : 'proc'
     );
-  }, [videoRef, renderGraticules, comparisonView]);
+  }, [videoRef, renderGraticules, comparisonView, mode]);
 
   // Load sourceImageSrc when provided
   useEffect(() => {

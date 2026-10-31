@@ -82,12 +82,10 @@ pub fn finalize_restoration_output(
     }
 
     if !remux_succeeded {
-        if let Err(e) = fs::rename(&planned.part_output_path, &planned.final_output_path) {
-            return Err(format!(
-                "Failed atomic move from '{}' to '{}': {e}",
-                planned.part_output_path, planned.final_output_path
-            ));
-        }
+        super::checkpoint::atomic_rename_with_backoff(
+            Path::new(&planned.part_output_path),
+            Path::new(&planned.final_output_path),
+        )?;
     }
 
     Ok(())

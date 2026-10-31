@@ -23,6 +23,7 @@ pub struct ComparisonFrameResult {
 }
 
 /// Unified comparison frame extractor shared across REST and Tauri IPC.
+#[allow(clippy::too_many_arguments)]
 #[must_use]
 pub fn extract_comparison_frame_unified(
     source: &str,
@@ -30,6 +31,7 @@ pub fn extract_comparison_frame_unified(
     deinterlacer: &str,
     denoise: bool,
     chroma_fix: bool,
+    comb_filter: bool,
     overscan: bool,
     dropout: bool,
 ) -> ComparisonFrameResult {
@@ -64,8 +66,36 @@ pub fn extract_comparison_frame_unified(
         && p.is_file()
     {
         if let Some(ffmpeg) = ffmpeg_bin {
+            let search_dirs = [dirs.restored.clone(), dirs.work.clone()];
+            let raw_dirs = [dirs.raw.clone(), dirs.media.clone()];
+            let (raw_path, master_opt, is_master_input) =
+                crate::infrastructure::job_recovery::resolve_raw_and_restored_pair(
+                    p,
+                    &search_dirs,
+                    &raw_dirs,
+                    &dirs.restored,
+                );
+            let raw_input_str = raw_path.to_string_lossy().to_string();
+            let has_distinct_pair = is_master_input
+                && master_opt
+                    .as_ref()
+                    .is_some_and(|m| m != &raw_path && m.is_file());
+
+            let scale_filter = format!(
+                "scale={width}:{height}:force_original_aspect_ratio=decrease:flags=bilinear,pad={width}:{height}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1:1"
+            );
+            let master_is_1080p = has_distinct_pair
+                && resolved_source.to_ascii_lowercase().contains("_1080p");
+            let raw_vf = if master_is_1080p {
+                let pillar_w = (height * 4) / 3;
+                format!(
+                    "scale={pillar_w}:{height}:flags=bilinear,pad={width}:{height}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1:1"
+                )
+            } else {
+                scale_filter.clone()
+            };
+
             // Raw frame extraction
-            let scale_filter = format!("scale={width}:{height}:force_original_aspect_ratio=decrease,setsar=1:1");
             let mut raw_cmd = crate::infrastructure::toolchain::create_silent_command(&ffmpeg);
             raw_cmd.args([
                 "-hide_banner",
@@ -75,11 +105,11 @@ pub fn extract_comparison_frame_unified(
                 "-ss",
                 &format!("{timestamp:.3}"),
                 "-i",
-                &resolved_source,
+                &raw_input_str,
                 "-frames:v",
                 "1",
                 "-vf",
-                &scale_filter,
+                &raw_vf,
                 "-f",
                 "image2",
                 "-c:v",
@@ -87,18 +117,26 @@ pub fn extract_comparison_frame_unified(
                 "pipe:1",
             ]);
 
-            // Faithful pipeline filter chain matching chosen restoration specs in strict physical order.
-            let preview_spec = crate::domain::pipeline::ComparisonPreviewSpec {
-                deinterlacer: deinterlacer.to_string(),
-                denoise,
-                chroma_fix,
-                comb_filter: false,
-                overscan,
-                dropout,
-                target_width: width,
-                target_height: height,
+            // Faithful pipeline filter chain matching chosen restoration specs in strict physical order,
+            // or direct master frame extraction when comparing a completed master against its raw tape.
+            let (proc_input_str, proc_vf) = if has_distinct_pair {
+                (resolved_source.clone(), scale_filter)
+            } else {
+                let preview_spec = crate::domain::pipeline::ComparisonPreviewSpec {
+                    deinterlacer: deinterlacer.to_string(),
+                    denoise,
+                    chroma_fix,
+                    comb_filter,
+                    overscan,
+                    dropout,
+                    target_width: width,
+                    target_height: height,
+                };
+                (
+                    raw_input_str.clone(),
+                    crate::domain::pipeline::build_comparison_preview_filtergraph(&preview_spec),
+                )
             };
-            let proc_vf = crate::domain::pipeline::build_comparison_preview_filtergraph(&preview_spec);
 
             let mut proc_cmd = crate::infrastructure::toolchain::create_silent_command(&ffmpeg);
             proc_cmd.args([
@@ -109,7 +147,7 @@ pub fn extract_comparison_frame_unified(
                 "-ss",
                 &format!("{timestamp:.3}"),
                 "-i",
-                &resolved_source,
+                &proc_input_str,
                 "-frames:v",
                 "1",
                 "-vf",
@@ -185,6 +223,10 @@ pub fn handle_comparison_frame(req: &ApiRequest) -> ApiResponse {
         .query("chroma_fix")
         .map(|c| c != "false")
         .unwrap_or(true);
+    let comb_filter = req
+        .query("comb_filter")
+        .map(|c| c == "true" || c == "1")
+        .unwrap_or(false);
     let overscan = req
         .query("overscan")
         .map(|o| o != "false")
@@ -200,6 +242,7 @@ pub fn handle_comparison_frame(req: &ApiRequest) -> ApiResponse {
         &deinterlacer,
         denoise,
         chroma_fix,
+        comb_filter,
         overscan,
         dropout,
     );

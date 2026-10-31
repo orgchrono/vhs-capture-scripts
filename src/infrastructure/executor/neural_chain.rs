@@ -5,6 +5,7 @@
 
 use std::fs;
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use super::planner::{PlannedRestoration, RestorationJobRequest};
 use super::process_runner::RestorationListener;
@@ -13,6 +14,7 @@ pub fn execute_neural_post_chain(
     master_path: &str,
     planned: &PlannedRestoration,
     listener: Option<&dyn RestorationListener>,
+    cancel_flag: Option<&AtomicBool>,
 ) {
     let req: Option<RestorationJobRequest> = planned
         .request_json
@@ -30,8 +32,18 @@ pub fn execute_neural_post_chain(
         .and_then(|s| s.to_str())
         .unwrap_or("mp4");
 
+    let (_, gpu_name, _, vram_gb) = crate::infrastructure::hardware::detect_gpu_info();
+    let is_nvidia = gpu_name.to_lowercase().contains("nvidia") || gpu_name.to_lowercase().contains("geforce");
+
     // 1. Real-ESRGAN / Real-CUGAN Neural Upscaler
     if ov.ai_upscaler == Some(true) {
+        if cancel_flag.is_some_and(|f| f.load(Ordering::SeqCst)) {
+            if let Some(l) = listener {
+                l.on_log("[AI-POST] Skipping Real-ESRGAN due to job cancellation.");
+            }
+            return;
+        }
+
         let model_name = ov
             .ai_upscaler_model
             .clone()
@@ -61,21 +73,39 @@ pub fn execute_neural_post_chain(
                 ));
             }
             let intermediate_output = format!("{master_path}.esrgan.tmp.{ext}");
-            let params = crate::domain::ai::RealEsrganParams {
+            let calculated_tile = crate::domain::ai::calculate_optimal_tile_size(vram_gb);
+            let tile_size = if calculated_tile == 0 { 256 } else { calculated_tile };
+            let mut params = crate::domain::ai::RealEsrganParams {
                 input_path: master_path.to_string(),
                 output_path: intermediate_output.clone(),
                 model_name,
                 scale: 4,
-                tile_size: 256,
+                tile_size,
                 gpu_id: Some(0),
             };
             let args = crate::domain::ai::build_realesrgan_command(&params);
-            if let Ok(cmd) = crate::infrastructure::toolchain::create_silent_command(&bin)
+            let mut status = crate::infrastructure::toolchain::create_silent_command(&bin)
                 .args(&args)
-                .status()
-            {
+                .status();
+
+            // Automatic fallback to minimal tile size (64px) if initial GPU run fails due to VRAM pressure
+            if status.as_ref().map(|s| !s.success()).unwrap_or(true) && params.tile_size > 64 {
+                if let Some(l) = listener {
+                    l.on_log("[AI-POST] Real-ESRGAN initial run failed, retrying with conservative 64px VRAM tiling...");
+                }
+                params.tile_size = 64;
+                let fallback_args = crate::domain::ai::build_realesrgan_command(&params);
+                status = crate::infrastructure::toolchain::create_silent_command(&bin)
+                    .args(&fallback_args)
+                    .status();
+            }
+
+            if let Ok(cmd) = status {
                 if cmd.success() && Path::new(&intermediate_output).is_file() {
-                    let _ = fs::rename(&intermediate_output, master_path);
+                    let _ = super::checkpoint::atomic_rename_with_backoff(
+                        Path::new(&intermediate_output),
+                        Path::new(master_path),
+                    );
                     if let Some(l) = listener {
                         l.on_log("[AI-POST] Real-ESRGAN upscaling completed successfully.");
                     }
@@ -90,6 +120,13 @@ pub fn execute_neural_post_chain(
 
     // 2. CodeFormer Face Restoration
     if ov.ai_face_restore == Some(true) {
+        if cancel_flag.is_some_and(|f| f.load(Ordering::SeqCst)) {
+            if let Some(l) = listener {
+                l.on_log("[AI-POST] Skipping CodeFormer due to job cancellation.");
+            }
+            return;
+        }
+
         let fidelity = ov.ai_face_fidelity.unwrap_or(0.7);
         let cwd = std::env::current_dir().ok();
         let home_str = std::env::var("USERPROFILE").or_else(|_| std::env::var("HOME")).ok();
@@ -109,20 +146,37 @@ pub fn execute_neural_post_chain(
                 ));
             }
             let intermediate_output = format!("{master_path}.codeformer.tmp.{ext}");
-            let params = crate::domain::ai::CodeFormerParams {
+            let preferred_device = if is_nvidia { "cuda".to_string() } else { "cpu".to_string() };
+            let mut params = crate::domain::ai::CodeFormerParams {
                 input_path: master_path.to_string(),
                 output_path: intermediate_output.clone(),
                 fidelity,
-                device: "cuda".to_string(),
+                device: preferred_device,
                 upscale_ratio: 2,
             };
             let args = crate::domain::ai::build_codeformer_command(&params);
-            if let Ok(cmd) = crate::infrastructure::toolchain::create_silent_command(&bin)
+            let mut status = crate::infrastructure::toolchain::create_silent_command(&bin)
                 .args(&args)
-                .status()
-            {
+                .status();
+
+            // Transparent fallback to CPU mode if CUDA fails on unsupported GPU or driver mismatch
+            if status.as_ref().map(|s| !s.success()).unwrap_or(true) && params.device == "cuda" {
+                if let Some(l) = listener {
+                    l.on_log("[AI-POST] CodeFormer CUDA execution failed, falling back gracefully to CPU mode...");
+                }
+                params.device = "cpu".to_string();
+                let cpu_args = crate::domain::ai::build_codeformer_command(&params);
+                status = crate::infrastructure::toolchain::create_silent_command(&bin)
+                    .args(&cpu_args)
+                    .status();
+            }
+
+            if let Ok(cmd) = status {
                 if cmd.success() && Path::new(&intermediate_output).is_file() {
-                    let _ = fs::rename(&intermediate_output, master_path);
+                    let _ = super::checkpoint::atomic_rename_with_backoff(
+                        Path::new(&intermediate_output),
+                        Path::new(master_path),
+                    );
                     if let Some(l) = listener {
                         l.on_log("[AI-POST] CodeFormer restoration applied successfully.");
                     }
@@ -140,6 +194,13 @@ pub fn execute_neural_post_chain(
 
     // 3. RIFE Motion Interpolation (to 60fps)
     if ov.ai_rife_60fps == Some(true) {
+        if cancel_flag.is_some_and(|f| f.load(Ordering::SeqCst)) {
+            if let Some(l) = listener {
+                l.on_log("[AI-POST] Skipping RIFE interpolation due to job cancellation.");
+            }
+            return;
+        }
+
         let cwd = std::env::current_dir().ok();
         let home_str = std::env::var("USERPROFILE").or_else(|_| std::env::var("HOME")).ok();
         let home = home_str.as_ref().map(Path::new);
@@ -175,7 +236,10 @@ pub fn execute_neural_post_chain(
                 .status()
             {
                 if cmd.success() && Path::new(&intermediate_output).is_file() {
-                    let _ = fs::rename(&intermediate_output, master_path);
+                    let _ = super::checkpoint::atomic_rename_with_backoff(
+                        Path::new(&intermediate_output),
+                        Path::new(master_path),
+                    );
                     if let Some(l) = listener {
                         l.on_log("[AI-POST] RIFE 60fps interpolation completed successfully.");
                     }

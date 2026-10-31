@@ -20,17 +20,22 @@ use crate::viewmodels::api_types::{ApiRequest, ApiResponse};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
+fn is_valid_ingest_source(p: &Path) -> bool {
+    let s = p.to_string_lossy();
+    s.starts_with(r"\\.\") || s.starts_with("/dev/") || p.exists()
+}
+
 /// Handles incoming `/api/ingest/*` and `/api/panasonic/*` requests.
 #[must_use]
-pub fn handle_ingest_route(req: &ApiRequest, _ctx: &AppContext) -> Option<ApiResponse> {
+pub fn handle_ingest_route(req: &ApiRequest, ctx: &AppContext) -> Option<ApiResponse> {
     match (req.method.as_str(), req.clean_path()) {
         ("GET", "/api/ingest/panasonic/inspect") => Some(handle_inspect(req)),
         ("GET", "/api/ingest/panasonic/tree") => Some(handle_tree(req)),
         ("GET", "/api/ingest/panasonic/disks") | ("GET", "/api/panasonic/drives") => {
             Some(handle_disks())
         }
-        ("POST", "/api/ingest/panasonic/extract") => Some(handle_extract(req)),
-        ("POST", "/api/ingest/panasonic/extract-titles") => Some(handle_extract_titles(req)),
+        ("POST", "/api/ingest/panasonic/extract") => Some(handle_extract(req, ctx)),
+        ("POST", "/api/ingest/panasonic/extract-titles") => Some(handle_extract_titles(req, ctx)),
         _ => None,
     }
 }
@@ -47,7 +52,7 @@ fn handle_inspect(req: &ApiRequest) -> ApiResponse {
     }
 
     let p = Path::new(&source_path);
-    if !p.exists() {
+    if !is_valid_ingest_source(p) {
         return ApiResponse::error(404, "Source path does not exist on host.");
     }
 
@@ -96,7 +101,7 @@ fn handle_tree(req: &ApiRequest) -> ApiResponse {
     }
 
     let p = Path::new(&source_path);
-    let (inspection, file_size) = if p.exists() {
+    let (inspection, file_size) = if is_valid_ingest_source(p) {
         inspect_panasonic_file(p).unwrap_or_else(|_| {
             (
                 PanasonicInspection {
@@ -260,7 +265,7 @@ fn execute_panasonic_extraction(
     }
 
     let src_p = Path::new(source_path);
-    if !src_p.exists() {
+    if !is_valid_ingest_source(src_p) {
         return Err(format!("Source path does not exist: {source_path}"));
     }
 
@@ -367,7 +372,10 @@ fn execute_panasonic_extraction(
     Ok(extracted_files)
 }
 
-fn handle_extract(req: &ApiRequest) -> ApiResponse {
+fn handle_extract(req: &ApiRequest, ctx: &AppContext) -> ApiResponse {
+    if ctx.process.is_running() {
+        return ApiResponse::error(409, "Another restoration or ingestion pipeline is currently running.");
+    }
     let parsed: Value = match serde_json::from_str(&req.body_json) {
         Ok(v) => v,
         Err(e) => return ApiResponse::error(400, &format!("Invalid JSON payload: {e}")),
@@ -393,7 +401,11 @@ fn handle_extract(req: &ApiRequest) -> ApiResponse {
         .and_then(Value::as_str)
         .unwrap_or(&default_out);
 
-    match execute_panasonic_extraction(source, output_dir, None) {
+    ctx.process.set_in_process_active(true);
+    let res = execute_panasonic_extraction(source, output_dir, None);
+    ctx.process.set_in_process_active(false);
+
+    match res {
         Ok(files) => ApiResponse::ok(&json!({
             "status": "success",
             "message": "Panasonic extraction completed successfully.",
@@ -404,7 +416,10 @@ fn handle_extract(req: &ApiRequest) -> ApiResponse {
     }
 }
 
-fn handle_extract_titles(req: &ApiRequest) -> ApiResponse {
+fn handle_extract_titles(req: &ApiRequest, ctx: &AppContext) -> ApiResponse {
+    if ctx.process.is_running() {
+        return ApiResponse::error(409, "Another restoration or ingestion pipeline is currently running.");
+    }
     let parsed: Value = match serde_json::from_str(&req.body_json) {
         Ok(v) => v,
         Err(e) => return ApiResponse::error(400, &format!("Invalid JSON payload: {e}")),
@@ -441,7 +456,11 @@ fn handle_extract_titles(req: &ApiRequest) -> ApiResponse {
                 .collect()
         });
 
-    match execute_panasonic_extraction(source, output_dir, selected_ids.as_deref()) {
+    ctx.process.set_in_process_active(true);
+    let res = execute_panasonic_extraction(source, output_dir, selected_ids.as_deref());
+    ctx.process.set_in_process_active(false);
+
+    match res {
         Ok(files) => ApiResponse::ok(&json!({
             "status": "success",
             "message": "Selected Panasonic titles extracted successfully.",

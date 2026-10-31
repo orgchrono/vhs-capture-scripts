@@ -50,6 +50,9 @@ impl LineAssembler {
                 lines.extend(self.drain_line());
             } else {
                 self.pending.push(byte);
+                if self.pending.len() >= crate::models::constants::MAX_LINE_ASSEMBLER_PENDING_BYTES {
+                    lines.extend(self.drain_line());
+                }
             }
         }
         lines

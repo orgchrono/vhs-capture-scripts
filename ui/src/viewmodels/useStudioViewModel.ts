@@ -58,6 +58,7 @@ export function useStudioViewModel() {
 
   const { isRestoring, setIsRestoring, addLog } = store;
   const isBusy = isRestoring || isInstallingQtgmc || isInstallingObs;
+  const isStartingJobRef = useRef<boolean>(false);
   const lastPolledIndexRef = useRef(0);
   const addLogRef = useRef(addLog);
   const addLogsRef = useRef(store.addLogs);
@@ -202,145 +203,149 @@ export function useStudioViewModel() {
   }, [logsData, handleLogLineProgress, handleTaskCompletion]);
 
   const handleStartRestoration = async (overrideParams?: Partial<RestorationPayload>) => {
-    if (!store.selectedFile) {
+    if (!store.selectedFile || isStartingJobRef.current || isRestoring || store.isPaused) {
       return false;
     }
+    isStartingJobRef.current = true;
+    try {
+      lastPolledIndexRef.current = 0;
+      if (overrideParams?.resume) {
+        addLog(t('logs.restore_resumed'));
+      } else {
+        addLog(t('logs.preparing_restore', { file: store.selectedFile }));
+      }
 
-    lastPolledIndexRef.current = 0;
-    if (overrideParams?.resume) {
-      addLog(t('logs.restore_resumed'));
-    } else {
-      addLog(t('logs.preparing_restore', { file: store.selectedFile }));
-    }
-
-    if (isTauriEnvironment()) {
-      try {
-        const probed = await tauriBridge.probeMediaFile(store.selectedFile);
-        const planned = await tauriBridge.planRestorationJob(
-          {
-            input_path: store.selectedFile,
-            output_dir: 'restored',
-            preset: store.mode,
-            output_codec: store.outputCodec,
-            target_1080p: store.resolution !== 'original',
-            crf: store.crf,
-            custom_deinterlacer: store.deinterlacer,
-            audio_policy: store.audioMode,
-            apply_audio_notch_hum: store.audioTreatment,
-            apply_loudness_norm: store.audioTreatment,
-            ai_audio_denoise: store.aiAudioDenoise,
-            ai_face_restore: store.aiFaceRestore,
-            ai_face_fidelity: store.aiFaceFidelity,
-            ai_rife_60fps: store.aiRife60fps,
-            ai_upscaler: store.aiUpscaler,
-            ai_upscaler_model: store.aiUpscalerModel,
-            ai_whisper: store.aiWhisper,
-            whisper_model: store.whisperModel,
-            whisper_language: store.whisperLanguage,
-            overrides: {
+      if (isTauriEnvironment()) {
+        try {
+          const probed = await tauriBridge.probeMediaFile(store.selectedFile);
+          const planned = await tauriBridge.planRestorationJob(
+            {
+              input_path: store.selectedFile,
+              output_dir: 'restored',
+              preset: store.mode,
+              output_codec: store.outputCodec,
+              target_1080p: store.resolution !== 'original',
               crf: store.crf,
-              chroma_fix: store.chromaFix,
-              denoise: store.denoise,
-              comb_filter: store.combFilter,
-              overscan_blanking: store.overscanBlanking,
-              dropout_clean: store.dropoutClean,
-              audio_offset_sec: store.audioOffset,
+              custom_deinterlacer: store.deinterlacer,
+              audio_policy: store.audioMode,
+              apply_audio_notch_hum: store.audioTreatment,
+              apply_loudness_norm: store.audioTreatment,
+              ai_audio_denoise: store.aiAudioDenoise,
+              ai_face_restore: store.aiFaceRestore,
+              ai_face_fidelity: store.aiFaceFidelity,
+              ai_rife_60fps: store.aiRife60fps,
+              ai_upscaler: store.aiUpscaler,
+              ai_upscaler_model: store.aiUpscalerModel,
+              ai_whisper: store.aiWhisper,
+              whisper_model: store.whisperModel,
+              whisper_language: store.whisperLanguage,
+              overrides: {
+                crf: store.crf,
+                chroma_fix: store.chromaFix,
+                denoise: store.denoise,
+                comb_filter: store.combFilter,
+                overscan_blanking: store.overscanBlanking,
+                dropout_clean: store.dropoutClean,
+                audio_offset_sec: store.audioOffset,
+              },
+              ...overrideParams,
             },
-            ...overrideParams,
-          },
-          probed
-        );
-        const finalPath = typeof planned?.final_output_path === 'string' ? planned.final_output_path : '';
-        const hashMatch = finalPath.match(/_([a-f0-9]{8})\.[a-z0-9]+$/i);
-        if (hashMatch) {
-          addLog(t('logs.pipeline_hash', { hash: hashMatch[1] }));
-        }
-        store.setActiveTask({
-          type: 'restore',
-          labelKey: 'telemetry.status_running',
-          progressPercent: 0,
-        });
-        a11yAudio.playStageStart();
-        setIsRestoring(true);
-        addLog(overrideParams?.resume ? t('logs.restore_resumed') : t('logs.restore_started'));
-
-        tauriBridge
-          .executeRestorationJob(planned)
-          .then((res) => {
-            setIsRestoring(false);
-            store.setActiveTask(null);
-            if (res.success) {
-              a11yAudio.playSuccess();
-              addLog(t('logs.restore_success'));
-            } else {
-              a11yAudio.playError();
-              addLog(t('logs.restore_failed', { code: res.error_message || 'error' }));
-            }
-            refetchStatusRef.current();
-          })
-          .catch((e: unknown) => {
-            setIsRestoring(false);
-            store.setActiveTask(null);
-            a11yAudio.playError();
-            addLog(t('logs.restore_failed', { code: getErrorMessage(e) }));
+            probed
+          );
+          const finalPath = typeof planned?.final_output_path === 'string' ? planned.final_output_path : '';
+          const hashMatch = finalPath.match(/_([a-f0-9]{8})\.[a-z0-9]+$/i);
+          if (hashMatch) {
+            addLog(t('logs.pipeline_hash', { hash: hashMatch[1] }));
+          }
+          store.setActiveTask({
+            type: 'restore',
+            labelKey: 'telemetry.status_running',
+            progressPercent: 0,
           });
-        return true;
+          a11yAudio.playStageStart();
+          setIsRestoring(true);
+          addLog(overrideParams?.resume ? t('logs.restore_resumed') : t('logs.restore_started'));
+
+          tauriBridge
+            .executeRestorationJob(planned)
+            .then((res) => {
+              setIsRestoring(false);
+              store.setActiveTask(null);
+              if (res.success) {
+                a11yAudio.playSuccess();
+                addLog(t('logs.restore_success'));
+              } else {
+                a11yAudio.playError();
+                addLog(t('logs.restore_failed', { code: res.error_message || 'error' }));
+              }
+              refetchStatusRef.current();
+            })
+            .catch((e: unknown) => {
+              setIsRestoring(false);
+              store.setActiveTask(null);
+              a11yAudio.playError();
+              addLog(t('logs.restore_failed', { code: getErrorMessage(e) }));
+            });
+          return true;
+        } catch (err: unknown) {
+          a11yAudio.playError();
+          const msg = getErrorMessage(err, t('toast.restore_error'));
+          toast.error(msg);
+          return false;
+        }
+      }
+
+      try {
+        const data = await startRestorationTrigger({
+          input: store.selectedFile,
+          deinterlacer: store.deinterlacer,
+          mode: store.mode,
+          audio_mode: store.audioMode,
+          no_1080p: store.resolution === 'original',
+          crf: store.crf,
+          audio_offset: store.audioOffset,
+          chroma_fix: store.chromaFix,
+          denoise: store.denoise,
+          comb_filter: store.combFilter,
+          overscan_blanking: store.overscanBlanking,
+          audio_treatment: store.audioTreatment,
+          dropout_clean: store.dropoutClean,
+          ai_audio_denoise: store.aiAudioDenoise,
+          ai_face_restore: store.aiFaceRestore,
+          ai_face_fidelity: store.aiFaceFidelity,
+          ai_rife_60fps: store.aiRife60fps,
+          ai_upscaler: store.aiUpscaler,
+          ai_upscaler_model: store.aiUpscalerModel,
+          output_codec: store.outputCodec,
+          ai_whisper: store.aiWhisper,
+          whisper_model: store.whisperModel,
+          language: store.whisperLanguage || 'pt',
+          ...overrideParams,
+        }).unwrap();
+
+        if (data.status === 'started' || data.status === 'ok') {
+          store.setActiveTask({
+            type: 'restore',
+            labelKey: 'telemetry.status_running',
+            progressPercent: 0,
+          });
+          a11yAudio.playStageStart();
+          setIsRestoring(true);
+          addLog(overrideParams?.resume ? t('logs.restore_resumed') : t('logs.restore_started'));
+          return true;
+        } else {
+          a11yAudio.playError();
+          toast.error(data.message || t('toast.restore_error'));
+          return false;
+        }
       } catch (err: unknown) {
         a11yAudio.playError();
-        const msg = getErrorMessage(err, t('toast.restore_error'));
+        const msg = getErrorMessage(err, t('toast.network_error'));
         toast.error(msg);
         return false;
       }
-    }
-
-    try {
-      const data = await startRestorationTrigger({
-        input: store.selectedFile,
-        deinterlacer: store.deinterlacer,
-        mode: store.mode,
-        audio_mode: store.audioMode,
-        no_1080p: store.resolution === 'original',
-        crf: store.crf,
-        audio_offset: store.audioOffset,
-        chroma_fix: store.chromaFix,
-        denoise: store.denoise,
-        comb_filter: store.combFilter,
-        overscan_blanking: store.overscanBlanking,
-        audio_treatment: store.audioTreatment,
-        dropout_clean: store.dropoutClean,
-        ai_audio_denoise: store.aiAudioDenoise,
-        ai_face_restore: store.aiFaceRestore,
-        ai_face_fidelity: store.aiFaceFidelity,
-        ai_rife_60fps: store.aiRife60fps,
-        ai_upscaler: store.aiUpscaler,
-        ai_upscaler_model: store.aiUpscalerModel,
-        output_codec: store.outputCodec,
-        ai_whisper: store.aiWhisper,
-        whisper_model: store.whisperModel,
-        language: store.whisperLanguage || 'pt',
-        ...overrideParams,
-      }).unwrap();
-
-      if (data.status === 'started' || data.status === 'ok') {
-        store.setActiveTask({
-          type: 'restore',
-          labelKey: 'telemetry.status_running',
-          progressPercent: 0,
-        });
-        a11yAudio.playStageStart();
-        setIsRestoring(true);
-        addLog(overrideParams?.resume ? t('logs.restore_resumed') : t('logs.restore_started'));
-        return true;
-      } else {
-        a11yAudio.playError();
-        toast.error(data.message || t('toast.restore_error'));
-        return false;
-      }
-    } catch (err: unknown) {
-      a11yAudio.playError();
-      const msg = getErrorMessage(err, t('toast.network_error'));
-      toast.error(msg);
-      return false;
+    } finally {
+      isStartingJobRef.current = false;
     }
   };
 

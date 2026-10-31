@@ -1311,6 +1311,9 @@ export const tauriBridge = {
     deinterlacer?: string;
     denoise?: boolean;
     chroma_fix?: boolean;
+    comb_filter?: boolean;
+    overscan?: boolean;
+    dropout?: boolean;
   }): Promise<ComparisonFrameResponse> {
     const tauri = getTauriInternals();
     if (tauri) {
@@ -1323,6 +1326,9 @@ export const tauriBridge = {
         deinterlacer: params.deinterlacer || 'qtgmc',
         denoise: String(params.denoise ?? true),
         chroma_fix: String(params.chroma_fix ?? true),
+        comb_filter: String(params.comb_filter ?? false),
+        overscan: String(params.overscan ?? false),
+        dropout: String(params.dropout ?? false),
       });
       const res = await fetch(`${getApiBaseUrl()}/api/monitor/comparison-frame?${query}`);
       if (res.ok) return res.json();

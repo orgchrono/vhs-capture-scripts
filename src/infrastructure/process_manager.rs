@@ -18,6 +18,7 @@ use std::thread::{self, JoinHandle};
 #[derive(Debug)]
 struct ProcessState {
     pid: Option<u32>,
+    child_pids: Vec<u32>,
     in_process_active: bool,
     paused: bool,
     terminated_by_user: bool,
@@ -84,6 +85,7 @@ impl ProcessManager {
         Self {
             shared: Arc::new(Mutex::new(ProcessState {
                 pid: None,
+                child_pids: Vec::new(),
                 in_process_active: false,
                 paused: false,
                 terminated_by_user: false,
@@ -197,28 +199,60 @@ impl ProcessManager {
         Ok(())
     }
 
+    /// Registers a child subprocess PID spawned during in-process execution.
+    pub fn register_child_pid(&self, pid: u32) {
+        let mut state = lock(&self.shared);
+        if !state.child_pids.contains(&pid) {
+            state.child_pids.push(pid);
+        }
+    }
+
+    /// Unregisters a terminated child subprocess PID.
+    pub fn unregister_child_pid(&self, pid: u32) {
+        let mut state = lock(&self.shared);
+        state.child_pids.retain(|&p| p != pid);
+    }
+
     /// Suspends the active process.
     pub fn pause(&self) -> Result<String, String> {
         let mut state = lock(&self.shared);
-        let pid = state.pid.ok_or("No process currently running.")?;
         if state.paused {
             return Err("Process is already paused.".to_string());
         }
-        suspend_process(pid)?;
-        state.paused = true;
-        Ok("Process paused.".to_string())
+        if let Some(pid) = state.pid {
+            suspend_process(pid)?;
+            state.paused = true;
+            return Ok("Process paused.".to_string());
+        }
+        if state.in_process_active && !state.child_pids.is_empty() {
+            for &cpid in &state.child_pids {
+                let _ = suspend_process(cpid);
+            }
+            state.paused = true;
+            return Ok("Process paused.".to_string());
+        }
+        Err("No process currently running.".to_string())
     }
 
     /// Resumes a suspended process.
     pub fn resume(&self) -> Result<String, String> {
         let mut state = lock(&self.shared);
-        let pid = state.pid.ok_or("No process currently running.")?;
         if !state.paused {
             return Err("Process is not paused.".to_string());
         }
-        resume_process(pid)?;
-        state.paused = false;
-        Ok("Process resumed.".to_string())
+        if let Some(pid) = state.pid {
+            resume_process(pid)?;
+            state.paused = false;
+            return Ok("Process resumed.".to_string());
+        }
+        if state.in_process_active && !state.child_pids.is_empty() {
+            for &cpid in &state.child_pids {
+                let _ = resume_process(cpid);
+            }
+            state.paused = false;
+            return Ok("Process resumed.".to_string());
+        }
+        Err("No process currently running.".to_string())
     }
 
     /// Kills the active process tree or signals active in-process job. Returns `false` when nothing was running.
@@ -232,6 +266,9 @@ impl ProcessManager {
             state.last_success = Some(false);
             if let Some(pid) = state.pid {
                 let _ = kill_process_tree(pid);
+            }
+            for cpid in state.child_pids.drain(..) {
+                let _ = kill_process_tree(cpid);
             }
             return true;
         }

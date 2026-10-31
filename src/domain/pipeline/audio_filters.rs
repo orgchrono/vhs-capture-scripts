@@ -17,7 +17,12 @@ pub fn build_audio_filtergraph(spec: &PipelineSpec) -> String {
         filters.push(format!("atrim=start={trim_sec:.3},asetpts=PTS-STARTPTS"));
     }
 
-    if spec.audio_policy != AudioChannelPolicy::Passthrough {
+    let has_treatment = spec.apply_audio_notch_hum
+        || spec.apply_loudness_norm
+        || spec.apply_ai_audio_denoise
+        || spec.apply_azimuth_correction;
+
+    if spec.audio_policy != AudioChannelPolicy::Passthrough || has_treatment {
         // A/V sync clock-drift compensation on long tapes
         filters.push(FILTER_AUDIO_ASYNC_RESAMPLE.to_string());
 

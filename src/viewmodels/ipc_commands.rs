@@ -646,6 +646,7 @@ pub async fn ipc_handle_incomplete_job(
     .map_err(|e| format!("Worker join error: {e}"))?
 }
 
+#[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub async fn ipc_get_comparison_frame(
     source: Option<String>,
@@ -653,12 +654,18 @@ pub async fn ipc_get_comparison_frame(
     deinterlacer: Option<String>,
     denoise: Option<bool>,
     chroma_fix: Option<bool>,
+    comb_filter: Option<bool>,
+    overscan: Option<bool>,
+    dropout: Option<bool>,
 ) -> Value {
     tauri::async_runtime::spawn_blocking(move || {
         let ts = timestamp.unwrap_or(5.0).max(0.0);
         let deint = deinterlacer.unwrap_or_else(|| "qtgmc".to_string());
         let do_denoise = denoise.unwrap_or(true);
         let do_chroma = chroma_fix.unwrap_or(true);
+        let do_comb = comb_filter.unwrap_or(false);
+        let do_overscan = overscan.unwrap_or(false);
+        let do_dropout = dropout.unwrap_or(false);
         let src = source.unwrap_or_default();
 
         let res = crate::viewmodels::api_restoration::extract_comparison_frame_unified(
@@ -667,8 +674,9 @@ pub async fn ipc_get_comparison_frame(
             &deint,
             do_denoise,
             do_chroma,
-            false,
-            false,
+            do_comb,
+            do_overscan,
+            do_dropout,
         );
 
         serde_json::to_value(&res).unwrap_or_else(|_| json!({}))

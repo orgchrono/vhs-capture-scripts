@@ -198,6 +198,26 @@ pub fn plan_restoration_job(
         original_part
     };
 
+    if probe.duration > 0.0 {
+        let est_mbps: f64 = match output_codec {
+            OutputCodec::ProRes => 110.0,
+            OutputCodec::Ffv1 => 65.0,
+            OutputCodec::Hevc => 15.0,
+            OutputCodec::H264 => 20.0,
+        };
+        let required_bytes = ((probe.duration * est_mbps * 1_000_000.0) / 8.0) as u64;
+        let target_dir = final_path.parent().unwrap_or_else(|| Path::new("."));
+        if let Ok((_, avail_bytes)) = crate::infrastructure::storage::query_disk_space(target_dir) {
+            if let Err(_reason) = crate::infrastructure::storage::verify_capacity(avail_bytes, required_bytes) {
+                return Err(format!(
+                    "Insufficient disk space on target volume: {:.1} GB available, but ~{:.1} GB required (including safety margin).",
+                    avail_bytes as f64 / 1e9,
+                    (required_bytes as f64 * 1.1) / 1e9
+                ));
+            }
+        }
+    }
+
     let encoder = match output_codec {
         OutputCodec::ProRes => VideoEncoder::ProResKs,
         OutputCodec::Ffv1 => VideoEncoder::Ffv1,
@@ -311,6 +331,13 @@ pub fn plan_restoration_job(
             _ => "Slow".to_string(),
         };
 
+        let (_, avail_ram_gb) = crate::infrastructure::hardware::detect_system_ram_gb();
+        let safe_cache_mb = if avail_ram_gb > 0.0 {
+            (((avail_ram_gb as f64 * 1024.0) / 2.0) as usize).clamp(512, DEFAULT_VPY_CACHE_SIZE_MB)
+        } else {
+            1024
+        };
+
         let qtgmc_params = QtgmcScriptParams {
             input_path: abs_input_str,
             preset: qtgmc_preset,
@@ -322,7 +349,7 @@ pub fn plan_restoration_job(
             fps_mode: 2,
             apply_comb_filter: comb_filter,
             thread_count,
-            cache_size_mb: DEFAULT_VPY_CACHE_SIZE_MB,
+            cache_size_mb: safe_cache_mb,
             trim_start_frame,
             trim_length_frames,
             apply_tbc_hold: request.preset == RestorationPreset::TbcHold || ov.dropout_clean.unwrap_or(false),
@@ -342,14 +369,29 @@ pub fn plan_restoration_job(
                 "-".to_string(),
             ]);
             // Audio is passed separately from source video (Input 1)
+            // Align audio seek/duration to the exact frame-quantized VapourSynth Trim boundaries
             // audio_offset_sec is handled strictly in build_audio_filtergraph via adelay/atrim
-            if request.start_sec > 0.05 {
+            if let Some(first_frame) = trim_start_frame {
+                let aligned_start_sec = (first_frame as f64) / probe.fps.max(1.0);
+                ffmpeg_args.extend(vec![
+                    "-ss".to_string(),
+                    format!("{aligned_start_sec:.3}"),
+                ]);
+            } else if request.start_sec > 0.05 {
                 ffmpeg_args.extend(vec![
                     "-ss".to_string(),
                     format!("{:.3}", request.start_sec),
                 ]);
             }
-            if let Some(dur) = request.duration_sec {
+            if let Some(length_frames) = trim_length_frames {
+                let aligned_dur_sec = (length_frames as f64) / probe.fps.max(1.0);
+                if aligned_dur_sec > 0.0 {
+                    ffmpeg_args.extend(vec![
+                        "-t".to_string(),
+                        format!("{aligned_dur_sec:.3}"),
+                    ]);
+                }
+            } else if let Some(dur) = request.duration_sec {
                 if dur > 0.0 {
                     ffmpeg_args.extend(vec![
                         "-t".to_string(),
@@ -551,7 +593,7 @@ pub fn is_output_truncated(
 
 /// Pure helper keeping only the last `max_bytes` of `text`, cut on a UTF-8 boundary.
 #[must_use]
-pub fn bounded_tail(text: String, max_bytes: usize) -> String {
+pub fn bounded_tail(mut text: String, max_bytes: usize) -> String {
     if text.len() <= max_bytes {
         return text;
     }
@@ -559,5 +601,6 @@ pub fn bounded_tail(text: String, max_bytes: usize) -> String {
     while !text.is_char_boundary(start) {
         start += 1;
     }
-    text[start..].to_string()
+    text.drain(..start);
+    text
 }

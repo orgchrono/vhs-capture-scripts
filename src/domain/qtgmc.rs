@@ -91,9 +91,13 @@ pub fn build_qtgmc_script_content(params: &QtgmcScriptParams) -> String {
         r#"
 # TBC FRAME-HOLD: FREEZE SEVERE SIGNAL DROPOUTS
 import functools
+_last_good = [0]
 def _tbc_eval(n, f, c):
-    if f.props.get('PlaneStatsAverage', 1.0) <= 0.0705:
-        return c[max(0, n - 1)]
+    avg = f.props.get('PlaneStatsAverage', 0.5)
+    if avg <= 0.0705 or avg >= 0.9200:
+        hold_idx = _last_good[0] if (n - _last_good[0]) <= 6 else max(0, n - 1)
+        return c[hold_idx]
+    _last_good[0] = n
     return c[n]
 _stats = core.std.PlaneStats(clip)
 clip = core.std.FrameEval(clip, functools.partial(_tbc_eval, c=clip), prop_src=_stats)

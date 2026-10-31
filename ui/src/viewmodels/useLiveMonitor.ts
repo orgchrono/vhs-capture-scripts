@@ -143,6 +143,20 @@ export function useLiveMonitor(): UseLiveMonitorResult {
         }
         activeStream = stream;
 
+        // Cleanly handle hot unplug of capture card or OBS virtual cam
+        stream.getTracks().forEach((track) => {
+          track.onended = () => {
+            if (cancelled) return;
+            stream.getTracks().forEach((t) => t.stop());
+            activeStream = null;
+            if (videoRef.current) {
+              videoRef.current.srcObject = null;
+            }
+            setIsStreamActive(false);
+            setError(t('monitor.standby_no_signal'));
+          };
+        });
+
         if (videoRef.current) {
           videoRef.current.srcObject = activeStream;
           setIsStreamActive(true);

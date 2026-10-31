@@ -215,25 +215,31 @@ fn handle_stream_proxy(
         None
     };
 
-    let restored_master = valid_source.as_ref().and_then(|src| {
+    let mode = crate::domain::stream::StreamProxyMode::from_str_opt(&mode_param);
+    let (raw_source_opt, restored_master) = if let Some(ref src) = valid_source {
         let search_dirs = [dirs.restored.clone(), dirs.work.clone()];
         let raw_dirs = [dirs.raw.clone(), dirs.media.clone()];
-        let check = crate::infrastructure::job_recovery::check_existing_restoration(
-            Path::new(src),
-            &search_dirs,
-            &raw_dirs,
-            &dirs.restored,
-        );
-        if check.has_existing && check.r#type.as_deref() == Some("completed") {
-            check.file_path
+        let (raw_path, master_opt, is_master_input) =
+            crate::infrastructure::job_recovery::resolve_raw_and_restored_pair(
+                Path::new(src),
+                &search_dirs,
+                &raw_dirs,
+                &dirs.restored,
+            );
+        if is_master_input && mode == crate::domain::stream::StreamProxyMode::Processed {
+            (None, master_opt.map(|p| p.to_string_lossy().to_string()))
         } else {
-            None
+            (
+                Some(raw_path.to_string_lossy().to_string()),
+                master_opt.map(|p| p.to_string_lossy().to_string()),
+            )
         }
-    });
+    } else {
+        (None, None)
+    };
 
-    let mode = crate::domain::stream::StreamProxyMode::from_str_opt(&mode_param);
     let spec = crate::domain::stream::StreamProxySpec {
-        source_path: valid_source,
+        source_path: raw_source_opt,
         restored_master_path: restored_master,
         mode,
         fps: fps_param,

@@ -144,6 +144,15 @@ pub const SUPPORTED_LOCALES: [&str; 10] = [
 /// Canonical overscan blanking height in pixels (head switching noise mask at bottom).
 pub const OVERSCAN_BLANKING_HEIGHT_PX: u32 = 16;
 
+/// Maximum buffer capacity for LineAssembler before forcing a line split to prevent memory leaks on malformed binary streams.
+pub const MAX_LINE_ASSEMBLER_PENDING_BYTES: usize = 16 * 1024;
+
+/// Maximum consecutive frames to hold during severe TBC dropouts before falling back to the previous frame.
+pub const MAX_TBC_HOLD_FRAMES: usize = 6;
+
+/// High luminance threshold for detecting blown-out analog whiteout / static noise during TBC analysis.
+pub const DEFAULT_TBC_WHITE_THRESHOLD: f64 = 0.9200;
+
 /// Default VapourSynth memory cache size in megabytes for QTGMC processing.
 pub const DEFAULT_VPY_CACHE_SIZE_MB: usize = 4000;
 

@@ -177,6 +177,12 @@ pub fn execute_restoration_job(
         format!("Failed to spawn FFmpeg process: {e}")
     })?;
 
+    let app_ctx = crate::viewmodels::api_router::default_app_context();
+    app_ctx.process.register_child_pid(ffmpeg_child.id());
+    if let Some(ref vs) = vspipe_child {
+        app_ctx.process.register_child_pid(vs.id());
+    }
+
     let stdout = ffmpeg_child
         .stdout
         .take()
@@ -212,10 +218,30 @@ pub fn execute_restoration_job(
                         l.on_progress(&accumulator);
                     }
                     if accumulator.current_frame > 0 && accumulator.current_frame % CHECKPOINT_FLUSH_INTERVAL_FRAMES == 0 {
+                        let req_opt = planned
+                            .request_json
+                            .as_deref()
+                            .and_then(|j| serde_json::from_str::<RestorationJobRequest>(j).ok());
+                        let base_kept = if let Some(ref r) = req_opt {
+                            if let Some(base_start) = r.base_start_sec {
+                                let offset_sec = (r.start_sec - base_start).max(0.0);
+                                if offset_sec > 0.0 && planned.expected_duration_sec > 0.0 {
+                                    ((offset_sec / planned.expected_duration_sec)
+                                        * planned.expected_frames as f64)
+                                        .round() as u64
+                                } else {
+                                    0
+                                }
+                            } else {
+                                0
+                            }
+                        } else {
+                            0
+                        };
                         write_checkpoint(
                             planned,
                             "in_progress",
-                            accumulator.current_frame,
+                            base_kept.saturating_add(accumulator.current_frame),
                             start_time.elapsed().as_secs_f64(),
                         );
                         let current_sec = job_start_sec + snapshot.out_time_seconds;
@@ -259,8 +285,16 @@ pub fn execute_restoration_job(
         .wait()
         .map_err(|e| format!("Failed to wait on FFmpeg exit: {e}"))?;
 
+    app_ctx.process.unregister_child_pid(ffmpeg_child.id());
+
     let vs_exit = if let Some(ref mut vs) = vspipe_child {
-        vs.wait().ok()
+        if !status.success() {
+            let _ = kill_process_tree(vs.id());
+            let _ = vs.kill();
+        }
+        let res = vs.wait().ok();
+        app_ctx.process.unregister_child_pid(vs.id());
+        res
     } else {
         None
     };
@@ -344,12 +378,12 @@ pub fn execute_restoration_job(
         return Err(e);
     }
 
+    // 6. Neural Post-Restoration Chain Orchestration (CodeFormer, RIFE, Real-ESRGAN)
+    execute_neural_post_chain(&planned.final_output_path, planned, listener, cancel_flag);
+
     // Clean up temporary VPY script and completed checkpoint
     cleanup_vpy_only(planned);
     remove_checkpoint(planned);
-
-    // 6. Neural Post-Restoration Chain Orchestration (CodeFormer, RIFE, Real-ESRGAN)
-    execute_neural_post_chain(&planned.final_output_path, planned, listener);
 
     // 7. Compute Cryptographic SHA-256 Fixity
     let sha256 = compute_file_sha256_hex(Path::new(&planned.final_output_path))

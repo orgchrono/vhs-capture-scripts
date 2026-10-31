@@ -332,7 +332,7 @@ const StudioMain: React.FC<{
                 id="workspace-top"
                 defaultSize={LAYOUT_CONFIG.WORKSPACE_TOP_DEFAULT_SIZE}
                 minSize={LAYOUT_CONFIG.WORKSPACE_TOP_MIN_SIZE}
-                className="overflow-y-auto custom-scrollbar p-3 lg:p-4 bg-studio-bg"
+                className="overflow-hidden p-3 lg:p-4 bg-studio-bg"
               >
                 <ResizablePanelGroup orientation="horizontal" className="w-full h-full min-h-0">
                   {/* Left: Video Monitor (+ docked scopes) - takes the whole width when the right panel is hidden */}

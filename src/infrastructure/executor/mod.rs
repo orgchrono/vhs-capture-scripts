@@ -385,7 +385,7 @@ mod tests {
             request_json: serde_json::to_string(&req).ok(),
         };
 
-        execute_neural_post_chain("media/restored/tape_custom.mp4", &planned, Some(&listener));
+        execute_neural_post_chain("media/restored/tape_custom.mp4", &planned, Some(&listener), None);
 
         let captured = logs.lock().unwrap().clone();
         assert!(captured.iter().any(|msg| msg.contains("[AI-POST]")));

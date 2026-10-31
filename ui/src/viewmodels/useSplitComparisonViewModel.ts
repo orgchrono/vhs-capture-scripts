@@ -61,9 +61,11 @@ export function useSplitComparisonViewModel({
   const splitPosRef = useRef<number>(splitPos);
 
   const prevSourceRef = useRef<string | undefined>(source);
+  const [cachedDuration, setCachedDuration] = useState<number>(0);
   useEffect(() => {
     if (prevSourceRef.current !== source) {
       prevSourceRef.current = source;
+      setCachedDuration(0);
       setIsPlaying(false);
       setIsScrubbing(false);
       setPreviewTimestamp(0.0);
@@ -158,23 +160,32 @@ export function useSplitComparisonViewModel({
     };
   }, [frameData, debouncedTimestamp]);
 
-  const totalDuration = frameData?.duration && frameData.duration > 0 ? frameData.duration : 0;
+  useEffect(() => {
+    if (frameData?.duration && frameData.duration > 0) {
+      setCachedDuration(frameData.duration);
+    }
+  }, [frameData?.duration]);
+
+  const totalDuration = frameData?.duration && frameData.duration > 0 ? frameData.duration : cachedDuration;
   const progressPct = totalDuration > 0
     ? Math.min(100, Math.max(0, (effectiveTimestamp / totalDuration) * 100)).toFixed(1)
     : '0.0';
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | undefined;
-    if (activePlaying && totalDuration > 0) {
+    if (activePlaying && !isRestoring) {
       interval = setInterval(() => {
-        const next = timestamp >= totalDuration ? 0 : Math.round((timestamp + 1) * 10) / 10;
+        const next =
+          totalDuration > 0 && timestamp >= totalDuration
+            ? 0
+            : Math.round((timestamp + 1) * 10) / 10;
         setPreviewTimestamp(next);
       }, 1000);
     }
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [activePlaying, totalDuration, timestamp, setPreviewTimestamp]);
+  }, [activePlaying, isRestoring, totalDuration, timestamp, setPreviewTimestamp]);
 
   useEffect(() => {
     return () => {

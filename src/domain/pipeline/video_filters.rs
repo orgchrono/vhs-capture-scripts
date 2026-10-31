@@ -144,7 +144,10 @@ pub fn build_comparison_preview_filtergraph(spec: &ComparisonPreviewSpec) -> Str
         filters.push(format!("drawbox=y=ih-{OVERSCAN_BLANKING_HEIGHT_PX}:color=black:width=iw:height={OVERSCAN_BLANKING_HEIGHT_PX}:t=fill"));
     }
 
-    filters.push(format!("scale={}:{}:flags=bilinear", spec.target_width, spec.target_height));
+    filters.push(format!(
+        "scale={0}:{1}:force_original_aspect_ratio=decrease:flags=bilinear,pad={0}:{1}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1:1",
+        spec.target_width, spec.target_height
+    ));
 
     if filters.is_empty() {
         "null".to_string()

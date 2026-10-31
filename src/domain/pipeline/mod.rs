@@ -143,4 +143,23 @@ mod tests {
         let af = build_audio_filtergraph(&spec);
         assert!(af.contains("treble=g=3.5:f=6500:w=0.6,stereotools=mlev=1.0:mpan=0.0:phase=1"));
     }
+
+    #[test]
+    fn test_comparison_preview_filtergraph_preserves_aspect_ratio_and_pads_canvas() {
+        let spec = ComparisonPreviewSpec {
+            deinterlacer: "qtgmc".to_string(),
+            denoise: true,
+            chroma_fix: true,
+            comb_filter: true,
+            overscan: false,
+            dropout: false,
+            target_width: 640,
+            target_height: 360,
+        };
+        let vf = build_comparison_preview_filtergraph(&spec);
+        assert!(vf.contains("dedot=m=dotcrawl+rainbows"));
+        assert!(vf.contains(
+            "scale=640:360:force_original_aspect_ratio=decrease:flags=bilinear,pad=640:360:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1:1"
+        ));
+    }
 }
