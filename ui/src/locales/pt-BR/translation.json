@@ -132,6 +132,11 @@
     "scopes_tab_audio": "Áudio",
     "scopes_dock_side": "Fixar Osciloscópio na Lateral",
     "scopes_float_window": "Desacoplar para Janela Flutuante",
+    "scopes_comp_both": "Ambos (A/B)",
+    "scopes_comp_proc": "Depois (REST)",
+    "scopes_comp_raw": "Antes (RAW)",
+    "scopes_legend_raw": "Antes (RAW)",
+    "scopes_legend_proc": "Depois (REST)",
     "live_restoration_stream": "Stream de Restauração em Tempo Real",
     "generating_preview": "Sincronizando stream de restauração...",
     "source_stream_proxy": "Proxy de Stream de Origem",
@@ -258,6 +263,16 @@
     "tabs_aria_label": "Abas de Configuração",
     "output_codec_hint": "Formato de codificação e compressão do vídeo final.",
     "tier_label": "Nível {{tier}}: {{name}}"
+  },
+  "hardware": {
+    "tier_1": "Básico (CPU Limitada)",
+    "tier_2": "CPU Multi-Core + iGPU Vulkan",
+    "tier_3": "PC Moderno (GPU Dedicada / Apple Silicon)",
+    "tier_4": "Workstation de IA (GPU Dedicada High-End)",
+    "tier_1_rec": "Hardware modesto detectado. Recomendamos desentrelaçamento rápido (BWDIF) e filtros DSP clássicos. Evite habilitar upscalers neurais pesados para não sobrecarregar a máquina.",
+    "tier_2_rec": "CPU multi-core com {{cores}} núcleos e {{ram}}GB de RAM. Ideal para restauração BWDIF/Lanczos (~60-120 fps), DeepFilterNet em tempo real e Whisper. Aviso sincero: modelos neurais pesados (CodeFormer / Real-ESRGAN) rodarão via CPU/iGPU a ~1-2 fps.",
+    "tier_3_rec": "GPU acelerada detectada. RIFE e Real-ESRGAN rodarão com fluidez. CodeFormer é viável para restaurações pontuais.",
+    "tier_4_rec": "GPU dedicada de alto desempenho detectada. Todos os recursos neurais de IA (CodeFormer, Real-ESRGAN e RIFE 60fps) rodarão na velocidade máxima."
   },
   "ai": {
     "diagnostic_title": "Diagnóstico Honesto do Hardware",
@@ -396,7 +411,9 @@
     "watcher_error": "Falha ao alterar estado do Auto-Watcher.",
     "capture_failed_title": "Falha na Captura",
     "capture_start_failed": "Falha ao iniciar captura",
-    "capture_stop_failed": "Falha ao parar captura"
+    "capture_stop_failed": "Falha ao parar captura",
+    "invalid_video_format_title": "Formato de Vídeo Inválido",
+    "invalid_video_format_desc": "Arquivo não suportado. Utilize formatos de vídeo analógico (.mkv, .mp4, .avi, .mov, .ts, .vob)."
   },
   "telemetry": {
     "title": "Telemetria de Masterização Analógica",

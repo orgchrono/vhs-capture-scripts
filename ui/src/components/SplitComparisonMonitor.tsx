@@ -17,6 +17,7 @@ import { useSplitComparisonViewModel } from '../viewmodels/useSplitComparisonVie
 import { LiveEdgeIndicator } from './LiveEdgeIndicator';
 import { TimelineScrubber } from './TimelineScrubber';
 import { MonitorReticleOverlay } from './MonitorReticleOverlay';
+import { Badge } from './ui/badge';
 
 const SPLIT_PRESETS = [0, 25, 50, 75, 100] as const;
 
@@ -40,9 +41,6 @@ const ComparisonPane = React.memo<ComparisonPaneProps>(({
   testId,
 }) => {
   const isRaw = type === 'raw';
-  const badgeColor = isRaw
-    ? 'text-amber-400 border-amber-500/40'
-    : 'text-emerald-400 border-emerald-500/40';
   const badgePosition = isRaw ? 'bottom-12 left-3' : 'bottom-12 right-3';
   const emptyBg = isRaw ? 'bg-slate-950' : 'bg-slate-900';
 
@@ -52,6 +50,7 @@ const ComparisonPane = React.memo<ComparisonPaneProps>(({
         <img
           src={imageSrc}
           alt={label}
+          crossOrigin="anonymous"
           className="w-full h-full object-contain pointer-events-none"
           data-testid={testId}
         />
@@ -60,11 +59,13 @@ const ComparisonPane = React.memo<ComparisonPaneProps>(({
       )}
 
       <div className={`absolute ${badgePosition} z-10 pointer-events-none`}>
-        <span
-          className={`bg-black/75 backdrop-blur-xs px-2 py-0.5 rounded-xs text-[9px] font-mono uppercase tracking-wider border shadow-xs ${badgeColor}`}
+        <Badge
+          variant={isRaw ? 'warn' : 'live'}
+          size="sm"
+          className="uppercase tracking-wider shadow-xs backdrop-blur-xs"
         >
           {label}
-        </span>
+        </Badge>
       </div>
     </>
   );
@@ -273,9 +274,11 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = (pr
       >
         {/* Subtle loading badge during async frame requests without blanking the image */}
         {!isStreamActive && isFetching && (
-          <div className="absolute top-12 z-30 flex items-center gap-1.5 px-2 py-0.5 rounded-xs bg-black/80 backdrop-blur-xs text-[10px] font-mono text-amber-300 border border-amber-500/30">
-            <RefreshCw className="w-3 h-3 text-amber-400 animate-spin" />
-            <span>{t('monitor.split_loading')}</span>
+          <div className="absolute top-12 z-30">
+            <Badge variant="warn" size="default" className="shadow-md backdrop-blur-xs">
+              <RefreshCw className="w-3 h-3 text-amber-400 animate-spin" />
+              <span>{t('monitor.split_loading')}</span>
+            </Badge>
           </div>
         )}
 

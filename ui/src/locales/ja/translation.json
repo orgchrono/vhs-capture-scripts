@@ -132,6 +132,11 @@
     "scopes_tab_audio": "音声 (Audio)",
     "scopes_dock_side": "オシロスコープをサイドパネルにドッキング",
     "scopes_float_window": "フローティングウィンドウに分離",
+    "scopes_comp_both": "両方 (A/B)",
+    "scopes_comp_proc": "後 (REST)",
+    "scopes_comp_raw": "前 (RAW)",
+    "scopes_legend_raw": "前 (RAW)",
+    "scopes_legend_proc": "後 (REST)",
     "live_restoration_stream": "リアルタイム修復ストリーム",
     "generating_preview": "修復ストリームを同期中...",
     "source_stream_proxy": "ソースストリームプロキシ",
@@ -258,6 +263,16 @@
     "tabs_aria_label": "Abas de Configuração",
     "output_codec_hint": "最終動画のエンコード形式および圧縮コーデック。",
     "tier_label": "ティア {{tier}}: {{name}}"
+  },
+  "hardware": {
+    "tier_1": "エントリー (低スペックCPU)",
+    "tier_2": "マルチコアCPU + Vulkan iGPU",
+    "tier_3": "モダンPC (独立GPU / Apple Silicon)",
+    "tier_4": "AIワークステーション (ハイエンド独立GPU)",
+    "tier_1_rec": "控えめなハードウェアが検出されました。高速デインターレース（BWDIF）と古典的DSPフィルターを推奨します。過負荷を防ぐため、高負荷なAIアップスケーラーの有効化はお控えください。",
+    "tier_2_rec": "{{cores}} コアCPUおよび {{ram}}GB RAMを検出。BWDIF/Lanczosレストレーション（~60-120 fps）、リアルタイムDeepFilterNet、Whisperに最適です。注意：高負荷ニューラルモデル（CodeFormer / Real-ESRGAN）はCPU/iGPU経由で ~1-2 fps で動作します。",
+    "tier_3_rec": "アクセラレーション対応GPUを検出。RIFEとReal-ESRGANがスムーズに動作します。CodeFormerも局所的な復元に実用的です。",
+    "tier_4_rec": "高性能独立GPUを検出。すべてのニューラルAI機能（CodeFormer、Real-ESRGAN、RIFE 60fps）が最高速度で動作します。"
   },
   "ai": {
     "diagnostic_title": "Honest Hardware Diagnostics",
@@ -396,7 +411,9 @@
     "watcher_error": "オートウォッチャーの切り替えに失敗しました。",
     "capture_failed_title": "キャプチャ失敗",
     "capture_start_failed": "キャプチャの開始に失敗しました",
-    "capture_stop_failed": "キャプチャの停止に失敗しました"
+    "capture_stop_failed": "キャプチャの停止に失敗しました",
+    "invalid_video_format_title": "無効な動画形式",
+    "invalid_video_format_desc": "サポートされていないファイルです。動画形式（.mkv、.mp4、.avi、.mov、.ts、.vob）を使用してください。"
   },
   "telemetry": {
     "title": "アナログマスタリング テレメトリ",

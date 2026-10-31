@@ -1,6 +1,6 @@
 [package]
 name = "vhs-studio-core"
-version = "2.1.0"
+version = "0.2.0"
 description = "VHS Studio Pro - Native Rust Functional Core & Tauri v2 Engine"
 authors = ["VHS Studio Pro Engineering"]
 license = "MIT"

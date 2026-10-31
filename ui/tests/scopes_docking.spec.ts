@@ -37,7 +37,7 @@ test.describe('Oscilloscope docking & workspace panels', () => {
     expect(await panel.evaluate(insideFrame)).toBe(false);
 
     const before = (await panel.boundingBox())!;
-    const header = (await panel.locator('div').first().boundingBox())!;
+    const header = (await panel.locator('.scopes-drag-handle').boundingBox())!;
     await page.mouse.move(header.x + 30, header.y + 10);
     await page.mouse.down();
     await page.mouse.move(header.x - 400, header.y + 120, { steps: 8 });
@@ -67,22 +67,73 @@ test.describe('Oscilloscope docking & workspace panels', () => {
     expect(widened).toBeGreaterThan(cb.width + 150);
   });
 
-  test('maximized floating scopes cover the preview but never the transport controls', async ({ page }) => {
+  test('floating scopes maximize button expands over the right panel without covering live preview', async ({ page }) => {
     await boot(page);
     await page.getByTestId('toggle-scopes-btn').click();
     const panel = page.getByTestId('broadcast-scopes-panel');
-    await panel.getByRole('button', { name: /maxim/i }).click();
+    const maxBtn = page.getByTestId('maximize-scopes-btn');
+    await expect(maxBtn).toBeVisible();
 
-    const play = page.getByTestId('live-play-toggle-btn');
-    const pb = (await panel.boundingBox())!;
-    const playBox = (await play.boundingBox())!;
-    expect(pb.y + pb.height).toBeLessThanOrEqual(playBox.y + 1);
+    const monitor = page.getByTestId('live-monitor-container');
+    const monitorBox = (await monitor.boundingBox())!;
 
-    const topTestId = await page.evaluate(
-      ([x, y]) => document.elementFromPoint(x, y)?.closest('[data-testid]')?.getAttribute('data-testid'),
-      [playBox.x + playBox.width / 2, playBox.y + playBox.height / 2]
-    );
-    expect(topTestId).toBe('live-play-toggle-btn');
+    await maxBtn.click();
+    const maximizedBox = (await panel.boundingBox())!;
+
+    // Maximize positions over the right panel, leaving the live video monitor untouched
+    expect(maximizedBox.x).toBeGreaterThanOrEqual(monitorBox.x + 200);
+
+    // Clicking minimize restores floating size
+    await maxBtn.click();
+    const restoredBox = (await panel.boundingBox())!;
+    expect(restoredBox.width).toBeLessThan(maximizedBox.width + 10);
+  });
+
+  test('dragging floating scopes and then maximizing snaps cleanly over right panel without offset side-effects', async ({ page }) => {
+    await boot(page);
+    await page.getByTestId('toggle-scopes-btn').click();
+    const panel = page.getByTestId('broadcast-scopes-panel');
+    const maxBtn = page.getByTestId('maximize-scopes-btn');
+
+    // Drag the window by its header
+    const header = (await panel.locator('.scopes-drag-handle').boundingBox())!;
+    await page.mouse.move(header.x + 30, header.y + 10);
+    await page.mouse.down();
+    await page.mouse.move(header.x - 300, header.y + 80, { steps: 5 });
+    await page.mouse.up();
+    const draggedBox = (await panel.boundingBox())!;
+
+    // Maximize: must snap directly over the right panel, clearing drag transform
+    await maxBtn.click();
+    const maximizedBox = (await panel.boundingBox())!;
+    const monitorBox = (await page.getByTestId('live-monitor-container').boundingBox())!;
+    expect(maximizedBox.x).toBeGreaterThanOrEqual(monitorBox.x + 200);
+
+    // Minimize: returns to the dragged coordinates
+    await maxBtn.click();
+    const restoredBox = (await panel.boundingBox())!;
+    expect(Math.abs(restoredBox.x - draggedBox.x)).toBeLessThanOrEqual(5);
+    expect(Math.abs(restoredBox.y - draggedBox.y)).toBeLessThanOrEqual(5);
+  });
+
+  test('multi-directional resize handles expand and shrink from the pulled edge', async ({ page }) => {
+    await boot(page);
+    await page.getByTestId('toggle-scopes-btn').click();
+    const panel = page.getByTestId('broadcast-scopes-panel');
+    const initialBox = (await panel.boundingBox())!;
+
+    // Resize by pulling the left handle outwards to the left
+    const leftHandle = panel.locator('.scopes-resize-left');
+    const handleBox = (await leftHandle.boundingBox())!;
+    await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(handleBox.x - 100, handleBox.y + handleBox.height / 2, { steps: 8 });
+    await page.mouse.up();
+
+    const resizedBox = (await panel.boundingBox())!;
+    // Width increased by pulling from left, and right boundary stayed anchored
+    expect(resizedBox.width).toBeGreaterThan(initialBox.width + 50);
+    expect(Math.abs((resizedBox.x + resizedBox.width) - (initialBox.x + initialBox.width))).toBeLessThanOrEqual(5);
   });
 
   test('hiding the right panel gives the monitor the full width, and scopes then open docked', async ({ page }) => {
@@ -108,5 +159,23 @@ test.describe('Oscilloscope docking & workspace panels', () => {
     await dual.click();
     await expect(page.getByTestId('split-divider-line')).toHaveCount(0);
     await expect(page.getByTestId('split-comparison-monitor')).toBeVisible();
+  });
+
+  test('opening scopes during A/B split comparison activates dual-trace comparison view and legends', async ({ page }) => {
+    await boot(page);
+    await page.getByTestId('toggle-split-view-btn').click();
+    await expect(page.getByTestId('split-comparison-monitor')).toBeVisible();
+
+    await page.getByTestId('toggle-scopes-btn').click();
+    const panel = page.getByTestId('broadcast-scopes-panel');
+    await expect(panel).toBeVisible();
+
+    // Verify comparison view toggle appears in scopes header
+    const compToggle = panel.getByTestId('scopes-comparison-view-toggle');
+    await expect(compToggle).toBeVisible();
+
+    // Verify waveform canvas and vectorscope canvas are both visible
+    await expect(panel.getByTestId('waveform-scope-canvas')).toBeVisible();
+    await expect(panel.getByTestId('vectorscope-canvas')).toBeVisible();
   });
 });

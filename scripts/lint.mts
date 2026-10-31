@@ -53,7 +53,7 @@ const steps: LintStep[] = [
   {
     name: 'Playwright (E2E React)',
     command: 'npx',
-    args: ['playwright', 'test', '--project=chromium', '--reporter=list'],
+    args: ['playwright', 'test', '--project=chromium', '--reporter=list', '--workers=4'],
     cwd: path.join(PROJECT_ROOT, 'ui'),
   },
   {
@@ -146,6 +146,11 @@ function runStep(step: LintStep): Promise<StepResult> {
 }
 
 async function main(): Promise<void> {
+  // Guarantee dedicated target directory on Windows to prevent OS Error 32 process file locks during git hook execution
+  if (!process.env.CARGO_TARGET_DIR) {
+    process.env.CARGO_TARGET_DIR = path.join(PROJECT_ROOT, 'target_lint');
+  }
+
   logger.info('[Git Hook] Starting automated code validation (Lint & Types)...');
   logger.info('Running Linters and Quality Gates (Parallelized)...');
 

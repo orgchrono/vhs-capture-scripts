@@ -67,34 +67,51 @@ pub fn generate_param_hash(content: &[u8]) -> String {
 }
 
 /// Pure scanner for local media directories returning sorted entries matching valid extensions.
+/// Recursively scans immediate subdirectories (up to 2 levels) to discover nested exports.
 pub fn scan_media_directory(dir_path: &Path) -> Result<Vec<MediaFileEntry>, std::io::Error> {
     if !dir_path.exists() || !dir_path.is_dir() {
         return Ok(Vec::new());
     }
 
     let mut entries = Vec::new();
-    for entry in fs::read_dir(dir_path)? {
-        let entry = entry?;
-        let path = entry.path();
-        if path.is_file() {
-            if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
-                if is_valid_media_extension(ext) {
-                    let metadata = entry.metadata()?;
-                    let size_bytes = metadata.len();
-                    let size_mb = (size_bytes as f64 / (1024.0 * 1024.0) * 100.0).round() / 100.0;
-                    let name = path.file_name()
-                        .and_then(|n| n.to_str())
-                        .unwrap_or("")
-                        .to_string();
-                    let full_path = path.to_string_lossy().to_string();
+    let mut dirs_to_visit = vec![(dir_path.to_path_buf(), 0usize)];
 
-                    entries.push(MediaFileEntry {
-                        name,
-                        path: full_path,
-                        size_bytes,
-                        size_mb,
-                        extension: format!(".{}", ext.to_ascii_lowercase()),
-                    });
+    while let Some((current_dir, depth)) = dirs_to_visit.pop() {
+        let read_res = match fs::read_dir(&current_dir) {
+            Ok(r) => r,
+            Err(_) => continue,
+        };
+
+        for entry in read_res.flatten() {
+            let path = entry.path();
+            if path.is_dir() && depth < 2 {
+                dirs_to_visit.push((path, depth + 1));
+                continue;
+            }
+            if path.is_file() {
+                if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
+                    if is_valid_media_extension(ext) {
+                        let metadata = match entry.metadata() {
+                            Ok(m) => m,
+                            Err(_) => continue,
+                        };
+                        let size_bytes = metadata.len();
+                        let size_mb = (size_bytes as f64 / (1024.0 * 1024.0) * 100.0).round() / 100.0;
+                        let name = path
+                            .file_name()
+                            .and_then(|n| n.to_str())
+                            .unwrap_or("")
+                            .to_string();
+                        let full_path = path.to_string_lossy().to_string();
+
+                        entries.push(MediaFileEntry {
+                            name,
+                            path: full_path,
+                            size_bytes,
+                            size_mb,
+                            extension: format!(".{}", ext.to_ascii_lowercase()),
+                        });
+                    }
                 }
             }
         }
@@ -201,5 +218,29 @@ mod tests {
         let _ = std::fs::remove_file(valid_file);
         let _ = std::fs::remove_file(part_file);
         let _ = std::fs::remove_file(txt_file);
+    }
+
+    #[test]
+    fn test_scan_media_directory_discovers_nested_files() {
+        let temp_dir = std::env::temp_dir().join(format!("vhs_test_scan_{}", std::process::id()));
+        let sub_dir = temp_dir.join("subfolder");
+        let _ = std::fs::create_dir_all(&sub_dir);
+
+        let top_file = temp_dir.join("master_tape_01.mp4");
+        let nested_file = sub_dir.join("master_tape_02.mkv");
+        let part_file = sub_dir.join("in_progress.mp4.part");
+        let txt_file = sub_dir.join("notes.txt");
+
+        let _ = std::fs::write(&top_file, vec![0u8; 1024]);
+        let _ = std::fs::write(&nested_file, vec![0u8; 2048]);
+        let _ = std::fs::write(&part_file, vec![0u8; 1024]);
+        let _ = std::fs::write(&txt_file, b"info");
+
+        let scanned = scan_media_directory(&temp_dir).expect("Scan should succeed");
+        assert_eq!(scanned.len(), 2);
+        assert!(scanned.iter().any(|e| e.name == "master_tape_01.mp4"));
+        assert!(scanned.iter().any(|e| e.name == "master_tape_02.mkv"));
+
+        let _ = std::fs::remove_dir_all(&temp_dir);
     }
 }

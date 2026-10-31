@@ -17,6 +17,7 @@ import { useTapeLibraryViewModel } from '../viewmodels/useTapeLibraryViewModel';
 import type { RawFile, IncompleteJob } from '../types';
 import { formatMbSize } from '../lib/formatters';
 import { QcReportModal } from './QcReportModal';
+import { Badge } from './ui/badge';
 
 export interface TapeLibraryCardProps {
   files: RawFile[];
@@ -125,13 +126,13 @@ const TapeItemCard: React.FC<TapeItemCardProps> = ({
           </h4>
           <div className="flex items-center gap-1 shrink-0">
             {isMaster ? (
-              <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-xs bg-emerald-950/90 text-emerald-300 border border-emerald-800 hover:border-emerald-600 transition-colors shadow-xs">
+              <Badge variant="live" size="sm">
                 {t('files.master_tape_badge')}
-              </span>
+              </Badge>
             ) : inc ? (
-              <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-xs bg-amber-950/90 text-amber-300 border border-amber-800 hover:border-amber-600 transition-colors shadow-xs">
+              <Badge variant="warn" size="sm">
                 {t('recovery.badge_incomplete', { pct: inc.progress_percent })}
-              </span>
+              </Badge>
             ) : null}
             <button
               type="button"
@@ -464,8 +465,8 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
                           >
                             {name}
                           </h4>
-                          <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-xs bg-amber-950/90 text-amber-300 border border-amber-800 hover:border-amber-600 transition-colors shadow-xs shrink-0">
-                            {t('recovery.badge_incomplete', { pct: job.progress_percent })}
+                          <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-xs bg-amber-950/90 text-amber-300 border border-amber-800 hover:border-amber-600 transition-colors shadow-xs shrink-0 inline-flex items-center leading-none">
+                            <span className="translate-y-[0.5px]">{t('recovery.badge_incomplete', { pct: job.progress_percent })}</span>
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400">

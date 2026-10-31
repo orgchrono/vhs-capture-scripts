@@ -106,7 +106,7 @@ export const RestorationSettings: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 min-h-0 flex flex-col" aria-label={t('settings.tabs_aria_label')}>
-        <TabsList className="flex items-center overflow-x-auto custom-scrollbar gap-1 mb-2.5 bg-studio-surface p-1 border border-studio-border rounded-sm shrink-0">
+        <TabsList className="flex items-center overflow-x-auto overflow-y-hidden custom-scrollbar gap-1 mb-2.5 bg-studio-surface p-1 border border-studio-border rounded-sm shrink-0">
           <TabsTrigger value="presets" data-testid="tab-presets" className={`flex items-center justify-center gap-1.5 text-xs py-1.5 px-2.5 font-medium font-mono rounded-sm shrink-0 whitespace-nowrap ${isTabMatching('presets') ? 'text-amber-400' : ''}`}><Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />{t('settings.tab_presets')}</TabsTrigger>
           <TabsTrigger value="video" data-testid="tab-video" className={`flex items-center justify-center gap-1.5 text-xs py-1.5 px-2.5 font-medium font-mono rounded-sm shrink-0 whitespace-nowrap ${isTabMatching('video') ? 'text-amber-400' : ''}`}><Video className="w-3.5 h-3.5 text-slate-300 shrink-0" />{t('settings.tab_video')}</TabsTrigger>
           <TabsTrigger value="audio" data-testid="tab-audio" className={`flex items-center justify-center gap-1.5 text-xs py-1.5 px-2.5 font-medium font-mono rounded-sm shrink-0 whitespace-nowrap ${isTabMatching('audio') ? 'text-amber-400' : ''}`}><Music className="w-3.5 h-3.5 text-slate-300 shrink-0" />{t('settings.tab_audio')}</TabsTrigger>

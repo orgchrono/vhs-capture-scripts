@@ -96,6 +96,7 @@ export function useStudioViewModel() {
         a11yAudio.playSuccess();
         addLogRef.current(tRef.current('logs.restore_success'));
       }
+      refetchStatusRef.current();
     }
     if (isInstallingQtgmcRef.current) {
       setIsInstallingQtgmc(false);
@@ -266,6 +267,7 @@ export function useStudioViewModel() {
               a11yAudio.playError();
               addLog(t('logs.restore_failed', { code: res.error_message || 'error' }));
             }
+            refetchStatusRef.current();
           })
           .catch((e: unknown) => {
             setIsRestoring(false);

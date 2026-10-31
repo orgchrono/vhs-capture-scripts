@@ -12,7 +12,8 @@ use crate::models::preferences::{merge_preferences, to_ui_json};
 use crate::viewmodels::api_support::{load_preferences, media_dirs, save_preferences};
 use crate::viewmodels::api_types::{ApiRequest, ApiResponse};
 use serde_json::{json, Value};
-use std::path::Path;
+use std::collections::HashSet;
+use std::path::{Path, PathBuf};
 
 /// Engine identifier reported to the UI.
 const ENGINE_ID: &str = "rust-native-2.1.0";
@@ -28,6 +29,33 @@ fn list_media(dir: &Path) -> Vec<Value> {
         .into_iter()
         .map(|f| json!({ "name": f.name, "path": f.path, "size_mb": round_to(f.size_mb, 2), "thumbnail_url": format!("/api/media/thumbnail?path={}", f.path) }))
         .collect()
+}
+
+fn list_media_multiple(dirs: &[&Path]) -> Vec<Value> {
+    let mut seen_paths = HashSet::new();
+    let mut result = Vec::new();
+
+    for dir in dirs {
+        if let Ok(entries) = scan_media_directory(dir) {
+            for f in entries {
+                let norm = f.path.replace('\\', "/").to_ascii_lowercase();
+                if seen_paths.insert(norm) {
+                    result.push(json!({
+                        "name": f.name,
+                        "path": f.path,
+                        "size_mb": round_to(f.size_mb, 2),
+                        "thumbnail_url": format!("/api/media/thumbnail?path={}", f.path)
+                    }));
+                }
+            }
+        }
+    }
+    result.sort_by(|a, b| {
+        let name_a = a.get("name").and_then(Value::as_str).unwrap_or("");
+        let name_b = b.get("name").and_then(Value::as_str).unwrap_or("");
+        name_a.cmp(name_b)
+    });
+    result
 }
 
 /// Pure RAM telemetry projection `(used_gb, total_gb, used_percent)`.
@@ -47,7 +75,15 @@ fn status(ctx: &AppContext) -> ApiResponse {
     let obs = is_obs_running();
     let obs_installed = is_obs_installed();
     let raw = list_media(&dirs.raw);
-    let restored = list_media(&dirs.restored);
+
+    let base = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    let root_restored = base.join("restored");
+    let mut restored_targets = vec![dirs.restored.as_path()];
+    if root_restored.exists() && root_restored != dirs.restored {
+        restored_targets.push(root_restored.as_path());
+    }
+    let restored = list_media_multiple(&restored_targets);
+
     let hw = get_active_hardware_profile();
     let cpu = sample_cpu_percent();
     ApiResponse::ok(&json!({

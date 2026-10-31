@@ -172,14 +172,38 @@ export const LAYOUT_CONFIG = {
 } as const;
 
 export const SCOPES_FLOAT_CONFIG = {
-  DEFAULT_WIDTH_PX: 470,
-  DEFAULT_HEIGHT_PX: 380,
-  MIN_WIDTH_PX: 320,
-  MIN_HEIGHT_PX: 240,
+  DEFAULT_WIDTH_PX: 480,
+  DEFAULT_HEIGHT_PX: 260,
+  MIN_WIDTH_PX: 340,
+  MIN_HEIGHT_PX: 220,
   INITIAL_TOP_PX: 96,
   INITIAL_RIGHT_PX: 24,
   TRANSPORT_RESERVE_PX: 44,
 } as const;
+
+export const SUPPORTED_VIDEO_EXTENSIONS = [
+  'mkv',
+  'mp4',
+  'avi',
+  'mov',
+  'ts',
+  'mpg',
+  'mpeg',
+  'm2ts',
+  'vob',
+  'iso',
+  'img',
+  'm4v',
+  'wmv',
+  'flv',
+] as const;
+
+export const isSupportedVideoFile = (fileName: string): boolean => {
+  const parts = fileName.split('.');
+  if (parts.length < 2) return false;
+  const ext = parts.pop()?.toLowerCase() || '';
+  return (SUPPORTED_VIDEO_EXTENSIONS as readonly string[]).includes(ext);
+};
 
 
 
