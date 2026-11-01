@@ -8,7 +8,7 @@
  * back to HTTP REST endpoints.
  */
 
-import { studioApi } from './studioApi';
+import { studioApi, getSyncAuthHeaders } from './studioApi';
 import type {
   SystemStatus,
   RestorationPayload,
@@ -23,21 +23,31 @@ interface TauriInternals {
 }
 
 export const isTauriEnvironment = (): boolean => {
-  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+  return (
+    typeof window !== 'undefined' &&
+    ('__TAURI_INTERNALS__' in window ||
+      '__TAURI__' in window ||
+      window.location.hostname === 'tauri.localhost' ||
+      window.location.protocol === 'tauri:' ||
+      window.location.origin.includes('tauri'))
+  );
 };
 
 export const getTauriInternals = (): TauriInternals | null => {
-  if (isTauriEnvironment()) {
+  if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
     return (window as unknown as { __TAURI_INTERNALS__: TauriInternals }).__TAURI_INTERNALS__;
   }
   return null;
 };
 
 export const getApiBaseUrl = (): string => {
+  if (isTauriEnvironment()) {
+    return 'http://127.0.0.1:8088';
+  }
   if (typeof window !== 'undefined' && window.location?.origin && window.location.origin !== 'null') {
     return window.location.origin.replace(/\/+$/, '');
   }
-  return 'http://localhost:8088';
+  return 'http://127.0.0.1:8088';
 };
 
 export interface TauriPresetConfig {
@@ -350,7 +360,7 @@ export const tauriBridge = {
     if (tauri) {
       return tauri.invoke<TauriPresetConfig>('ipc_get_preset_config', { preset });
     }
-    const res = await fetch(`/api/restoration/preset-config?preset=${encodeURIComponent(preset)}`);
+    const res = await fetch(`${getApiBaseUrl()}/api/restoration/preset-config?preset=${encodeURIComponent(preset)}`);
     if (!res.ok) throw new Error('Failed to resolve preset config');
     return res.json();
   },
@@ -1295,7 +1305,7 @@ export const tauriBridge = {
     try {
       const res = await fetch(`${getApiBaseUrl()}/api/restoration/incomplete/action`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getSyncAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(payload),
       });
       if (res.ok) return res.json();
@@ -1372,7 +1382,7 @@ export const tauriBridge = {
     try {
       const res = await fetch(`${getApiBaseUrl()}/api/preferences`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getSyncAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(prefs),
       });
       if (res.ok) {

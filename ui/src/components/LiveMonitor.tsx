@@ -26,6 +26,7 @@ import { SubtitleOverlay } from './SubtitleOverlay';
 import { SubtitleEditorModal } from './SubtitleEditorModal';
 import { SubtitleToolbarButtons } from './SubtitleToolbarButtons';
 import { useMonitorMediaControls } from '../viewmodels/useMonitorMediaControls';
+import { getApiBaseUrl } from '../api/tauriBridge';
 
 export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => {
   const {
@@ -73,7 +74,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
       transition: { duration: 0.15 },
     };
 
-  const streamUrl = `/api/monitor/stream-proxy?mode=processed&source=${encodeURIComponent(
+  const streamUrl = `${getApiBaseUrl()}/api/monitor/stream-proxy?mode=processed&source=${encodeURIComponent(
     selectedFile || ''
   )}&fps=15&timestamp=${streamAnchor}&k=${streamKey}`;
 

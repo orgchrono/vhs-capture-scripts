@@ -1,14 +1,52 @@
 import type { SystemStatus, RestorationPayload, ObsStats, QueueJob, QueueStats } from '../types';
 import { getApiBaseUrl } from './tauriBridge';
 
-const getHeaders = (extra: Record<string, string> = {}): Record<string, string> => {
-  const token = typeof window !== 'undefined' ? window.sessionStorage.getItem('vhs_studio_session_token') : null;
+export const getSessionToken = (): string | null => {
+  return typeof window !== 'undefined' ? window.sessionStorage.getItem('vhs_studio_session_token') : null;
+};
+
+export const fetchSessionToken = async (): Promise<string | null> => {
+  const existing = getSessionToken();
+  if (existing) return existing;
+  if (typeof window !== 'undefined') {
+    try {
+      const res = await fetch(`${getApiBaseUrl()}/api/token`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.token) {
+          window.sessionStorage.setItem('vhs_studio_session_token', data.token);
+          return data.token;
+        }
+      }
+    } catch {
+      // Fallback
+    }
+  }
+  return null;
+};
+
+export const getSyncAuthHeaders = (extra: Record<string, string> = {}): Record<string, string> => {
+  const token = getSessionToken();
   const headers: Record<string, string> = { ...extra };
   if (token) {
     headers['X-Session-Token'] = token;
   }
   return headers;
 };
+
+export const getAuthHeaders = async (extra: Record<string, string> = {}): Promise<Record<string, string>> => {
+  let token = getSessionToken();
+  if (!token) {
+    token = await fetchSessionToken();
+  }
+  const headers: Record<string, string> = { ...extra };
+  if (token) {
+    headers['X-Session-Token'] = token;
+  }
+  return headers;
+};
+
+const getHeaders = getSyncAuthHeaders;
 
 export const studioApi = {
   async getStatus(): Promise<SystemStatus> {

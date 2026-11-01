@@ -33,37 +33,37 @@ pub fn pick_folder_native(initial_dir: Option<&Path>) -> Option<PathBuf> {
 
     #[cfg(target_os = "windows")]
     {
-        let initial_script = if let Some(dir) = initial_dir {
-            let escaped = dir.to_string_lossy().replace('\'', "''");
-            format!("$f.SelectedPath = '{}';", escaped)
-        } else {
-            String::new()
-        };
+        use std::ffi::OsString;
+        use std::os::windows::ffi::OsStringExt;
 
-        let script = format!(
-            "Add-Type -AssemblyName System.Windows.Forms; \
-             $f = New-Object System.Windows.Forms.FolderBrowserDialog; \
-             $f.Description = 'Select VHS Studio Folder'; \
-             $f.ShowNewFolderButton = $true; \
-             {} \
-             if ($f.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {{ \
-                 Write-Output $f.SelectedPath \
-             }}",
-            initial_script
-        );
+        unsafe {
+            let _ = windows_sys::Win32::System::Com::CoInitializeEx(
+                std::ptr::null(),
+                windows_sys::Win32::System::Com::COINIT_APARTMENTTHREADED as u32,
+            );
 
-        let output = std::process::Command::new("powershell")
-            .args(["-NoProfile", "-NonInteractive", "-Command", &script])
-            .output()
-            .ok()?;
+            let mut title_utf16: Vec<u16> = "Select VHS Studio Media Folder\0".encode_utf16().collect();
+            let mut bi: windows_sys::Win32::UI::Shell::BROWSEINFOW = std::mem::zeroed();
+            bi.lpszTitle = title_utf16.as_mut_ptr();
+            bi.ulFlags = windows_sys::Win32::UI::Shell::BIF_RETURNONLYFSDIRS | 0x00000040;
 
-        if output.status.success() {
-            let selected = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            if !selected.is_empty() {
-                let p = PathBuf::from(selected);
-                if p.is_dir() {
-                    return Some(p);
+            let pidl = windows_sys::Win32::UI::Shell::SHBrowseForFolderW(&bi);
+            if !pidl.is_null() {
+                let mut path_buf = [0u16; 1024];
+                let success = windows_sys::Win32::UI::Shell::SHGetPathFromIDListW(pidl, path_buf.as_mut_ptr());
+                windows_sys::Win32::System::Com::CoTaskMemFree(pidl.cast());
+                windows_sys::Win32::System::Com::CoUninitialize();
+
+                if success != 0 {
+                    let len = path_buf.iter().position(|&c| c == 0).unwrap_or(path_buf.len());
+                    let os_str = OsString::from_wide(&path_buf[..len]);
+                    let path = PathBuf::from(os_str);
+                    if path.is_dir() {
+                        return Some(path);
+                    }
                 }
+            } else {
+                windows_sys::Win32::System::Com::CoUninitialize();
             }
         }
         None

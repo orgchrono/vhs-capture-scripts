@@ -19,7 +19,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import type { RestorationPayload } from '../types';
-import { tauriBridge, isTauriEnvironment } from '../api/tauriBridge';
+import { tauriBridge, isTauriEnvironment, getApiBaseUrl } from '../api/tauriBridge';
 
 export function useStudioViewModel() {
   const { t } = useTranslation();
@@ -126,7 +126,7 @@ export function useStudioViewModel() {
   useEffect(() => {
     if (!isBusy || typeof EventSource === 'undefined') return;
 
-    const eventSource = new EventSource('/api/logs/stream');
+    const eventSource = new EventSource(`${getApiBaseUrl()}/api/logs/stream`);
     const logBuffer: string[] = [];
     let flushTimer: ReturnType<typeof setTimeout> | null = null;
 

@@ -8,6 +8,7 @@ import {
 import {
   tauriBridge,
   isTauriEnvironment,
+  getApiBaseUrl,
   type TauriStorageEnvelope,
 } from "../api/tauriBridge";
 import { getErrorMessage } from "../lib/errors";
@@ -151,7 +152,7 @@ export function useStorageViewModel() {
   };
 
   const initiateOAuth = (providerId: string) => {
-    window.open(`/api/oauth/login/${providerId}`, '_blank');
+    window.open(`${getApiBaseUrl()}/api/oauth/login/${providerId}`, '_blank');
   };
 
   const status = isTauri ? (nativeData?.status ?? {}) : (storageData?.status ?? {});

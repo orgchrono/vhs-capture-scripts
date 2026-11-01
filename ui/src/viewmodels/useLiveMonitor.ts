@@ -10,6 +10,7 @@ import {
 import { logger } from '../lib';
 import { createTelemetryParser } from '../lib/telemetry';
 import type { ObsStats } from '../types';
+import { getApiBaseUrl } from '../api/tauriBridge';
 
 export interface UseLiveMonitorResult {
   t: ReturnType<typeof useTranslation>['t'];
@@ -325,7 +326,7 @@ export function useLiveMonitor(): UseLiveMonitorResult {
     let active = true;
     const fetchFrame = async () => {
       try {
-        const res = await fetch(`/api/monitor/live-restoration-frame?t=${Date.now()}`);
+        const res = await fetch(`${getApiBaseUrl()}/api/monitor/live-restoration-frame?t=${Date.now()}`);
         if (res.status === 200 && active) {
           const contentType = res.headers.get('content-type') || '';
           if (contentType.includes('image')) {

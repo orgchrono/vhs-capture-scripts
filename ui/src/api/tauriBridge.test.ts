@@ -20,7 +20,9 @@ describe('Tauri v2 IPC Bridge & Fallback (tauriBridge)', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     const config = await tauriBridge.getPresetConfig('gold');
-    expect(fetchMock).toHaveBeenCalledWith('/api/restoration/preset-config?preset=gold');
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/api/restoration/preset-config?preset=gold')
+    );
     expect(config.crf).toBe(18);
     expect(config.deinterlacer).toBe('qtgmc');
   });

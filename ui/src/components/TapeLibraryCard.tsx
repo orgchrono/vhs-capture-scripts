@@ -21,6 +21,8 @@ import { QcReportModal } from './QcReportModal';
 import { Badge } from './ui/badge';
 import { DirectoryPickerModal } from './DirectoryPickerModal';
 import { usePreferencesStore } from '../store/usePreferencesStore';
+import { getApiBaseUrl } from '../api/tauriBridge';
+import { isSupportedVideoFile } from '../lib/constants';
 
 export interface TapeLibraryCardProps {
   files: RawFile[];
@@ -56,6 +58,11 @@ const TapeItemCard: React.FC<TapeItemCardProps> = ({
 }) => {
   const { t } = useTranslation();
   const ext = file.name.split('.').pop()?.toUpperCase() || '';
+  const thumbUrl = file.thumbnail_url
+    ? file.thumbnail_url.startsWith('http') || file.thumbnail_url.startsWith('data:')
+      ? file.thumbnail_url
+      : `${getApiBaseUrl()}${file.thumbnail_url}`
+    : null;
 
   return (
     <div
@@ -84,10 +91,10 @@ const TapeItemCard: React.FC<TapeItemCardProps> = ({
       }`}
     >
       {/* Miniature Thumbnail */}
-      {file.thumbnail_url ? (
+      {thumbUrl ? (
         <div className="w-12 h-9 rounded-sm bg-studio-bg border border-studio-border shrink-0 relative overflow-hidden group-hover:border-slate-500 transition">
           <img
-            src={file.thumbnail_url}
+            src={thumbUrl}
             alt={file.name}
             className="w-full h-full object-cover"
             onError={(e) => {
@@ -613,11 +620,22 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
         isOpen={isDirPickerOpen}
         onClose={() => setIsDirPickerOpen(false)}
         initialPath={libraryTab === 'raw' ? prefs.rawDir : prefs.restoredDir}
+        mode="both"
         onSelect={(path) => {
-          if (libraryTab === 'raw') {
-            prefs.updatePreferences({ rawDir: path });
+          if (isSupportedVideoFile(path)) {
+            const parentDir = path.replace(/[/\\][^/\\]+$/, '');
+            if (libraryTab === 'raw') {
+              prefs.updatePreferences({ rawDir: parentDir });
+            } else {
+              prefs.updatePreferences({ restoredDir: parentDir });
+            }
+            setSelectedFile(path);
           } else {
-            prefs.updatePreferences({ restoredDir: path });
+            if (libraryTab === 'raw') {
+              prefs.updatePreferences({ rawDir: path });
+            } else {
+              prefs.updatePreferences({ restoredDir: path });
+            }
           }
           onRefresh();
         }}

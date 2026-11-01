@@ -21,6 +21,7 @@ import {
 import { usePanasonicIngestViewModel } from '../viewmodels/usePanasonicIngestViewModel';
 import { DirectoryPickerModal } from './DirectoryPickerModal';
 import { Badge } from './ui/badge';
+import { getApiBaseUrl } from '../api/tauriBridge';
 
 export interface PanasonicIngestCardProps {
   onRefresh?: () => void;
@@ -379,7 +380,11 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
                         <div className="relative w-16 h-11 bg-slate-900 rounded-xs border border-studio-border shrink-0 overflow-hidden flex items-center justify-center">
                           {title.thumbnail_url ? (
                             <img
-                              src={title.thumbnail_url}
+                              src={
+                                title.thumbnail_url.startsWith('http') || title.thumbnail_url.startsWith('data:')
+                                  ? title.thumbnail_url
+                                  : `${getApiBaseUrl()}${title.thumbnail_url}`
+                              }
                               alt={title.title}
                               className="w-full h-full object-cover"
                               onError={(e) => {

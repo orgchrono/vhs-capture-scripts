@@ -23,6 +23,7 @@ import { SubtitleOverlay } from './SubtitleOverlay';
 import { SubtitleEditorModal } from './SubtitleEditorModal';
 import { SubtitleToolbarButtons } from './SubtitleToolbarButtons';
 import { useMonitorMediaControls } from '../viewmodels/useMonitorMediaControls';
+import { getApiBaseUrl } from '../api/tauriBridge';
 
 const SPLIT_PRESETS = [0, 25, 50, 75, 100] as const;
 
@@ -127,8 +128,8 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = (pr
     handleMuteChange,
   } = useMonitorMediaControls({ sourceFile: source });
 
-  const rawStreamUrl = `/api/monitor/stream-proxy?mode=raw&source=${encodeURIComponent(source)}&fps=15&timestamp=${streamAnchor}&k=${streamKey}`;
-  const procStreamUrl = `/api/monitor/stream-proxy?mode=processed&source=${encodeURIComponent(source)}&fps=15&timestamp=${streamAnchor}&k=${streamKey}`;
+  const rawStreamUrl = `${getApiBaseUrl()}/api/monitor/stream-proxy?mode=raw&source=${encodeURIComponent(source)}&fps=15&timestamp=${streamAnchor}&k=${streamKey}`;
+  const procStreamUrl = `${getApiBaseUrl()}/api/monitor/stream-proxy?mode=processed&source=${encodeURIComponent(source)}&fps=15&timestamp=${streamAnchor}&k=${streamKey}`;
 
   const rawSrc = isStreamActive ? rawStreamUrl : displayedFrames.raw;
   const procSrc = isStreamActive ? procStreamUrl : displayedFrames.processed;

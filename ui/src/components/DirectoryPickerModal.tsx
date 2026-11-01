@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { X, Folder, ArrowUp, HardDrive, FolderCheck, Monitor } from 'lucide-react';
+import { X, Folder, ArrowUp, HardDrive, FolderCheck, Monitor, Film } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { getApiBaseUrl } from '../api/tauriBridge';
+import { getAuthHeaders } from '../api/studioApi';
+import { isSupportedVideoFile } from '../lib/constants';
+import { formatFileSize } from '../lib/formatters';
 
 export interface FsDirectoryEntry {
   name: string;
@@ -23,6 +27,7 @@ export interface DirectoryPickerModalProps {
   onSelect: (selectedPath: string) => void;
   initialPath?: string;
   title?: string;
+  mode?: 'folder' | 'file' | 'both';
 }
 
 export const DirectoryPickerModal: React.FC<DirectoryPickerModalProps> = ({
@@ -31,6 +36,7 @@ export const DirectoryPickerModal: React.FC<DirectoryPickerModalProps> = ({
   onSelect,
   initialPath,
   title,
+  mode = 'both',
 }) => {
   const { t } = useTranslation();
   const [browseData, setBrowseData] = useState<FsBrowseResult | null>(null);
@@ -40,13 +46,16 @@ export const DirectoryPickerModal: React.FC<DirectoryPickerModalProps> = ({
   const fetchDirectory = async (targetPath?: string) => {
     setIsLoading(true);
     try {
-      const res = await fetch('/api/system/browse-filesystem', {
+      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
+      const res = await fetch(`${getApiBaseUrl()}/api/system/browse-filesystem`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ path: targetPath || '' }),
       });
-      const data: FsBrowseResult = await res.json();
-      setBrowseData(data);
+      if (res.ok) {
+        const data: FsBrowseResult = await res.json();
+        setBrowseData(data);
+      }
     } catch {
       // Graceful fallback
     } finally {
@@ -66,15 +75,18 @@ export const DirectoryPickerModal: React.FC<DirectoryPickerModalProps> = ({
 
   const handleNativePick = async () => {
     try {
-      const res = await fetch('/api/system/pick-folder', {
+      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
+      const res = await fetch(`${getApiBaseUrl()}/api/system/pick-folder`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ initial_path: browseData?.current_path || initialPath || '' }),
       });
-      const data = await res.json();
-      if (data.success && data.path) {
-        onSelect(data.path);
-        onClose();
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.path) {
+          onSelect(data.path);
+          onClose();
+        }
       }
     } catch {
       // Fallback
@@ -88,9 +100,10 @@ export const DirectoryPickerModal: React.FC<DirectoryPickerModalProps> = ({
     }
   };
 
-  const filteredEntries = (browseData?.entries || []).filter((e) =>
-    e.name.toLowerCase().includes(filter.toLowerCase())
-  );
+  const filteredEntries = (browseData?.entries || []).filter((e) => {
+    if (mode === 'folder' && !e.is_dir) return false;
+    return e.name.toLowerCase().includes(filter.toLowerCase());
+  });
 
   return (
     <div
@@ -194,28 +207,50 @@ export const DirectoryPickerModal: React.FC<DirectoryPickerModalProps> = ({
               {t('folders.empty_dir')}
             </div>
           ) : (
-            filteredEntries.map((entry) => (
-              <button
-                key={entry.path}
-                type="button"
-                onClick={() => entry.is_dir && fetchDirectory(entry.path)}
-                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xs transition text-left cursor-pointer border ${
-                  entry.is_dir
-                    ? 'hover:bg-amber-500/10 hover:border-amber-400/40 text-slate-200 border-transparent'
-                    : 'text-slate-400 border-transparent hover:bg-slate-900'
-                }`}
-                data-testid={`folder-item-${entry.name}`}
-              >
-                <div className="flex items-center gap-2 truncate">
-                  <Folder
-                    className={`w-4 h-4 shrink-0 ${
-                      entry.is_dir ? 'text-amber-400' : 'text-slate-600'
-                    }`}
-                  />
-                  <span className="font-mono text-xs truncate">{entry.name}</span>
-                </div>
-              </button>
-            ))
+            filteredEntries.map((entry) => {
+              const isVideo = isSupportedVideoFile(entry.name);
+              const isSelectableFile = !entry.is_dir && (isVideo || mode === 'file' || mode === 'both');
+
+              return (
+                <button
+                  key={entry.path}
+                  type="button"
+                  onClick={() => {
+                    if (entry.is_dir) {
+                      void fetchDirectory(entry.path);
+                    } else if (isSelectableFile) {
+                      onSelect(entry.path);
+                      onClose();
+                    }
+                  }}
+                  className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xs transition text-left cursor-pointer border ${
+                    entry.is_dir
+                      ? 'hover:bg-amber-500/10 hover:border-amber-400/40 text-slate-200 border-transparent'
+                      : isSelectableFile
+                      ? 'hover:bg-emerald-500/15 hover:border-emerald-400/40 text-emerald-200 border-transparent'
+                      : 'text-slate-400 border-transparent hover:bg-slate-900'
+                  }`}
+                  data-testid={`folder-item-${entry.name}`}
+                  title={entry.name}
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    {entry.is_dir ? (
+                      <Folder className="w-4 h-4 shrink-0 text-amber-400" />
+                    ) : isVideo ? (
+                      <Film className="w-4 h-4 shrink-0 text-emerald-400" />
+                    ) : (
+                      <Folder className="w-4 h-4 shrink-0 text-slate-600" />
+                    )}
+                    <span className="font-mono text-xs truncate">{entry.name}</span>
+                  </div>
+                  {!entry.is_dir && entry.size_bytes > 0 && (
+                    <span className="text-[10px] font-mono text-slate-500 shrink-0">
+                      {formatFileSize(entry.size_bytes)}
+                    </span>
+                  )}
+                </button>
+              );
+            })
           )}
         </div>
 

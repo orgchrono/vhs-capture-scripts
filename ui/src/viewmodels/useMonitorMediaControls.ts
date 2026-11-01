@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, type RefObject } from 'react';
 import { usePreferencesStore } from '../store/usePreferencesStore';
 import type { SubtitleCue } from '../components/SubtitleOverlay';
+import { getApiBaseUrl } from '../api/tauriBridge';
 
 export interface UseMonitorMediaControlsOptions {
   sourceFile?: string | null;
@@ -31,7 +32,7 @@ export function useMonitorMediaControls({ sourceFile, videoRef }: UseMonitorMedi
       return;
     }
     let isCurrent = true;
-    fetch(`/api/restoration/subtitles?source=${encodeURIComponent(sourceFile)}`)
+    fetch(`${getApiBaseUrl()}/api/restoration/subtitles?source=${encodeURIComponent(sourceFile)}`)
       .then((r) => r.json())
       .then((data) => {
         if (!isCurrent) return;

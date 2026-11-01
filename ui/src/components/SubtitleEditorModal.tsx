@@ -3,6 +3,8 @@ import { X, Plus, Trash2, Save, Sparkles, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from './ui/badge';
 import type { SubtitleCue } from './SubtitleOverlay';
+import { getApiBaseUrl } from '../api/tauriBridge';
+import { getAuthHeaders } from '../api/studioApi';
 
 export interface SubtitleEditorModalProps {
   isOpen: boolean;
@@ -33,7 +35,7 @@ export const SubtitleEditorModal: React.FC<SubtitleEditorModalProps> = ({
       setStatusMessage(null);
     });
 
-    fetch(`/api/restoration/subtitles?source=${encodeURIComponent(sourceFile)}`)
+    fetch(`${getApiBaseUrl()}/api/restoration/subtitles?source=${encodeURIComponent(sourceFile)}`)
       .then((r) => r.json())
       .then((data) => {
         if (!isMounted) return;
@@ -88,9 +90,10 @@ export const SubtitleEditorModal: React.FC<SubtitleEditorModalProps> = ({
     setIsSaving(true);
     setStatusMessage(null);
     try {
-      const res = await fetch('/api/restoration/subtitles', {
+      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
+      const res = await fetch(`${getApiBaseUrl()}/api/restoration/subtitles`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           source: sourceFile,
           segments: cues,
@@ -116,16 +119,17 @@ export const SubtitleEditorModal: React.FC<SubtitleEditorModalProps> = ({
     setIsLoading(true);
     setStatusMessage(null);
     try {
-      const res = await fetch('/api/restoration/generate-subtitles', {
+      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
+      const res = await fetch(`${getApiBaseUrl()}/api/restoration/generate-subtitles`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ input: sourceFile }),
       });
       const data = await res.json();
       if (data.status === 'ok') {
         // Refetch updated subtitles
         const refetch = await fetch(
-          `/api/restoration/subtitles?source=${encodeURIComponent(sourceFile)}`
+          `${getApiBaseUrl()}/api/restoration/subtitles?source=${encodeURIComponent(sourceFile)}`
         );
         const refetchData = await refetch.json();
         if (refetchData.status === 'ok' && Array.isArray(refetchData.segments)) {
