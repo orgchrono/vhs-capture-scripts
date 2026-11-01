@@ -321,6 +321,131 @@ Performs recovery actions (`resume`, `finalize`, or `discard`) on incomplete rec
 
 ---
 
+### `POST /api/restoration/blackframe-clean`
+Performs rapid, automated blackframe hygiene and Time Base Corrector (TBC) Frame-Hold on a target media file (raw capture or progressive master) without re-encoding the entire video. Scans the stream via FFmpeg `blackdetect`, merges micro-gap intervals, classifies regions into `leader`, `trailer`, and `mid_gaps`, and applies stream-copy trimming or frame freezing. Automatically records stage lineage in the `<filename>.manifest.json` sidecar.
+
+- **Request Headers:**
+  - `Content-Type: application/json`
+  - `X-Session-Token: <token>`
+- **Payload Schema (`BlackframeCleanApiRequest`):**
+  ```json
+  {
+    "input_path": "C:\\Videos\\VHS Studio Pro\\restored\\tape_01_master.mp4",
+    "output_path": "C:\\Videos\\VHS Studio Pro\\restored\\tape_01_cleaned.mp4",
+    "mode": "auto"
+  }
+  ```
+  - `input_path` (`string`, required): Full absolute path to the target media file.
+  - `output_path` (`string`, optional): Path for the cleaned output file. Defaults to `<stem>_cleaned.<ext>`.
+  - `mode` (`string`, optional): Cleaning strategy.
+    - `"auto"`: Intelligent strategy. If only leader/trailer are detected, uses ultra-fast lossless stream-copy trim. If mid-gaps exist, applies TBC frame freezing to protect A/V sync.
+    - `"leader_trailer_only"`: Lossless trim cutting unrecorded black lead-in and run-out trailers while leaving mid-recording dropouts intact.
+    - `"freeze_mid_gaps"`: Freezes the last valid video frame during mid-tape signal dropouts, preserving exact duration and lip-sync cadence.
+    - `"video_only_drop"`: Removes black frames only from the video stream and rewrites presentation timestamps (PTS).
+
+- **Response (HTTP 200 - Cleaned):**
+  ```json
+  {
+    "success": true,
+    "input_path": "C:\\Videos\\VHS Studio Pro\\restored\\tape_01_master.mp4",
+    "output_path": "C:\\Videos\\VHS Studio Pro\\restored\\tape_01_cleaned.mp4",
+    "classification": {
+      "leader": { "start_sec": 0.0, "end_sec": 4.25, "duration_sec": 4.25 },
+      "trailer": { "start_sec": 7180.5, "end_sec": 7200.0, "duration_sec": 19.5 },
+      "mid_gaps": [],
+      "total_black_duration_sec": 23.75,
+      "is_fully_black": false
+    },
+    "cleaned": true,
+    "message": "Blackframe hygiene executed successfully"
+  }
+  ```
+
+- **Response (HTTP 200 - Pristine / No Gaps):**
+  ```json
+  {
+    "success": true,
+    "input_path": "C:\\Videos\\VHS Studio Pro\\restored\\tape_01_master.mp4",
+    "output_path": "C:\\Videos\\VHS Studio Pro\\restored\\tape_01_master.mp4",
+    "classification": {
+      "leader": null,
+      "trailer": null,
+      "mid_gaps": [],
+      "total_black_duration_sec": 0.0,
+      "is_fully_black": false
+    },
+    "cleaned": false,
+    "message": "No black regions detected or mode requirements met; file is already pristine"
+  }
+  ```
+
+- **Error Responses:**
+  - `HTTP 400 Bad Request`: Invalid request JSON.
+  - `HTTP 404 Not Found`: Media file does not exist on disk.
+  - `HTTP 422 Unprocessable Entity`: File is 100% black (trimming would yield empty media) or media probe failed.
+  - `HTTP 500 Internal Server Error`: FFmpeg execution failure.
+
+---
+
+### `GET /api/restoration/subtitles`
+Inspects and parses subtitle files (`.vtt` or `.srt`) associated with a specified media file across the `restored/`, `subtitles/`, and `work/` directories.
+
+- **Query Parameters:**
+  - `source` or `input`: Media file name or absolute path.
+- **Response (HTTP 200 - Found):**
+  ```json
+  {
+    "status": "ok",
+    "found": true,
+    "format": "vtt",
+    "file_path": "C:\\Videos\\VHS Studio Pro\\restored\\tape_01.vtt",
+    "segments": [
+      {
+        "id": 1,
+        "start_seconds": 2.5,
+        "end_seconds": 6.8,
+        "text": "Bem-vindos à gravação de aniversário de 1994."
+      }
+    ],
+    "raw_content": "WEBVTT\n\n00:00:02.500 --> 00:00:06.800\nBem-vindos..."
+  }
+  ```
+
+---
+
+### `POST /api/restoration/subtitles`
+Persists modified or newly authored subtitle cues to both `.vtt` (Web Video Text Tracks) and `.srt` (SubRip) formats simultaneously.
+
+- **Request Headers:**
+  - `Content-Type: application/json`
+  - `X-Session-Token: <token>`
+- **Payload Schema:**
+  ```json
+  {
+    "source": "tape_01.mp4",
+    "segments": [
+      {
+        "id": 1,
+        "start_seconds": 2.5,
+        "end_seconds": 6.8,
+        "text": "Bem-vindos à gravação de aniversário de 1994."
+      }
+    ]
+  }
+  ```
+- **Response (HTTP 200):**
+  ```json
+  {
+    "status": "ok",
+    "success": true,
+    "vtt_path": "C:\\Videos\\VHS Studio Pro\\restored\\tape_01.vtt",
+    "srt_path": "C:\\Videos\\VHS Studio Pro\\restored\\tape_01.srt",
+    "count": 1
+  }
+  ```
+
+---
+
 ## 6. Panasonic DVR Ingestion (`src/viewmodels/ingest_vm.rs` & `src/infrastructure/panasonic/`)
 
 ### `GET /api/ingest/panasonic/disks`
@@ -408,3 +533,69 @@ vhs-studio qc-report media/raw/tape_01.mkv
 ### Generated Files:
 - `<filepath>_qc_report.json`: JSON document containing raw metadata, black leader seconds, `idet` counts, audio decibel levels, `signalstats` dropouts, `pipeline_tools_registry`, `defect_events_log`, `cumulative_telemetry`, and `sync_state`.
 - `<filepath>_defect_report.md`: 8-section Markdown document formatting the complete forensic defect matrix, per-tool correction registry, chronological frame-accurate defect log, and checkpoint synchronization state.
+
+---
+
+## 9. Media Lineage Manifest (`.manifest.json`) Specification (`src/models/manifest.rs`)
+
+To ensure idempotence, multi-pipeline interoperability, and complete historical auditability, VHS Studio Pro persists a companion sidecar file alongside every master and cleaned media file:
+`<filename>.manifest.json`
+
+### 9.1 Schema Definition (`MediaManifest`)
+```json
+{
+  "version": 1,
+  "file_path": "C:\\Videos\\VHS Studio Pro\\restored\\family_1994_master.mp4",
+  "source_raw": "C:\\Videos\\VHS Studio Pro\\raw\\family_1994.mkv",
+  "source_raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "created_at": "2026-11-01T14:30:00Z",
+  "is_progressive": true,
+  "width": 1920,
+  "height": 1080,
+  "fps": 59.94,
+  "completed_stages": [
+    "stage_1_deinterlace_qtgmc",
+    "stage_1_comb_filter",
+    "stage_1_chroma_shift",
+    "stage_1_overscan_blanking",
+    "stage_1_broadcast_legalizer",
+    "stage_1_audio_ebu_r128"
+  ],
+  "available_stages": [
+    "stage_2_ai_face_restore",
+    "stage_2_ai_upscaler",
+    "stage_2_ai_rife_60fps",
+    "stage_2_whisper_subtitles",
+    "stage_3_blackframe_trim"
+  ],
+  "history": [
+    {
+      "stage": "stage_1_deinterlace_qtgmc",
+      "timestamp": "2026-11-01T14:30:00Z",
+      "params": {
+        "preset": "gold",
+        "crf": 18,
+        "encoder": "h264_nvenc"
+      }
+    }
+  ]
+}
+```
+
+### 9.2 Stage Identifiers Catalog (`src/models/constants.rs`)
+| Stage Identifier | Category | Allowed on Progressive Master? | Description |
+| :--- | :--- | :---: | :--- |
+| `stage_1_deinterlace_qtgmc` | Phase 1 (Analog) | ❌ Bypassed | Reference VapourSynth QTGMC temporal field reconstruction. |
+| `stage_1_deinterlace_bwdif` | Phase 1 (Analog) | ❌ Bypassed | FFmpeg Bob directional adaptive deinterlacing. |
+| `stage_1_comb_filter` | Phase 1 (Analog) | ❌ Bypassed | 3D adaptive comb filtering (`dedot` / `TComb`) for dot crawl removal. |
+| `stage_1_chroma_shift` | Phase 1 (Analog) | ❌ Bypassed | Color-under chroma horizontal phase realignment. |
+| `stage_1_overscan_blanking` | Phase 1 (Analog) | ❌ Bypassed | 16-pixel head switching mask along bottom raster edge. |
+| `stage_1_broadcast_legalizer`| Phase 1 (Analog) | ❌ Bypassed | SMPTE 170M / EBU R103 broadcast legal range clamping. |
+| `stage_1_audio_ebu_r128` | Phase 1 (Analog) | ❌ Bypassed | EBU R128 (-23 LUFS) two-pass loudness normalization. |
+| `stage_1_tbc_hold` | Phase 1 (Analog) | ❌ Bypassed | TBC frame-hold for unstable mechanical tracking. |
+| `stage_2_ai_face_restore` | Phase 2 (AI Post) | ✅ Allowed | Neural face restoration via CodeFormer. |
+| `stage_2_ai_upscaler` | Phase 2 (AI Post) | ✅ Allowed | Texture super-resolution via Real-ESRGAN / Real-CUGAN. |
+| `stage_2_ai_rife_60fps` | Phase 2 (AI Post) | ✅ Allowed | Optical flow frame interpolation via RIFE v4.6. |
+| `stage_2_whisper_subtitles` | Phase 2 (AI Post) | ✅ Allowed | Offline neural transcription via Faster-Whisper. |
+| `stage_3_blackframe_trim` | Phase 3 (Hygiene) | ✅ Allowed | Fast leader/trailer trim and TBC drop-freeze hygiene. |
+

@@ -77,15 +77,6 @@ jobs:
       - name: Build & Verify Native Panasonic C Tools
         run: node scripts/build_panasonic_tools.mts
 
-      - name: Run Cargo Check
-        run: cargo check
-
-      - name: Run Cargo Clippy
-        run: cargo clippy -- -D warnings
-
-      - name: Run Native Rust Tests
-        run: cargo test
-
       - name: Install UI Dependencies
         working-directory: ./ui
         run: npm ci
@@ -97,3 +88,12 @@ jobs:
       - name: Run UI Unit Tests (Vitest)
         working-directory: ./ui
         run: npm run test:unit
+
+      - name: Run Cargo Check
+        run: cargo check
+
+      - name: Run Cargo Clippy
+        run: cargo clippy -- -D warnings
+
+      - name: Run Native Rust Tests
+        run: cargo test

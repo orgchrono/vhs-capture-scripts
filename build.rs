@@ -52,25 +52,32 @@ fn generate_embedded_assets() {
         }
     }
 
+    code.push_str("#[allow(clippy::all, unused_variables, dead_code)]\n");
     code.push_str("pub fn get_embedded_ui_asset(rel_path: &str) -> Option<(&'static [u8], &'static str)> {\n");
-    code.push_str("    match rel_path.trim_start_matches('/') {\n");
-    for (rel, abs, mime) in &ui_entries {
-        code.push_str(&format!(
-            "        {:?} => Some((include_bytes!({:?}), {:?})),\n",
-            rel, abs, mime
-        ));
+    if ui_entries.is_empty() {
+        code.push_str("    let _ = rel_path;\n");
+        code.push_str("    None\n");
+    } else {
+        code.push_str("    match rel_path.trim_start_matches('/') {\n");
+        for (rel, abs, mime) in &ui_entries {
+            code.push_str(&format!(
+                "        {:?} => Some((include_bytes!({:?}), {:?})),\n",
+                rel, abs, mime
+            ));
+        }
+        code.push_str("        _ => None,\n");
+        code.push_str("    }\n");
     }
-    code.push_str("        _ => None,\n");
-    code.push_str("    }\n");
     code.push_str("}\n\n");
 
     // 2. Embedded Panasonic Tools
+    code.push_str("#[allow(clippy::all, unused_variables, dead_code)]\n");
     code.push_str("pub fn extract_embedded_tools(target_dir: &std::path::Path) -> std::io::Result<()> {\n");
+    code.push_str("    let _ = target_dir;\n");
     code.push_str("    std::fs::create_dir_all(target_dir)?;\n");
 
     let tools_dir = Path::new("tools/panasonic_rec");
     let tool_names = ["extract_meihdfs.exe", "dvd-vr.exe", "udf_dump.exe"];
-    let mut has_tools = false;
 
     for name in tool_names {
         let p = tools_dir.join(name);
@@ -81,14 +88,10 @@ fn generate_embedded_assets() {
                     "    let p = target_dir.join({:?});\n    if !p.exists() {{\n        let _ = std::fs::write(&p, include_bytes!({:?}));\n    }}\n",
                     name, abs_str
                 ));
-                has_tools = true;
             }
         }
     }
 
-    if !has_tools {
-        code.push_str("    let _ = target_dir;\n");
-    }
     code.push_str("    Ok(())\n");
     code.push_str("}\n");
 

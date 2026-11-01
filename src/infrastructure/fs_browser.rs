@@ -29,6 +29,8 @@ pub struct FsBrowseResult {
 /// Linux: `zenity` / `kdialog` directory selector
 #[must_use]
 pub fn pick_folder_native(initial_dir: Option<&Path>) -> Option<PathBuf> {
+    let _ = initial_dir;
+
     #[cfg(target_os = "windows")]
     {
         let initial_script = if let Some(dir) = initial_dir {
@@ -69,9 +71,14 @@ pub fn pick_folder_native(initial_dir: Option<&Path>) -> Option<PathBuf> {
 
     #[cfg(target_os = "macos")]
     {
-        let prompt = "POSIX path of (choose folder with prompt \"Select VHS Studio Folder\")";
+        let prompt = if let Some(dir) = initial_dir {
+            let escaped = dir.to_string_lossy().replace('"', "\\\"");
+            format!("POSIX path of (choose folder with prompt \"Select VHS Studio Folder\" default location POSIX file \"{}\")", escaped)
+        } else {
+            "POSIX path of (choose folder with prompt \"Select VHS Studio Folder\")".to_string()
+        };
         let output = std::process::Command::new("osascript")
-            .args(["-e", prompt])
+            .args(["-e", &prompt])
             .output()
             .ok()?;
 
@@ -90,8 +97,13 @@ pub fn pick_folder_native(initial_dir: Option<&Path>) -> Option<PathBuf> {
     #[cfg(all(unix, not(target_os = "macos")))]
     {
         // Try zenity first, then kdialog
+        let mut zenity_args = vec!["--file-selection".to_string(), "--directory".to_string(), "--title=Select VHS Studio Folder".to_string()];
+        if let Some(dir) = initial_dir {
+            zenity_args.push(format!("--filename={}/", dir.to_string_lossy().trim_end_matches('/')));
+        }
+
         if let Ok(output) = std::process::Command::new("zenity")
-            .args(["--file-selection", "--directory", "--title=Select VHS Studio Folder"])
+            .args(&zenity_args)
             .output()
         {
             if output.status.success() {
@@ -105,8 +117,13 @@ pub fn pick_folder_native(initial_dir: Option<&Path>) -> Option<PathBuf> {
             }
         }
 
+        let mut kdialog_args = vec!["--getexistingdirectory".to_string()];
+        if let Some(dir) = initial_dir {
+            kdialog_args.push(dir.to_string_lossy().to_string());
+        }
+
         if let Ok(output) = std::process::Command::new("kdialog")
-            .args(["--getexistingdirectory"])
+            .args(&kdialog_args)
             .output()
         {
             if output.status.success() {

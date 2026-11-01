@@ -1,0 +1,30 @@
+# GitHub Release Notes Configuration (SSOT)
+# Excludes automated agents and bots (Copilot, github-actions) from release notes & contributor rosters.
+
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+      - automated
+    authors:
+      - Copilot
+      - copilot-swe-agent
+      - copilot-swe-agent[bot]
+      - github-actions
+      - github-actions[bot]
+      - app/copilot-swe-agent
+      - app/github-actions
+
+  categories:
+    - title: "🚀 Features & Architecture"
+      labels:
+        - enhancement
+        - feature
+    - title: "🐛 Bug Fixes & Quality Gates"
+      labels:
+        - bug
+        - fix
+    - title: "📚 Documentation & Specifications"
+      labels:
+        - documentation
+        - docs

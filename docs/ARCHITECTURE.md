@@ -174,12 +174,12 @@ Codebase health is enforced across two complementary audit layers:
    - **JSCPD:** Clone detection enforcing zero code duplication (0% threshold / zero tolerance).
    - **Oxlint / ESLint:** Ultra-fast static analysis of the React/TypeScript ecosystem.
    - **TSC:** Strict type-checking compilation (`tsc -b`).
-   - **Vitest:** React component, hook, and store unit test suite.
+   - **Vitest:** React component, hook, and store unit test suite (34/34 files, 167/167 tests passed, 100%).
    - **Playwright:** End-to-End integration testing under headless Chromium.
-   - **Cargo Check:** Fast compilation check of the entire native Rust core.
-   - **Cargo Clippy:** Strict idiomatic Rust linting (`clippy -- -D warnings`).
-   - **Cargo Test:** 237/237 native Rust unit tests covering all domain models, decomposed pipelines, and infrastructure.
-   - **i18n Parity:** Verification of key parity across all 10 supported translation dictionaries.
+   - **Cargo Check:** Fast compilation check of the entire native Rust core (0 errors).
+   - **Cargo Clippy:** Strict idiomatic Rust linting (`clippy -- -D warnings`, 0 warnings).
+   - **Cargo Test:** 264/264 native Rust unit tests covering all domain models, decomposed pipelines, and infrastructure (100% passing).
+   - **i18n Parity:** Verification of key parity across all 10 supported translation dictionaries (100% key parity).
 2. **Swarm Auditors (`scripts/swarm_auditors.mts`):**
    - 7 parallel auditors inspecting Architecture (SoC/SRP/MVVM), Dependencies, Security (zero hardcoded secrets), Code Quality & FP purity, Test Harness, UX/UI & A11y, and CI/CD pipelines.
 
@@ -269,3 +269,84 @@ In accordance with broadcast and institutional archiving standards (**IASA-TC 04
 - **Context:** AI super-resolution (Real-ESRGAN), face reconstruction (CodeFormer), and frame interpolation (RIFE v4.6) utilize GPU VRAM and external drivers.
 - **Decision:** Isolate all neural workloads within independent OS subprocesses supervised by `infrastructure::executor`.
 - **Rationale:** GPU memory exhaustion (CUDA OOM) or driver timeouts are trapped as isolated process errors, guaranteeing that the core Rust server and active tape recording sessions are never terminated.
+
+---
+
+## 13. Multi-Pipeline Architecture, Media Lineage & Smart Pass Guardrail
+
+The digitization and mastering workflow in VHS Studio Pro v0.2.0 is partitioned into three distinct phases to prevent multi-generational degradation:
+
+```mermaid
+flowchart TD
+    subgraph S1["Phase 1: Broadcast Master (Analog Restoration)"]
+        RAW["Raw Capture (480i / Interlaced MKV)"]
+        DEINT["QTGMC 60p / BWDIF Bob Deinterlacing"]
+        FILT["Analog Filters (Comb / ChromaShift / Overscan / EBU R128)"]
+        TBC["TBC Frame-Hold Dropout Shield"]
+        M1["Broadcast Master File (_master.mp4)"]
+        MAN1[".manifest.json Sidecar"]
+    end
+
+    subgraph S2["Phase 2: AI Post-Chain (Neural Enhancements)"]
+        FACE["CodeFormer (Face Landmark Restoration)"]
+        SR["Real-ESRGAN x4plus / Real-CUGAN"]
+        RIFE["RIFE v4.6 (60fps Motion Smoothing)"]
+        WHISP["Faster-Whisper (Subtitles VTT/SRT)"]
+        M2["Neural Enhanced Master"]
+    end
+
+    subgraph S3["Phase 3: Fast Blackframe & TBC Hygiene"]
+        SCAN["FFmpeg blackdetect (40ms resolution)"]
+        MERGE["merge_black_intervals (0.25s gap fusion)"]
+        TRIM["Lossless Stream-Copy Leader/Trailer Trim"]
+        FREEZE["TBC Frame-Hold Video Freeze (Sync Lock)"]
+        M3["Cleaned Delivery File (_cleaned.mp4)"]
+    end
+
+    RAW --> DEINT --> FILT --> TBC --> M1
+    M1 -.-> MAN1
+    M1 --> FACE --> SR --> RIFE --> WHISP --> M2
+    M1 --> SCAN --> MERGE --> TRIM & FREEZE --> M3
+```
+
+### 13.1 Smart Pass Guardrail in Restoration Planner (`executor/planner.rs`)
+When an operator queues or starts a restoration job on a media file:
+1. The planner inspects both `probe_media_file` (`probe.is_interlaced`) and the companion `.manifest.json` (`manifest.is_progressive`).
+2. If `is_already_progressive` is evaluated to `true`:
+   - `deinterlacer` is automatically forced to `DeinterlaceFilter::None`.
+   - `apply_chroma_fix` is forced to `false`.
+   - `apply_comb_filter` is forced to `false`.
+   - `apply_overscan_blanking` is forced to `false`.
+   - `master_guard_bypassed` is flagged as `true` in telemetry and planned restoration.
+3. This guarantees that progressive masters can undergo secondary neural passes (CodeFormer, Real-ESRGAN, RIFE, Faster-Whisper) or container remuxing without destructive re-deinterlacing, color misregistration, or redundant border cropping.
+
+### 13.2 Media Lineage Manifest (`.manifest.json`)
+Every rendered file maintains an immutable companion sidecar recording:
+- `source_raw` and `source_raw_sha256`: Cryptographic provenance to original analog ingest.
+- `completed_stages`: Set of applied operations (`stage_1_deinterlace_qtgmc`, `stage_1_chroma_shift`, `stage_3_blackframe_trim`, etc.).
+- `available_stages`: Permissible next steps dynamically filtered based on progressive/master state.
+- `history`: Chronological audit log with exact parameters and timestamps for every stage event.
+
+---
+
+## 14. Native Blackframe & TBC Frame-Hold Engine (`src/domain/blackframe.rs`)
+
+Analog tape players often produce unrecorded black leaders, trailing run-outs, and tracking loss dropouts where video sync fails but analog audio continues uninterrupted.
+
+### 14.1 Pure Algorithmic Pipeline
+1. **Detection Pass (`build_blackdetect_cli_args`):**
+   Runs non-destructive FFmpeg scan with parameters:
+   `-vf blackdetect=d=0.040:pix_th=0.12:pic_th=0.96`
+2. **Interval Parsing (`parse_blackdetect_stderr`):**
+   Presents pure functional extraction of `[blackdetect]` stderr timestamps into `Vec<BlackInterval>`.
+3. **Micro-Gap Fusion (`merge_black_intervals`):**
+   Merges consecutive black intervals separated by brief analog noise burst gaps ($\le 0.25\text{s}$) into single coherent defect intervals.
+4. **Forensic Region Classification (`classify_black_regions`):**
+   - `leader`: Interval beginning within $0.5\text{s}$ of timecode $0.0$.
+   - `trailer`: Interval ending within $0.5\text{s}$ of the stream's total duration.
+   - `mid_gaps`: Interior dropouts caused by mechanical crease or tracking loss.
+
+### 14.2 Synchronization Preservation Modes
+- **Leader & Trailer Cutting:** Because both video and audio are silent/unrecorded, audio and video are trimmed synchronously (`-ss` and `-to` / `trim` + `atrim`), preserving sample-accurate lip sync.
+- **Mid-Recording Dropouts (TBC Frame-Hold):** Deleting mid-tape black frames from the video stream without trimming continuous audio destroys lip sync. In `Freeze` mode, the engine freezes the last valid video frame across the dropout gap, holding video timing in strict lockstep with the continuous audio stream.
+

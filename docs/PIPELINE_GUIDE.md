@@ -250,9 +250,11 @@ ffprobe -v error -show_entries format=duration -of csv=p=0 "restored\2026-10-02 
 
 > Note: a finalized `.mp4` with the same name from a previous run (2026-10-25) already exists in `restored/`; back it up or rename it before moving the `.part` over it.
 
-### 12.5 Open Observation (not changed)
-The output stream is declared as **120 fps** while only 87 621 frames (60 fps of real content) are written: `bwdif mode=1` doubles the nominal timebase even on progressive input. For sources already progressive (`field_order=progressive`) the deinterlace step is redundant. Consider skipping deinterlacing, or defaulting to `BwdifSingle`, when the probe reports an explicitly progressive source. Also note that QTGMC with `fps_mode: 2` would double frames of a progressive source, which is undesirable.
-
+### 12.5 Resolution: Smart Pass Guardrail (v0.2.0)
+The observation regarding redundant deinterlacing and double framerates on progressive inputs has been formally resolved in **v0.2.0** via the **Smart Pass Guardrail** in [`src/infrastructure/executor/planner.rs`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/infrastructure/executor/planner.rs):
+- Probing detects whether the media is already progressive (`!probe.is_interlaced`) or carries a progressive flag in its `.manifest.json` sidecar.
+- If progressive, the planner automatically forces `deinterlacer` to `DeinterlaceFilter::None`, disables chroma shifts, comb filters, and overscan masks, and marks `master_guard_bypassed = true`.
+- Output framerates and frame counts match nominal content cadences with 100% temporal fidelity.
 
 ## 13. Incident Log — Telemetry SSE Stream Freeze at 73% (2026-10-30)
 
@@ -288,3 +290,83 @@ if current_logs.len() > cursor {
 1. Switched `handle_sse_stream` to consume logs through `ctx.process.logs_since(cursor: u64)`, which was expressly designed for bounded ring buffers with monotonic sequence numbers.
 2. Verified that all buffered lines are flushed when `!snapshot.running` before transmitting the termination event.
 3. Added regression unit test in `src/infrastructure/http_server.rs`: `test_sse_cursor_streams_past_ring_capacity_without_stalling`.
+
+---
+
+## 14. Multi-Pipeline Architecture & Lineage Manifest (v0.2.0)
+
+Professional archival digitization requires multiple passes with clear role separation:
+
+```mermaid
+flowchart TD
+    subgraph P1["Passo 1: Master de Broadcast (Analógico)"]
+        direction TB
+        RAW["Captura Crua (raw/tape.mkv, 480i)"]
+        D1["Desentrelaçamento QTGMC 60p / BWDIF"]
+        F1["Correção de Fase de Croma (chromashift)"]
+        C1["Filtro de Pente Analógico (TComb)"]
+        M1["Máscara de Overscan (16px bottom)"]
+        L1["Normalização de Áudio EBU R128 (-23 LUFS)"]
+        T1["TBC Frame-Hold Dropout Shield"]
+        OUT1["Master de Broadcast (restored/tape_master.mp4)"]
+        MAN1[".manifest.json Sidecar"]
+    end
+
+    subgraph P2["Passo 2: Pós-Cadeia Neural (AI Chain)"]
+        direction TB
+        AI1["Restauração Facial Profunda (CodeFormer)"]
+        AI2["Super-Resolução Neural (Real-ESRGAN / CUGAN)"]
+        AI3["Interpolação de Movimento (RIFE v4.6 60fps)"]
+        AI4["Transcrição & Legendas (Faster-Whisper)"]
+        OUT2["Master Remasterizado com IA"]
+    end
+
+    subgraph P3["Passo 3: Higienização Rápida de Blackframes"]
+        direction TB
+        B1["Detecção FFmpeg blackdetect (40ms)"]
+        B2["Fusão de Intervalos (gap <= 0.25s)"]
+        B3["Corte de Líderes/Trailers (Stream-Copy)"]
+        B4["Congelamento TBC em Gaps Intermediários"]
+        OUT3["Mídia Higienizada e Sincronizada"]
+    end
+
+    RAW --> D1 --> F1 --> C1 --> M1 --> L1 --> T1 --> OUT1
+    OUT1 -.-> MAN1
+    OUT1 --> AI1 --> AI2 --> AI3 --> AI4 --> OUT2
+    OUT1 --> B1 --> B2 --> B3 & B4 --> OUT3
+```
+
+### 14.1 Proteção Anti-Degradação Geracional (Smart Pass Guardrail)
+Quando o operador seleciona um arquivo da aba "Masters" (`restored/`) ou qualquer vídeo já progressivo:
+1. O planejador em `src/infrastructure/executor/planner.rs` detecta que a mídia é progressiva (`!probe.is_interlaced` ou `manifest.is_progressive == true`).
+2. **Bypass Automático:**
+   - Desentrelaçamento é desligado (`DeinterlaceFilter::None`).
+   - `apply_chroma_fix = false`
+   - `apply_comb_filter = false`
+   - `apply_overscan_blanking = false`
+   - Flag `master_guard_bypassed = true` é registrada na telemetria.
+3. Isso impede horas de processamento redundante e a destruição da imagem por re-desentrelaçamento desnecessário.
+
+### 14.2 O Sidecar Companion `.manifest.json`
+Todo arquivo gerado é acompanhado de um sidecar JSON (`<arquivo>.manifest.json`) mantido por `src/models/manifest.rs`:
+- Registra `source_raw`, `is_progressive`, dimensões, FPS e `completed_stages`.
+- Calcula dinamicamente `available_stages` (somente estágios do Passo 2 e Passo 3 são permitidos para Masters progressivos).
+- Armazena histórico cronológico de transformações em `history`.
+
+---
+
+## 15. Motor Nativo de Blackframe & TBC Frame-Hold (`src/domain/blackframe.rs`)
+
+### 15.1 O Desafio da Desincronia A/V em Fitas Analógicas
+Quando o cabeçote de um videocassete perde o tracking ou a fita sofre um vinco físico:
+- A placa de captura injeta quadros sintéticos pretos ou azuis enquanto tenta re-sincronizar o pulso de sincronismo horizontal/vertical.
+- O fluxo de áudio analógico contínuo **continua gravando normalmente sem pausas**.
+- **O Erro Clássico:** Se os quadros pretos forem simplesmente excluídos do vídeo, a duração do stream de vídeo encurta enquanto o áudio permanece com a duração original. Isso causa um atraso progressivo e severo do áudio em relação ao vídeo (desincronia labial cumulativa).
+
+### 15.2 Estratégias do Motor de Blackframe
+| Região | Detecção | Ação Aplicada | Impacto na Sincronia A/V |
+| :--- | :--- | :--- | :--- |
+| **Líder (Início)** | Início $\le 0.5\text{s}$ do tempo $0.0$ | Corte síncrono de Áudio e Vídeo (`-ss` / `atrim`) via stream-copy | Perfeito. Remove estática e ruído inicial sem dessincronizar. |
+| **Trailer (Fim)** | Fim $\le 0.5\text{s}$ da duração total | Corte final (`-to` / `atrim`) | Perfeito. Elimina tela preta residual após o término da gravação. |
+| **Gaps Intermediários** | No meio da gravação ($> 0.5\text{s}$) | **TBC Frame-Hold (`Freeze`):** Congela o último quadro válido | **100% Preservada.** Mantém a cadência temporal exata do vídeo para acompanhar o áudio contínuo. |
+
