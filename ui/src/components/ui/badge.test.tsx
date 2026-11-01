@@ -7,7 +7,7 @@ describe('Badge UI component', () => {
     render(<Badge>Test Badge</Badge>);
     const textSpan = screen.getByText('Test Badge');
     expect(textSpan).toBeInTheDocument();
-    expect(textSpan).toHaveClass('translate-y-[0.5px]');
+    expect(textSpan).toHaveClass('items-center');
   });
 
   it('renders live variant with pulse dot', () => {

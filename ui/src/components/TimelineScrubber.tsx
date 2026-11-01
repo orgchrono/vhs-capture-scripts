@@ -47,8 +47,12 @@ export const TimelineScrubber: React.FC<TimelineScrubberProps> = ({
     onScrubCommit();
   };
 
+  const showHours = totalDuration >= 3600 || currentTimestamp >= 3600;
+  const currentFormatted = formatDuration(currentTimestamp, showHours);
+  const totalFormatted = formatDuration(totalDuration, showHours);
+
   return (
-    <div className="flex-1 min-w-[240px] flex items-center gap-2.5">
+    <div className="w-full min-w-[60px] grid grid-cols-[1fr_auto] items-center gap-2">
       <input
         type="range"
         min={0}
@@ -72,12 +76,12 @@ export const TimelineScrubber: React.FC<TimelineScrubberProps> = ({
         data-testid={inputTestId}
       />
       <span
-        className="text-[10px] text-slate-300 font-mono tabular-nums shrink-0 bg-studio-surface/90 px-2 py-0.5 rounded-xs border border-studio-border whitespace-nowrap"
+        className="text-[10px] text-slate-300 font-mono tabular-nums shrink-0 bg-studio-surface/90 px-1.5 py-0.5 rounded-xs border border-studio-border whitespace-nowrap self-center leading-none"
         data-testid={infoTestId}
       >
         {t('monitor.split_timeline_info', {
-          current: formatDuration(currentTimestamp),
-          total: formatDuration(totalDuration),
+          current: currentFormatted,
+          total: totalFormatted,
           percent: progressPct,
         })}
       </span>

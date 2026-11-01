@@ -18,6 +18,11 @@ import { LiveEdgeIndicator } from './LiveEdgeIndicator';
 import { TimelineScrubber } from './TimelineScrubber';
 import { MonitorReticleOverlay } from './MonitorReticleOverlay';
 import { Badge } from './ui/badge';
+import { VolumeControl } from './VolumeControl';
+import { SubtitleOverlay } from './SubtitleOverlay';
+import { SubtitleEditorModal } from './SubtitleEditorModal';
+import { SubtitleToolbarButtons } from './SubtitleToolbarButtons';
+import { useMonitorMediaControls } from '../viewmodels/useMonitorMediaControls';
 
 const SPLIT_PRESETS = [0, 25, 50, 75, 100] as const;
 
@@ -108,6 +113,19 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = (pr
     handleTimelineInput,
     handleTimelineCommit,
   } = useSplitComparisonViewModel(props);
+
+  const {
+    subtitlesEnabled,
+    toggleSubtitles,
+    isSubtitleEditorOpen,
+    setIsSubtitleEditorOpen,
+    subtitleCues,
+    setSubtitleCues,
+    volume,
+    isMuted,
+    handleVolumeChange,
+    handleMuteChange,
+  } = useMonitorMediaControls({ sourceFile: source });
 
   const rawStreamUrl = `/api/monitor/stream-proxy?mode=raw&source=${encodeURIComponent(source)}&fps=15&timestamp=${streamAnchor}&k=${streamKey}`;
   const procStreamUrl = `/api/monitor/stream-proxy?mode=processed&source=${encodeURIComponent(source)}&fps=15&timestamp=${streamAnchor}&k=${streamKey}`;
@@ -276,8 +294,8 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = (pr
         {!isStreamActive && isFetching && (
           <div className="absolute top-12 z-30">
             <Badge variant="warn" size="default" className="shadow-md backdrop-blur-xs">
-              <RefreshCw className="w-3 h-3 text-amber-400 animate-spin" />
-              <span>{t('monitor.split_loading')}</span>
+              <RefreshCw className="w-3 h-3 text-amber-400 animate-spin shrink-0 self-center" />
+              <span className="self-center leading-none">{t('monitor.split_loading')}</span>
             </Badge>
           </div>
         )}
@@ -376,12 +394,18 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = (pr
           className="pointer-events-none absolute inset-0 z-10 shadow-[inset_0_0_60px_rgba(0,0,0,0.85)]"
         />
 
+        <SubtitleOverlay
+          cues={subtitleCues}
+          currentTimeSec={effectiveTimestamp}
+          enabled={subtitlesEnabled}
+        />
+
         <MonitorReticleOverlay />
       </div>
 
       {/* Bottom Transport Controls */}
-      <div className="absolute bottom-0 left-0 right-0 z-30 bg-studio-panel/95 border-t border-studio-border px-2.5 py-1.5 flex items-center justify-between gap-x-2.5 gap-y-1.5 text-xs font-mono select-none flex-wrap min-w-0">
-        <div className="flex items-center gap-1 shrink-0">
+      <div className="absolute bottom-0 left-0 right-0 z-30 bg-studio-panel/95 border-t border-studio-border px-2.5 py-1.5 grid grid-cols-[auto_1fr_auto] items-center gap-2.5 text-xs font-mono select-none min-w-0 h-9">
+        <div className="grid grid-flow-col auto-cols-max items-center gap-1 shrink-0">
           <button
             type="button"
             onClick={() => handleSeek(-30)}
@@ -471,7 +495,30 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = (pr
           inputTestId="timeline-scrubber-input"
           infoTestId="split-timeline-info"
         />
+
+        <div className="grid grid-flow-col auto-cols-max items-center gap-1.5 shrink-0">
+          <VolumeControl
+            volume={volume}
+            isMuted={isMuted}
+            onVolumeChange={handleVolumeChange}
+            onMuteToggle={handleMuteChange}
+            compact
+          />
+
+          <SubtitleToolbarButtons
+            subtitlesEnabled={subtitlesEnabled}
+            onToggleSubtitles={toggleSubtitles}
+            onOpenSubtitleEditor={() => setIsSubtitleEditorOpen(true)}
+          />
+        </div>
       </div>
+
+      <SubtitleEditorModal
+        isOpen={isSubtitleEditorOpen}
+        onClose={() => setIsSubtitleEditorOpen(false)}
+        sourceFile={source || ''}
+        onSubtitlesSaved={(newCues) => setSubtitleCues(newCues)}
+      />
     </div>
   );
 };

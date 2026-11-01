@@ -19,6 +19,10 @@ pub struct MediaFileEntry {
     pub size_bytes: u64,
     pub size_mb: f64,
     pub extension: String,
+    #[serde(default)]
+    pub relative_dir: String,
+    #[serde(default)]
+    pub depth: usize,
 }
 
 /// Pure checker determining if a given extension is an authorized broadcast media format.
@@ -67,16 +71,26 @@ pub fn generate_param_hash(content: &[u8]) -> String {
 }
 
 /// Pure scanner for local media directories returning sorted entries matching valid extensions.
-/// Recursively scans immediate subdirectories (up to 2 levels) to discover nested exports.
+/// Uses the canonical default depth.
 pub fn scan_media_directory(dir_path: &Path) -> Result<Vec<MediaFileEntry>, std::io::Error> {
+    scan_media_directory_with_depth(dir_path, crate::models::constants::DEFAULT_SCAN_MAX_DEPTH)
+}
+
+/// Pure scanner for local media directories returning sorted entries matching valid extensions.
+/// Recursively scans subdirectories up to `max_depth` levels to discover nested exports.
+pub fn scan_media_directory_with_depth(
+    dir_path: &Path,
+    max_depth: usize,
+) -> Result<Vec<MediaFileEntry>, std::io::Error> {
     if !dir_path.exists() || !dir_path.is_dir() {
         return Ok(Vec::new());
     }
 
+    let clamped_depth = max_depth.clamp(1, crate::models::constants::MAX_SCAN_DEPTH_LIMIT);
     let mut entries = Vec::new();
-    let mut dirs_to_visit = vec![(dir_path.to_path_buf(), 0usize)];
+    let mut dirs_to_visit = vec![(dir_path.to_path_buf(), 0usize, String::new())];
 
-    while let Some((current_dir, depth)) = dirs_to_visit.pop() {
+    while let Some((current_dir, depth, rel_dir)) = dirs_to_visit.pop() {
         let read_res = match fs::read_dir(&current_dir) {
             Ok(r) => r,
             Err(_) => continue,
@@ -84,10 +98,22 @@ pub fn scan_media_directory(dir_path: &Path) -> Result<Vec<MediaFileEntry>, std:
 
         for entry in read_res.flatten() {
             let path = entry.path();
-            if path.is_dir() && depth < 2 {
-                dirs_to_visit.push((path, depth + 1));
+            let file_name = path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("")
+                .to_string();
+
+            if path.is_dir() && depth < clamped_depth {
+                let next_rel = if rel_dir.is_empty() {
+                    file_name.clone()
+                } else {
+                    format!("{}/{}", rel_dir, file_name)
+                };
+                dirs_to_visit.push((path, depth + 1, next_rel));
                 continue;
             }
+
             if path.is_file() {
                 if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
                     if is_valid_media_extension(ext) {
@@ -97,19 +123,16 @@ pub fn scan_media_directory(dir_path: &Path) -> Result<Vec<MediaFileEntry>, std:
                         };
                         let size_bytes = metadata.len();
                         let size_mb = (size_bytes as f64 / (1024.0 * 1024.0) * 100.0).round() / 100.0;
-                        let name = path
-                            .file_name()
-                            .and_then(|n| n.to_str())
-                            .unwrap_or("")
-                            .to_string();
                         let full_path = path.to_string_lossy().to_string();
 
                         entries.push(MediaFileEntry {
-                            name,
+                            name: file_name,
                             path: full_path,
                             size_bytes,
                             size_mb,
                             extension: format!(".{}", ext.to_ascii_lowercase()),
+                            relative_dir: rel_dir.clone(),
+                            depth,
                         });
                     }
                 }
@@ -117,7 +140,13 @@ pub fn scan_media_directory(dir_path: &Path) -> Result<Vec<MediaFileEntry>, std:
         }
     }
 
-    entries.sort_by(|a, b| a.name.cmp(&b.name));
+    entries.sort_by(|a, b| {
+        if a.relative_dir != b.relative_dir {
+            a.relative_dir.cmp(&b.relative_dir)
+        } else {
+            a.name.cmp(&b.name)
+        }
+    });
     Ok(entries)
 }
 
@@ -240,6 +269,28 @@ mod tests {
         assert_eq!(scanned.len(), 2);
         assert!(scanned.iter().any(|e| e.name == "master_tape_01.mp4"));
         assert!(scanned.iter().any(|e| e.name == "master_tape_02.mkv"));
+
+        let _ = std::fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn test_scan_media_directory_with_depth() {
+        let temp_dir = std::env::temp_dir().join(format!("vhs_scan_depth_{}", std::process::id()));
+        let sub1 = temp_dir.join("sub1");
+        let sub2 = sub1.join("sub2");
+        let _ = std::fs::create_dir_all(&sub2);
+        let root_file = temp_dir.join("root.mp4");
+        let sub2_file = sub2.join("nested.mkv");
+        let _ = std::fs::write(&root_file, b"test");
+        let _ = std::fs::write(&sub2_file, b"test");
+
+        let entries_depth1 = scan_media_directory_with_depth(&temp_dir, 1).unwrap();
+        assert_eq!(entries_depth1.len(), 1);
+        assert_eq!(entries_depth1[0].name, "root.mp4");
+
+        let entries_depth3 = scan_media_directory_with_depth(&temp_dir, 3).unwrap();
+        assert_eq!(entries_depth3.len(), 2);
+        assert!(entries_depth3.iter().any(|e| e.name == "nested.mkv" && e.depth == 2));
 
         let _ = std::fs::remove_dir_all(&temp_dir);
     }

@@ -19,12 +19,17 @@ export function formatBitrate(kbps?: number): string {
   return `${Math.round(kbps)} kbps`;
 }
 
-export function formatDuration(seconds: number): string {
-  if (seconds <= 0) return '00:00:00';
+export function formatDuration(seconds: number, forceHours = false): string {
+  if (seconds <= 0) return forceHours ? '00:00:00' : '00:00';
   const hrs = Math.floor(seconds / 3600);
   const mins = Math.floor((seconds % 3600) / 60);
   const secs = Math.floor(seconds % 60);
-  return [hrs, mins, secs]
+  if (hrs > 0 || forceHours) {
+    return [hrs, mins, secs]
+      .map((v) => v.toString().padStart(2, '0'))
+      .join(':');
+  }
+  return [mins, secs]
     .map((v) => v.toString().padStart(2, '0'))
     .join(':');
 }

@@ -4,7 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "../../lib/utils"
 
 const badgeVariants = cva(
-  "inline-flex items-center justify-center rounded-xs font-mono font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 leading-none select-none shrink-0 whitespace-nowrap",
+  "inline-grid place-items-center rounded-xs font-mono font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 leading-none select-none shrink-0 whitespace-nowrap",
   {
     variants: {
       variant: {
@@ -46,7 +46,7 @@ export interface BadgeProps
 function Badge({ className, variant, size, children, ...props }: BadgeProps) {
   return (
     <div className={cn(badgeVariants({ variant, size }), className)} {...props}>
-      <span className="inline-flex items-center justify-center gap-1 leading-none translate-y-[0.5px]">
+      <span className="inline-grid grid-flow-col auto-cols-max items-center justify-center gap-1.5 leading-none place-self-center">
         {children}
       </span>
     </div>

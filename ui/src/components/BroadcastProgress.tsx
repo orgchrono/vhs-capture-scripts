@@ -32,7 +32,7 @@ export const BroadcastProgress: React.FC = () => {
       <div className="flex items-center justify-between gap-2 min-w-0">
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
           <span
-            className={`led-lamp shrink-0 ${
+            className={`led-lamp shrink-0 self-center ${
               isBusy
                 ? isPaused
                   ? 'led-warn animate-pulse'
@@ -41,10 +41,10 @@ export const BroadcastProgress: React.FC = () => {
             }`}
             aria-hidden="true"
           />
-          <span className="text-[11px] font-bold uppercase tracking-wider font-mono text-slate-200 shrink-0">
+          <span className="text-[11px] font-bold uppercase tracking-wider font-mono text-slate-200 shrink-0 self-center leading-none">
             {t('telemetry.title')}
           </span>
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-sm bg-studio-surface border border-studio-border text-slate-300 truncate max-w-[160px]">
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-sm bg-studio-surface border border-studio-border text-slate-300 truncate max-w-[160px] self-center leading-none">
             {isBusy
               ? isPaused
                 ? t('telemetry.status_paused')
@@ -125,9 +125,9 @@ export const BroadcastProgress: React.FC = () => {
       {/* Hardware Telemetry Strip (Frames, FPS, ETA, Speed) */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 pt-1 border-t border-studio-border text-[10px] font-mono">
         <div className="flex items-center gap-1.5 bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border">
-          <Film className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-          <span className="text-slate-400 text-[10px]">{t('telemetry.frames')}:</span>
-          <span className="text-white font-medium truncate tabular-nums">
+          <Film className="w-3.5 h-3.5 text-slate-400 shrink-0 self-center" />
+          <span className="text-slate-400 text-[10px] self-center leading-none">{t('telemetry.frames')}:</span>
+          <span className="text-white font-medium truncate tabular-nums self-center leading-none">
             {telemetry.totalFrames > 0
               ? `${telemetry.currentFrames}/${telemetry.totalFrames}`
               : isRestoring
@@ -137,21 +137,21 @@ export const BroadcastProgress: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-1.5 bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border">
-          <Gauge className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-          <span className="text-slate-400 text-[10px]">{t('telemetry.fps')}:</span>
-          <span className="text-white font-medium tabular-nums">{telemetry.fps.toFixed(2)}</span>
+          <Gauge className="w-3.5 h-3.5 text-emerald-400 shrink-0 self-center" />
+          <span className="text-slate-400 text-[10px] self-center leading-none">{t('telemetry.fps')}:</span>
+          <span className="text-white font-medium tabular-nums self-center leading-none">{telemetry.fps.toFixed(2)}</span>
         </div>
 
         <div className="flex items-center gap-1.5 bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border">
-          <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-          <span className="text-slate-400 text-[10px]">{t('telemetry.eta')}:</span>
-          <span className="text-white font-medium tabular-nums">{telemetry.eta}</span>
+          <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0 self-center" />
+          <span className="text-slate-400 text-[10px] self-center leading-none">{t('telemetry.eta')}:</span>
+          <span className="text-white font-medium tabular-nums self-center leading-none">{telemetry.eta}</span>
         </div>
 
         <div className="flex items-center gap-1.5 bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border">
-          <Activity className="w-3.5 h-3.5 text-slate-300 shrink-0" />
-          <span className="text-slate-400 text-[10px]">{t('telemetry.speed')}:</span>
-          <span className="text-white font-medium tabular-nums">{telemetry.speed}</span>
+          <Activity className="w-3.5 h-3.5 text-slate-300 shrink-0 self-center" />
+          <span className="text-slate-400 text-[10px] self-center leading-none">{t('telemetry.speed')}:</span>
+          <span className="text-white font-medium tabular-nums self-center leading-none">{telemetry.speed}</span>
         </div>
       </div>
     </div>

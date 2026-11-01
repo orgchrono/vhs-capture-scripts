@@ -115,7 +115,7 @@
     "split_play": "Reproducir comparador",
     "split_pause": "Pausar comparador",
     "split_preset": "Establecer división en {{percent}}%",
-    "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)",
+    "split_timeline_info": "{{current}} / {{total}}",
     "live_badge": "EN VIVO",
     "jump_to_live": "Volver al Punto Actual (En Vivo)",
     "return_live_view": "Volver al Monitor en Tiempo Real",
@@ -154,7 +154,12 @@
     "scopes_lufs_value": "{{value}} LUFS",
     "rec_badge": "GRAB",
     "rec_with_timecode": "GRAB {{timecode}}",
-    "fps_badge": "{{fps}} FPS"
+    "fps_badge": "{{fps}} FPS",
+    "volume": "Volumen",
+    "mute": "Silenciar",
+    "unmute": "Reactivar Audio",
+    "subtitles_toggle": "Subtítulos (CC)",
+    "subtitles_editor": "Editor de Subtítulos"
   },
   "files": {
     "input_file_label": "Archivo de Entrada (media/raw/)",
@@ -276,7 +281,13 @@
     "reset_default": "Restablecer valor predeterminado",
     "tabs_aria_label": "Abas de Configuração",
     "output_codec_hint": "Formato de codificación y compresión del vídeo final.",
-    "tier_label": "Nivel {{tier}}: {{name}}"
+    "tier_label": "Nivel {{tier}}: {{name}}",
+    "vpy_cache_label": "Caché VapourSynth (MB)",
+    "vpy_cache_desc": "Límite de memoria RAM para filtros temporales y QTGMC",
+    "checkpoint_interval_label": "Intervalo de Punto de Control",
+    "checkpoint_interval_desc": "Frecuencia de sincronización en disco en fotogramas",
+    "fixity_label": "Fijeza Criptográfica OAIS",
+    "fixity_desc": "Verificación continua de integridad SHA-256 para archivos máster"
   },
   "hardware": {
     "tier_1": "Básico (CPU Limitada)",
@@ -665,7 +676,11 @@
     "theme_dark": "Studio Pro Dark (Estándar de Transmisión)",
     "theme_oled": "OLED Deep Black (Negro Verdadero)",
     "reset_defaults": "Restablecer Valores Predeterminados",
-    "close": "Hecho"
+    "close": "Hecho",
+    "scan_max_depth_label": "Profundidad de Escaneo",
+    "scan_max_depth_desc": "Profundidad recursiva al buscar en la biblioteca de cintas",
+    "default_videos_dir": "Usar Carpeta de Vídeos del Sistema",
+    "browse": "Examinar..."
   },
   "build": {
     "no_compiler_found": "No suitable C compiler (GCC, Clang) found in system PATH.",
@@ -747,5 +762,38 @@
       "base": "Base (Equilibrado, ~75MB RAM)",
       "small": "Small (Preciso, ~250MB RAM)"
     }
+  },
+  "folders": {
+    "title": "Explorador de Carpetas",
+    "browse_native": "Explorar Sistema...",
+    "current_path": "Carpeta Actual",
+    "up": "Carpeta Superior",
+    "select_this": "Seleccionar Carpeta",
+    "scan_depth": "Profundidad de Búsqueda",
+    "depth_1": "Solo Raíz (1 nivel)",
+    "depth_2": "Estándar (2 niveles)",
+    "depth_3": "Profundo (3 niveles)",
+    "depth_4": "Extensivo (4 niveles)",
+    "depth_5": "Máximo (5 niveles)",
+    "empty_dir": "Carpeta vacía",
+    "filter_placeholder": "Filtrar carpetas...",
+    "browse_btn": "Examinar..."
+  },
+  "subtitles": {
+    "title": "Editor Nativo de Subtítulos",
+    "editor_title": "Editor de Subtítulos",
+    "toggle_cc": "Subtítulos (CC)",
+    "no_cues": "No se detectaron subtítulos",
+    "add_cue": "Añadir Línea",
+    "delete_cue": "Eliminar",
+    "start_time": "Inicio",
+    "end_time": "Fin",
+    "text": "Texto del Subtítulo",
+    "save": "Guardar Subtítulos",
+    "saved_success": "¡Subtítulos guardados con éxito!",
+    "save_failed": "Error al guardar subtítulos",
+    "generate": "Generar Subtítulos con IA",
+    "empty_timeline": "Ningún subtítulo cargado.",
+    "close": "Cerrar Editor"
   }
 }

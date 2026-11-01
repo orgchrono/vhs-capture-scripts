@@ -115,7 +115,7 @@
     "split_play": "Lire le comparateur",
     "split_pause": "Mettre en pause le comparateur",
     "split_preset": "Régler la séparation sur {{percent}}%",
-    "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)",
+    "split_timeline_info": "{{current}} / {{total}}",
     "live_badge": "EN DIRECT",
     "jump_to_live": "Retour au direct",
     "return_live_view": "Retour au moniteur en temps réel",
@@ -154,7 +154,12 @@
     "scopes_lufs_value": "{{value}} LUFS",
     "rec_badge": "ENR",
     "rec_with_timecode": "ENR {{timecode}}",
-    "fps_badge": "{{fps}} FPS"
+    "fps_badge": "{{fps}} FPS",
+    "volume": "Volume",
+    "mute": "Muet",
+    "unmute": "Réactiver le Son",
+    "subtitles_toggle": "Sous-titres (CC)",
+    "subtitles_editor": "Éditeur de Sous-titres"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -276,7 +281,13 @@
     "reset_default": "Rétablir la valeur par défaut",
     "tabs_aria_label": "Abas de Configuração",
     "output_codec_hint": "Format d'encodage et compression de la vidéo finale.",
-    "tier_label": "Niveau {{tier}}: {{name}}"
+    "tier_label": "Niveau {{tier}}: {{name}}",
+    "vpy_cache_label": "Cache VapourSynth (Mo)",
+    "vpy_cache_desc": "Limite de mémoire tampon RAM pour QTGMC et filtres",
+    "checkpoint_interval_label": "Intervalle de Point de Contrôle",
+    "checkpoint_interval_desc": "Fréquence de synchronisation disque en trames",
+    "fixity_label": "Fixité Cryptographique OAIS",
+    "fixity_desc": "Vérification continue d'intégrité SHA-256 pour les masters"
   },
   "hardware": {
     "tier_1": "De base (CPU Limitée)",
@@ -665,7 +676,11 @@
     "theme_dark": "Studio Pro Dark (Standard de Diffusion)",
     "theme_oled": "OLED Deep Black (Noir Absolu)",
     "reset_defaults": "Rétablir les Valeurs par Défaut",
-    "close": "Terminé"
+    "close": "Terminé",
+    "scan_max_depth_label": "Profondeur de Balayage",
+    "scan_max_depth_desc": "Profondeur de dossiers lors de l'indexation de la bibliothèque",
+    "default_videos_dir": "Utiliser le Dossier Vidéos du Système",
+    "browse": "Parcourir..."
   },
   "build": {
     "no_compiler_found": "No suitable C compiler (GCC, Clang) found in system PATH.",
@@ -747,5 +762,38 @@
       "base": "Base (Équilibré, ~75Mo RAM)",
       "small": "Small (Précis, ~250Mo RAM)"
     }
+  },
+  "folders": {
+    "title": "Navigateur de Dossiers",
+    "browse_native": "Parcourir le Système...",
+    "current_path": "Dossier Actuel",
+    "up": "Dossier Parent",
+    "select_this": "Sélectionner le Dossier",
+    "scan_depth": "Profondeur de Recherche",
+    "depth_1": "Racine uniquement (1 niveau)",
+    "depth_2": "Standard (2 niveaux)",
+    "depth_3": "Approfondi (3 niveaux)",
+    "depth_4": "Étendu (4 niveaux)",
+    "depth_5": "Maximum (5 niveaux)",
+    "empty_dir": "Dossier vide",
+    "filter_placeholder": "Filtrer les dossiers...",
+    "browse_btn": "Parcourir..."
+  },
+  "subtitles": {
+    "title": "Éditeur Natif de Sous-titres",
+    "editor_title": "Éditeur de Sous-titres",
+    "toggle_cc": "Sous-titres (CC)",
+    "no_cues": "Aucun sous-titre détecté",
+    "add_cue": "Ajouter une Ligne",
+    "delete_cue": "Supprimer",
+    "start_time": "Début",
+    "end_time": "Fin",
+    "text": "Texte du Sous-titre",
+    "save": "Enregistrer les Sous-titres",
+    "saved_success": "Sous-titres enregistrés avec succès !",
+    "save_failed": "Échec de l'enregistrement",
+    "generate": "Générer des Sous-titres IA",
+    "empty_timeline": "Aucun sous-titre chargé.",
+    "close": "Fermer l'Éditeur"
   }
 }

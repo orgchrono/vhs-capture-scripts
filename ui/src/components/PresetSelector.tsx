@@ -6,6 +6,7 @@ import { motion, useReducedMotion } from 'motion/react'
 import { useStudioStore } from '../store/useStudioStore'
 import type { RestorationPreset } from '../types'
 import { cn } from '../lib/utils'
+import { Badge } from './ui/badge'
 
 interface PresetCard {
   id: RestorationPreset;
@@ -86,11 +87,11 @@ export const PresetSelector: React.FC = () => {
                 }
               />
             )}
-            <div className="flex items-center justify-between gap-2 w-full mb-1.5">
-              <div className="flex items-center gap-2 min-w-0">
+            <div className="grid grid-cols-[1fr_auto] items-center gap-2 w-full mb-1.5">
+              <div className="grid grid-cols-[auto_1fr] items-center gap-2 min-w-0">
                 <div
                   className={cn(
-                    'p-1.5 rounded-sm shrink-0 transition-colors',
+                    'p-1.5 rounded-sm shrink-0 transition-colors inline-grid place-items-center',
                     isActive ? 'bg-slate-200 text-slate-950 font-bold' : 'bg-studio-surface text-slate-400 group-hover:text-slate-200 border border-studio-border'
                   )}
                 >
@@ -101,9 +102,13 @@ export const PresetSelector: React.FC = () => {
                 </span>
               </div>
               {p.badge && (
-                <span className="shrink-0 bg-amber-950/60 text-amber-300 border border-amber-500/40 text-[9px] font-bold px-1.5 py-0.5 rounded-sm uppercase tracking-wider font-mono">
+                <Badge
+                  variant="warn"
+                  size="sm"
+                  className="shrink-0 uppercase tracking-wider place-self-center"
+                >
                   {p.badge}
-                </span>
+                </Badge>
               )}
             </div>
             <p className="text-[11px] text-slate-400 leading-relaxed font-normal font-mono">{p.desc}</p>

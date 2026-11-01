@@ -45,6 +45,14 @@ export function usePreferencesStore() {
         dispatch(actions.setLargeText(val)),
       setTheme: (val: 'dark' | 'oled_black') =>
         dispatch(actions.setTheme(val)),
+      setScanMaxDepth: (val: number) =>
+        dispatch(actions.setScanMaxDepth(val)),
+      setMonitorVolume: (val: number) =>
+        dispatch(actions.setMonitorVolume(val)),
+      setMonitorMuted: (val: boolean) =>
+        dispatch(actions.setMonitorMuted(val)),
+      setSubtitlesEnabled: (val: boolean) =>
+        dispatch(actions.setSubtitlesEnabled(val)),
     };
   }, [dispatch]);
 

@@ -13,7 +13,7 @@ pub fn handle_system_queue(subcmd: &str, args: &[String]) -> Result<bool, Box<dy
             Ok(true)
         }
         "version" | "-v" | "--version" => {
-            println!("vhs-studio 2.1.0");
+            println!("vhs-studio {}", env!("CARGO_PKG_VERSION"));
             Ok(true)
         }
         "install-ffmpeg" => {

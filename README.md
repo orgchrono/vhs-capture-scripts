@@ -293,7 +293,7 @@ cargo run -- serve
 # 2. Check toolchain binary resolutions
 cargo run -- toolchain-check
 
-# 3. Build standalone production release binary (LTO-optimized, 814 KB)
+# 3. Build standalone portable release binary (Fully self-contained, embedded UI + tools)
 build.cmd     # Windows -> dist/VHS_Studio_Pro.exe
 ./build.sh    # Linux/macOS -> dist/VHS_Studio_Pro
 ```

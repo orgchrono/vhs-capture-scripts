@@ -76,6 +76,84 @@ pub fn generate_srt_content(segments: &[SubtitleSegment]) -> String {
     out
 }
 
+/// Parse `HH:MM:SS.mmm` or `MM:SS.mmm` to seconds.
+#[must_use]
+pub fn parse_vtt_timestamp(ts: &str) -> Option<f64> {
+    let clean = ts.trim();
+    let parts: Vec<&str> = clean.split(':').collect();
+    match parts.len() {
+        2 => {
+            let m: f64 = parts[0].parse().ok()?;
+            let s: f64 = parts[1].parse().ok()?;
+            Some(m * 60.0 + s)
+        }
+        3 => {
+            let h: f64 = parts[0].parse().ok()?;
+            let m: f64 = parts[1].parse().ok()?;
+            let s: f64 = parts[2].parse().ok()?;
+            Some(h * 3600.0 + m * 60.0 + s)
+        }
+        _ => None,
+    }
+}
+
+/// Parse `HH:MM:SS,mmm` or `HH:MM:SS.mmm` to seconds.
+#[must_use]
+pub fn parse_srt_timestamp(ts: &str) -> Option<f64> {
+    let normalized = ts.trim().replace(',', ".");
+    parse_vtt_timestamp(&normalized)
+}
+
+/// Pure parser extracting `SubtitleSegment`s from a WebVTT or SRT formatted string.
+#[must_use]
+pub fn parse_subtitles(content: &str) -> Vec<SubtitleSegment> {
+    let mut segments = Vec::new();
+    let mut lines = content.lines().map(str::trim);
+
+    while let Some(line) = lines.next() {
+        if line.is_empty() || line == "WEBVTT" || line.starts_with("NOTE") {
+            continue;
+        }
+
+        let timeline = if line.contains("-->") {
+            line
+        } else {
+            match lines.next() {
+                Some(next_line) if next_line.contains("-->") => next_line,
+                _ => continue,
+            }
+        };
+
+        let times: Vec<&str> = timeline.split("-->").collect();
+        if times.len() != 2 {
+            continue;
+        }
+
+        let start = parse_srt_timestamp(times[0].split_whitespace().next().unwrap_or(""));
+        let end = parse_srt_timestamp(times[1].split_whitespace().next().unwrap_or(""));
+
+        if let (Some(start_sec), Some(end_sec)) = (start, end) {
+            let mut text_lines = Vec::new();
+            for text_line in lines.by_ref() {
+                if text_line.is_empty() {
+                    break;
+                }
+                text_lines.push(text_line);
+            }
+            let text = text_lines.join("\n");
+            if !text.is_empty() {
+                segments.push(SubtitleSegment {
+                    start_seconds: (start_sec * 1000.0).round() / 1000.0,
+                    end_seconds: (end_sec * 1000.0).round() / 1000.0,
+                    text,
+                });
+            }
+        }
+    }
+
+    segments
+}
+
 /// Pure builder generating FFmpeg arguments for extracting 16kHz mono audio for Whisper.
 #[must_use]
 pub fn build_audio_extract_args(
@@ -215,5 +293,35 @@ mod tests {
             disambiguate_speech_language_with_default("ja", 0.40, true, "en");
         assert_eq!(lang_custom, "en");
         assert!(ambig_custom);
+    }
+
+    #[test]
+    fn test_parse_subtitles_vtt_and_srt_roundtrip() {
+        let original = vec![
+            SubtitleSegment {
+                start_seconds: 1.5,
+                end_seconds: 4.25,
+                text: "Hello world".to_string(),
+            },
+            SubtitleSegment {
+                start_seconds: 5.0,
+                end_seconds: 8.75,
+                text: "Second subtitle line".to_string(),
+            },
+        ];
+
+        let vtt = generate_vtt_content(&original);
+        let parsed_vtt = parse_subtitles(&vtt);
+        assert_eq!(parsed_vtt.len(), 2);
+        assert_eq!(parsed_vtt[0].text, "Hello world");
+        assert_eq!(parsed_vtt[0].start_seconds, 1.5);
+        assert_eq!(parsed_vtt[0].end_seconds, 4.25);
+        assert_eq!(parsed_vtt[1].text, "Second subtitle line");
+
+        let srt = generate_srt_content(&original);
+        let parsed_srt = parse_subtitles(&srt);
+        assert_eq!(parsed_srt.len(), 2);
+        assert_eq!(parsed_srt[0].text, "Hello world");
+        assert_eq!(parsed_srt[1].text, "Second subtitle line");
     }
 }

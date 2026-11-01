@@ -27,6 +27,7 @@ if %errorlevel% neq 0 exit /b %errorlevel%
 
 if not exist "dist" mkdir dist
 copy /y "target\release\vhs-studio.exe" "dist\VHS_Studio_Pro.exe" >nul
+if exist "target\release\WebView2Loader.dll" copy /y "target\release\WebView2Loader.dll" "dist\WebView2Loader.dll" >nul
 
 echo ========================================================
 echo [OK] Build completed! Binary is located at:

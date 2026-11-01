@@ -299,15 +299,15 @@ const StudioMain: React.FC<{
               >
                 <div className="p-3 border-b border-studio-border bg-studio-surface/30">
                   <h2 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2.5 whitespace-nowrap flex items-center gap-1.5 font-mono">
-                    <span className="led-lamp led-rec"></span>
-                    {t('app.sidebar_capture_title')}
+                    <span className="led-lamp led-rec shrink-0 self-center"></span>
+                    <span className="self-center leading-none">{t('app.sidebar_capture_title')}</span>
                   </h2>
                   <CaptureBar />
                 </div>
                 <div className="p-3 flex-1 overflow-y-auto custom-scrollbar">
                   <h2 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2.5 whitespace-nowrap flex items-center gap-1.5 font-mono">
-                    <span className="led-lamp led-live"></span>
-                    {t('app.sidebar_library_title')}
+                    <span className="led-lamp led-live shrink-0 self-center"></span>
+                    <span className="self-center leading-none">{t('app.sidebar_library_title')}</span>
                   </h2>
                   <FileSelector
                     files={status?.raw_files || []}
@@ -358,22 +358,22 @@ const StudioMain: React.FC<{
                         <div className="flex items-center justify-between mb-2 shrink-0 h-6 min-w-0 gap-2">
                           <div className="flex items-center gap-2 min-w-0 flex-1">
                             <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 font-mono shrink-0 whitespace-nowrap">
-                              <span className="bg-slate-500 w-1 h-3 rounded-sm shrink-0" aria-hidden="true"></span>
-                              <span className="truncate">{t('app.engine_title')}</span>
+                              <span className="bg-slate-500 w-1 h-3 rounded-sm shrink-0 self-center" aria-hidden="true"></span>
+                              <span className="truncate self-center leading-none">{t('app.engine_title')}</span>
                             </h2>
-                            <span className="hidden xl:inline-flex items-center leading-none text-[10px] font-mono text-slate-400 bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border uppercase shrink-0 whitespace-nowrap">
-                              <span className="translate-y-[0.5px]">{t('app.engine_badge')}</span>
+                            <span className="hidden xl:inline-flex items-center justify-center leading-none text-[10px] font-mono text-slate-400 bg-studio-surface px-1.5 py-0.5 rounded-sm border border-studio-border uppercase shrink-0 whitespace-nowrap self-center">
+                              <span className="self-center leading-none">{t('app.engine_badge')}</span>
                             </span>
                           </div>
                           <div
-                            className="inline-flex items-center gap-1.5 text-[10px] font-mono font-medium text-slate-300 bg-studio-surface border border-studio-border px-2 py-0.5 rounded-sm shrink-0 whitespace-nowrap max-w-[140px] sm:max-w-[190px] leading-none"
+                            className="inline-flex items-center gap-1.5 text-[10px] font-mono font-medium text-slate-300 bg-studio-surface border border-studio-border px-2 h-6 rounded-sm shrink-0 whitespace-nowrap max-w-[140px] sm:max-w-[190px]"
                             title={currentPresetLabel}
                           >
-                            <span className="led-lamp led-live shrink-0" aria-hidden="true"></span>
-                            <span className="truncate translate-y-[0.5px]">{currentPresetLabel}</span>
+                            <span className="led-lamp led-live shrink-0 self-center" aria-hidden="true"></span>
+                            <span className="truncate self-center leading-none">{currentPresetLabel}</span>
                           </div>
                         </div>
-                        <div className="flex-1 min-h-0 flex flex-col">
+                        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
                           <RestorationSettings />
                         </div>
                       </ResizablePanel>

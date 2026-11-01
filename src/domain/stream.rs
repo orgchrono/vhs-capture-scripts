@@ -164,18 +164,26 @@ pub fn build_stream_proxy_ffmpeg_args(spec: &StreamProxySpec, ffmpeg_bin: &str) 
         "error".to_string(),
     ];
 
-    let (input_file, use_master) = if let Some(ref src) = spec.source_path {
-        (Some(src.clone()), false)
-    } else if let Some(ref master) = spec.restored_master_path {
-        (Some(master.clone()), spec.mode == StreamProxyMode::Processed)
-    } else {
-        (None, false)
+    let (input_file, use_master) = match spec.mode {
+        StreamProxyMode::Processed if spec.restored_master_path.is_some() => {
+            (spec.restored_master_path.clone(), true)
+        }
+        _ => {
+            if let Some(ref src) = spec.source_path {
+                (Some(src.clone()), false)
+            } else if let Some(ref master) = spec.restored_master_path {
+                (Some(master.clone()), spec.mode == StreamProxyMode::Processed)
+            } else {
+                (None, false)
+            }
+        }
     };
 
     if let Some(ref input_path) = input_file {
         if spec.timestamp_sec > 0.05 {
             cmd.push("-ss".to_string());
             cmd.push(format!("{:.3}", spec.timestamp_sec));
+            cmd.push("-accurate_seek".to_string());
         }
 
         cmd.extend(vec![
@@ -190,26 +198,26 @@ pub fn build_stream_proxy_ffmpeg_args(spec: &StreamProxySpec, ffmpeg_bin: &str) 
             StreamProxyMode::Raw => {
                 cmd.extend(vec![
                     "-vf".to_string(),
-                    format!("scale={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX}:force_original_aspect_ratio=decrease,setsar=1:1,fps={fps_val}"),
+                    format!("scale={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX}:force_original_aspect_ratio=decrease,pad={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX}:(ow-iw)/2:(oh-ih)/2:black,setsar=1:1,fps={fps_val}"),
                 ]);
             }
             StreamProxyMode::Processed if use_master => {
                 // P1.1: Master already restored! Stream directly with zero CPU filter recomputation
                 cmd.extend(vec![
                     "-vf".to_string(),
-                    format!("scale={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX}:force_original_aspect_ratio=decrease,setsar=1:1,fps={fps_val}"),
+                    format!("scale={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX}:force_original_aspect_ratio=decrease,pad={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX}:(ow-iw)/2:(oh-ih)/2:black,setsar=1:1,fps={fps_val}"),
                 ]);
             }
             StreamProxyMode::Processed => {
                 cmd.extend(vec![
                     "-vf".to_string(),
-                    format!("bwdif=mode=0:parity=-1:deint=1,chromashift=cbh=2:cbv=1:crh=2:crv=1,hqdn3d=4.0:3.0:6.0:4.5,scale={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX}:force_original_aspect_ratio=decrease,setsar=1:1,fps={fps_val}"),
+                    format!("bwdif=mode=0:parity=-1:deint=1,chromashift=cbh=2:cbv=1:crh=2:crv=1,hqdn3d=4.0:3.0:6.0:4.5,scale={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX}:force_original_aspect_ratio=decrease,pad={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX}:(ow-iw)/2:(oh-ih)/2:black,setsar=1:1,fps={fps_val}"),
                 ]);
             }
             StreamProxyMode::Split => {
                 cmd.extend(vec![
                     "-filter_complex".to_string(),
-                    format!("[0:v]split=2[raw_in][proc_in];[raw_in]scale={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX}:force_original_aspect_ratio=decrease,setsar=1:1,fps={fps_val}[raw_out];[proc_in]bwdif=mode=0:parity=-1:deint=1,chromashift=cbh=2:cbv=1:crh=2:crv=1,hqdn3d=4.0:3.0:6.0:4.5,scale={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX}:force_original_aspect_ratio=decrease,setsar=1:1,fps={fps_val}[proc_out];[raw_out][proc_out]hstack=inputs=2[out]"),
+                    format!("[0:v]split=2[raw_in][proc_in];[raw_in]scale={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX}:force_original_aspect_ratio=decrease,pad={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX}:(ow-iw)/2:(oh-ih)/2:black,setsar=1:1,fps={fps_val}[raw_out];[proc_in]bwdif=mode=0:parity=-1:deint=1,chromashift=cbh=2:cbv=1:crh=2:crv=1,hqdn3d=4.0:3.0:6.0:4.5,scale={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX}:force_original_aspect_ratio=decrease,pad={STREAM_PROXY_WIDTH_PX}:{STREAM_PROXY_HEIGHT_PX}:(ow-iw)/2:(oh-ih)/2:black,setsar=1:1,fps={fps_val}[proc_out];[raw_out][proc_out]hstack=inputs=2[out]"),
                     "-map".to_string(),
                     "[out]".to_string(),
                 ]);
@@ -363,8 +371,9 @@ mod tests {
         assert_eq!(args[0], "ffmpeg");
         assert_eq!(args[4], "-ss");
         assert_eq!(args[5], "42.500");
-        assert_eq!(args[9], "-i");
-        assert_eq!(args[10], "media/raw/tape1.mp4");
+        assert_eq!(args[6], "-accurate_seek");
+        assert_eq!(args[10], "-i");
+        assert_eq!(args[11], "media/raw/tape1.mp4");
         assert!(args.iter().any(|a| a.contains("split=2[raw_in][proc_in]")));
 
         let spec_master = StreamProxySpec {
@@ -378,27 +387,28 @@ mod tests {
         assert!(args_master.contains(&"media/raw/tape1.mp4".to_string()));
         assert!(args_master.iter().any(|a| a.contains("split=2[raw_in][proc_in]")));
 
-        // When source_path is present in Processed mode, it MUST read source_path for frame accuracy
-        let spec_proc_with_src = StreamProxySpec {
+        // When restored_master_path is present in Processed mode, it MUST read restored_master_path
+        let spec_proc_with_master = StreamProxySpec {
             source_path: Some("media/raw/tape1.mp4".to_string()),
             restored_master_path: Some("media/restored/tape1_restored.mp4".to_string()),
             mode: StreamProxyMode::Processed,
             fps: 15,
             timestamp_sec: 10.0,
         };
-        let args_proc_with_src = build_stream_proxy_ffmpeg_args(&spec_proc_with_src, "ffmpeg");
-        assert!(args_proc_with_src.contains(&"media/raw/tape1.mp4".to_string()));
-        assert!(args_proc_with_src.iter().any(|a| a.contains("bwdif=")));
+        let args_proc_with_master = build_stream_proxy_ffmpeg_args(&spec_proc_with_master, "ffmpeg");
+        assert!(args_proc_with_master.contains(&"media/restored/tape1_restored.mp4".to_string()));
+        assert!(!args_proc_with_master.iter().any(|a| a.contains("bwdif=")));
 
-        // When source_path is None, fallback to restored_master_path
+        // When restored_master_path is None, Processed mode falls back to source_path with bwdif filter
         let spec_proc_fallback = StreamProxySpec {
-            source_path: None,
-            restored_master_path: Some("media/restored/tape1_restored.mp4".to_string()),
+            source_path: Some("media/raw/tape1.mp4".to_string()),
+            restored_master_path: None,
             mode: StreamProxyMode::Processed,
             fps: 15,
             timestamp_sec: 10.0,
         };
         let args_proc_fallback = build_stream_proxy_ffmpeg_args(&spec_proc_fallback, "ffmpeg");
-        assert!(args_proc_fallback.contains(&"media/restored/tape1_restored.mp4".to_string()));
+        assert!(args_proc_fallback.contains(&"media/raw/tape1.mp4".to_string()));
+        assert!(args_proc_fallback.iter().any(|a| a.contains("bwdif=")));
     }
 }

@@ -141,11 +141,15 @@ describe('BroadcastScopes Component', () => {
     expect(screen.getAllByText('monitor.scopes_legend_raw').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('monitor.scopes_legend_proc').length).toBeGreaterThanOrEqual(1);
 
-    // Check dual audio meters (RAW and REST)
+    // Check dual audio meters (RAW and REST with full stereo L/R)
     expect(screen.getByText('monitor.scopes_short_raw')).toBeInTheDocument();
     expect(screen.getByText('monitor.scopes_short_proc')).toBeInTheDocument();
     expect(screen.getByText('-24.5 LUFS')).toBeInTheDocument();
+    expect(screen.getByText('-25.0 LUFS')).toBeInTheDocument();
     expect(screen.getByText('-22.0 LUFS')).toBeInTheDocument();
+    expect(screen.getByText('-22.5 LUFS')).toBeInTheDocument();
+    expect(screen.getAllByText('monitor.scopes_channel_l').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText('monitor.scopes_channel_r').length).toBeGreaterThanOrEqual(2);
 
     // Switch comparison view to RAW only
     fireEvent.click(screen.getByText('monitor.scopes_comp_raw'));

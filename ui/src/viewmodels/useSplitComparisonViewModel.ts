@@ -62,6 +62,7 @@ export function useSplitComparisonViewModel({
 
   const prevSourceRef = useRef<string | undefined>(source);
   const [cachedDuration, setCachedDuration] = useState<number>(0);
+
   useEffect(() => {
     if (prevSourceRef.current !== source) {
       prevSourceRef.current = source;
@@ -122,6 +123,10 @@ export function useSplitComparisonViewModel({
     { skip: !hasMedia || isStreamActive || isScrubbing }
   );
 
+  if (frameData?.duration && frameData.duration > 0 && frameData.duration !== cachedDuration) {
+    setCachedDuration(frameData.duration);
+  }
+
   // Reflect frame extraction telemetry in activeTask only when not scrubbing
   useEffect(() => {
     if (isScrubbing) return;
@@ -159,12 +164,6 @@ export function useSplitComparisonViewModel({
       timestamp: debouncedTimestamp,
     };
   }, [frameData, debouncedTimestamp]);
-
-  useEffect(() => {
-    if (frameData?.duration && frameData.duration > 0) {
-      setCachedDuration(frameData.duration);
-    }
-  }, [frameData?.duration]);
 
   const totalDuration = frameData?.duration && frameData.duration > 0 ? frameData.duration : cachedDuration;
   const progressPct = totalDuration > 0

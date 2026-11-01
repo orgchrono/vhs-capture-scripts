@@ -115,7 +115,7 @@
     "split_play": "Riproduci comparatore",
     "split_pause": "Pausa comparatore",
     "split_preset": "Imposta divisione a {{percent}}%",
-    "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)",
+    "split_timeline_info": "{{current}} / {{total}}",
     "live_badge": "IN DIRETTA",
     "jump_to_live": "Torna al punto live",
     "return_live_view": "Torna al monitor in tempo reale",
@@ -154,7 +154,12 @@
     "scopes_lufs_value": "{{value}} LUFS",
     "rec_badge": "REC",
     "rec_with_timecode": "REC {{timecode}}",
-    "fps_badge": "{{fps}} FPS"
+    "fps_badge": "{{fps}} FPS",
+    "volume": "Volume",
+    "mute": "Disattiva Audio",
+    "unmute": "Riattiva Audio",
+    "subtitles_toggle": "Sottotitoli (CC)",
+    "subtitles_editor": "Editor Sottotitoli"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -276,7 +281,13 @@
     "reset_default": "Ripristina impostazione predefinita",
     "tabs_aria_label": "Abas de Configuração",
     "output_codec_hint": "Formato di codifica e compressione del video finale.",
-    "tier_label": "Livello {{tier}}: {{name}}"
+    "tier_label": "Livello {{tier}}: {{name}}",
+    "vpy_cache_label": "Cache VapourSynth (MB)",
+    "vpy_cache_desc": "Limite del buffer RAM dedicato per QTGMC e filtri",
+    "checkpoint_interval_label": "Intervallo Punto di Ripristino",
+    "checkpoint_interval_desc": "Frequenza di sincronizzazione atomica su disco in frame",
+    "fixity_label": "Integrità Crittografica OAIS",
+    "fixity_desc": "Verifica continua dell'integrità SHA-256 per i master di archivio"
   },
   "hardware": {
     "tier_1": "Base (CPU Limitata)",
@@ -665,7 +676,11 @@
     "theme_dark": "Studio Pro Dark (Standard di Trasmissione)",
     "theme_oled": "OLED Deep Black (Nero Assoluto)",
     "reset_defaults": "Ripristina Predefiniti",
-    "close": "Fatto"
+    "close": "Fatto",
+    "scan_max_depth_label": "Profondità di Scansione Media",
+    "scan_max_depth_desc": "Livello di ricorsione per la libreria delle cassette",
+    "default_videos_dir": "Usa Cartella Video Predefinita del Sistema",
+    "browse": "Sfoglia..."
   },
   "build": {
     "no_compiler_found": "No suitable C compiler (GCC, Clang) found in system PATH.",
@@ -747,5 +762,38 @@
       "base": "Base (Bilanciato, ~75MB RAM)",
       "small": "Small (Accurato, ~250MB RAM)"
     }
+  },
+  "folders": {
+    "title": "Esplora Cartelle",
+    "browse_native": "Sfoglia Sistema...",
+    "current_path": "Cartella Corrente",
+    "up": "Cartella Superiore",
+    "select_this": "Seleziona Cartella",
+    "scan_depth": "Profondità di Scansione",
+    "depth_1": "Solo Radice (1 livello)",
+    "depth_2": "Standard (2 livelli)",
+    "depth_3": "Profonda (3 livelli)",
+    "depth_4": "Estesa (4 livelli)",
+    "depth_5": "Massima (5 livelli)",
+    "empty_dir": "Cartella vuota",
+    "filter_placeholder": "Filtra cartelle...",
+    "browse_btn": "Sfoglia..."
+  },
+  "subtitles": {
+    "title": "Editor Sottotitoli Nativo",
+    "editor_title": "Editor Sottotitoli",
+    "toggle_cc": "Sottotitoli (CC)",
+    "no_cues": "Nessun sottotitolo rilevato",
+    "add_cue": "Aggiungi Riga",
+    "delete_cue": "Elimina",
+    "start_time": "Inizio",
+    "end_time": "Fine",
+    "text": "Testo Sottotitolo",
+    "save": "Salva Sottotitoli",
+    "saved_success": "Sottotitoli salvati con successo!",
+    "save_failed": "Errore durante il salvataggio",
+    "generate": "Genera Sottotitoli con IA",
+    "empty_timeline": "Nessun sottotitolo caricato.",
+    "close": "Chiudi Editor"
   }
 }

@@ -10,7 +10,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Trash2,
-  FileText,
+  ClipboardCheck,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTapeLibraryViewModel } from '../viewmodels/useTapeLibraryViewModel';
@@ -18,6 +18,8 @@ import type { RawFile, IncompleteJob } from '../types';
 import { formatMbSize } from '../lib/formatters';
 import { QcReportModal } from './QcReportModal';
 import { Badge } from './ui/badge';
+import { DirectoryPickerModal } from './DirectoryPickerModal';
+import { usePreferencesStore } from '../store/usePreferencesStore';
 
 export interface TapeLibraryCardProps {
   files: RawFile[];
@@ -124,7 +126,7 @@ const TapeItemCard: React.FC<TapeItemCardProps> = ({
           >
             {file.name}
           </h4>
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="grid grid-flow-col auto-cols-max items-center gap-1 shrink-0">
             {isMaster ? (
               <Badge variant="live" size="sm">
                 {t('files.master_tape_badge')}
@@ -140,23 +142,31 @@ const TapeItemCard: React.FC<TapeItemCardProps> = ({
                 e.stopPropagation();
                 onOpenQc(file.path);
               }}
-              className="p-1 text-slate-400 hover:text-emerald-400 hover:bg-studio-panel rounded-xs transition"
+              className="p-1 text-slate-400 hover:text-emerald-400 hover:bg-studio-panel rounded-xs transition flex items-center justify-center"
               title={t('files.qc_report_button')}
               aria-label={t('files.qc_report_button')}
             >
-              <FileText className="w-3.5 h-3.5" />
+              <ClipboardCheck className="w-3.5 h-3.5 self-center text-emerald-400" />
             </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400">
-          <span className="text-slate-400 tabular-nums">
+        <div className="grid grid-flow-col auto-cols-max items-center gap-1.5 text-[10px] font-mono text-slate-400">
+          <span className="text-slate-400 tabular-nums self-center leading-none">
             {formatMbSize(file.size_mb)}
           </span>
-          <span>•</span>
-          <span className="text-slate-500 truncate">
+          <span className="self-center leading-none">•</span>
+          <span className="text-slate-500 truncate self-center leading-none">
             {file.date || t('files.analog_recording')}
           </span>
+          {file.relative_dir ? (
+            <>
+              <span className="self-center leading-none">•</span>
+              <span className="text-amber-400/90 truncate max-w-[120px] self-center leading-none" title={file.relative_dir}>
+                📁 {file.relative_dir}
+              </span>
+            </>
+          ) : null}
         </div>
       </div>
     </div>
@@ -186,15 +196,17 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
     isPerformingAction,
   } = useTapeLibraryViewModel({ files, onRefreshParent: onRefresh });
   const [qcModalFile, setQcModalFile] = useState<string | null>(null);
+  const [isDirPickerOpen, setIsDirPickerOpen] = useState(false);
+  const prefs = usePreferencesStore();
 
   return (
     <div className="bg-studio-panel border border-studio-border rounded-md p-2.5 flex flex-col gap-2 select-none">
       {/* Top Header: Title, File Count, and Refresh Button */}
       <div className="flex items-center justify-between gap-1.5 min-w-0">
         <div className="flex items-center gap-1.5 font-mono text-[11px] text-slate-300 font-bold uppercase tracking-wider min-w-0 flex-1">
-          <Film className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-          <span className="truncate">{t('files.library_explorer_title')}</span>
-          <span className="text-[10px] bg-studio-surface px-1.5 py-0.5 rounded-sm text-slate-400 border border-studio-border shrink-0">
+          <Film className="w-3.5 h-3.5 text-slate-400 shrink-0 self-center" />
+          <span className="truncate self-center leading-none">{t('files.library_explorer_title')}</span>
+          <span className="text-[10px] bg-studio-surface px-1.5 py-0.5 rounded-sm text-slate-400 border border-studio-border shrink-0 self-center leading-none inline-flex items-center justify-center">
             {libraryTab === 'raw' ? files.length + orphanJobs.length : restoredFiles.length}
           </span>
         </div>
@@ -202,28 +214,40 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
         <div className="flex items-center gap-1 shrink-0">
           <button
             type="button"
+            onClick={() => setIsDirPickerOpen(true)}
+            className="text-slate-400 hover:text-amber-300 transition text-[10px] flex items-center gap-1 cursor-pointer hover:bg-studio-surface-hover px-1.5 py-0.5 rounded-sm font-mono border border-studio-border"
+            title={t('folders.browse_btn')}
+            aria-label={t('folders.browse_btn')}
+            data-testid="open-dir-picker-btn"
+          >
+            <Folder className="w-3 h-3 text-amber-400 self-center" />
+            <span className="self-center leading-none">{t('folders.browse_btn')}</span>
+          </button>
+
+          <button
+            type="button"
             onClick={onRefresh}
             disabled={isRefetching}
             className="text-slate-400 hover:text-slate-200 transition text-[10px] flex items-center gap-1 cursor-pointer hover:bg-studio-surface-hover px-1.5 py-0.5 rounded-sm font-mono border border-studio-border"
             title={t('files.refresh_list')}
           >
-            <RefreshCw className={`w-3 h-3 ${isRefetching ? 'animate-spin' : ''}`} />
-            <span>{t('files.refresh')}</span>
+            <RefreshCw className={`w-3 h-3 ${isRefetching ? 'animate-spin' : ''} self-center`} />
+            <span className="self-center leading-none">{t('files.refresh')}</span>
           </button>
 
           <button
             type="button"
             aria-expanded={isLibraryExpanded}
             onClick={() => setIsLibraryExpanded(!isLibraryExpanded)}
-            className="flex items-center justify-center w-5 h-5 text-slate-400 hover:text-slate-100 bg-studio-surface hover:bg-studio-surface-hover rounded-sm border border-studio-border cursor-pointer transition"
+            className="flex items-center justify-center w-5 h-5 text-slate-400 hover:text-slate-100 bg-studio-surface hover:bg-studio-surface-hover rounded-sm border border-studio-border cursor-pointer transition shrink-0"
             title={isLibraryExpanded ? t('files.collapse') : t('files.expand')}
             aria-label={isLibraryExpanded ? t('files.collapse') : t('files.expand')}
             data-testid="toggle-tape-library-btn"
           >
             {isLibraryExpanded ? (
-              <Minus className="w-3 h-3" aria-hidden="true" />
+              <Minus className="w-3 h-3 self-center" aria-hidden="true" />
             ) : (
-              <Plus className="w-3 h-3" aria-hidden="true" />
+              <Plus className="w-3 h-3 self-center" aria-hidden="true" />
             )}
           </button>
         </div>
@@ -241,9 +265,9 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
           }`}
           data-testid="tab-raw-btn"
         >
-          <Film className="w-3 h-3 shrink-0" />
-          <span className="truncate">{t('files.tab_raw')}</span>
-          <span className="text-[9px] opacity-75">({files.length + orphanJobs.length})</span>
+          <Film className="w-3 h-3 shrink-0 self-center" />
+          <span className="truncate self-center leading-none">{t('files.tab_raw')}</span>
+          <span className="text-[9px] opacity-75 self-center leading-none">({files.length + orphanJobs.length})</span>
         </button>
         <button
           type="button"
@@ -255,9 +279,9 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
           }`}
           data-testid="tab-masters-btn"
         >
-          <CheckCircle2 className="w-3 h-3 shrink-0" />
-          <span className="truncate">{t('files.tab_masters')}</span>
-          <span className="text-[9px] opacity-75">({restoredFiles.length})</span>
+          <CheckCircle2 className="w-3 h-3 shrink-0 self-center" />
+          <span className="truncate self-center leading-none">{t('files.tab_masters')}</span>
+          <span className="text-[9px] opacity-75 self-center leading-none">({restoredFiles.length})</span>
         </button>
       </div>
 
@@ -265,8 +289,8 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between">
           <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 font-mono">
-            <Folder className="w-3 h-3 text-slate-400" />
-            {t('files.input_file_label')}
+            <Folder className="w-3 h-3 text-slate-400 self-center" />
+            <span className="self-center leading-none">{t('files.input_file_label')}</span>
           </label>
           {selectedFile && (
             <button
@@ -276,8 +300,8 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
               title={t('files.qc_report_button')}
               aria-label={t('files.qc_report_button')}
             >
-              <FileText className="w-3 h-3 text-emerald-400" />
-              <span>{t('files.qc_report_button')}</span>
+              <ClipboardCheck className="w-3 h-3 text-emerald-400 self-center" />
+              <span className="self-center leading-none">{t('files.qc_report_button')}</span>
             </button>
           )}
         </div>
@@ -302,9 +326,9 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
               }
             }}
             title={selectedFile || t('files.select_placeholder')}
-            className="w-full bg-studio-surface border border-studio-border rounded-sm pl-2.5 pr-8 py-1 text-xs font-mono text-slate-200 outline-none focus:border-studio-border-focus focus:ring-1 focus:ring-studio-border-focus transition appearance-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed truncate"
+            className="w-full h-9 bg-studio-surface border border-studio-border rounded-sm pl-3 pr-8 py-1.5 text-xs font-mono text-left text-slate-200 outline-none focus:border-studio-border-focus focus:ring-1 focus:ring-studio-border-focus transition appearance-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed truncate"
           >
-            <option value="" disabled hidden>
+            <option value="" disabled hidden className="text-left">
               {t('files.select_placeholder')}
             </option>
             {libraryTab === 'raw' ? (
@@ -312,7 +336,7 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
                 {files.map((f) => {
                   const inc = findIncompleteJob(f.path);
                   return (
-                    <option key={f.path} value={f.path} className="bg-studio-panel text-slate-200">
+                    <option key={f.path} value={f.path} className="bg-studio-panel text-slate-200 text-left">
                       {f.name} ({formatMbSize(f.size_mb)}){inc ? ` [${inc.progress_percent}%]` : ''}
                     </option>
                   );
@@ -321,7 +345,7 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
                   const name = j.source_file ? (j.source_file.split(/[/\\]/).pop() || j.source_file) : j.job_id;
                   const val = j.source_file || j.output_file;
                   return (
-                    <option key={j.job_id} value={val} className="bg-amber-950 text-amber-200">
+                    <option key={j.job_id} value={val} className="bg-amber-950 text-amber-200 text-left">
                       {name} [{j.progress_percent}%]
                     </option>
                   );
@@ -329,7 +353,7 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
                 {selectedFile &&
                   !files.some((f) => f.path === selectedFile) &&
                   !orphanJobs.some((j) => (j.source_file || j.output_file) === selectedFile) && (
-                    <option value={selectedFile} className="bg-studio-panel text-slate-300">
+                    <option value={selectedFile} className="bg-studio-panel text-slate-300 text-left">
                       {selectedFile.split(/[/\\]/).pop()}
                     </option>
                   )}
@@ -337,12 +361,12 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
             ) : (
               <>
                 {restoredFiles.map((f) => (
-                  <option key={f.path} value={f.path} className="bg-studio-panel text-emerald-300">
+                  <option key={f.path} value={f.path} className="bg-studio-panel text-emerald-300 text-left">
                     ★ {f.name} ({formatMbSize(f.size_mb)})
                   </option>
                 ))}
                 {selectedFile && !restoredFiles.some((f) => f.path === selectedFile) && (
-                  <option value={selectedFile} className="bg-studio-panel text-slate-300">
+                  <option value={selectedFile} className="bg-studio-panel text-slate-300 text-left">
                     {selectedFile.split(/[/\\]/).pop()}
                   </option>
                 )}
@@ -360,14 +384,16 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
         <div className="p-2 rounded-sm bg-amber-950/40 border border-amber-800/60 flex flex-col gap-1.5 font-mono text-[10px]">
           <div className="flex items-center justify-between text-amber-300">
             <span className="flex items-center gap-1 font-semibold">
-              <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0" />
-              {t('recovery.checkpoint_saved_info', {
-                current: selectedIncompleteJob.processed_frames.toLocaleString(),
-                total: selectedIncompleteJob.total_expected_frames > 0
-                  ? selectedIncompleteJob.total_expected_frames.toLocaleString()
-                  : '?',
-                pct: selectedIncompleteJob.progress_percent,
-              })}
+              <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0 self-center" />
+              <span className="self-center leading-none">
+                {t('recovery.checkpoint_saved_info', {
+                  current: selectedIncompleteJob.processed_frames.toLocaleString(),
+                  total: selectedIncompleteJob.total_expected_frames > 0
+                    ? selectedIncompleteJob.total_expected_frames.toLocaleString()
+                    : '?',
+                  pct: selectedIncompleteJob.progress_percent,
+                })}
+              </span>
             </span>
           </div>
 
@@ -379,8 +405,8 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
               className="flex-1 min-w-0 bg-emerald-800/80 hover:bg-emerald-700 disabled:opacity-50 text-emerald-100 py-1 px-1.5 rounded-xs flex items-center justify-center gap-1 font-semibold border border-emerald-600/40 cursor-pointer transition"
               title={t('recovery.finalize_tooltip')}
             >
-              <CheckCircle2 className="w-2.5 h-2.5 shrink-0" />
-              <span className="truncate">{t('recovery.finalize_button')}</span>
+              <CheckCircle2 className="w-2.5 h-2.5 shrink-0 self-center" />
+              <span className="truncate self-center leading-none">{t('recovery.finalize_button')}</span>
             </button>
 
             <button
@@ -390,8 +416,8 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
               className="bg-studio-surface hover:bg-red-950/80 hover:text-red-300 disabled:opacity-50 text-slate-400 py-1 px-2 rounded-xs flex items-center justify-center gap-1 font-semibold border border-studio-border cursor-pointer transition shrink-0"
               title={t('recovery.discard_tooltip')}
             >
-              <Trash2 className="w-2.5 h-2.5 shrink-0" />
-              <span className="truncate">{t('recovery.discard_button')}</span>
+              <Trash2 className="w-2.5 h-2.5 shrink-0 self-center" />
+              <span className="truncate self-center leading-none">{t('recovery.discard_button')}</span>
             </button>
           </div>
         </div>
@@ -465,16 +491,16 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
                           >
                             {name}
                           </h4>
-                          <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-xs bg-amber-950/90 text-amber-300 border border-amber-800 hover:border-amber-600 transition-colors shadow-xs shrink-0 inline-flex items-center leading-none">
-                            <span className="translate-y-[0.5px]">{t('recovery.badge_incomplete', { pct: job.progress_percent })}</span>
+                          <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-xs bg-amber-950/90 text-amber-300 border border-amber-800 hover:border-amber-600 transition-colors shadow-xs shrink-0 inline-flex items-center justify-center leading-none self-center">
+                            <span className="self-center leading-none">{t('recovery.badge_incomplete', { pct: job.progress_percent })}</span>
                           </span>
                         </div>
-                        <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400">
-                          <span className="text-slate-400 tabular-nums">
+                        <div className="grid grid-flow-col auto-cols-max items-center gap-1.5 text-[10px] font-mono text-slate-400">
+                          <span className="text-slate-400 tabular-nums self-center leading-none">
                             {formatMbSize(Math.round(job.output_size_bytes / (1024 * 1024)))}
                           </span>
-                          <span>•</span>
-                          <span className="text-slate-500 truncate">
+                          <span className="self-center leading-none">•</span>
+                          <span className="text-slate-500 truncate self-center leading-none">
                             {job.last_modified}
                           </span>
                         </div>
@@ -534,6 +560,20 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
         filePath={qcModalFile}
         isOpen={Boolean(qcModalFile)}
         onClose={() => setQcModalFile(null)}
+      />
+
+      <DirectoryPickerModal
+        isOpen={isDirPickerOpen}
+        onClose={() => setIsDirPickerOpen(false)}
+        initialPath={libraryTab === 'raw' ? prefs.rawDir : prefs.restoredDir}
+        onSelect={(path) => {
+          if (libraryTab === 'raw') {
+            prefs.updatePreferences({ rawDir: path });
+          } else {
+            prefs.updatePreferences({ restoredDir: path });
+          }
+          onRefresh();
+        }}
       />
     </div>
   );

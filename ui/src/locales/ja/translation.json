@@ -115,7 +115,7 @@
     "split_play": "比較を再生",
     "split_pause": "比較を一時停止",
     "split_preset": "分割を{{percent}}%に設定",
-    "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)",
+    "split_timeline_info": "{{current}} / {{total}}",
     "live_badge": "ライブ",
     "jump_to_live": "ライブ位置に戻る",
     "return_live_view": "リアルタイムモニターに戻る",
@@ -154,7 +154,12 @@
     "scopes_lufs_value": "{{value}} LUFS",
     "rec_badge": "録画",
     "rec_with_timecode": "録画 {{timecode}}",
-    "fps_badge": "{{fps}} FPS"
+    "fps_badge": "{{fps}} FPS",
+    "volume": "音量",
+    "mute": "ミュート",
+    "unmute": "ミュート解除",
+    "subtitles_toggle": "字幕 (CC)",
+    "subtitles_editor": "字幕エディタ"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -276,7 +281,13 @@
     "reset_default": "デフォルトに戻す",
     "tabs_aria_label": "Abas de Configuração",
     "output_codec_hint": "最終動画のエンコード形式および圧縮コーデック。",
-    "tier_label": "ティア {{tier}}: {{name}}"
+    "tier_label": "ティア {{tier}}: {{name}}",
+    "vpy_cache_label": "VapourSynth キャッシュ (MB)",
+    "vpy_cache_desc": "QTGMCおよび時間フィルター専用のRAMバッファ制限",
+    "checkpoint_interval_label": "チェックポイント間隔",
+    "checkpoint_interval_desc": "処理フレーム単位のアトミックディスク同期頻度",
+    "fixity_label": "OAIS 暗号検証と完全性",
+    "fixity_desc": "アーカイブマスター向けの継続的なSHA-256整合性検証"
   },
   "hardware": {
     "tier_1": "エントリー (低スペックCPU)",
@@ -665,7 +676,11 @@
     "theme_dark": "Studio Pro Dark (放送用標準ダーク)",
     "theme_oled": "OLED Deep Black (純黒)",
     "reset_defaults": "デフォルトに戻す",
-    "close": "完了"
+    "close": "完了",
+    "scan_max_depth_label": "メディアのスキャン深度",
+    "scan_max_depth_desc": "テープライブラリ検索時の再帰的フォルダ深度",
+    "default_videos_dir": "OS標準のビデオフォルダを使用",
+    "browse": "参照..."
   },
   "build": {
     "no_compiler_found": "No suitable C compiler (GCC, Clang) found in system PATH.",
@@ -747,5 +762,38 @@
       "base": "Base (バランス, ~75MB RAM)",
       "small": "Small (高精度, ~250MB RAM)"
     }
+  },
+  "folders": {
+    "title": "フォルダナビゲーター",
+    "browse_native": "システムを参照...",
+    "current_path": "現在のフォルダ",
+    "up": "親フォルダ",
+    "select_this": "フォルダを選択",
+    "scan_depth": "スキャンの深さ",
+    "depth_1": "ルートのみ (1階層)",
+    "depth_2": "標準 (2階層)",
+    "depth_3": "詳細 (3階層)",
+    "depth_4": "拡張 (4階層)",
+    "depth_5": "最大 (5階層)",
+    "empty_dir": "空のフォルダ",
+    "filter_placeholder": "フォルダを絞り込み...",
+    "browse_btn": "参照..."
+  },
+  "subtitles": {
+    "title": "ネイティブ字幕エディタ",
+    "editor_title": "字幕エディタ",
+    "toggle_cc": "字幕 (CC)",
+    "no_cues": "字幕が見つかりません",
+    "add_cue": "字幕を追加",
+    "delete_cue": "削除",
+    "start_time": "開始",
+    "end_time": "終了",
+    "text": "字幕テキスト",
+    "save": "字幕を保存",
+    "saved_success": "字幕が正常に保存されました！",
+    "save_failed": "字幕の保存に失敗しました",
+    "generate": "AI字幕を生成",
+    "empty_timeline": "読み込まれた字幕はありません。",
+    "close": "エディタを閉じる"
   }
 }

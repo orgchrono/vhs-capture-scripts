@@ -64,9 +64,54 @@ pub fn resolve_ui_dist_dir() -> PathBuf {
     local
 }
 
+/// Resolves the default OS user Videos root folder for VHS Studio Pro.
+#[must_use]
+pub fn resolve_default_videos_root(home: Option<&Path>) -> PathBuf {
+    if let Some(h) = home {
+        let videos = h.join(crate::models::constants::OS_VIDEOS_FOLDER_NAME);
+        if videos.exists() {
+            return videos.join(crate::models::constants::STUDIO_VIDEOS_ROOT_NAME);
+        }
+        let movies = h.join(crate::models::constants::OS_MOVIES_FOLDER_NAME);
+        if movies.exists() {
+            return movies.join(crate::models::constants::STUDIO_VIDEOS_ROOT_NAME);
+        }
+        videos.join(crate::models::constants::STUDIO_VIDEOS_ROOT_NAME)
+    } else {
+        PathBuf::from(crate::models::constants::OS_VIDEOS_FOLDER_NAME)
+            .join(crate::models::constants::STUDIO_VIDEOS_ROOT_NAME)
+    }
+}
+
+/// Resolves the live OS user Videos root folder.
+#[must_use]
+pub fn default_videos_root() -> PathBuf {
+    let home = std::env::var_os("USERPROFILE")
+        .or_else(|| std::env::var_os("HOME"))
+        .map(PathBuf::from);
+    resolve_default_videos_root(home.as_deref())
+}
+
+/// Ensures the standard VHS Studio Pro media folder hierarchy exists on disk.
+pub fn ensure_default_media_hierarchy(root: &Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(root.join(crate::models::constants::SUBDIR_RAW))?;
+    std::fs::create_dir_all(root.join(crate::models::constants::SUBDIR_RESTORED))?;
+    std::fs::create_dir_all(root.join(crate::models::constants::SUBDIR_CAPTURES))?;
+    std::fs::create_dir_all(root.join(crate::models::constants::SUBDIR_SUBTITLES))?;
+    std::fs::create_dir_all(root.join(crate::models::constants::SUBDIR_WORK))?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_resolve_default_videos_root() {
+        let home = Path::new("/home/user");
+        let root = resolve_default_videos_root(Some(home));
+        assert!(root.to_string_lossy().contains(crate::models::constants::STUDIO_VIDEOS_ROOT_NAME));
+    }
 
     #[test]
     fn test_env_override_wins_then_home_then_relative() {

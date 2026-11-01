@@ -219,21 +219,17 @@ fn handle_stream_proxy(
     let (raw_source_opt, restored_master) = if let Some(ref src) = valid_source {
         let search_dirs = [dirs.restored.clone(), dirs.work.clone()];
         let raw_dirs = [dirs.raw.clone(), dirs.media.clone()];
-        let (raw_path, master_opt, is_master_input) =
+        let (raw_path, master_opt, _is_master_input) =
             crate::infrastructure::job_recovery::resolve_raw_and_restored_pair(
                 Path::new(src),
                 &search_dirs,
                 &raw_dirs,
                 &dirs.restored,
             );
-        if is_master_input && mode == crate::domain::stream::StreamProxyMode::Processed {
-            (None, master_opt.map(|p| p.to_string_lossy().to_string()))
-        } else {
-            (
-                Some(raw_path.to_string_lossy().to_string()),
-                master_opt.map(|p| p.to_string_lossy().to_string()),
-            )
-        }
+        (
+            Some(raw_path.to_string_lossy().to_string()),
+            master_opt.map(|p| p.to_string_lossy().to_string()),
+        )
     } else {
         (None, None)
     };
@@ -454,6 +450,7 @@ fn handle_connection(mut stream: TcpStream, ctx: &AppContext) {
     let dist_root = crate::infrastructure::paths::resolve_ui_dist_dir();
     let asset_path = dist_root.join(rel_asset);
 
+    // 1. Check disk file first (supports dev hot-reloading)
     if asset_path.is_file() {
         if let Ok(bytes) = fs::read(&asset_path) {
             let mime = guess_mime_type(rel_asset);
@@ -463,7 +460,14 @@ fn handle_connection(mut stream: TcpStream, ctx: &AppContext) {
         }
     }
 
-    // Fallback to index.html for Single Page Applications (React Router)
+    // 2. Check embedded assets compiled directly into the binary
+    if let Some((bytes, mime)) = crate::infrastructure::embedded_assets::get_embedded_ui_asset(rel_asset) {
+        let resp = format_http_response(200, mime, bytes, origin);
+        let _ = stream.write_all(&resp);
+        return;
+    }
+
+    // 3. Fallback to index.html for Single Page Applications (React Router)
     let index_path = dist_root.join("index.html");
     if index_path.is_file() {
         if let Ok(bytes) = fs::read(&index_path) {
@@ -471,6 +475,12 @@ fn handle_connection(mut stream: TcpStream, ctx: &AppContext) {
             let _ = stream.write_all(&resp);
             return;
         }
+    }
+
+    if let Some((bytes, mime)) = crate::infrastructure::embedded_assets::get_embedded_ui_asset("index.html") {
+        let resp = format_http_response(200, mime, bytes, origin);
+        let _ = stream.write_all(&resp);
+        return;
     }
 
     let resp = format_http_response(

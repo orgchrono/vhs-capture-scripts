@@ -62,7 +62,7 @@ const LufsMeterBar: React.FC<LufsMeterBarProps> = ({
 
   return (
     <div className={`flex items-center gap-1.5 ${textClass} font-mono leading-none`}>
-      <span className={`w-7 shrink-0 font-bold translate-y-[0.5px] ${labelColorClass}`}>{label}</span>
+      <span className={`w-7 shrink-0 font-bold ${labelColorClass}`}>{label}</span>
       <div className={`flex-1 ${heightClass} bg-slate-900 rounded-xs overflow-hidden relative border border-white/10`}>
         <div
           className={`absolute inset-y-0 left-0 ${barColorClass} transition-all duration-300`}
@@ -71,8 +71,85 @@ const LufsMeterBar: React.FC<LufsMeterBarProps> = ({
         <div className="absolute inset-y-0 left-[67%] w-[1.5px] bg-sky-400 z-10" title={t('monitor.scopes_target_lufs_title')} />
         <div className="absolute inset-y-0 left-[98%] w-[1.5px] bg-red-500 z-10" title={t('monitor.scopes_max_dbtp_title')} />
       </div>
-      <span className={`w-16 text-right shrink-0 tabular-nums translate-y-[0.5px] ${valColor}`}>
+      <span className={`w-16 text-right shrink-0 tabular-nums ${valColor}`}>
         {t('monitor.scopes_lufs_value', { value: lufs.toFixed(1) })}
+      </span>
+    </div>
+  );
+};
+
+interface StereoMeterPairProps {
+  title?: string;
+  titleColorClass?: string;
+  lufsLeft: number;
+  lufsRight: number;
+  labelColorClass?: string;
+  barColorClass?: string;
+  valueColorClass?: string;
+  isCompact?: boolean;
+  className?: string;
+}
+
+const StereoMeterPair: React.FC<StereoMeterPairProps> = ({
+  title,
+  titleColorClass = 'text-slate-400',
+  lufsLeft,
+  lufsRight,
+  labelColorClass,
+  barColorClass,
+  valueColorClass,
+  isCompact = true,
+  className,
+}) => {
+  const { t } = useTranslation();
+  const defaultClass = isCompact
+    ? 'flex flex-col gap-0.5'
+    : 'flex flex-col gap-1.5 p-1.5 rounded-xs bg-black/40 border border-white/5';
+
+  return (
+    <div className={className ?? defaultClass}>
+      {title && (
+        <span className={`text-[8.5px] font-bold leading-none ${titleColorClass}`}>
+          {title}
+        </span>
+      )}
+      <LufsMeterBar
+        label={t('monitor.scopes_channel_l')}
+        labelColorClass={labelColorClass}
+        lufs={lufsLeft}
+        barColorClass={barColorClass}
+        valueColorClass={valueColorClass}
+        isCompact={isCompact}
+      />
+      <LufsMeterBar
+        label={t('monitor.scopes_channel_r')}
+        labelColorClass={labelColorClass}
+        lufs={lufsRight}
+        barColorClass={barColorClass}
+        valueColorClass={valueColorClass}
+        isCompact={isCompact}
+      />
+    </div>
+  );
+};
+
+const ScopeTraceLegend: React.FC<{
+  procColorClass?: string;
+  procDotColorClass?: string;
+}> = ({
+  procColorClass = 'text-emerald-400',
+  procDotColorClass = 'bg-emerald-400',
+}) => {
+  const { t } = useTranslation();
+  return (
+    <div className="flex items-center gap-1.5 text-[8.5px] font-mono leading-none">
+      <span className="text-amber-400 font-bold flex items-center gap-1 leading-none">
+        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 self-center shrink-0" />
+        <span className="self-center leading-none">{t('monitor.scopes_legend_raw')}</span>
+      </span>
+      <span className={`${procColorClass} font-bold flex items-center gap-1 leading-none`}>
+        <span className={`w-1.5 h-1.5 rounded-full ${procDotColorClass} self-center shrink-0`} />
+        <span className="self-center leading-none">{t('monitor.scopes_legend_proc')}</span>
       </span>
     </div>
   );
@@ -576,70 +653,96 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
   }, [sampleFrame]);
 
   const headerContent = (
-    <div
-      className={`scopes-drag-handle flex items-center justify-between px-2.5 py-1.5 bg-studio-panel border-b border-studio-border shrink-0 select-none gap-2 ${
-        docked || isMaximized ? '' : 'cursor-grab active:cursor-grabbing'
-      }`}
-    >
-      {/* Left: Grip Handle, Activity Icon, LIVE Badge & Comparison Toggle */}
-      <div className="flex items-center gap-1.5 shrink-0">
-        {!docked && <GripHorizontal className="w-3.5 h-3.5 text-slate-500 shrink-0" />}
-        <span
-          title={t('monitor.scopes_title')}
-          aria-label={t('monitor.scopes_title')}
-          className="inline-flex items-center"
-        >
-          <Activity className="w-3.5 h-3.5 text-sky-400 shrink-0" aria-hidden="true" />
-        </span>
-        <Badge variant="live" size="xs">
-          <span className="led-lamp led-live shrink-0" />
-          <span className="translate-y-[0.5px]">{t('monitor.live_badge')}</span>
-        </Badge>
-
-        {hasComparison && (
-          <div
-            className="flex items-center bg-black/60 rounded-sm border border-amber-500/40 p-0.5 text-[8.5px] shrink-0"
-            data-testid="scopes-comparison-view-toggle"
+    <div className="flex flex-col shrink-0 select-none">
+      {/* Tier 1: Window Bar & Actions */}
+      <div
+        className={`scopes-drag-handle flex items-center justify-between px-2.5 py-1.5 bg-studio-panel border-b border-studio-border shrink-0 ${
+          docked || isMaximized ? '' : 'cursor-grab active:cursor-grabbing'
+        }`}
+      >
+        {/* Left: Grip Handle, Activity Icon, Title, LIVE Badge */}
+        <div className="flex items-center gap-2 shrink-0">
+          {!docked && <GripHorizontal className="w-3.5 h-3.5 text-slate-500 shrink-0 self-center" />}
+          <span
+            title={t('monitor.scopes_title')}
+            aria-label={t('monitor.scopes_title')}
+            className="inline-flex items-center gap-1.5 self-center"
           >
+            <Activity className="w-3.5 h-3.5 text-sky-400 shrink-0 self-center" aria-hidden="true" />
+            <span className="text-[11px] font-bold text-slate-200 tracking-wide uppercase leading-none self-center">
+              {t('monitor.scopes_title')}
+            </span>
+          </span>
+          <Badge variant="live" size="xs">
+            <span className="led-lamp led-live shrink-0 self-center" />
+            <span className="self-center">{t('monitor.live_badge')}</span>
+          </Badge>
+        </div>
+
+        {/* Right: Actions (Refresh, Dock/Float, Maximize, Close) */}
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={sampleFrame}
+            title={t('common.refresh')}
+            aria-label={t('common.refresh')}
+            className="p-1 rounded-sm text-slate-400 hover:text-white hover:bg-studio-surface transition cursor-pointer shrink-0"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+          </button>
+
+          {onToggleDock && (
             <button
               type="button"
-              onClick={() => setComparisonView('both')}
-              className={`px-1.5 py-0.5 rounded-xs transition cursor-pointer shrink-0 whitespace-nowrap ${
-                comparisonView === 'both'
-                  ? 'bg-amber-500/30 text-amber-300 font-bold'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
+              onClick={onToggleDock}
+              title={docked ? t('monitor.scopes_float_window') : t('monitor.scopes_dock_side')}
+              aria-label={docked ? t('monitor.scopes_float_window') : t('monitor.scopes_dock_side')}
+              data-testid="toggle-dock-scopes-btn"
+              className="p-1 rounded-sm text-slate-400 hover:text-amber-300 hover:bg-studio-surface transition cursor-pointer shrink-0"
             >
-              {t('monitor.scopes_comp_both')}
+              {docked ? (
+                <PictureInPicture className="w-3.5 h-3.5" />
+              ) : (
+                <PanelRightClose className="w-3.5 h-3.5" />
+              )}
             </button>
+          )}
+
+          {!docked && (
             <button
               type="button"
-              onClick={() => setComparisonView('proc')}
-              className={`px-1.5 py-0.5 rounded-xs transition cursor-pointer shrink-0 whitespace-nowrap ${
-                comparisonView === 'proc'
-                  ? 'bg-emerald-950/80 text-emerald-300 font-bold'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
+              onClick={handleToggleMaximize}
+              title={isMaximized ? t('common.minimize') : t('common.maximize')}
+              aria-label={isMaximized ? t('common.minimize') : t('common.maximize')}
+              data-testid="maximize-scopes-btn"
+              className="p-1 rounded-sm text-slate-400 hover:text-sky-300 hover:bg-studio-surface transition cursor-pointer shrink-0"
             >
-              {t('monitor.scopes_comp_proc')}
+              {isMaximized ? (
+                <Minimize2 className="w-3.5 h-3.5" />
+              ) : (
+                <Maximize2 className="w-3.5 h-3.5" />
+              )}
             </button>
+          )}
+
+          {onClose && (
             <button
               type="button"
-              onClick={() => setComparisonView('raw')}
-              className={`px-1.5 py-0.5 rounded-xs transition cursor-pointer shrink-0 whitespace-nowrap ${
-                comparisonView === 'raw'
-                  ? 'bg-amber-950/80 text-amber-300 font-bold'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
+              onClick={onClose}
+              title={t('common.close')}
+              aria-label={t('common.close')}
+              data-testid="close-scopes-btn"
+              className="p-1 rounded-sm text-slate-400 hover:text-red-400 hover:bg-studio-surface transition cursor-pointer shrink-0"
             >
-              {t('monitor.scopes_comp_raw')}
+              <X className="w-3.5 h-3.5" />
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
-      {/* Center: Centered Mode Tabs */}
-      <div className="flex-1 flex justify-center min-w-0">
+      {/* Tier 2: Navigation Toolbar (Scope Mode Tabs & Comparison Toggle) */}
+      <div className="flex items-center justify-between flex-wrap gap-1.5 px-2.5 py-1 bg-black/40 border-b border-studio-border shrink-0">
+        {/* Left: Mode Tabs */}
         <div className="flex items-center bg-black/60 rounded-sm border border-studio-border p-0.5 text-[9.5px] shrink-0">
           <button
             type="button"
@@ -686,65 +789,47 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
             {t('monitor.scopes_tab_audio')}
           </button>
         </div>
-      </div>
 
-      {/* Right: Actions (Refresh, Dock/Float, Maximize, Close) */}
-      <div className="flex items-center gap-1 shrink-0">
-        <button
-          type="button"
-          onClick={sampleFrame}
-          title={t('common.refresh')}
-          aria-label={t('common.refresh')}
-          className="p-1 rounded-sm text-slate-400 hover:text-white hover:bg-studio-surface transition cursor-pointer shrink-0"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-        </button>
-
-        {onToggleDock && (
-          <button
-            type="button"
-            onClick={onToggleDock}
-            title={docked ? t('monitor.scopes_float_window') : t('monitor.scopes_dock_side')}
-            aria-label={docked ? t('monitor.scopes_float_window') : t('monitor.scopes_dock_side')}
-            data-testid="toggle-dock-scopes-btn"
-            className="p-1 rounded-sm text-slate-400 hover:text-amber-300 hover:bg-studio-surface transition cursor-pointer shrink-0"
+        {/* Right: Comparison Toggle */}
+        {hasComparison && (
+          <div
+            className="flex items-center bg-black/60 rounded-sm border border-amber-500/40 p-0.5 text-[8.5px] shrink-0"
+            data-testid="scopes-comparison-view-toggle"
           >
-            {docked ? (
-              <PictureInPicture className="w-3.5 h-3.5" />
-            ) : (
-              <PanelRightClose className="w-3.5 h-3.5" />
-            )}
-          </button>
-        )}
-
-        {!docked && (
-          <button
-            type="button"
-            onClick={handleToggleMaximize}
-            title={isMaximized ? t('common.minimize') : t('common.maximize')}
-            aria-label={isMaximized ? t('common.minimize') : t('common.maximize')}
-            data-testid="maximize-scopes-btn"
-            className="p-1 rounded-sm text-slate-400 hover:text-sky-300 hover:bg-studio-surface transition cursor-pointer shrink-0"
-          >
-            {isMaximized ? (
-              <Minimize2 className="w-3.5 h-3.5" />
-            ) : (
-              <Maximize2 className="w-3.5 h-3.5" />
-            )}
-          </button>
-        )}
-
-        {onClose && (
-          <button
-            type="button"
-            onClick={onClose}
-            title={t('common.close')}
-            aria-label={t('common.close')}
-            data-testid="close-scopes-btn"
-            className="p-1 rounded-sm text-slate-400 hover:text-red-400 hover:bg-studio-surface transition cursor-pointer shrink-0"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
+            <button
+              type="button"
+              onClick={() => setComparisonView('both')}
+              className={`px-1.5 py-0.5 rounded-xs transition cursor-pointer shrink-0 whitespace-nowrap ${
+                comparisonView === 'both'
+                  ? 'bg-amber-500/30 text-amber-300 font-bold'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              {t('monitor.scopes_comp_both')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setComparisonView('proc')}
+              className={`px-1.5 py-0.5 rounded-xs transition cursor-pointer shrink-0 whitespace-nowrap ${
+                comparisonView === 'proc'
+                  ? 'bg-emerald-950/80 text-emerald-300 font-bold'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              {t('monitor.scopes_comp_proc')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setComparisonView('raw')}
+              className={`px-1.5 py-0.5 rounded-xs transition cursor-pointer shrink-0 whitespace-nowrap ${
+                comparisonView === 'raw'
+                  ? 'bg-amber-950/80 text-amber-300 font-bold'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              {t('monitor.scopes_comp_raw')}
+            </button>
+          </div>
         )}
       </div>
     </div>
@@ -760,18 +845,9 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
               <div className="flex items-center justify-between text-[10px] text-slate-400 shrink-0 leading-none">
                 <span className="font-bold text-slate-300">{t('monitor.scopes_waveform')}</span>
                 {hasComparison ? (
-                  <div className="flex items-center gap-1.5 text-[8.5px] font-mono leading-none">
-                    <span className="text-amber-400 font-bold flex items-center gap-0.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
-                      {t('monitor.scopes_legend_raw')}
-                    </span>
-                    <span className="text-emerald-400 font-bold flex items-center gap-0.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
-                      {t('monitor.scopes_legend_proc')}
-                    </span>
-                  </div>
+                  <ScopeTraceLegend />
                 ) : (
-                  <span className="text-[9px] text-emerald-400 font-bold translate-y-[0.5px]">{t('monitor.scopes_ire_range')}</span>
+                  <span className="text-[9px] text-emerald-400 font-bold">{t('monitor.scopes_ire_range')}</span>
                 )}
               </div>
               <div className="flex items-center justify-center w-full flex-1 min-h-0 overflow-hidden py-0.5">
@@ -789,35 +865,36 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
             <div className="order-3 @md:order-2 @md:col-start-1 @md:row-start-2 flex flex-col gap-1 bg-black/60 p-1.5 rounded-sm border border-white/5 overflow-hidden shrink-0 justify-between">
               <div className="flex items-center justify-between text-[10px] text-slate-400 shrink-0 gap-1 leading-none">
                 <span className="font-bold text-slate-300 truncate">{t('monitor.scopes_tab_audio')}</span>
-                <span className="text-[8.5px] text-amber-300 font-bold shrink-0 whitespace-nowrap translate-y-[0.5px]">{t('monitor.scopes_ebu_targets')}</span>
+                <span className="text-[8.5px] text-amber-300 font-bold shrink-0 whitespace-nowrap">{t('monitor.scopes_ebu_targets')}</span>
               </div>
               <div className="flex flex-col gap-1 py-0.5">
                 {hasComparison && comparisonView === 'both' ? (
-                  <>
-                    <LufsMeterBar
-                      label={t('monitor.scopes_short_raw')}
+                  <div className="flex flex-col gap-1">
+                    <StereoMeterPair
+                      title={t('monitor.scopes_short_raw')}
+                      titleColorClass="text-amber-400"
+                      lufsLeft={activeRawLufsLeft}
+                      lufsRight={activeRawLufsRight}
                       labelColorClass="text-amber-400"
-                      lufs={activeRawLufsLeft}
                       barColorClass="bg-gradient-to-r from-amber-600 via-amber-500 to-amber-400"
                       valueColorClass="text-amber-300 font-semibold"
+                      isCompact={true}
                     />
-                    <LufsMeterBar
-                      label={t('monitor.scopes_short_proc')}
+                    <StereoMeterPair
+                      title={t('monitor.scopes_short_proc')}
+                      titleColorClass="text-emerald-400"
+                      lufsLeft={activeLufsLeft}
+                      lufsRight={activeLufsRight}
                       labelColorClass="text-emerald-400"
-                      lufs={activeLufsLeft}
+                      isCompact={true}
                     />
-                  </>
+                  </div>
                 ) : (
-                  <>
-                    <LufsMeterBar
-                      label={t('monitor.scopes_channel_l')}
-                      lufs={comparisonView === 'raw' ? activeRawLufsLeft : activeLufsLeft}
-                    />
-                    <LufsMeterBar
-                      label={t('monitor.scopes_channel_r')}
-                      lufs={comparisonView === 'raw' ? activeRawLufsRight : activeLufsRight}
-                    />
-                  </>
+                  <StereoMeterPair
+                    lufsLeft={comparisonView === 'raw' ? activeRawLufsLeft : activeLufsLeft}
+                    lufsRight={comparisonView === 'raw' ? activeRawLufsRight : activeLufsRight}
+                    isCompact={true}
+                  />
                 )}
               </div>
             </div>
@@ -827,18 +904,9 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
               <div className="flex items-center justify-between text-[10px] text-slate-400 shrink-0 leading-none">
                 <span className="font-bold text-slate-300">{t('monitor.scopes_vectorscope')}</span>
                 {hasComparison ? (
-                  <div className="flex items-center gap-1.5 text-[8.5px] font-mono leading-none">
-                    <span className="text-amber-400 font-bold flex items-center gap-0.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
-                      {t('monitor.scopes_legend_raw')}
-                    </span>
-                    <span className="text-sky-400 font-bold flex items-center gap-0.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-sky-400 inline-block" />
-                      {t('monitor.scopes_legend_proc')}
-                    </span>
-                  </div>
+                  <ScopeTraceLegend procColorClass="text-sky-400" procDotColorClass="bg-sky-400" />
                 ) : (
-                  <span className="text-[9px] text-sky-400 font-bold translate-y-[0.5px]">{t('monitor.scopes_smpte_75')}</span>
+                  <span className="text-[9px] text-sky-400 font-bold">{t('monitor.scopes_smpte_75')}</span>
                 )}
               </div>
               <div className="flex-1 flex items-center justify-center w-full min-h-0 overflow-hidden py-0.5">
@@ -857,16 +925,7 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
             <div className="flex items-center justify-between text-[10px] text-slate-400 shrink-0">
               <span className="font-bold text-slate-300">{t('monitor.scopes_waveform')}</span>
               {hasComparison ? (
-                <div className="flex items-center gap-1.5 text-[8.5px] font-mono leading-none">
-                  <span className="text-amber-400 font-bold flex items-center gap-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
-                    {t('monitor.scopes_legend_raw')}
-                  </span>
-                  <span className="text-emerald-400 font-bold flex items-center gap-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
-                    {t('monitor.scopes_legend_proc')}
-                  </span>
-                </div>
+                <ScopeTraceLegend />
               ) : (
                 <span className="text-[9px] text-emerald-400 font-bold">{t('monitor.scopes_ire_range')}</span>
               )}
@@ -886,16 +945,7 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
             <div className="flex items-center justify-between text-[10px] text-slate-400 shrink-0">
               <span className="font-bold text-slate-300">{t('monitor.scopes_vectorscope')}</span>
               {hasComparison ? (
-                <div className="flex items-center gap-1.5 text-[8.5px] font-mono leading-none">
-                  <span className="text-amber-400 font-bold flex items-center gap-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
-                    {t('monitor.scopes_legend_raw')}
-                  </span>
-                  <span className="text-sky-400 font-bold flex items-center gap-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-sky-400 inline-block" />
-                    {t('monitor.scopes_legend_proc')}
-                  </span>
-                </div>
+                <ScopeTraceLegend procColorClass="text-sky-400" procDotColorClass="bg-sky-400" />
               ) : (
                 <span className="text-[9px] text-sky-400 font-bold">{t('monitor.scopes_smpte_75')}</span>
               )}
@@ -920,57 +970,33 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
             <div className="flex flex-col gap-3 py-2">
               {hasComparison && comparisonView === 'both' ? (
                 <>
-                  {/* RAW (Antes) L & R */}
-                  <div className="flex flex-col gap-1.5 p-1.5 rounded-xs bg-amber-950/20 border border-amber-500/20">
-                    <span className="text-[9px] font-bold text-amber-400">{t('monitor.scopes_legend_raw')}</span>
-                    <LufsMeterBar
-                      label={t('monitor.scopes_channel_l')}
-                      labelColorClass="text-amber-400"
-                      lufs={activeRawLufsLeft}
-                      barColorClass="bg-gradient-to-r from-amber-600 via-amber-500 to-amber-400"
-                      valueColorClass="text-amber-300 font-semibold"
-                      isCompact={false}
-                    />
-                    <LufsMeterBar
-                      label={t('monitor.scopes_channel_r')}
-                      labelColorClass="text-amber-400"
-                      lufs={activeRawLufsRight}
-                      barColorClass="bg-gradient-to-r from-amber-600 via-amber-500 to-amber-400"
-                      valueColorClass="text-amber-300 font-semibold"
-                      isCompact={false}
-                    />
-                  </div>
-
-                  {/* REST (Depois) L & R */}
-                  <div className="flex flex-col gap-1.5 p-1.5 rounded-xs bg-emerald-950/20 border border-emerald-500/20">
-                    <span className="text-[9px] font-bold text-emerald-400">{t('monitor.scopes_legend_proc')}</span>
-                    <LufsMeterBar
-                      label={t('monitor.scopes_channel_l')}
-                      labelColorClass="text-emerald-400"
-                      lufs={activeLufsLeft}
-                      isCompact={false}
-                    />
-                    <LufsMeterBar
-                      label={t('monitor.scopes_channel_r')}
-                      labelColorClass="text-emerald-400"
-                      lufs={activeLufsRight}
-                      isCompact={false}
-                    />
-                  </div>
+                  <StereoMeterPair
+                    title={t('monitor.scopes_legend_raw')}
+                    titleColorClass="text-amber-400"
+                    lufsLeft={activeRawLufsLeft}
+                    lufsRight={activeRawLufsRight}
+                    labelColorClass="text-amber-400"
+                    barColorClass="bg-gradient-to-r from-amber-600 via-amber-500 to-amber-400"
+                    valueColorClass="text-amber-300 font-semibold"
+                    isCompact={false}
+                    className="flex flex-col gap-1.5 p-1.5 rounded-xs bg-amber-950/20 border border-amber-500/20"
+                  />
+                  <StereoMeterPair
+                    title={t('monitor.scopes_legend_proc')}
+                    titleColorClass="text-emerald-400"
+                    lufsLeft={activeLufsLeft}
+                    lufsRight={activeLufsRight}
+                    labelColorClass="text-emerald-400"
+                    isCompact={false}
+                    className="flex flex-col gap-1.5 p-1.5 rounded-xs bg-emerald-950/20 border border-emerald-500/20"
+                  />
                 </>
               ) : (
-                <>
-                  <LufsMeterBar
-                    label={t('monitor.scopes_channel_l')}
-                    lufs={comparisonView === 'raw' ? activeRawLufsLeft : activeLufsLeft}
-                    isCompact={false}
-                  />
-                  <LufsMeterBar
-                    label={t('monitor.scopes_channel_r')}
-                    lufs={comparisonView === 'raw' ? activeRawLufsRight : activeLufsRight}
-                    isCompact={false}
-                  />
-                </>
+                <StereoMeterPair
+                  lufsLeft={comparisonView === 'raw' ? activeRawLufsLeft : activeLufsLeft}
+                  lufsRight={comparisonView === 'raw' ? activeRawLufsRight : activeLufsRight}
+                  isCompact={false}
+                />
               )}
             </div>
           </div>

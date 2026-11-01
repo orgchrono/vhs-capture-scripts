@@ -207,6 +207,36 @@ pub const FILTER_AUDIO_AFFTDN: &str = "afftdn=nr=12.0:nf=-50.0:tn=1";
 pub const FILTER_UPSCALE_1080P: &str = "scale=-1:1080:flags=lanczos,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=black";
 pub const FILTER_TBC_FRAME_HOLD: &str = "tinterlace=mode=merge";
 
+/// Canonical folder name for user videos across operating systems.
+pub const OS_VIDEOS_FOLDER_NAME: &str = "Videos";
+
+/// Canonical fallback folder name for user videos on macOS (Movies).
+pub const OS_MOVIES_FOLDER_NAME: &str = "Movies";
+
+/// Root directory name for VHS Studio Pro files within the user's Videos folder.
+pub const STUDIO_VIDEOS_ROOT_NAME: &str = "VHS Studio Pro";
+
+/// Subdirectory name for raw analog video captures.
+pub const SUBDIR_RAW: &str = "raw";
+
+/// Subdirectory name for restored video masters.
+pub const SUBDIR_RESTORED: &str = "restored";
+
+/// Subdirectory name for live device captures.
+pub const SUBDIR_CAPTURES: &str = "captures";
+
+/// Subdirectory name for extracted and generated subtitle files.
+pub const SUBDIR_SUBTITLES: &str = "subtitles";
+
+/// Subdirectory name for temporary restoration working files and chunks.
+pub const SUBDIR_WORK: &str = "work";
+
+/// Default directory scan depth for media discovery.
+pub const DEFAULT_SCAN_MAX_DEPTH: usize = 3;
+
+/// Hard upper limit for recursive directory scan depth to prevent stack overflow or filesystem lockup.
+pub const MAX_SCAN_DEPTH_LIMIT: usize = 6;
+
 #[cfg(test)]
 mod tests {
     use super::*;

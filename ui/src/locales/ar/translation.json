@@ -115,7 +115,7 @@
     "split_play": "تشغيل المقارنة",
     "split_pause": "إيقاف المقارنة مؤقتاً",
     "split_preset": "تعيين التقسيم إلى {{percent}}%",
-    "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)",
+    "split_timeline_info": "{{current}} / {{total}}",
     "live_badge": "مباشر",
     "jump_to_live": "الانتقال إلى البث المباشر",
     "return_live_view": "العودة إلى شاشة الوقت الفعلي",
@@ -154,7 +154,12 @@
     "scopes_lufs_value": "{{value}} LUFS",
     "rec_badge": "تسجيل",
     "rec_with_timecode": "تسجيل {{timecode}}",
-    "fps_badge": "{{fps}} إطار/ث"
+    "fps_badge": "{{fps}} إطار/ث",
+    "volume": "مستوى الصوت",
+    "mute": "كتم الصوت",
+    "unmute": "إلغاء الكتم",
+    "subtitles_toggle": "الترجمة (CC)",
+    "subtitles_editor": "محرر الترجمة"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -276,7 +281,13 @@
     "reset_default": "إعادة الضبط إلى الافتراضي",
     "tabs_aria_label": "Abas de Configuração",
     "output_codec_hint": "تنسيق الترميز وضغط الفيديو النهائي.",
-    "tier_label": "المستوى {{tier}}: {{name}}"
+    "tier_label": "المستوى {{tier}}: {{name}}",
+    "vpy_cache_label": "ذاكرة تخزين VapourSynth المؤقتة (ميجابايت)",
+    "vpy_cache_desc": "حد ذاكرة الوصول العشوائي المخصص لمرشحات QTGMC",
+    "checkpoint_interval_label": "فاصل نقطة التحقق",
+    "checkpoint_interval_desc": "تكرار المزامنة الذرية على القرص بعدد الإطارات",
+    "fixity_label": "ثبات التشفير التابع لمعيار OAIS",
+    "fixity_desc": "تحقق مستمر من سلامة SHA-256 للنسخ الرئيسية للأرشيف"
   },
   "hardware": {
     "tier_1": "أساسي (معالج محدود)",
@@ -665,7 +676,11 @@
     "theme_dark": "Studio Pro Dark (معيار البث الداكن)",
     "theme_oled": "OLED Deep Black (أسود حقيقي)",
     "reset_defaults": "استعادة الإعدادات الافتراضية",
-    "close": "تم"
+    "close": "تم",
+    "scan_max_depth_label": "عمق فحص الوسائط",
+    "scan_max_depth_desc": "عمق المجلدات الفرعية عند فهرسة مكتبة الأشرطة",
+    "default_videos_dir": "استخدام مجلد مقاطع الفيديو الافتراضي للنظام",
+    "browse": "تصفح..."
   },
   "build": {
     "no_compiler_found": "No suitable C compiler (GCC, Clang) found in system PATH.",
@@ -747,5 +762,38 @@
       "base": "Base (متوازن, ~75MB ذاكرة)",
       "small": "Small (دقيق, ~250MB ذاكرة)"
     }
+  },
+  "folders": {
+    "title": "مستعرض المجلدات",
+    "browse_native": "تصفح النظام...",
+    "current_path": "المجلد الحالي",
+    "up": "المجلد الأعلى",
+    "select_this": "تحديد المجلد",
+    "scan_depth": "عمق البحث",
+    "depth_1": "الجذر فقط (مستوى 1)",
+    "depth_2": "افتراضي (مستويان)",
+    "depth_3": "عميق (3 مستويات)",
+    "depth_4": "شامل (4 مستويات)",
+    "depth_5": "أقصى عمق (5 مستويات)",
+    "empty_dir": "مجلد فارغ",
+    "filter_placeholder": "تصفية المجلدات...",
+    "browse_btn": "تصفح..."
+  },
+  "subtitles": {
+    "title": "محرر الترجمة الأصلي",
+    "editor_title": "محرر الترجمة",
+    "toggle_cc": "الترجمة (CC)",
+    "no_cues": "لم يتم العثور على ترجمة",
+    "add_cue": "إضافة سطر",
+    "delete_cue": "حذف",
+    "start_time": "البدء",
+    "end_time": "الانتهاء",
+    "text": "نص الترجمة",
+    "save": "حفظ الترجمة",
+    "saved_success": "تم حفظ الترجمة بنجاح!",
+    "save_failed": "فشل حفظ الترجمة",
+    "generate": "توليد ترجمة بالذكاء الاصطناعي",
+    "empty_timeline": "لا توجد ترجمة محملة.",
+    "close": "إغلاق المحرر"
   }
 }

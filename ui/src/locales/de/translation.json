@@ -115,7 +115,7 @@
     "split_play": "Vergleich abspielen",
     "split_pause": "Vergleich pausieren",
     "split_preset": "Teilung auf {{percent}}% setzen",
-    "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)",
+    "split_timeline_info": "{{current}} / {{total}}",
     "live_badge": "LIVE",
     "jump_to_live": "Zur Live-Position springen",
     "return_live_view": "Zurück zum Echtzeit-Monitor",
@@ -154,7 +154,12 @@
     "scopes_lufs_value": "{{value}} LUFS",
     "rec_badge": "AUFN",
     "rec_with_timecode": "AUFN {{timecode}}",
-    "fps_badge": "{{fps}} FPS"
+    "fps_badge": "{{fps}} FPS",
+    "volume": "Lautstärke",
+    "mute": "Stummschalten",
+    "unmute": "Ton Einschalten",
+    "subtitles_toggle": "Untertitel (CC)",
+    "subtitles_editor": "Untertitel-Editor"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -276,7 +281,13 @@
     "reset_default": "Auf Standard zurücksetzen",
     "tabs_aria_label": "Abas de Configuração",
     "output_codec_hint": "Ausgabe-Kodierungsformat und Videokomprimierung.",
-    "tier_label": "Stufe {{tier}}: {{name}}"
+    "tier_label": "Stufe {{tier}}: {{name}}",
+    "vpy_cache_label": "VapourSynth-Cache (MB)",
+    "vpy_cache_desc": "RAM-Puffergrenze für QTGMC und temporale Filter",
+    "checkpoint_interval_label": "Prüfpunkt-Intervall",
+    "checkpoint_interval_desc": "Frequenz der atomaren Festplattensynchronisierung in Frames",
+    "fixity_label": "OAIS-Kryptografische Fixität",
+    "fixity_desc": "Kontinuierliche SHA-256-Integritätsprüfung für Archiv-Master"
   },
   "hardware": {
     "tier_1": "Basis (Begrenzte CPU)",
@@ -665,7 +676,11 @@
     "theme_dark": "Studio Pro Dark (Broadcast-Standard)",
     "theme_oled": "OLED Deep Black (Echtes Schwarz)",
     "reset_defaults": "Auf Standard zurücksetzen",
-    "close": "Fertig"
+    "close": "Fertig",
+    "scan_max_depth_label": "Scan-Tiefe für Medien",
+    "scan_max_depth_desc": "Verzeichnistiefe beim Durchsuchen der Bandbibliothek",
+    "default_videos_dir": "Standard-Videoordner des Betriebssystems verwenden",
+    "browse": "Durchsuchen..."
   },
   "build": {
     "no_compiler_found": "No suitable C compiler (GCC, Clang) found in system PATH.",
@@ -747,5 +762,38 @@
       "base": "Base (Ausgewogen, ~75MB RAM)",
       "small": "Small (Genau, ~250MB RAM)"
     }
+  },
+  "folders": {
+    "title": "Ordner-Navigator",
+    "browse_native": "System durchsuchen...",
+    "current_path": "Aktueller Ordner",
+    "up": "Übergeordneter Ordner",
+    "select_this": "Ordner Auswählen",
+    "scan_depth": "Suchtiefe",
+    "depth_1": "Nur Stammverzeichnis (1 Ebene)",
+    "depth_2": "Standard (2 Ebenen)",
+    "depth_3": "Tief (3 Ebenen)",
+    "depth_4": "Erweitert (4 Ebenen)",
+    "depth_5": "Maximal (5 Ebenen)",
+    "empty_dir": "Leerer Ordner",
+    "filter_placeholder": "Ordner filtern...",
+    "browse_btn": "Durchsuchen..."
+  },
+  "subtitles": {
+    "title": "Nativer Untertitel-Editor",
+    "editor_title": "Untertitel-Editor",
+    "toggle_cc": "Untertitel (CC)",
+    "no_cues": "Keine Untertitel gefunden",
+    "add_cue": "Zeile Hinzufügen",
+    "delete_cue": "Löschen",
+    "start_time": "Start",
+    "end_time": "Ende",
+    "text": "Untertiteltext",
+    "save": "Untertitel Speichern",
+    "saved_success": "Untertitel erfolgreich gespeichert!",
+    "save_failed": "Fehler beim Speichern der Untertitel",
+    "generate": "KI-Untertitel Generieren",
+    "empty_timeline": "Keine Untertitel geladen.",
+    "close": "Editor Schließen"
   }
 }

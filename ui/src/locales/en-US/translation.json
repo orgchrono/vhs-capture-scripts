@@ -115,7 +115,7 @@
     "split_play": "Play Comparison",
     "split_pause": "Pause Comparison",
     "split_preset": "Set split to {{percent}}%",
-    "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)",
+    "split_timeline_info": "{{current}} / {{total}}",
     "live_badge": "LIVE",
     "jump_to_live": "Jump to Live Edge",
     "return_live_view": "Return to Real-Time Monitor",
@@ -154,7 +154,12 @@
     "scopes_lufs_value": "{{value}} LUFS",
     "rec_badge": "REC",
     "rec_with_timecode": "REC {{timecode}}",
-    "fps_badge": "{{fps}} FPS"
+    "fps_badge": "{{fps}} FPS",
+    "volume": "Volume",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "subtitles_toggle": "Subtitles (CC)",
+    "subtitles_editor": "Subtitle Editor"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -276,7 +281,13 @@
     "reset_default": "Reset to default",
     "tabs_aria_label": "Settings Tabs",
     "output_codec_hint": "Output encoding format and compression codec.",
-    "tier_label": "Tier {{tier}}: {{name}}"
+    "tier_label": "Tier {{tier}}: {{name}}",
+    "vpy_cache_label": "VapourSynth Cache (MB)",
+    "vpy_cache_desc": "Dedicated RAM buffer limit for QTGMC and temporal filters",
+    "checkpoint_interval_label": "Checkpoint Flush Interval",
+    "checkpoint_interval_desc": "Atomic disk sync frequency in processed video frames",
+    "fixity_label": "OAIS Fixity & Cryptographic Audit",
+    "fixity_desc": "Continuous SHA-256 integrity verification for archive masters"
   },
   "hardware": {
     "tier_1": "Basic (Limited CPU)",
@@ -665,7 +676,11 @@
     "theme_dark": "Studio Pro Dark (Broadcast Standard)",
     "theme_oled": "OLED Deep Black (True Black)",
     "reset_defaults": "Reset to Defaults",
-    "close": "Done"
+    "close": "Done",
+    "scan_max_depth_label": "Media Scan Depth",
+    "scan_max_depth_desc": "Recursive folder depth when indexing tape library",
+    "default_videos_dir": "Use OS Videos Directory",
+    "browse": "Browse..."
   },
   "build": {
     "no_compiler_found": "No suitable C compiler (GCC, Clang) found in system PATH.",
@@ -747,5 +762,38 @@
       "base": "Base (Balanced, ~75MB RAM)",
       "small": "Small (Accurate, ~250MB RAM)"
     }
+  },
+  "folders": {
+    "title": "Folder Navigator",
+    "browse_native": "Browse System...",
+    "current_path": "Current Folder",
+    "up": "Parent Folder",
+    "select_this": "Select Folder",
+    "scan_depth": "Scan Depth",
+    "depth_1": "Root only (1 level)",
+    "depth_2": "Standard (2 levels)",
+    "depth_3": "Deep (3 levels)",
+    "depth_4": "Extensive (4 levels)",
+    "depth_5": "Maximum (5 levels)",
+    "empty_dir": "Empty directory",
+    "filter_placeholder": "Filter folders...",
+    "browse_btn": "Browse..."
+  },
+  "subtitles": {
+    "title": "Native Subtitle Editor",
+    "editor_title": "Subtitle Editor",
+    "toggle_cc": "Subtitles (CC)",
+    "no_cues": "No subtitle cues found",
+    "add_cue": "Add Cue",
+    "delete_cue": "Delete",
+    "start_time": "Start",
+    "end_time": "End",
+    "text": "Subtitle Text",
+    "save": "Save Subtitles",
+    "saved_success": "Subtitles saved successfully!",
+    "save_failed": "Failed to save subtitles",
+    "generate": "Generate AI Subtitles",
+    "empty_timeline": "No subtitle cues loaded.",
+    "close": "Close Editor"
   }
 }

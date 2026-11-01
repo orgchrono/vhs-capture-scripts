@@ -23,7 +23,7 @@ export const PresetsTab: React.FC<PresetsTabProps> = ({
   const { t } = useTranslation()
 
   return (
-    <TabsContent value="presets" className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 space-y-3">
+    <TabsContent value="presets" className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 pb-4">
       <TabTransition>
         {matches(['preset', 'presets', 'modo', 'broadcast', 'master', 'gold', 'speed', 'tbc']) && (
           <>
@@ -38,7 +38,7 @@ export const PresetsTab: React.FC<PresetsTabProps> = ({
             </div>
             <PresetSelector />
 
-            <div className="mt-3 p-3 bg-studio-surface/60 border border-studio-border rounded-sm flex items-center justify-between gap-3">
+            <div className="mt-3 p-3 bg-studio-surface/60 border border-studio-border rounded-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="space-y-0.5">
                 <label className="text-xs font-semibold text-slate-300 font-mono flex items-center gap-1.5">
                   <Film className="w-3.5 h-3.5 text-amber-400 shrink-0" />
@@ -48,7 +48,7 @@ export const PresetsTab: React.FC<PresetsTabProps> = ({
                   {t('settings.output_codec_hint')}
                 </p>
               </div>
-              <div className="w-56">
+              <div className="w-full sm:w-64 max-w-xs shrink-0">
                 <GenericSelect
                   value={outputCodec}
                   onChange={setOutputCodec}

@@ -115,7 +115,7 @@
     "split_play": "Reproduzir Comparador",
     "split_pause": "Pausar Comparador",
     "split_preset": "Definir divisão para {{percent}}%",
-    "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)",
+    "split_timeline_info": "{{current}} / {{total}}",
     "live_badge": "AO VIVO",
     "jump_to_live": "Voltar ao Ponto Atual (Ao Vivo)",
     "return_live_view": "Voltar ao Monitor em Tempo Real",
@@ -154,7 +154,12 @@
     "scopes_lufs_value": "{{value}} LUFS",
     "rec_badge": "REC",
     "rec_with_timecode": "REC {{timecode}}",
-    "fps_badge": "{{fps}} FPS"
+    "fps_badge": "{{fps}} FPS",
+    "volume": "Volume",
+    "mute": "Silenciar",
+    "unmute": "Reativar Áudio",
+    "subtitles_toggle": "Legendas (CC)",
+    "subtitles_editor": "Editor de Legendas"
   },
   "files": {
     "input_file_label": "Arquivo de Entrada (media/raw/)",
@@ -276,7 +281,13 @@
     "reset_default": "Restaurar padrão",
     "tabs_aria_label": "Abas de Configuração",
     "output_codec_hint": "Formato de codificação e compressão do vídeo final.",
-    "tier_label": "Nível {{tier}}: {{name}}"
+    "tier_label": "Nível {{tier}}: {{name}}",
+    "vpy_cache_label": "Cache VapourSynth (MB)",
+    "vpy_cache_desc": "Limite de memória RAM para instâncias do QTGMC e filtros",
+    "checkpoint_interval_label": "Intervalo de Checkpoint",
+    "checkpoint_interval_desc": "Frequência de flush atômico no disco em frames",
+    "fixity_label": "Fixidade Criptográfica OAIS",
+    "fixity_desc": "Validação contínua de integridade SHA-256 para masters de arquivo"
   },
   "hardware": {
     "tier_1": "Básico (CPU Limitada)",
@@ -665,7 +676,11 @@
     "theme_dark": "Studio Pro Dark (Padrão de Transmissão)",
     "theme_oled": "OLED Deep Black (Preto Absoluto)",
     "reset_defaults": "Restaurar Padrões",
-    "close": "Concluído"
+    "close": "Concluído",
+    "scan_max_depth_label": "Profundidade de Varredura",
+    "scan_max_depth_desc": "Profundidade de subpastas ao escanear a biblioteca de fitas",
+    "default_videos_dir": "Usar Pasta de Vídeos Padrão do Sistema",
+    "browse": "Procurar..."
   },
   "build": {
     "no_compiler_found": "Nenhum compilador C (GCC ou Clang) encontrado no PATH do sistema.",
@@ -747,5 +762,38 @@
       "base": "Base (Equilibrado, ~75MB RAM)",
       "small": "Small (Preciso, ~250MB RAM)"
     }
+  },
+  "folders": {
+    "title": "Navegador de Pastas",
+    "browse_native": "Procurar no Sistema...",
+    "current_path": "Pasta Atual",
+    "up": "Subir Nível",
+    "select_this": "Selecionar Pasta",
+    "scan_depth": "Profundidade de Busca",
+    "depth_1": "Apenas Raiz (1 nível)",
+    "depth_2": "Padrão (2 níveis)",
+    "depth_3": "Profundo (3 níveis)",
+    "depth_4": "Extensivo (4 níveis)",
+    "depth_5": "Máximo (5 níveis)",
+    "empty_dir": "Pasta vazia",
+    "filter_placeholder": "Filtrar pastas...",
+    "browse_btn": "Procurar..."
+  },
+  "subtitles": {
+    "title": "Editor Nativo de Legendas",
+    "editor_title": "Editor de Legendas",
+    "toggle_cc": "Legendas (CC)",
+    "no_cues": "Nenhuma legenda detectada",
+    "add_cue": "Adicionar Linha",
+    "delete_cue": "Excluir",
+    "start_time": "Início",
+    "end_time": "Fim",
+    "text": "Texto da Legenda",
+    "save": "Salvar Legendas",
+    "saved_success": "Legendas salvas com sucesso!",
+    "save_failed": "Falha ao salvar legendas",
+    "generate": "Gerar Legendas com IA",
+    "empty_timeline": "Nenhuma legenda carregada.",
+    "close": "Fechar Editor"
   }
 }

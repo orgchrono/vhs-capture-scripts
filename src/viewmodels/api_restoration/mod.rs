@@ -16,7 +16,10 @@ pub use lifecycle_handlers::{
     handle_run_pipeline, handle_status, start_restoration_unified,
 };
 pub use qc_handlers::{handle_install_qtgmc, handle_qc_report};
-pub use whisper_service::{handle_detect_whisper_language, handle_generate_subtitles};
+pub use whisper_service::{
+    handle_detect_whisper_language, handle_generate_subtitles, handle_get_subtitles,
+    handle_save_subtitles,
+};
 
 use crate::infrastructure::app_context::AppContext;
 use crate::viewmodels::api_types::{ApiRequest, ApiResponse};
@@ -33,6 +36,8 @@ pub fn handle_restoration_route(req: &ApiRequest, ctx: &AppContext) -> Option<Ap
         ("GET", "/api/restoration/status") => Some(handle_status(ctx)),
         ("GET", "/api/restoration/preset-config") => Some(handle_preset_config(req)),
         ("GET", "/api/restoration/check-existing") => Some(handle_check_existing(req)),
+        ("GET", "/api/restoration/subtitles") => Some(handle_get_subtitles(req)),
+        ("POST", "/api/restoration/subtitles") => Some(handle_save_subtitles(req)),
         ("GET", "/api/incomplete-jobs") | ("GET", "/api/restoration/incomplete") => {
             Some(handle_incomplete_list())
         }

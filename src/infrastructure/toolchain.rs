@@ -274,6 +274,17 @@ pub fn resolve_executable_path(
         return resolve_executable_path("obs64", project_root, user_home);
     }
 
+    // Auto-extract vendored Panasonic tools embedded directly in binary
+    if tool_name == "extract_meihdfs" || tool_name == "dvd-vr" || tool_name == "udf_dump" {
+        let bin_dir = crate::infrastructure::paths::studio_dir().join("bin");
+        if crate::infrastructure::embedded_assets::extract_embedded_tools(&bin_dir).is_ok() {
+            let extracted = bin_dir.join(format_binary_name(tool_name));
+            if is_real_executable(&extracted) {
+                return Some(extracted);
+            }
+        }
+    }
+
     None
 }
 

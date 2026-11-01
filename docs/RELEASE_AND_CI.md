@@ -79,10 +79,12 @@ strip = true           # Strip all debug symbols
 3. **Zero Antivirus False-Positives:** Eliminates the heuristic detections commonly triggered by PyInstaller bootloader stub unpackers.
 4. **Memory Safety & Determinism:** 100% memory safety, zero data races, zero garbage collection pauses.
 
-### Critical Bundled Assets:
-- `ui/dist`: Contains pre-compiled HTML, CSS, JavaScript, and i18n locale dictionaries.
-- `tools/panasonic_rec`: Contains compiled native C binaries for the target operating system.
-- `vhs_advanced_config.toml`: Contains canonical signal processing constants and presets.
+### Self-Contained Standalone Architecture (v0.2.0):
+In v0.2.0+, the binary is completely self-contained and portable:
+- **Embedded UI Assets:** All compiled React 19 / Vite assets in `ui/dist` are embedded into the native Rust binary via `build.rs` compile-time code generation and served directly from memory via zero-copy byte slices.
+- **Embedded C Toolchain:** Native Panasonic extraction utilities (`extract_meihdfs`, `dvd-vr`, `udf_dump`) are embedded inside the executable and automatically unpacked to `~/.vhs_studio/bin/` if not present.
+- **No Loose Folders Required:** The resulting executable (`VHS_Studio_Pro.exe` or `VHS_Studio_Pro`) can run from anywhere without needing adjacent `ui/` or `tools/` folders.
+- **OS Videos Directory Integration:** Output directories automatically default to the native user's OS Videos folder (`Videos/VHS Studio Pro/` with `raw/`, `restored/`, `captures/`, `subtitles/`, and `work/` subdirectories).
 
 ---
 

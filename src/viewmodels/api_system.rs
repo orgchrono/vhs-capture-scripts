@@ -7,7 +7,7 @@ use crate::infrastructure::hardware::{detect_system_ram_gb, get_active_hardware_
 use crate::infrastructure::toolchain::{
     detect_best_ffmpeg_encoder, is_obs_installed, is_obs_running, is_vapoursynth_available,
 };
-use crate::models::media::scan_media_directory;
+use crate::models::media::scan_media_directory_with_depth;
 use crate::models::preferences::{merge_preferences, to_ui_json};
 use crate::viewmodels::api_support::{load_preferences, media_dirs, save_preferences};
 use crate::viewmodels::api_types::{ApiRequest, ApiResponse};
@@ -23,20 +23,27 @@ fn round_to(value: f64, decimals: i32) -> f64 {
     (value * factor).round() / factor
 }
 
-fn list_media(dir: &Path) -> Vec<Value> {
-    scan_media_directory(dir)
+fn list_media(dir: &Path, max_depth: usize) -> Vec<Value> {
+    scan_media_directory_with_depth(dir, max_depth)
         .unwrap_or_default()
         .into_iter()
-        .map(|f| json!({ "name": f.name, "path": f.path, "size_mb": round_to(f.size_mb, 2), "thumbnail_url": format!("/api/media/thumbnail?path={}", f.path) }))
+        .map(|f| json!({
+            "name": f.name,
+            "path": f.path,
+            "size_mb": round_to(f.size_mb, 2),
+            "relative_dir": f.relative_dir,
+            "depth": f.depth,
+            "thumbnail_url": format!("/api/media/thumbnail?path={}", f.path)
+        }))
         .collect()
 }
 
-fn list_media_multiple(dirs: &[&Path]) -> Vec<Value> {
+fn list_media_multiple(dirs: &[&Path], max_depth: usize) -> Vec<Value> {
     let mut seen_paths = HashSet::new();
     let mut result = Vec::new();
 
     for dir in dirs {
-        if let Ok(entries) = scan_media_directory(dir) {
+        if let Ok(entries) = scan_media_directory_with_depth(dir, max_depth) {
             for f in entries {
                 let norm = f.path.replace('\\', "/").to_ascii_lowercase();
                 if seen_paths.insert(norm) {
@@ -44,6 +51,8 @@ fn list_media_multiple(dirs: &[&Path]) -> Vec<Value> {
                         "name": f.name,
                         "path": f.path,
                         "size_mb": round_to(f.size_mb, 2),
+                        "relative_dir": f.relative_dir,
+                        "depth": f.depth,
                         "thumbnail_url": format!("/api/media/thumbnail?path={}", f.path)
                     }));
                 }
@@ -69,12 +78,13 @@ pub fn ram_usage(total_gb: f32, available_gb: f32) -> (f64, f64, f64) {
 
 fn status(ctx: &AppContext) -> ApiResponse {
     let dirs = media_dirs();
+    let prefs = load_preferences();
     let snapshot = ctx.process.snapshot();
     let encoder = detect_best_ffmpeg_encoder("h264");
     let vs = is_vapoursynth_available();
     let obs = is_obs_running();
     let obs_installed = is_obs_installed();
-    let raw = list_media(&dirs.raw);
+    let raw = list_media(&dirs.raw, prefs.scan_max_depth);
 
     let base = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
     let root_restored = base.join("restored");
@@ -82,7 +92,7 @@ fn status(ctx: &AppContext) -> ApiResponse {
     if root_restored.exists() && root_restored != dirs.restored {
         restored_targets.push(root_restored.as_path());
     }
-    let restored = list_media_multiple(&restored_targets);
+    let restored = list_media_multiple(&restored_targets, prefs.scan_max_depth);
 
     let hw = get_active_hardware_profile();
     let cpu = sample_cpu_percent();
@@ -140,6 +150,34 @@ fn save_preferences_route(req: &ApiRequest) -> ApiResponse {
     }
 }
 
+fn pick_folder_route(req: &ApiRequest) -> ApiResponse {
+    let body = req.json_body();
+    let initial = body.get("initial_path")
+        .or_else(|| body.get("initialPath"))
+        .and_then(Value::as_str)
+        .map(Path::new);
+    match crate::infrastructure::fs_browser::pick_folder_native(initial) {
+        Some(path) => ApiResponse::ok(&json!({
+            "success": true,
+            "path": path.to_string_lossy().to_string(),
+        })),
+        None => ApiResponse::ok(&json!({
+            "success": false,
+            "cancelled": true,
+        })),
+    }
+}
+
+fn browse_filesystem_route(req: &ApiRequest) -> ApiResponse {
+    let body = req.json_body();
+    let path = body.get("path")
+        .and_then(Value::as_str)
+        .map(String::from)
+        .or_else(|| req.query("path"));
+    let result = crate::infrastructure::fs_browser::browse_filesystem(path.as_deref());
+    ApiResponse::ok(&serde_json::to_value(result).unwrap_or(json!({})))
+}
+
 /// Routes owned by the system ViewModel; `None` when the request is not a system route.
 #[must_use]
 pub fn handle_system_route(req: &ApiRequest, ctx: &AppContext) -> Option<ApiResponse> {
@@ -157,6 +195,10 @@ pub fn handle(ctx: &AppContext, req: &ApiRequest) -> Option<ApiResponse> {
         ("GET", "/api/logs") => logs(ctx),
         ("GET", "/api/preferences") => ApiResponse::ok(&to_ui_json(&load_preferences())),
         ("POST", "/api/preferences") => save_preferences_route(req),
+        ("POST", "/api/system/pick-folder") => pick_folder_route(req),
+        ("POST", "/api/system/browse-filesystem") | ("GET", "/api/system/browse-filesystem") => {
+            browse_filesystem_route(req)
+        }
         _ => return None,
     };
     Some(response)
@@ -171,5 +213,20 @@ mod tests {
         assert_eq!(ram_usage(16.0, 4.0), (12.0, 16.0, 75.0));
         assert_eq!(ram_usage(0.0, 0.0), (0.0, 0.0, 0.0));
         assert_eq!(ram_usage(8.0, 9.0).0, 0.0);
+    }
+
+    #[test]
+    fn test_browse_filesystem_endpoint() {
+        let tmp = std::env::temp_dir();
+        let ctx = AppContext::new_test(&tmp);
+        let req = ApiRequest {
+            method: "POST".to_string(),
+            path: "/api/system/browse-filesystem".to_string(),
+            body_json: json!({ "path": tmp.to_string_lossy().to_string() }).to_string(),
+        };
+        let res = handle_system_route(&req, &ctx).expect("matched route");
+        assert_eq!(res.status_code, 200);
+        assert!(res.body_json.contains("current_path"));
+        assert!(res.body_json.contains("roots"));
     }
 }

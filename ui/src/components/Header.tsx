@@ -95,9 +95,9 @@ export const Header: React.FC<HeaderProps> = ({
           aria-label={t('app.title')}
         >
           <span className="sr-only">{t('app.title')}</span>
-          <Film className="w-3.5 h-3.5 text-amber-500 shrink-0" aria-hidden="true" />
-          <span className="text-white tracking-wider shrink-0 whitespace-nowrap">{t('app.brand_name')}</span>
-          <Badge variant="warn" size="sm" className="hidden sm:inline-flex">
+          <Film className="w-3.5 h-3.5 text-amber-500 shrink-0 self-center" aria-hidden="true" />
+          <span className="text-white tracking-wider shrink-0 whitespace-nowrap self-center leading-none">{t('app.brand_name')}</span>
+          <Badge variant="warn" size="sm" className="hidden sm:inline-flex self-center">
             {t('app.brand_badge')}
           </Badge>
         </h1>
@@ -114,10 +114,10 @@ export const Header: React.FC<HeaderProps> = ({
             onChange={(e) => i18n.changeLanguage(e.target.value)}
             aria-label={t('header.change_language')}
             title={t('header.change_language')}
-            className="bg-transparent text-slate-200 text-xs font-mono focus:outline-none cursor-pointer pr-1"
+            className="bg-transparent text-slate-200 text-xs font-mono text-left focus:outline-none cursor-pointer pr-1"
           >
             {SUPPORTED_LANGUAGES.map((lang) => (
-              <option key={lang.code} value={lang.code} className="bg-studio-panel text-slate-200">
+              <option key={lang.code} value={lang.code} className="bg-studio-panel text-slate-200 text-left">
                 {lang.name} ({lang.region})
               </option>
             ))}
@@ -231,12 +231,12 @@ export const Header: React.FC<HeaderProps> = ({
             aria-label={t('settings.output_codec_label')}
             title={t('settings.output_codec_label')}
             data-testid="header-codec-select"
-            className="bg-transparent text-amber-400 text-[11px] font-mono font-bold uppercase focus:outline-none cursor-pointer pr-1"
+            className="bg-transparent text-amber-400 text-[11px] font-mono font-bold uppercase text-left focus:outline-none cursor-pointer pr-1"
           >
-            <option value="h264" className="bg-studio-panel text-slate-200">{t('header.codec_h264')}</option>
-            <option value="hevc" className="bg-studio-panel text-slate-200">{t('header.codec_hevc')}</option>
-            <option value="prores" className="bg-studio-panel text-slate-200">{t('header.codec_prores')}</option>
-            <option value="ffv1" className="bg-studio-panel text-slate-200">{t('header.codec_ffv1')}</option>
+            <option value="h264" className="bg-studio-panel text-slate-200 text-left">{t('header.codec_h264')}</option>
+            <option value="hevc" className="bg-studio-panel text-slate-200 text-left">{t('header.codec_hevc')}</option>
+            <option value="prores" className="bg-studio-panel text-slate-200 text-left">{t('header.codec_prores')}</option>
+            <option value="ffv1" className="bg-studio-panel text-slate-200 text-left">{t('header.codec_ffv1')}</option>
           </select>
           {status?.hardware?.ram?.total_gb !== undefined && (
             <span className="text-slate-500 font-mono text-[10px] shrink-0">
@@ -246,31 +246,31 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         <div className="hidden md:flex items-center gap-1.5 bg-studio-surface border border-studio-border px-2 py-1 rounded-sm text-xs h-8 shrink-0 whitespace-nowrap">
-          <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+          <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0 self-center" />
           {status?.vapoursynth_available ? (
-            <span className="flex items-center gap-1.5 text-slate-200 font-semibold text-[11px] bg-studio-panel border border-studio-border px-2 py-0.5 rounded-sm font-mono shrink-0 whitespace-nowrap">
-              <span className="led-lamp led-live shrink-0" />
-              <span className="shrink-0 whitespace-nowrap">{t('header.qtgmc_installed')}</span>
+            <span className="flex items-center gap-1.5 text-slate-200 font-semibold text-[11px] bg-studio-panel border border-studio-border px-2 h-6 rounded-sm font-mono shrink-0 whitespace-nowrap">
+              <span className="led-lamp led-live shrink-0 self-center" />
+              <span className="shrink-0 whitespace-nowrap self-center leading-none">{t('header.qtgmc_installed')}</span>
             </span>
           ) : (
-            <Button variant="outline" size="sm" onClick={onInstallQtgmc} disabled={isInstallingQtgmc} className="h-6 px-2 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-200 border-studio-border font-mono rounded-sm shrink-0 whitespace-nowrap">
-              <Wrench className="w-3 h-3 mr-1 shrink-0" />
-              <span className="shrink-0 whitespace-nowrap">{isInstallingQtgmc ? t('header.installing') : t('header.install_qtgmc')}</span>
+            <Button variant="outline" size="sm" onClick={onInstallQtgmc} disabled={isInstallingQtgmc} className="h-6 px-2 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-200 border-studio-border font-mono rounded-sm shrink-0 whitespace-nowrap flex items-center">
+              <Wrench className="w-3 h-3 mr-1 shrink-0 self-center" />
+              <span className="shrink-0 whitespace-nowrap self-center leading-none">{isInstallingQtgmc ? t('header.installing') : t('header.install_qtgmc')}</span>
             </Button>
           )}
         </div>
       
         <div className="hidden xl:flex items-center gap-1.5 bg-studio-surface border border-studio-border px-2 py-1 rounded-sm text-xs h-8 shrink-0 whitespace-nowrap">
-          <Video className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <Video className="w-3.5 h-3.5 text-slate-400 shrink-0 self-center" />
           {status?.obs_installed ? (
-            <span className="flex items-center gap-1.5 text-slate-200 font-semibold text-[11px] bg-studio-panel border border-studio-border px-2 py-0.5 rounded-sm font-mono shrink-0 whitespace-nowrap">
-              <span className={`led-lamp ${status?.obs_connected ? 'led-live' : 'led-idle'} shrink-0`} />
-              <span className="shrink-0 whitespace-nowrap">{t('header.obs_installed')}</span>
+            <span className="flex items-center gap-1.5 text-slate-200 font-semibold text-[11px] bg-studio-panel border border-studio-border px-2 h-6 rounded-sm font-mono shrink-0 whitespace-nowrap">
+              <span className={`led-lamp ${status?.obs_connected ? 'led-live' : 'led-idle'} shrink-0 self-center`} />
+              <span className="shrink-0 whitespace-nowrap self-center leading-none">{t('header.obs_installed')}</span>
             </span>
           ) : (
-            <Button variant="outline" size="sm" onClick={onInstallObs} disabled={isInstallingObs} className="h-6 px-2 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-200 border-studio-border font-mono rounded-sm shrink-0 whitespace-nowrap">
-              <Wrench className="w-3 h-3 mr-1 shrink-0" />
-              <span className="shrink-0 whitespace-nowrap">{isInstallingObs ? t('header.installing') : t('header.install_obs')}</span>
+            <Button variant="outline" size="sm" onClick={onInstallObs} disabled={isInstallingObs} className="h-6 px-2 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-200 border-studio-border font-mono rounded-sm shrink-0 whitespace-nowrap flex items-center">
+              <Wrench className="w-3 h-3 mr-1 shrink-0 self-center" />
+              <span className="shrink-0 whitespace-nowrap self-center leading-none">{isInstallingObs ? t('header.installing') : t('header.install_obs')}</span>
             </Button>
           )}
         </div>

@@ -115,7 +115,7 @@
     "split_play": "播放对比",
     "split_pause": "暂停对比",
     "split_preset": "设置分割为 {{percent}}%",
-    "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)",
+    "split_timeline_info": "{{current}} / {{total}}",
     "live_badge": "直播",
     "jump_to_live": "回到实时进度",
     "return_live_view": "返回实时监控",
@@ -154,7 +154,12 @@
     "scopes_lufs_value": "{{value}} LUFS",
     "rec_badge": "录制",
     "rec_with_timecode": "录制 {{timecode}}",
-    "fps_badge": "{{fps}} FPS"
+    "fps_badge": "{{fps}} FPS",
+    "volume": "音量",
+    "mute": "静音",
+    "unmute": "取消静音",
+    "subtitles_toggle": "字幕 (CC)",
+    "subtitles_editor": "字幕编辑器"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -276,7 +281,13 @@
     "reset_default": "恢复默认值",
     "tabs_aria_label": "Abas de Configuração",
     "output_codec_hint": "最终视频的输出编码格式与压缩模式。",
-    "tier_label": "等级 {{tier}}: {{name}}"
+    "tier_label": "等级 {{tier}}: {{name}}",
+    "vpy_cache_label": "VapourSynth 缓存 (MB)",
+    "vpy_cache_desc": "分配给 QTGMC 和时域滤镜的内存缓冲区上限",
+    "checkpoint_interval_label": "检查点写入间隔",
+    "checkpoint_interval_desc": "以处理帧为单位的磁盘原子同步频率",
+    "fixity_label": "OAIS 加密完整性校验",
+    "fixity_desc": "针对归档母带的持续 SHA-256 完整性检验"
   },
   "hardware": {
     "tier_1": "入门级（性能受限的 CPU）",
@@ -665,7 +676,11 @@
     "theme_dark": "Studio Pro Dark (广播级专业暗色)",
     "theme_oled": "OLED Deep Black (纯黑无光)",
     "reset_defaults": "恢复默认设置",
-    "close": "完成"
+    "close": "完成",
+    "scan_max_depth_label": "媒体扫描深度",
+    "scan_max_depth_desc": "检索磁带库时的子文件夹递归层级",
+    "default_videos_dir": "使用操作系统默认视频文件夹",
+    "browse": "浏览..."
   },
   "build": {
     "no_compiler_found": "No suitable C compiler (GCC, Clang) found in system PATH.",
@@ -747,5 +762,38 @@
       "base": "Base (均衡, ~75MB 内存)",
       "small": "Small (精准, ~250MB 内存)"
     }
+  },
+  "folders": {
+    "title": "文件夹导航",
+    "browse_native": "浏览系统...",
+    "current_path": "当前文件夹",
+    "up": "上一级目录",
+    "select_this": "选择此文件夹",
+    "scan_depth": "扫描深度",
+    "depth_1": "仅根目录 (1级)",
+    "depth_2": "标准 (2级)",
+    "depth_3": "深入 (3级)",
+    "depth_4": "广泛 (4级)",
+    "depth_5": "最大深度 (5级)",
+    "empty_dir": "空文件夹",
+    "filter_placeholder": "过滤文件夹...",
+    "browse_btn": "浏览..."
+  },
+  "subtitles": {
+    "title": "原生字幕编辑器",
+    "editor_title": "字幕编辑器",
+    "toggle_cc": "字幕 (CC)",
+    "no_cues": "未检测到字幕",
+    "add_cue": "添加字幕行",
+    "delete_cue": "删除",
+    "start_time": "开始",
+    "end_time": "结束",
+    "text": "字幕文本",
+    "save": "保存字幕",
+    "saved_success": "字幕保存成功！",
+    "save_failed": "保存字幕失败",
+    "generate": "AI生成字幕",
+    "empty_timeline": "未加载字幕。",
+    "close": "关闭编辑器"
   }
 }

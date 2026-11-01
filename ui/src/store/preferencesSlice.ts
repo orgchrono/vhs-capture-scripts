@@ -28,6 +28,12 @@ export interface AppPreferencesState {
   highContrast: boolean;
   largeText: boolean;
   theme: 'dark' | 'oled_black';
+
+  // Library & Monitor Extras
+  scanMaxDepth: number;
+  monitorVolume: number;
+  monitorMuted: boolean;
+  subtitlesEnabled: boolean;
 }
 
 export const STORAGE_PREFERENCES_KEY = 'vhs_studio_preferences_v1';
@@ -49,6 +55,10 @@ export const initialPreferencesState: AppPreferencesState = {
   highContrast: false,
   largeText: false,
   theme: 'dark',
+  scanMaxDepth: 3,
+  monitorVolume: 80,
+  monitorMuted: false,
+  subtitlesEnabled: true,
 };
 
 function loadStoredPreferences(): AppPreferencesState {
@@ -130,6 +140,18 @@ export const preferencesSlice = createSlice({
     setTheme: (state, action: PayloadAction<'dark' | 'oled_black'>) => {
       state.theme = action.payload;
     },
+    setScanMaxDepth: (state, action: PayloadAction<number>) => {
+      state.scanMaxDepth = Math.max(1, Math.min(6, action.payload));
+    },
+    setMonitorVolume: (state, action: PayloadAction<number>) => {
+      state.monitorVolume = Math.max(0, Math.min(100, action.payload));
+    },
+    setMonitorMuted: (state, action: PayloadAction<boolean>) => {
+      state.monitorMuted = action.payload;
+    },
+    setSubtitlesEnabled: (state, action: PayloadAction<boolean>) => {
+      state.subtitlesEnabled = action.payload;
+    },
   },
 });
 
@@ -149,4 +171,8 @@ export const {
   setHighContrast,
   setLargeText,
   setTheme,
+  setScanMaxDepth,
+  setMonitorVolume,
+  setMonitorMuted,
+  setSubtitlesEnabled,
 } = preferencesSlice.actions;

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { formatMbSize } from '../lib/formatters';
 import {
   Disc,
@@ -19,6 +19,8 @@ import {
   FolderOpen,
 } from 'lucide-react';
 import { usePanasonicIngestViewModel } from '../viewmodels/usePanasonicIngestViewModel';
+import { DirectoryPickerModal } from './DirectoryPickerModal';
+import { Badge } from './ui/badge';
 
 export interface PanasonicIngestCardProps {
   onRefresh?: () => void;
@@ -55,33 +57,38 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
     toggleExpandChapters,
     handleLoadTitleToDesk,
   } = usePanasonicIngestViewModel({ onRefresh });
+  const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
 
   return (
     <div className="bg-studio-panel border border-studio-border rounded-md p-2.5 flex flex-col gap-2 select-none">
       {/* Header: Title, Hotplug Indicator, and Expand/Collapse Toggle */}
       <div className="flex items-center justify-between gap-1.5 min-w-0">
         <div className="flex items-center gap-1.5 font-mono text-[11px] text-slate-300 font-bold uppercase tracking-wider min-w-0 flex-1">
-          <Disc className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-          <span className="truncate">{t('files.panasonic_ingest_title')}</span>
+          <Disc className="w-3.5 h-3.5 text-amber-400 shrink-0 self-center" />
+          <span className="truncate self-center leading-none">{t('files.panasonic_ingest_title')}</span>
           {hasPanasonicDisk && (
-            <span className="led-lamp led-live animate-pulse shrink-0" aria-hidden="true" />
+            <span className="led-lamp led-live animate-pulse shrink-0 self-center" aria-hidden="true" />
           )}
           {panasonicHotplugEnabled ? (
-            <span
-              className="hidden sm:flex items-center gap-1 text-[9px] bg-studio-surface px-1.5 py-0.5 rounded-xs border border-studio-border text-slate-400 font-normal cursor-help shrink-0"
+            <Badge
+              variant="secondary"
+              size="sm"
+              className="hidden sm:inline-grid text-slate-400 font-normal cursor-help"
               title={t('files.hotplug_tooltip')}
             >
-              <span className="led-lamp led-idle shrink-0" aria-hidden="true" />
-              <span className="shrink-0">{t('files.hotplug_active_label')}</span>
-            </span>
+              <span className="led-lamp led-idle" aria-hidden="true" />
+              <span>{t('files.hotplug_active_label')}</span>
+            </Badge>
           ) : (
-            <span
-              className="hidden sm:flex items-center gap-1 text-[9px] bg-studio-surface px-1.5 py-0.5 rounded-xs border border-studio-border text-slate-500 font-normal cursor-help shrink-0"
+            <Badge
+              variant="secondary"
+              size="sm"
+              className="hidden sm:inline-grid text-slate-500 font-normal cursor-help"
               title={t('files.hotplug_disabled_tooltip')}
             >
-              <span className="led-lamp led-idle shrink-0" aria-hidden="true" />
-              <span className="shrink-0">{t('files.hotplug_disabled_label')}</span>
-            </span>
+              <span className="led-lamp led-idle" aria-hidden="true" />
+              <span>{t('files.hotplug_disabled_label')}</span>
+            </Badge>
           )}
         </div>
 
@@ -95,9 +102,9 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
           data-testid="toggle-panasonic-ingest-btn"
         >
           {isExpanded ? (
-            <Minus className="w-3 h-3" aria-hidden="true" />
+            <Minus className="w-3 h-3 self-center" aria-hidden="true" />
           ) : (
-            <Plus className="w-3 h-3" aria-hidden="true" />
+            <Plus className="w-3 h-3 self-center" aria-hidden="true" />
           )}
         </button>
       </div>
@@ -109,8 +116,8 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <label className="text-[10px] text-slate-400 uppercase font-semibold flex items-center gap-1">
-                <HardDrive className="w-3 h-3 text-slate-400" />
-                <span>{t('files.detected_drives_title')}</span>
+                <HardDrive className="w-3 h-3 text-slate-400 self-center" />
+                <span className="self-center leading-none">{t('files.detected_drives_title')}</span>
               </label>
               <button
                 type="button"
@@ -119,8 +126,8 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
                 className="text-slate-400 hover:text-slate-200 transition text-[9px] flex items-center gap-1 cursor-pointer font-mono"
                 title={t('files.scan_drives')}
               >
-                <RefreshCw className={`w-2.5 h-2.5 ${isScanningDisks ? 'animate-spin' : ''}`} />
-                <span>{t('files.refresh')}</span>
+                <RefreshCw className={`w-2.5 h-2.5 ${isScanningDisks ? 'animate-spin' : ''} self-center`} />
+                <span className="self-center leading-none">{t('files.refresh')}</span>
               </button>
             </div>
 
@@ -158,26 +165,26 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 mb-0.5">
                           <span
-                            className={`led-lamp ${isPana ? 'led-live animate-pulse' : 'led-idle'}`}
+                            className={`led-lamp ${isPana ? 'led-live animate-pulse' : 'led-idle'} shrink-0 self-center`}
                             aria-hidden="true"
                           />
-                          <span className="text-[11px] font-bold truncate">
+                          <span className="text-[11px] font-bold truncate self-center leading-none">
                             {disk.model}
                           </span>
                           {isPana && (
-                            <span className="text-[9px] bg-amber-950 px-1 py-0.5 rounded-xs border border-amber-600/60 text-amber-300 shrink-0 uppercase">
+                            <span className="text-[9px] bg-amber-950 px-1 py-0.5 rounded-xs border border-amber-600/60 text-amber-300 shrink-0 uppercase self-center leading-none inline-flex items-center justify-center">
                               {t('files.panasonic_detected_badge')}
                             </span>
                           )}
-                          <span className="text-[8px] bg-studio-surface px-1 py-0.5 rounded-xs border border-studio-border text-slate-400 shrink-0 flex items-center gap-0.5">
-                            {disk.is_usb ? <Usb className="w-2.5 h-2.5" /> : null}
-                            <span>{adapterLabel}</span>
+                          <span className="text-[8px] bg-studio-surface px-1 py-0.5 rounded-xs border border-studio-border text-slate-400 shrink-0 inline-flex items-center justify-center gap-0.5 self-center leading-none">
+                            {disk.is_usb ? <Usb className="w-2.5 h-2.5 self-center" /> : null}
+                            <span className="self-center leading-none">{adapterLabel}</span>
                           </span>
                         </div>
                         <div className="text-[10px] text-slate-400 flex items-center gap-2">
-                          <span className="truncate">{disk.device_id}</span>
-                          <span>•</span>
-                          <span>{disk.size_gb} GB</span>
+                          <span className="truncate self-center leading-none">{disk.device_id}</span>
+                          <span className="self-center leading-none">•</span>
+                          <span className="self-center leading-none">{disk.size_gb} GB</span>
                         </div>
                       </div>
 
@@ -187,14 +194,14 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
                           setPanasonicPath(disk.device_id);
                           handleInspectPath(disk.device_id);
                         }}
-                        className={`text-[10px] font-bold px-2 py-1 rounded-sm border transition cursor-pointer shrink-0 ${
+                        className={`text-[10px] font-bold px-2 py-1 rounded-sm border transition cursor-pointer shrink-0 inline-flex items-center justify-center leading-none ${
                           isPana
                             ? 'bg-amber-600 hover:bg-amber-500 text-white border-amber-500/50 shadow-xs'
                             : 'bg-studio-surface hover:bg-studio-surface-hover text-slate-300 border-studio-border'
                         }`}
                         title={t('files.connect_drive_btn')}
                       >
-                        {t('files.connect_drive_btn')}
+                        <span className="self-center leading-none">{t('files.connect_drive_btn')}</span>
                       </button>
                     </div>
                   );
@@ -214,22 +221,31 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
                 value={panasonicPath}
                 onChange={(e) => setPanasonicPath(e.target.value)}
                 placeholder={t('files.source_path_placeholder')}
-                className="flex-1 bg-studio-panel border border-studio-border rounded-sm px-2 py-1 text-[11px] text-slate-200 focus:outline-none focus:border-studio-border-focus"
+                className="flex-1 bg-studio-panel border border-studio-border rounded-sm px-2 py-1 text-[11px] text-slate-200 focus:outline-none focus:border-studio-border-focus font-mono"
                 data-testid="panasonic-path-input"
               />
               <button
                 type="button"
+                onClick={() => setIsFolderModalOpen(true)}
+                className="bg-studio-panel hover:bg-studio-surface-hover text-slate-300 border border-studio-border px-2 py-1 rounded-sm text-[10px] font-bold transition cursor-pointer flex items-center justify-center gap-1 shrink-0"
+                title={t('folders.browse_btn')}
+                data-testid="panasonic-browse-btn"
+              >
+                <FolderOpen className="w-3 h-3 text-amber-400 self-center" />
+              </button>
+              <button
+                type="button"
                 disabled={!panasonicPath.trim() || isInspecting || isLoadingTree}
                 onClick={() => handleInspectPath(panasonicPath)}
-                className="bg-studio-panel hover:bg-studio-surface-hover text-amber-300 border border-amber-500/40 px-2.5 py-1 rounded-sm text-[10px] font-bold transition disabled:opacity-40 cursor-pointer flex items-center gap-1 shrink-0"
+                className="bg-studio-panel hover:bg-studio-surface-hover text-amber-300 border border-amber-500/40 px-2.5 py-1 rounded-sm text-[10px] font-bold transition disabled:opacity-40 cursor-pointer flex items-center justify-center gap-1 shrink-0"
                 data-testid="inspect-panasonic-btn"
               >
                 {isInspecting || isLoadingTree ? (
-                  <RefreshCw className="w-3 h-3 animate-spin" />
+                  <RefreshCw className="w-3 h-3 animate-spin self-center" />
                 ) : (
-                  <Search className="w-3 h-3" />
+                  <Search className="w-3 h-3 self-center" />
                 )}
-                <span>{t('files.inspect')}</span>
+                <span className="self-center leading-none">{t('files.inspect')}</span>
               </button>
             </div>
           </div>
@@ -243,10 +259,10 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
               className="flex items-center justify-between text-[10px] font-bold text-slate-300 hover:text-white cursor-pointer"
             >
               <span className="flex items-center gap-1 text-amber-400">
-                <AlertTriangle className="w-3 h-3 shrink-0" />
-                <span>{t('files.guidance_title')}</span>
+                <AlertTriangle className="w-3 h-3 shrink-0 self-center" />
+                <span className="self-center leading-none">{t('files.guidance_title')}</span>
               </span>
-              <span className="text-[9px] text-slate-500">
+              <span className="text-[9px] text-slate-500 self-center leading-none">
                 {showGuidance ? t('files.collapse') : t('files.expand')}
               </span>
             </button>
@@ -270,20 +286,20 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
             <div className="border border-amber-500/40 rounded-sm bg-studio-panel/80 p-2.5 flex flex-col gap-2.5">
               <div className="flex items-center justify-between border-b border-studio-border pb-1.5">
                 <div className="flex items-center gap-1.5">
-                  <FolderOpen className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="text-[11px] font-bold text-amber-200">
+                  <FolderOpen className="w-3.5 h-3.5 text-amber-400 shrink-0 self-center" />
+                  <span className="text-[11px] font-bold text-amber-200 self-center leading-none">
                     {t('files.recording_tree_title')}
                   </span>
-                  <span className="text-[9px] bg-studio-surface px-1.5 py-0.5 rounded-xs border border-studio-border text-slate-300">
+                  <span className="text-[9px] bg-studio-surface px-1.5 py-0.5 rounded-xs border border-studio-border text-slate-300 shrink-0 self-center leading-none inline-flex items-center justify-center">
                     {recordingTree.format}
                   </span>
                 </div>
                 <div className="text-[10px] text-slate-400 flex items-center gap-2">
-                  <span>
+                  <span className="self-center leading-none">
                     {t('files.tree_total_titles', { count: recordingTree.total_titles })}
                   </span>
-                  <span>•</span>
-                  <span>
+                  <span className="self-center leading-none">•</span>
+                  <span className="self-center leading-none">
                     {t('files.tree_total_size', { size: recordingTree.total_size_mb })}
                   </span>
                 </div>
@@ -297,17 +313,17 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
                     onClick={handleSelectAll}
                     className="text-amber-400 hover:text-amber-300 transition cursor-pointer flex items-center gap-1"
                   >
-                    <CheckSquare className="w-3 h-3" />
-                    <span>{t('files.select_all')}</span>
+                    <CheckSquare className="w-3 h-3 self-center" />
+                    <span className="self-center leading-none">{t('files.select_all')}</span>
                   </button>
-                  <span className="text-slate-600">|</span>
+                  <span className="text-slate-600 self-center leading-none">|</span>
                   <button
                     type="button"
                     onClick={handleDeselectAll}
                     className="text-slate-400 hover:text-slate-200 transition cursor-pointer flex items-center gap-1"
                   >
-                    <Square className="w-3 h-3" />
-                    <span>{t('files.deselect_all')}</span>
+                    <Square className="w-3 h-3 self-center" />
+                    <span className="self-center leading-none">{t('files.deselect_all')}</span>
                   </button>
                 </div>
 
@@ -315,14 +331,14 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
                   type="button"
                   disabled={isExtractingTitles || selectedTitleIds.size === 0}
                   onClick={handleExtractSelectedTitles}
-                  className="bg-amber-600 hover:bg-amber-500 disabled:opacity-40 text-white font-bold px-2.5 py-1 rounded-sm text-[10px] transition cursor-pointer flex items-center gap-1.5 shadow-xs"
+                  className="bg-amber-600 hover:bg-amber-500 disabled:opacity-40 text-white font-bold px-2.5 py-1 rounded-sm text-[10px] transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
                 >
                   {isExtractingTitles ? (
-                    <RefreshCw className="w-3 h-3 animate-spin" />
+                    <RefreshCw className="w-3 h-3 animate-spin self-center" />
                   ) : (
-                    <Download className="w-3 h-3" />
+                    <Download className="w-3 h-3 self-center" />
                   )}
-                  <span>
+                  <span className="self-center leading-none">
                     {t('files.ingest_selected_btn', { count: selectedTitleIds.size })}
                   </span>
                 </button>
@@ -373,7 +389,7 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
                           ) : (
                             <Film className="w-4 h-4 text-slate-500" />
                           )}
-                          <span className="absolute bottom-0 right-0 bg-black/80 text-[7px] font-mono px-0.5 rounded-xs text-amber-300">
+                          <span className="absolute bottom-0 right-0 bg-black/80 text-[7px] font-mono px-0.5 rounded-xs text-amber-300 leading-none">
                             {title.duration_formatted}
                           </span>
                         </div>
@@ -381,20 +397,20 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
                         {/* Title Metadata */}
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center justify-between gap-1">
-                            <span className="text-[11px] font-bold text-slate-200 truncate">
+                            <span className="text-[11px] font-bold text-slate-200 truncate self-center leading-none">
                               {title.title}
                             </span>
-                            <span className="text-[9px] bg-studio-panel px-1 py-0.5 rounded-xs border border-studio-border text-slate-400 shrink-0">
+                            <span className="text-[9px] bg-studio-panel px-1 py-0.5 rounded-xs border border-studio-border text-slate-400 shrink-0 self-center leading-none inline-flex items-center justify-center">
                               {formatMbSize(title.size_mb)}
                             </span>
                           </div>
 
                           <div className="text-[9px] text-slate-400 flex items-center gap-2 mt-0.5">
-                            <span>{title.recorded_date}</span>
-                            <span>•</span>
-                            <span>{title.format}</span>
+                            <span className="self-center leading-none">{title.recorded_date}</span>
+                            <span className="self-center leading-none">•</span>
+                            <span className="self-center leading-none">{title.format}</span>
                             {title.is_extracted && (
-                              <span className="text-emerald-400 font-bold">
+                              <span className="text-emerald-400 font-bold self-center leading-none">
                                 {t('files.extracted_badge')}
                               </span>
                             )}
@@ -405,10 +421,10 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
                         <button
                           type="button"
                           onClick={() => handleLoadTitleToDesk(title)}
-                          className="bg-studio-panel hover:bg-studio-surface-hover text-slate-300 hover:text-white border border-studio-border px-1.5 py-1 rounded-sm text-[9px] font-semibold transition cursor-pointer shrink-0"
+                          className="bg-studio-panel hover:bg-studio-surface-hover text-slate-300 hover:text-white border border-studio-border px-1.5 py-1 rounded-sm text-[9px] font-semibold transition cursor-pointer shrink-0 inline-flex items-center justify-center"
                           title={t('files.send_to_restoration_btn')}
                         >
-                          {t('files.send_to_restoration_btn')}
+                          <span className="self-center leading-none">{t('files.send_to_restoration_btn')}</span>
                         </button>
                       </div>
 
@@ -422,11 +438,11 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
                             className="flex items-center gap-1 text-[9px] text-slate-400 hover:text-slate-200 transition cursor-pointer self-start"
                           >
                             {isExpandedChapters ? (
-                              <ChevronDown className="w-2.5 h-2.5" aria-hidden="true" />
+                              <ChevronDown className="w-2.5 h-2.5 shrink-0 self-center" aria-hidden="true" />
                             ) : (
-                              <ChevronRight className="w-2.5 h-2.5" aria-hidden="true" />
+                              <ChevronRight className="w-2.5 h-2.5 shrink-0 self-center" aria-hidden="true" />
                             )}
-                            <span>
+                            <span className="self-center leading-none">
                               {t('files.chapters_count', { count: title.chapters.length })}
                             </span>
                           </button>
@@ -470,11 +486,11 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
               }`}
             >
               <div className="flex items-center justify-between mb-1">
-                <span className="font-bold">
+                <span className="font-bold self-center leading-none">
                   {t('files.format_label')} {inspectionResult.format}
                 </span>
-                <span className="text-[9px] px-1 py-0.5 rounded-sm bg-studio-surface border border-studio-border text-slate-300">
-                  {t('files.binary_native')}
+                <span className="text-[9px] px-1 py-0.5 rounded-sm bg-studio-surface border border-studio-border text-slate-300 shrink-0 self-center leading-none inline-flex items-center justify-center">
+                  <span className="self-center leading-none">{t('files.binary_native')}</span>
                 </span>
               </div>
               <p className="text-[10px] text-slate-300 mb-2 leading-relaxed">
@@ -490,13 +506,13 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
                 >
                   {isExtracting ? (
                     <>
-                      <RefreshCw className="w-3 h-3 animate-spin" />
-                      <span>{t('files.extracting')}</span>
+                      <RefreshCw className="w-3 h-3 animate-spin self-center" />
+                      <span className="self-center leading-none">{t('files.extracting')}</span>
                     </>
                   ) : (
                     <>
-                      <Download className="w-3 h-3" />
-                      <span>{t('files.extract_btn')}</span>
+                      <Download className="w-3 h-3 self-center" />
+                      <span className="self-center leading-none">{t('files.extract_btn')}</span>
                     </>
                   )}
                 </button>
@@ -505,6 +521,12 @@ export const PanasonicIngestCard: React.FC<PanasonicIngestCardProps> = ({ onRefr
           )}
         </div>
       )}
+      <DirectoryPickerModal
+        isOpen={isFolderModalOpen}
+        onClose={() => setIsFolderModalOpen(false)}
+        initialPath={panasonicPath}
+        onSelect={(chosen) => setPanasonicPath(chosen)}
+      />
     </div>
   );
 };

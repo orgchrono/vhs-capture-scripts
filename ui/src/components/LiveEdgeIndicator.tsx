@@ -25,8 +25,8 @@ export const LiveEdgeIndicator: React.FC<LiveEdgeIndicatorProps> = ({
         data-testid={testId}
         className="pointer-events-auto h-5 tracking-wider font-bold"
       >
-        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block shrink-0" />
-        <span>{t('monitor.live_badge')}</span>
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse self-center shrink-0" />
+        <span className="self-center leading-none">{t('monitor.live_badge')}</span>
       </Badge>
     );
   }
@@ -45,8 +45,8 @@ export const LiveEdgeIndicator: React.FC<LiveEdgeIndicatorProps> = ({
         size="sm"
         className="pointer-events-auto h-5 tracking-wider font-bold hover:bg-amber-900 border-amber-500/70 text-amber-300 animate-pulse"
       >
-        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block shrink-0" />
-        <span>{t('monitor.live_badge')}</span>
+        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 self-center shrink-0" />
+        <span className="self-center leading-none">{t('monitor.live_badge')}</span>
       </Badge>
     </button>
   );

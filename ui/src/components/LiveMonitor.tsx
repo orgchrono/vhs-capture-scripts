@@ -21,6 +21,11 @@ import { BroadcastScopes } from './BroadcastScopes';
 import { MonitorReticleOverlay } from './MonitorReticleOverlay';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from './ui/resizable';
 import { LAYOUT_CONFIG } from '../lib/constants';
+import { VolumeControl } from './VolumeControl';
+import { SubtitleOverlay } from './SubtitleOverlay';
+import { SubtitleEditorModal } from './SubtitleEditorModal';
+import { SubtitleToolbarButtons } from './SubtitleToolbarButtons';
+import { useMonitorMediaControls } from '../viewmodels/useMonitorMediaControls';
 
 export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => {
   const {
@@ -76,6 +81,19 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
   const scopesDocked = showScopes && scopeDockMode === 'docked';
   const scopesFloating = showScopes && scopeDockMode === 'floating';
 
+  const {
+    subtitlesEnabled,
+    toggleSubtitles,
+    isSubtitleEditorOpen,
+    setIsSubtitleEditorOpen,
+    subtitleCues,
+    setSubtitleCues,
+    volume,
+    isMuted,
+    handleVolumeChange,
+    handleMuteChange,
+  } = useMonitorMediaControls({ sourceFile: selectedFile, videoRef });
+
   const handleToggleDock = () => setScopeDockMode(scopeDockMode === 'docked' ? 'floating' : 'docked');
 
   // Docked scopes sit side-by-side with the video, separated by a draggable handle.
@@ -119,10 +137,10 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
                   : isActive
                   ? 'led-live'
                   : 'led-idle'
-              } shrink-0`}
+              } shrink-0 self-center`}
               aria-hidden="true"
             />
-            <span className="whitespace-nowrap">{t('app.crt_monitor_title')}</span>
+            <span className="whitespace-nowrap self-center leading-none">{t('app.crt_monitor_title')}</span>
           </h2>
         </div>
 
@@ -154,9 +172,9 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
                     : isActive
                     ? 'led-live'
                     : 'led-idle'
-                }`}
+                } shrink-0 self-center`}
               />
-              <span className="shrink-0 whitespace-nowrap">{t('monitor.live_preview')}</span>
+              <span className="shrink-0 whitespace-nowrap self-center leading-none">{t('monitor.live_preview')}</span>
             </button>
 
             {/* Screen 2: Real-time Restoration Screen (visible when restoring or frames ready) */}
@@ -249,10 +267,10 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
                   <motion.span
                     key="badge-rec"
                     {...badgeMotion}
-                    className="bg-red-900/90 h-5 px-2 rounded-xs text-[9px] font-bold text-white border border-red-600/50 shadow-xs flex items-center gap-1 animate-pulse tracking-wider font-mono shrink-0 whitespace-nowrap leading-none"
+                    className="bg-red-900/90 h-5 px-2 rounded-xs text-[9px] font-bold text-white border border-red-600/50 shadow-xs flex items-center gap-1.5 animate-pulse tracking-wider font-mono shrink-0 whitespace-nowrap leading-none"
                   >
-                    <span className="led-lamp led-rec shrink-0"></span>
-                    <span className="translate-y-[0.5px]">
+                    <span className="led-lamp led-rec shrink-0 self-center"></span>
+                    <span className="self-center leading-none">
                       {obsStats?.timecode
                         ? t('monitor.rec_with_timecode', { timecode: obsStats.timecode })
                         : t('monitor.rec_badge')}
@@ -266,7 +284,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
                     className="bg-black/75 backdrop-blur-xs h-5 px-2 rounded-xs text-[9px] font-mono font-medium text-slate-300 border border-white/10 shadow-xs flex items-center gap-1 shrink-0 whitespace-nowrap leading-none"
                   >
                     <Activity className="w-2.5 h-2.5 text-slate-400 shrink-0" />
-                    <span className="shrink-0 whitespace-nowrap translate-y-[0.5px]">{formatBitrate(obsStats.bitrate_kbps)}</span>
+                    <span className="shrink-0 whitespace-nowrap">{formatBitrate(obsStats.bitrate_kbps)}</span>
                   </motion.span>
                 )}
                 {obsStats?.connected && obsStats?.fps !== undefined && obsStats.fps > 0 && (
@@ -275,7 +293,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
                     {...badgeMotion}
                     className="bg-black/75 backdrop-blur-xs h-5 px-2 rounded-xs text-[9px] font-mono text-slate-300 border border-white/10 shadow-xs tabular-nums shrink-0 whitespace-nowrap leading-none"
                   >
-                    <span className="translate-y-[0.5px]">{t('monitor.fps_badge', { fps: obsStats.fps })}</span>
+                    <span>{t('monitor.fps_badge', { fps: obsStats.fps })}</span>
                   </motion.span>
                 )}
                 {Boolean(health?.dropped_frames && health.dropped_frames > 0) && (
@@ -285,7 +303,7 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
                     className="bg-amber-900/90 text-amber-200 border border-amber-600/50 h-5 px-1.5 rounded-xs text-[9px] font-mono font-bold flex items-center gap-1 shadow-xs shrink-0 whitespace-nowrap leading-none"
                   >
                     <AlertTriangle className="w-2.5 h-2.5 text-amber-400 shrink-0" />
-                    <span className="translate-y-[0.5px]">{t('monitor.dropped_frames', { count: health?.dropped_frames })}</span>
+                    <span>{t('monitor.dropped_frames', { count: health?.dropped_frames })}</span>
                   </motion.span>
                 )}
               </AnimatePresence>
@@ -339,13 +357,20 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
                 className="pointer-events-none absolute inset-0 z-10 shadow-[inset_0_0_60px_rgba(0,0,0,0.85)]"
               />
 
+              {/* Subtitles Render Overlay */}
+              <SubtitleOverlay
+                cues={subtitleCues}
+                currentTimeSec={currentTimestamp}
+                enabled={subtitlesEnabled}
+              />
+
               {/* Reticle / Safe Area Overlay */}
               <MonitorReticleOverlay />
             </div>
 
             {/* Bottom Transport Bar */}
-            <div className="absolute bottom-0 left-0 right-0 z-30 bg-studio-panel/95 backdrop-blur-md border-t border-studio-border px-3 py-1.5 flex items-center justify-between gap-x-2.5 gap-y-1.5 text-xs font-mono select-none flex-wrap min-w-0">
-              <div className="flex items-center gap-1 shrink-0">
+            <div className="absolute bottom-0 left-0 right-0 z-30 bg-studio-panel/95 backdrop-blur-md border-t border-studio-border px-3 py-1.5 grid grid-cols-[auto_1fr_auto] items-center gap-2.5 text-xs font-mono select-none min-w-0 h-9">
+              <div className="grid grid-flow-col auto-cols-max items-center gap-1 shrink-0">
                 <button
                   type="button"
                   onClick={() => handleSeek(-30)}
@@ -422,6 +447,22 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
                 inputTestId="live-timeline-scrubber"
                 infoTestId="live-timeline-info"
               />
+
+              <div className="grid grid-flow-col auto-cols-max items-center gap-1.5 shrink-0">
+                <VolumeControl
+                  volume={volume}
+                  isMuted={isMuted}
+                  onVolumeChange={handleVolumeChange}
+                  onMuteToggle={handleMuteChange}
+                  compact
+                />
+
+                <SubtitleToolbarButtons
+                  subtitlesEnabled={subtitlesEnabled}
+                  onToggleSubtitles={toggleSubtitles}
+                  onOpenSubtitleEditor={() => setIsSubtitleEditorOpen(true)}
+                />
+              </div>
             </div>
           </>
         )}
@@ -438,6 +479,13 @@ export const LiveMonitor: React.FC<{ health?: SystemHealth }> = ({ health }) => 
           onClose={() => setShowScopes(false)}
         />
       )}
+
+      <SubtitleEditorModal
+        isOpen={isSubtitleEditorOpen}
+        onClose={() => setIsSubtitleEditorOpen(false)}
+        sourceFile={selectedFile || ''}
+        onSubtitlesSaved={(newCues) => setSubtitleCues(newCues)}
+      />
     </div>
   );
 };

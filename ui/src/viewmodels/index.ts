@@ -11,3 +11,4 @@ export { useConflictResolutionViewModel } from './useConflictResolutionViewModel
 export { useQcReportViewModel } from './useQcReportViewModel';
 export { useRecoveryViewModel } from './useRecoveryViewModel';
 export { useTapeLibraryViewModel } from './useTapeLibraryViewModel';
+export { useMonitorMediaControls } from './useMonitorMediaControls';

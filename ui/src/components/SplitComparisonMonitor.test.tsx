@@ -148,11 +148,11 @@ describe('SplitComparisonMonitor Component', () => {
     expect(divider).toHaveAttribute('aria-valuenow', '100');
   });
 
-  it('renders timeline info badge with current time, total time and percentage', () => {
+  it('renders timeline info badge with current time and total time', () => {
     renderComponent({ initialMode: 'freeze' });
     const timeInfo = screen.getByTestId('split-timeline-info');
     expect(timeInfo).toBeInTheDocument();
-    expect(timeInfo.textContent).toMatch(/\d{2}:\d{2}:\d{2} \/ \d{2}:\d{2}:\d{2} \(\d+\.\d+%\)/);
+    expect(timeInfo.textContent).toMatch(/(\d{2}:)?\d{2}:\d{2} \/ (\d{2}:)?\d{2}:\d{2}/);
   });
 
   it('switches between wipe and dual side-by-side layout modes', () => {

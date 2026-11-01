@@ -1,4 +1,5 @@
 import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
 import React from 'react';
 import { Radio, Square, HelpCircle, Eye } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -14,22 +15,22 @@ export const CaptureBar: React.FC = () => {
       {/* Header Info Row */}
       <div className="flex items-start gap-2.5 min-w-0">
         <div
-          className={`p-2 rounded-sm border shrink-0 transition-colors ${
+          className={`p-2 rounded-sm border shrink-0 transition-colors flex items-center justify-center ${
             isCapturing
               ? 'bg-red-950/40 text-red-400 border-red-500/40'
               : 'bg-studio-surface text-slate-400 border-studio-border'
           }`}
         >
-          <Radio className="w-4 h-4 shrink-0" aria-hidden="true" />
+          <Radio className="w-4 h-4 shrink-0 self-center" aria-hidden="true" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-1.5 min-w-0">
-            <span className="text-xs font-semibold text-slate-200 uppercase font-mono truncate">
+          <div className="grid grid-cols-[1fr_auto] items-center gap-1.5 min-w-0">
+            <span className="text-xs font-semibold text-slate-200 uppercase font-mono truncate self-center leading-none">
               {t('capture.automated_title')}
             </span>
-            <span className="bg-studio-surface text-slate-300 border border-studio-border text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-sm uppercase shrink-0 whitespace-nowrap">
+            <Badge variant="secondary" size="sm" className="uppercase place-self-center">
               {t('capture.decklink_sdk')}
-            </span>
+            </Badge>
           </div>
           <p className="text-[11px] text-slate-400 font-mono mt-0.5 line-clamp-2 leading-tight">
             {t('capture.lossless_desc')}
@@ -45,8 +46,8 @@ export const CaptureBar: React.FC = () => {
             onClick={handleStartCapture}
             className="w-full h-8 px-3 bg-red-800/90 hover:bg-red-700 text-white font-mono font-bold text-xs uppercase tracking-wider rounded-sm border border-red-600/40 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] shadow-xs"
           >
-            <Radio className="w-3.5 h-3.5 text-white shrink-0" aria-hidden="true" />
-            <span className="truncate">{t('capture.start_obs')}</span>
+            <Radio className="w-3.5 h-3.5 text-white shrink-0 self-center" aria-hidden="true" />
+            <span className="truncate self-center leading-none">{t('capture.start_obs')}</span>
           </Button>
         ) : (
           <Button
@@ -54,8 +55,8 @@ export const CaptureBar: React.FC = () => {
             onClick={handleStopCapture}
             className="w-full h-8 px-3 bg-amber-700/90 hover:bg-amber-600 text-white font-mono font-bold text-xs uppercase tracking-wider rounded-sm border border-amber-500/40 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] shadow-xs"
           >
-            <Square className="w-3.5 h-3.5 text-white shrink-0 fill-current" aria-hidden="true" />
-            <span className="truncate">{t('capture.stop_obs')}</span>
+            <Square className="w-3.5 h-3.5 text-white shrink-0 fill-current self-center" aria-hidden="true" />
+            <span className="truncate self-center leading-none">{t('capture.stop_obs')}</span>
           </Button>
         )}
       </div>
@@ -74,11 +75,11 @@ export const CaptureBar: React.FC = () => {
           title={isWatcherActive ? t('capture.watcher_armed_desc') : t('capture.watcher_disarmed_desc')}
         >
           <span
-            className={`led-lamp shrink-0 ${isWatcherActive ? 'led-live animate-pulse' : 'led-idle'}`}
+            className={`led-lamp shrink-0 self-center ${isWatcherActive ? 'led-live animate-pulse' : 'led-idle'}`}
             aria-hidden="true"
           />
-          <Eye className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-          <span className="truncate">
+          <Eye className="w-3.5 h-3.5 shrink-0 self-center" aria-hidden="true" />
+          <span className="truncate self-center leading-none">
             {isWatcherActive ? t('capture.watcher_armed') : t('capture.watcher_arm')}
           </span>
         </Button>
@@ -90,7 +91,7 @@ export const CaptureBar: React.FC = () => {
               className="h-8 w-8 shrink-0 flex items-center justify-center rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-slate-400 hover:text-slate-200 transition cursor-help focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/80"
               aria-label={t('capture.help_aria')}
             >
-              <HelpCircle className="w-4 h-4 shrink-0" aria-hidden="true" />
+              <HelpCircle className="w-4 h-4 shrink-0 self-center" aria-hidden="true" />
             </button>
           </TooltipTrigger>
           <TooltipContent

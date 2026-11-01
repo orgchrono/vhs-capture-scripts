@@ -78,12 +78,8 @@ jobs:
       run: |
         mkdir -p dist/bundle
         cp -f target/release/${{ matrix.binary_name }} dist/bundle/${{ matrix.target_binary }}
-        mkdir -p dist/bundle/ui/dist
-        cp -rf ui/dist/* dist/bundle/ui/dist/
-        if [ -d "tools" ]; then
-          mkdir -p dist/bundle/tools
-          cp -rf tools/* dist/bundle/tools/ || true
-        fi
+        cp -f target/release/WebView2Loader.dll dist/bundle/WebView2Loader.dll 2>/dev/null || true
+        cp -f README.md dist/bundle/README.md || true
 
     - name: Authenticode Sign Executable (Windows)
       if: runner.os == 'Windows' && env.WINDOWS_CERT_PFX_BASE64 != ''

@@ -64,11 +64,11 @@ export const FooterStatusBar: React.FC = () => {
     <footer
       role="status"
       aria-label={t('telemetry.title')}
-      className="h-8 w-full max-w-full overflow-hidden bg-studio-panel/95 backdrop-blur border-t border-studio-border text-slate-300 font-mono text-[11px] select-none flex items-center justify-between px-3 shrink-0 z-30"
+      className="h-8 w-full max-w-full overflow-hidden bg-studio-panel/95 backdrop-blur border-t border-studio-border text-slate-300 font-mono text-[11px] select-none grid grid-cols-[auto_1fr_auto] items-center px-3 shrink-0 z-30"
     >
       {/* LEFT ZONE: Tally Status, Current Stage & Active File */}
-      <div className="flex items-center gap-2 min-w-0 shrink-0">
-        <div className="flex items-center gap-1.5 bg-studio-surface px-2 h-6 rounded-sm border border-studio-border shrink-0">
+      <div className="grid grid-flow-col auto-cols-max items-center gap-2 min-w-0 shrink-0">
+        <div className="grid grid-flow-col auto-cols-max items-center gap-1.5 bg-studio-surface px-2 h-6 rounded-sm border border-studio-border shrink-0">
           <span
             className={`led-lamp ${
               isCapturing
@@ -76,10 +76,10 @@ export const FooterStatusBar: React.FC = () => {
                 : isBusy
                 ? 'led-live animate-pulse'
                 : 'led-idle'
-            }`}
+            } shrink-0 self-center`}
             aria-hidden="true"
           />
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300 shrink-0 whitespace-nowrap">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300 shrink-0 whitespace-nowrap self-center leading-none">
             {isCapturing
               ? t('telemetry.rec_obs_badge')
               : isRestoring
@@ -92,11 +92,11 @@ export const FooterStatusBar: React.FC = () => {
 
         {fileName && (
           <div
-            className="hidden md:flex items-center gap-1.5 text-[10px] text-slate-400 bg-studio-surface px-2 h-6 rounded-sm border border-studio-border truncate max-w-[140px] lg:max-w-[190px] shrink-0"
+            className="hidden md:grid grid-flow-col auto-cols-max items-center gap-1.5 text-[10px] text-slate-400 bg-studio-surface px-2 h-6 rounded-sm border border-studio-border truncate max-w-[140px] lg:max-w-[190px] shrink-0"
             title={selectedFile}
           >
-            <FileVideo className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span className="truncate">{fileName}</span>
+            <FileVideo className="w-3.5 h-3.5 text-slate-400 shrink-0 self-center" />
+            <span className="truncate self-center leading-none">{fileName}</span>
           </div>
         )}
       </div>
@@ -107,17 +107,17 @@ export const FooterStatusBar: React.FC = () => {
           <>
             {/* Mini Progress Pill */}
             <div className="flex items-center gap-1.5 bg-studio-surface px-2 h-6 rounded-sm border border-studio-border shrink-0 whitespace-nowrap">
-              <span className="text-[10px] text-slate-400">{t('telemetry.stage_progress')}:</span>
-              <span className="text-emerald-400 font-bold tabular-nums">
+              <span className="text-[10px] text-slate-400 self-center leading-none">{t('telemetry.stage_progress')}:</span>
+              <span className="text-emerald-400 font-bold tabular-nums self-center leading-none">
                 {telemetry.progressPercent}%
               </span>
             </div>
 
             {/* Frames */}
             <div className="hidden sm:flex items-center gap-1.5 text-[10px] bg-studio-surface px-2 h-6 rounded-sm border border-studio-border shrink-0 whitespace-nowrap">
-              <Film className="w-3 h-3 text-slate-400 shrink-0" />
-              <span className="text-slate-400">{t('telemetry.frames')}:</span>
-              <span className="text-white font-medium tabular-nums">
+              <Film className="w-3 h-3 text-slate-400 shrink-0 self-center" />
+              <span className="text-slate-400 self-center leading-none">{t('telemetry.frames')}:</span>
+              <span className="text-white font-medium tabular-nums self-center leading-none">
                 {telemetry.totalFrames > 0
                   ? `${telemetry.currentFrames}/${telemetry.totalFrames}`
                   : telemetry.currentFrames > 0
@@ -128,41 +128,41 @@ export const FooterStatusBar: React.FC = () => {
 
             {/* FPS */}
             <div className="hidden xl:flex items-center gap-1.5 text-[10px] bg-studio-surface px-2 h-6 rounded-sm border border-studio-border shrink-0 whitespace-nowrap">
-              <Gauge className="w-3 h-3 text-emerald-400 shrink-0" />
-              <span className="text-slate-400">{t('telemetry.fps')}:</span>
-              <span className="text-white font-medium tabular-nums">
+              <Gauge className="w-3 h-3 text-emerald-400 shrink-0 self-center" />
+              <span className="text-slate-400 self-center leading-none">{t('telemetry.fps')}:</span>
+              <span className="text-white font-medium tabular-nums self-center leading-none">
                 {telemetry.fps.toFixed(2)}
               </span>
             </div>
 
             {/* ETA */}
             <div className="hidden lg:flex items-center gap-1.5 text-[10px] bg-studio-surface px-2 h-6 rounded-sm border border-studio-border shrink-0 whitespace-nowrap">
-              <Clock className="w-3 h-3 text-amber-400 shrink-0" />
-              <span className="text-slate-400">{t('telemetry.eta')}:</span>
-              <span className="text-white font-medium tabular-nums">
+              <Clock className="w-3 h-3 text-amber-400 shrink-0 self-center" />
+              <span className="text-slate-400 self-center leading-none">{t('telemetry.eta')}:</span>
+              <span className="text-white font-medium tabular-nums self-center leading-none">
                 {telemetry.eta}
               </span>
             </div>
 
             {/* Speed */}
             <div className="hidden 2xl:flex items-center gap-1.5 text-[10px] bg-studio-surface px-2 h-6 rounded-sm border border-studio-border shrink-0 whitespace-nowrap">
-              <Activity className="w-3 h-3 text-slate-300 shrink-0" />
-              <span className="text-slate-400">{t('telemetry.speed')}:</span>
-              <span className="text-white font-medium tabular-nums">
+              <Activity className="w-3 h-3 text-slate-300 shrink-0 self-center" />
+              <span className="text-slate-400 self-center leading-none">{t('telemetry.speed')}:</span>
+              <span className="text-white font-medium tabular-nums self-center leading-none">
                 {telemetry.speed}
               </span>
             </div>
           </>
         ) : (
           <div className="hidden md:flex items-center gap-2 text-[10px] text-slate-500 bg-studio-surface/50 border border-studio-border/60 px-2.5 h-6 rounded-sm shrink-0 whitespace-nowrap">
-            <Radio className="w-3 h-3 text-slate-500 shrink-0" />
-            <span>{t('telemetry.pipeline_signature')}</span>
+            <Radio className="w-3 h-3 text-slate-500 shrink-0 self-center" />
+            <span className="self-center leading-none">{t('telemetry.pipeline_signature')}</span>
           </div>
         )}
       </div>
 
       {/* RIGHT ZONE: Hardware Telemetry Drawer Toggle, Active Preset & Terminal Drawer Toggle */}
-      <div className="relative flex items-center gap-2 shrink-0">
+      <div className="relative grid grid-flow-col auto-cols-max items-center gap-2 shrink-0">
         {hwDrawerOpen && (
           <div
             data-testid="hw-telemetry-drawer"
@@ -180,14 +180,14 @@ export const FooterStatusBar: React.FC = () => {
           aria-label={t('telemetry.toggle_hw_drawer')}
           title={t('telemetry.toggle_hw_drawer')}
           data-testid="toggle-hw-telemetry-btn"
-          className={`hidden sm:flex items-center gap-1.5 px-2 h-6 rounded-sm text-[10px] font-mono border transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
+          className={`hidden sm:grid grid-flow-col auto-cols-max items-center gap-1.5 px-2 h-6 rounded-sm text-[10px] font-mono border transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
             hwDrawerOpen
               ? 'bg-studio-surface-hover border-studio-border-focus text-emerald-300 shadow-sm'
               : 'bg-studio-surface border-studio-border text-slate-300 hover:text-white hover:bg-studio-surface-hover'
           }`}
         >
-          <Cpu className="w-3 h-3 text-emerald-400 shrink-0" />
-          <span className="tabular-nums">
+          <Cpu className="w-3 h-3 text-emerald-400 shrink-0 self-center" />
+          <span className="tabular-nums self-center leading-none">
             {t('telemetry.hw_pill', {
               cpu: Math.round(sysMetrics?.cpu_percent ?? 0),
               ram: Math.round(sysMetrics?.ram_percent ?? 0),
@@ -196,9 +196,9 @@ export const FooterStatusBar: React.FC = () => {
         </button>
 
         {/* Active Strategy Badge */}
-        <div className="hidden lg:flex items-center gap-1 text-[10px] bg-studio-surface px-2 h-6 rounded-sm border border-studio-border text-slate-300 shrink-0 whitespace-nowrap">
-          <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />
-          <span className="truncate max-w-[120px]">{presetLabels[preset] || preset}</span>
+        <div className="hidden lg:grid grid-flow-col auto-cols-max items-center gap-1 text-[10px] bg-studio-surface px-2 h-6 rounded-sm border border-studio-border text-slate-300 shrink-0 whitespace-nowrap">
+          <Sparkles className="w-3 h-3 text-amber-400 shrink-0 self-center" />
+          <span className="truncate max-w-[120px] self-center leading-none">{presetLabels[preset] || preset}</span>
         </div>
 
         {/* Console / Log Drawer Toggle Button */}
@@ -207,16 +207,16 @@ export const FooterStatusBar: React.FC = () => {
           onClick={toggleConsole}
           aria-expanded={!consoleCollapsed}
           aria-label={t('console.toggle')}
-          className={`flex items-center gap-1.5 px-2 h-6 rounded-sm text-[10px] font-mono border transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
+          className={`grid grid-flow-col auto-cols-max items-center gap-1.5 px-2 h-6 rounded-sm text-[10px] font-mono border transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
             !consoleCollapsed
               ? 'bg-studio-surface-hover border-studio-border-focus text-slate-200 shadow-sm'
               : 'bg-studio-surface border-studio-border text-slate-400 hover:text-slate-200 hover:bg-studio-surface-hover'
           }`}
         >
-          <Terminal className="w-3 h-3 shrink-0" />
-          <span>{t('console.tab_title')}</span>
+          <Terminal className="w-3 h-3 shrink-0 self-center" />
+          <span className="self-center leading-none">{t('console.tab_title')}</span>
           {logs.length > 0 && (
-            <span className="px-1.5 py-0.5 rounded-full text-[9px] bg-slate-800 text-slate-300 leading-none">
+            <span className="px-1.5 py-0.5 rounded-full text-[9px] bg-slate-800 text-slate-300 leading-none self-center inline-grid place-items-center">
               {logs.length}
             </span>
           )}

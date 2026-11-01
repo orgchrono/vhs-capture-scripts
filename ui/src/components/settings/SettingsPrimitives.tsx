@@ -3,7 +3,10 @@ import { motion, useReducedMotion } from 'motion/react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
 import { useTranslation } from 'react-i18next'
 
-export const TabTransition: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const TabTransition: React.FC<{ children: React.ReactNode; className?: string }> = ({
+  children,
+  className = "flex flex-col gap-4",
+}) => {
   const shouldReduceMotion = useReducedMotion()
   return (
     <motion.div
@@ -11,6 +14,7 @@ export const TabTransition: React.FC<{ children: React.ReactNode }> = ({ childre
       animate={{ opacity: 1, y: 0 }}
       exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
       transition={{ duration: 0.18, ease: 'easeOut' }}
+      className={className}
     >
       {children}
     </motion.div>
@@ -41,12 +45,12 @@ export const GenericSelect = <T extends string>({
   const { t } = useTranslation();
   return (
     <Select value={value} onValueChange={(val) => onChange(val as T)} disabled={disabled}>
-      <SelectTrigger className="w-full h-9 bg-studio-surface border-studio-border text-white rounded-sm font-mono text-xs">
+      <SelectTrigger className="w-full h-9 bg-studio-surface border-studio-border text-white rounded-sm font-mono text-xs text-left">
         <SelectValue placeholder={placeholder || t('settings.select_placeholder')} />
       </SelectTrigger>
       <SelectContent className="bg-studio-panel border-studio-border text-slate-200">
         {options.map((opt) => (
-          <SelectItem key={opt.value} value={opt.value}>
+          <SelectItem key={opt.value} value={opt.value} className="text-left">
             {opt.labelKey ? t(opt.labelKey) : (opt.label || opt.value)}
           </SelectItem>
         ))}

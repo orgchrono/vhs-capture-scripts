@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Settings,
   Folder,
@@ -13,15 +13,64 @@ import {
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Switch } from './ui/switch';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from './ui/select';
+import { GenericSelect } from './settings/SettingsPrimitives';
 import { useTranslation } from 'react-i18next';
 import { usePreferencesViewModel, type PreferencesTabType } from '../viewmodels/usePreferencesViewModel';
+import { DirectoryPickerModal } from './DirectoryPickerModal';
+
+const DEPTH_OPTIONS = [
+  { value: '1', labelKey: 'folders.depth_1' },
+  { value: '2', labelKey: 'folders.depth_2' },
+  { value: '3', labelKey: 'folders.depth_3' },
+  { value: '4', labelKey: 'folders.depth_4' },
+  { value: '5', labelKey: 'folders.depth_5' },
+];
+
+const PREVIEW_FPS_OPTIONS = [
+  { value: '15', labelKey: 'preferences.fps_15' },
+  { value: '30', labelKey: 'preferences.fps_30' },
+  { value: '60', labelKey: 'preferences.fps_60' },
+];
+
+const BUFFER_LINES_OPTIONS = [
+  { value: '500', labelKey: 'preferences.lines_500' },
+  { value: '1000', labelKey: 'preferences.lines_1000' },
+  { value: '5000', labelKey: 'preferences.lines_5000' },
+];
+
+const POLL_INTERVAL_OPTIONS = [
+  { value: '1000', labelKey: 'preferences.poll_1s' },
+  { value: '3000', labelKey: 'preferences.poll_3s' },
+  { value: '5000', labelKey: 'preferences.poll_5s' },
+  { value: '10000', labelKey: 'preferences.poll_10s' },
+];
+
+const AI_DEVICE_OPTIONS = [
+  { value: 'auto', labelKey: 'preferences.device_auto' },
+  { value: 'vulkan', labelKey: 'preferences.device_vulkan' },
+  { value: 'directml', labelKey: 'preferences.device_directml' },
+  { value: 'cpu', labelKey: 'preferences.device_cpu' },
+];
+
+const THREADS_OPTIONS = [
+  { value: '2', labelKey: 'preferences.threads_2' },
+  { value: '4', labelKey: 'preferences.threads_4' },
+  { value: '8', labelKey: 'preferences.threads_8' },
+  { value: '16', labelKey: 'preferences.threads_16' },
+];
+
+const HARDWARE_ENCODER_OPTIONS = [
+  { value: 'auto', labelKey: 'preferences.enc_auto' },
+  { value: 'qsv', labelKey: 'preferences.enc_qsv' },
+  { value: 'nvenc', labelKey: 'preferences.enc_nvenc' },
+  { value: 'amf', labelKey: 'preferences.enc_amf' },
+  { value: 'software', labelKey: 'preferences.enc_software' },
+];
+
+const THEME_OPTIONS = [
+  { value: 'dark', labelKey: 'preferences.theme_dark' },
+  { value: 'oled_black', labelKey: 'preferences.theme_oled' },
+];
 
 interface AppPreferencesModalProps {
   isOpen: boolean;
@@ -31,12 +80,61 @@ interface AppPreferencesModalProps {
 
 export type { PreferencesTabType as TabType };
 
+interface DirectoryFieldProps {
+  label: string;
+  description: string;
+  value: string;
+  onChange: (val: string) => void;
+  placeholder: string;
+  onBrowse: () => void;
+  browseTitle: string;
+}
+
+const DirectoryField: React.FC<DirectoryFieldProps> = ({
+  label,
+  description,
+  value,
+  onChange,
+  placeholder,
+  onBrowse,
+  browseTitle,
+}) => (
+  <div className="space-y-1.5 bg-studio-surface/50 p-3 rounded-sm border border-studio-border">
+    <label className="text-xs font-medium text-slate-200 font-mono block">
+      {label}
+    </label>
+    <p className="text-[11px] text-slate-400 font-mono">
+      {description}
+    </p>
+    <div className="flex gap-2">
+      <Input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="bg-studio-panel border-studio-border rounded-sm font-mono text-xs text-slate-200 flex-1"
+      />
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        onClick={onBrowse}
+        className="h-8 px-3 font-mono text-xs text-slate-300 hover:text-white shrink-0 cursor-pointer"
+        title={browseTitle}
+      >
+        <Folder className="w-3.5 h-3.5 mr-1 text-amber-400" />
+        <span>{browseTitle}</span>
+      </Button>
+    </div>
+  </div>
+);
+
 export const AppPreferencesModal: React.FC<AppPreferencesModalProps> = ({
   isOpen,
   onClose,
   onOpenPrivacy,
 }) => {
   const { t } = useTranslation();
+  const [pickerTarget, setPickerTarget] = useState<'rawDir' | 'restoredDir' | 'cacheDir' | null>(null);
   const {
     prefs,
     activeTab,
@@ -59,7 +157,7 @@ export const AppPreferencesModal: React.FC<AppPreferencesModalProps> = ({
       }}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200"
     >
-      <div className="bg-studio-panel border border-studio-border rounded-md max-w-3xl w-full p-5 shadow-2xl flex flex-col max-h-[92vh] overflow-hidden select-none">
+      <div className="bg-studio-panel border border-studio-border rounded-md max-w-3xl w-full h-[600px] max-h-[92vh] p-5 shadow-2xl flex flex-col overflow-hidden select-none">
         {/* Header */}
         <div className="flex items-start justify-between gap-4 mb-4 pb-3 border-b border-studio-border shrink-0">
           <div className="flex items-center gap-3">
@@ -167,48 +265,47 @@ export const AppPreferencesModal: React.FC<AppPreferencesModalProps> = ({
         <div className="flex-1 overflow-y-auto custom-scrollbar py-4 space-y-4">
           {activeTab === 'directories' && (
             <div className="space-y-4">
-              <div className="space-y-1.5 bg-studio-surface/50 p-3 rounded-sm border border-studio-border">
-                <label className="text-xs font-medium text-slate-200 font-mono block">
-                  {t('preferences.raw_dir_label')}
-                </label>
-                <p className="text-[11px] text-slate-400 font-mono">
-                  {t('preferences.raw_dir_desc')}
-                </p>
-                <Input
-                  value={prefs.rawDir}
-                  onChange={(e) => prefs.updatePreferences({ rawDir: e.target.value })}
-                  placeholder={t('preferences.raw_dir_placeholder')}
-                  className="bg-studio-panel border-studio-border rounded-sm font-mono text-xs text-slate-200"
-                />
-              </div>
+              <DirectoryField
+                label={t('preferences.raw_dir_label')}
+                description={t('preferences.raw_dir_desc')}
+                value={prefs.rawDir}
+                onChange={(val) => prefs.updatePreferences({ rawDir: val })}
+                placeholder={t('preferences.raw_dir_placeholder')}
+                onBrowse={() => setPickerTarget('rawDir')}
+                browseTitle={t('preferences.browse')}
+              />
+
+              <DirectoryField
+                label={t('preferences.restored_dir_label')}
+                description={t('preferences.restored_dir_desc')}
+                value={prefs.restoredDir}
+                onChange={(val) => prefs.updatePreferences({ restoredDir: val })}
+                placeholder={t('preferences.restored_dir_placeholder')}
+                onBrowse={() => setPickerTarget('restoredDir')}
+                browseTitle={t('preferences.browse')}
+              />
+
+              <DirectoryField
+                label={t('preferences.cache_dir_label')}
+                description={t('preferences.cache_dir_desc')}
+                value={prefs.cacheDir}
+                onChange={(val) => prefs.updatePreferences({ cacheDir: val })}
+                placeholder={t('preferences.cache_dir_placeholder')}
+                onBrowse={() => setPickerTarget('cacheDir')}
+                browseTitle={t('preferences.browse')}
+              />
 
               <div className="space-y-1.5 bg-studio-surface/50 p-3 rounded-sm border border-studio-border">
                 <label className="text-xs font-medium text-slate-200 font-mono block">
-                  {t('preferences.restored_dir_label')}
+                  {t('preferences.scan_max_depth_label')}
                 </label>
                 <p className="text-[11px] text-slate-400 font-mono">
-                  {t('preferences.restored_dir_desc')}
+                  {t('preferences.scan_max_depth_desc')}
                 </p>
-                <Input
-                  value={prefs.restoredDir}
-                  onChange={(e) => prefs.updatePreferences({ restoredDir: e.target.value })}
-                  placeholder={t('preferences.restored_dir_placeholder')}
-                  className="bg-studio-panel border-studio-border rounded-sm font-mono text-xs text-slate-200"
-                />
-              </div>
-
-              <div className="space-y-1.5 bg-studio-surface/50 p-3 rounded-sm border border-studio-border">
-                <label className="text-xs font-medium text-slate-200 font-mono block">
-                  {t('preferences.cache_dir_label')}
-                </label>
-                <p className="text-[11px] text-slate-400 font-mono">
-                  {t('preferences.cache_dir_desc')}
-                </p>
-                <Input
-                  value={prefs.cacheDir}
-                  onChange={(e) => prefs.updatePreferences({ cacheDir: e.target.value })}
-                  placeholder={t('preferences.cache_dir_placeholder')}
-                  className="bg-studio-panel border-studio-border rounded-sm font-mono text-xs text-slate-200"
+                <GenericSelect
+                  value={String(prefs.scanMaxDepth || 3)}
+                  onChange={(val) => prefs.setScanMaxDepth(Number(val))}
+                  options={DEPTH_OPTIONS}
                 />
               </div>
             </div>
@@ -239,19 +336,11 @@ export const AppPreferencesModal: React.FC<AppPreferencesModalProps> = ({
                 <p className="text-[11px] text-slate-400 font-mono">
                   {t('preferences.preview_fps_desc')}
                 </p>
-                <Select
+                <GenericSelect
                   value={String(prefs.previewFps)}
-                  onValueChange={(val) => prefs.setPreviewFps(Number(val) as 15 | 30 | 60)}
-                >
-                  <SelectTrigger className="w-full bg-studio-panel border-studio-border text-white text-xs rounded-sm font-mono">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-studio-panel border-studio-border text-slate-200 font-mono">
-                    <SelectItem value="15">{t('preferences.fps_15')}</SelectItem>
-                    <SelectItem value="30">{t('preferences.fps_30')}</SelectItem>
-                    <SelectItem value="60">{t('preferences.fps_60')}</SelectItem>
-                  </SelectContent>
-                </Select>
+                  onChange={(val) => prefs.setPreviewFps(Number(val) as 15 | 30 | 60)}
+                  options={PREVIEW_FPS_OPTIONS}
+                />
               </div>
             </div>
           )}
@@ -297,19 +386,11 @@ export const AppPreferencesModal: React.FC<AppPreferencesModalProps> = ({
                 <p className="text-[11px] text-slate-400 font-mono">
                   {t('preferences.buffer_limit_desc')}
                 </p>
-                <Select
+                <GenericSelect
                   value={String(prefs.maxConsoleLines)}
-                  onValueChange={(val) => prefs.setMaxConsoleLines(Number(val))}
-                >
-                  <SelectTrigger className="w-full bg-studio-panel border-studio-border text-white text-xs rounded-sm font-mono">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-studio-panel border-studio-border text-slate-200 font-mono">
-                    <SelectItem value="500">{t('preferences.lines_500')}</SelectItem>
-                    <SelectItem value="1000">{t('preferences.lines_1000')}</SelectItem>
-                    <SelectItem value="5000">{t('preferences.lines_5000')}</SelectItem>
-                  </SelectContent>
-                </Select>
+                  onChange={(val) => prefs.setMaxConsoleLines(Number(val))}
+                  options={BUFFER_LINES_OPTIONS}
+                />
               </div>
             </div>
           )}
@@ -339,20 +420,11 @@ export const AppPreferencesModal: React.FC<AppPreferencesModalProps> = ({
                 <p className="text-[11px] text-slate-400 font-mono">
                   {t('preferences.poll_interval_desc')}
                 </p>
-                <Select
+                <GenericSelect
                   value={String(prefs.panasonicPollIntervalMs)}
-                  onValueChange={(val) => prefs.setPanasonicPollIntervalMs(Number(val))}
-                >
-                  <SelectTrigger className="w-full bg-studio-panel border-studio-border text-white text-xs rounded-sm font-mono">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-studio-panel border-studio-border text-slate-200 font-mono">
-                    <SelectItem value="1000">{t('preferences.poll_1s')}</SelectItem>
-                    <SelectItem value="3000">{t('preferences.poll_3s')}</SelectItem>
-                    <SelectItem value="5000">{t('preferences.poll_5s')}</SelectItem>
-                    <SelectItem value="10000">{t('preferences.poll_10s')}</SelectItem>
-                  </SelectContent>
-                </Select>
+                  onChange={(val) => prefs.setPanasonicPollIntervalMs(Number(val))}
+                  options={POLL_INTERVAL_OPTIONS}
+                />
               </div>
 
               <div className="space-y-1.5 bg-studio-surface/50 p-3 rounded-sm border border-studio-border">
@@ -362,24 +434,15 @@ export const AppPreferencesModal: React.FC<AppPreferencesModalProps> = ({
                 <p className="text-[11px] text-slate-400 font-mono">
                   {t('preferences.ai_device_desc')}
                 </p>
-                <Select
+                <GenericSelect
                   value={prefs.preferredAiDevice}
-                  onValueChange={(val) =>
+                  onChange={(val) =>
                     prefs.setPreferredAiDevice(
                       val as 'auto' | 'vulkan' | 'cpu' | 'directml',
                     )
                   }
-                >
-                  <SelectTrigger className="w-full bg-studio-panel border-studio-border text-white text-xs rounded-sm font-mono">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-studio-panel border-studio-border text-slate-200 font-mono">
-                    <SelectItem value="auto">{t('preferences.device_auto')}</SelectItem>
-                    <SelectItem value="vulkan">{t('preferences.device_vulkan')}</SelectItem>
-                    <SelectItem value="directml">{t('preferences.device_directml')}</SelectItem>
-                    <SelectItem value="cpu">{t('preferences.device_cpu')}</SelectItem>
-                  </SelectContent>
-                </Select>
+                  options={AI_DEVICE_OPTIONS}
+                />
               </div>
 
               <div className="space-y-1.5 bg-studio-surface/50 p-3 rounded-sm border border-studio-border">
@@ -389,20 +452,11 @@ export const AppPreferencesModal: React.FC<AppPreferencesModalProps> = ({
                 <p className="text-[11px] text-slate-400 font-mono">
                   {t('preferences.whisper_threads_desc')}
                 </p>
-                <Select
+                <GenericSelect
                   value={String(prefs.whisperMaxThreads)}
-                  onValueChange={(val) => prefs.setWhisperMaxThreads(Number(val))}
-                >
-                  <SelectTrigger className="w-full bg-studio-panel border-studio-border text-white text-xs rounded-sm font-mono">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-studio-panel border-studio-border text-slate-200 font-mono">
-                    <SelectItem value="2">{t('preferences.threads_2')}</SelectItem>
-                    <SelectItem value="4">{t('preferences.threads_4')}</SelectItem>
-                    <SelectItem value="8">{t('preferences.threads_8')}</SelectItem>
-                    <SelectItem value="16">{t('preferences.threads_16')}</SelectItem>
-                  </SelectContent>
-                </Select>
+                  onChange={(val) => prefs.setWhisperMaxThreads(Number(val))}
+                  options={THREADS_OPTIONS}
+                />
               </div>
 
               <div className="space-y-1.5 bg-studio-surface/50 p-3 rounded-sm border border-studio-border">
@@ -412,25 +466,15 @@ export const AppPreferencesModal: React.FC<AppPreferencesModalProps> = ({
                 <p className="text-[11px] text-slate-400 font-mono">
                   {t('preferences.encoder_desc')}
                 </p>
-                <Select
+                <GenericSelect
                   value={prefs.hardwareEncoderPreference}
-                  onValueChange={(val) =>
+                  onChange={(val) =>
                     prefs.setHardwareEncoderPreference(
                       val as 'auto' | 'qsv' | 'nvenc' | 'amf' | 'software',
                     )
                   }
-                >
-                  <SelectTrigger className="w-full bg-studio-panel border-studio-border text-white text-xs rounded-sm font-mono">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-studio-panel border-studio-border text-slate-200 font-mono">
-                    <SelectItem value="auto">{t('preferences.enc_auto')}</SelectItem>
-                    <SelectItem value="qsv">{t('preferences.enc_qsv')}</SelectItem>
-                    <SelectItem value="nvenc">{t('preferences.enc_nvenc')}</SelectItem>
-                    <SelectItem value="amf">{t('preferences.enc_amf')}</SelectItem>
-                    <SelectItem value="software">{t('preferences.enc_software')}</SelectItem>
-                  </SelectContent>
-                </Select>
+                  options={HARDWARE_ENCODER_OPTIONS}
+                />
               </div>
             </div>
           )}
@@ -490,18 +534,11 @@ export const AppPreferencesModal: React.FC<AppPreferencesModalProps> = ({
                 <p className="text-[11px] text-slate-400 font-mono">
                   {t('preferences.theme_desc')}
                 </p>
-                <Select
+                <GenericSelect
                   value={prefs.theme}
-                  onValueChange={(val) => prefs.setTheme(val as 'dark' | 'oled_black')}
-                >
-                  <SelectTrigger className="w-full bg-studio-panel border-studio-border text-white text-xs rounded-sm font-mono">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-studio-panel border-studio-border text-slate-200 font-mono">
-                    <SelectItem value="dark">{t('preferences.theme_dark')}</SelectItem>
-                    <SelectItem value="oled_black">{t('preferences.theme_oled')}</SelectItem>
-                  </SelectContent>
-                </Select>
+                  onChange={(val) => prefs.setTheme(val as 'dark' | 'oled_black')}
+                  options={THEME_OPTIONS}
+                />
               </div>
 
               {onOpenPrivacy && (
@@ -553,6 +590,17 @@ export const AppPreferencesModal: React.FC<AppPreferencesModalProps> = ({
           </Button>
         </div>
       </div>
+
+      <DirectoryPickerModal
+        isOpen={pickerTarget !== null}
+        onClose={() => setPickerTarget(null)}
+        initialPath={pickerTarget ? prefs[pickerTarget] : ''}
+        onSelect={(selectedPath) => {
+          if (pickerTarget) {
+            prefs.updatePreferences({ [pickerTarget]: selectedPath });
+          }
+        }}
+      />
     </div>
   );
 };

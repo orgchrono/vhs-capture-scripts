@@ -32,46 +32,102 @@ export const FiltersTab: React.FC<FiltersTabProps> = ({
   const { t } = useTranslation()
 
   return (
-    <TabsContent value="filters" className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 space-y-3">
+    <TabsContent value="filters" className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 pb-4">
       <TabTransition>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5 items-stretch">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-3.5 items-stretch">
           {matches(['chroma', 'cores', 'filtros']) && (
-            <div className="h-full flex items-center justify-between bg-studio-surface p-3.5 rounded-sm border border-studio-border">
-              <div className="space-y-0.5">
-                <label className="text-xs font-medium text-slate-200 font-mono">{t('settings.chroma_fix_label')}</label>
-                <p className="text-[11px] text-slate-400 font-mono">{t('settings.chroma_fix_desc')}</p>
+            <div className="flex flex-col justify-between bg-studio-surface p-3.5 rounded-sm border border-studio-border min-h-[96px]">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <Switch
+                  aria-label={t('settings.chroma_fix_label')}
+                  checked={chromaFix}
+                  onCheckedChange={setChromaFix}
+                  disabled={isLocked}
+                  className="shrink-0"
+                />
+                <label
+                  className="text-xs font-semibold text-slate-200 font-mono cursor-pointer truncate"
+                  title={t('settings.chroma_fix_label')}
+                  onClick={() => !isLocked && setChromaFix(!chromaFix)}
+                >
+                  {t('settings.chroma_fix_label')}
+                </label>
               </div>
-              <Switch aria-label={t('settings.chroma_fix_label')} checked={chromaFix} onCheckedChange={setChromaFix} disabled={isLocked} />
+              <p className="text-[11px] text-slate-400 font-mono leading-relaxed mt-2">
+                {t('settings.chroma_fix_desc')}
+              </p>
             </div>
           )}
 
           {matches(['denoise', 'ruído', 'filtros']) && (
-            <div className="h-full flex items-center justify-between bg-studio-surface p-3.5 rounded-sm border border-studio-border">
-              <div className="space-y-0.5">
-                <label className="text-xs font-medium text-slate-200 font-mono">{t('settings.denoise_label')}</label>
-                <p className="text-[11px] text-slate-400 font-mono">{t('settings.denoise_desc')}</p>
+            <div className="flex flex-col justify-between bg-studio-surface p-3.5 rounded-sm border border-studio-border min-h-[96px]">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <Switch
+                  aria-label={t('settings.denoise_label')}
+                  checked={denoise}
+                  onCheckedChange={setDenoise}
+                  disabled={isLocked}
+                  className="shrink-0"
+                />
+                <label
+                  className="text-xs font-semibold text-slate-200 font-mono cursor-pointer truncate"
+                  title={t('settings.denoise_label')}
+                  onClick={() => !isLocked && setDenoise(!denoise)}
+                >
+                  {t('settings.denoise_label')}
+                </label>
               </div>
-              <Switch aria-label={t('settings.denoise_label')} checked={denoise} onCheckedChange={setDenoise} disabled={isLocked} />
+              <p className="text-[11px] text-slate-400 font-mono leading-relaxed mt-2">
+                {t('settings.denoise_desc')}
+              </p>
             </div>
           )}
 
           {matches(['dotcrawl', 'comb', 'filtros']) && (
-            <div className="h-full flex items-center justify-between bg-studio-surface p-3.5 rounded-sm border border-studio-border">
-              <div className="space-y-0.5">
-                <label className="text-xs font-medium text-slate-200 font-mono">{t('settings.comb_filter_label')}</label>
-                <p className="text-[11px] text-slate-400 font-mono">{t('settings.comb_filter_desc')}</p>
+            <div className="flex flex-col justify-between bg-studio-surface p-3.5 rounded-sm border border-studio-border min-h-[96px]">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <Switch
+                  aria-label={t('settings.comb_filter_label')}
+                  checked={combFilter}
+                  onCheckedChange={setCombFilter}
+                  disabled={isLocked}
+                  className="shrink-0"
+                />
+                <label
+                  className="text-xs font-semibold text-slate-200 font-mono cursor-pointer truncate"
+                  title={t('settings.comb_filter_label')}
+                  onClick={() => !isLocked && setCombFilter(!combFilter)}
+                >
+                  {t('settings.comb_filter_label')}
+                </label>
               </div>
-              <Switch aria-label={t('settings.comb_filter_label')} checked={combFilter} onCheckedChange={setCombFilter} disabled={isLocked} />
+              <p className="text-[11px] text-slate-400 font-mono leading-relaxed mt-2">
+                {t('settings.comb_filter_desc')}
+              </p>
             </div>
           )}
 
           {matches(['overscan', 'bordas', 'filtros']) && (
-            <div className="h-full flex items-center justify-between bg-studio-surface p-3.5 rounded-sm border border-studio-border">
-              <div className="space-y-0.5">
-                <label className="text-xs font-medium text-slate-200 font-mono">{t('settings.overscan_label')}</label>
-                <p className="text-[11px] text-slate-400 font-mono">{t('settings.overscan_desc')}</p>
+            <div className="flex flex-col justify-between bg-studio-surface p-3.5 rounded-sm border border-studio-border min-h-[96px]">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <Switch
+                  aria-label={t('settings.overscan_label')}
+                  checked={overscanBlanking}
+                  onCheckedChange={setOverscanBlanking}
+                  disabled={isLocked}
+                  className="shrink-0"
+                />
+                <label
+                  className="text-xs font-semibold text-slate-200 font-mono cursor-pointer truncate"
+                  title={t('settings.overscan_label')}
+                  onClick={() => !isLocked && setOverscanBlanking(!overscanBlanking)}
+                >
+                  {t('settings.overscan_label')}
+                </label>
               </div>
-              <Switch aria-label={t('settings.overscan_label')} checked={overscanBlanking} onCheckedChange={setOverscanBlanking} disabled={isLocked} />
+              <p className="text-[11px] text-slate-400 font-mono leading-relaxed mt-2">
+                {t('settings.overscan_desc')}
+              </p>
             </div>
           )}
         </div>

@@ -115,7 +115,7 @@
     "split_play": "Воспроизвести сравнение",
     "split_pause": "Приостановить сравнение",
     "split_preset": "Установить разделение на {{percent}}%",
-    "split_timeline_info": "{{current}} / {{total}} ({{percent}}%)",
+    "split_timeline_info": "{{current}} / {{total}}",
     "live_badge": "ПРЯМОЙ ЭФИР",
     "jump_to_live": "Вернуться к прямому эфиру",
     "return_live_view": "Вернуться к монитору реального времени",
@@ -154,7 +154,12 @@
     "scopes_lufs_value": "{{value}} LUFS",
     "rec_badge": "ЗАП",
     "rec_with_timecode": "ЗАП {{timecode}}",
-    "fps_badge": "{{fps}} FPS"
+    "fps_badge": "{{fps}} FPS",
+    "volume": "Громкость",
+    "mute": "Без звука",
+    "unmute": "Включить звук",
+    "subtitles_toggle": "Субтитры (CC)",
+    "subtitles_editor": "Редактор субтитров"
   },
   "files": {
     "input_file_label": "Input File (media/raw/)",
@@ -276,7 +281,13 @@
     "reset_default": "Сбросить по умолчанию",
     "tabs_aria_label": "Abas de Configuração",
     "output_codec_hint": "Формат кодирования и сжатия выходного видео.",
-    "tier_label": "Уровень {{tier}}: {{name}}"
+    "tier_label": "Уровень {{tier}}: {{name}}",
+    "vpy_cache_label": "Кэш VapourSynth (МБ)",
+    "vpy_cache_desc": "Лимит оперативной памяти для QTGMC и временных фильтров",
+    "checkpoint_interval_label": "Интервал контрольных точек",
+    "checkpoint_interval_desc": "Частота атомарной записи на диск в обработанных кадрах",
+    "fixity_label": "Криптографическая фиксация OAIS",
+    "fixity_desc": "Непрерывная проверка целостности SHA-256 для архивных мастеров"
   },
   "hardware": {
     "tier_1": "Базовый (Ограниченный CPU)",
@@ -665,7 +676,11 @@
     "theme_dark": "Studio Pro Dark (Стандарт эфира)",
     "theme_oled": "OLED Deep Black (Истинный черный)",
     "reset_defaults": "Восстановить по умолчанию",
-    "close": "Готово"
+    "close": "Готово",
+    "scan_max_depth_label": "Глубина сканирования медиа",
+    "scan_max_depth_desc": "Глубина рекурсии при поиске видеокассет в библиотеке",
+    "default_videos_dir": "Использовать стандартную папку Видео ОС",
+    "browse": "Обзор..."
   },
   "build": {
     "no_compiler_found": "No suitable C compiler (GCC, Clang) found in system PATH.",
@@ -747,5 +762,38 @@
       "base": "Base (Баланс, ~75MB ОЗУ)",
       "small": "Small (Точный, ~250MB ОЗУ)"
     }
+  },
+  "folders": {
+    "title": "Навигатор папок",
+    "browse_native": "Обзор системы...",
+    "current_path": "Текущая папка",
+    "up": "Вверх на уровень",
+    "select_this": "Выбрать эту папку",
+    "scan_depth": "Глубина сканирования",
+    "depth_1": "Только корень (1 уровень)",
+    "depth_2": "Стандарт (2 уровня)",
+    "depth_3": "Глубоко (3 уровня)",
+    "depth_4": "Расширенно (4 уровня)",
+    "depth_5": "Максимум (5 уровней)",
+    "empty_dir": "Пустая папка",
+    "filter_placeholder": "Фильтр папок...",
+    "browse_btn": "Обзор..."
+  },
+  "subtitles": {
+    "title": "Встроенный редактор субтитров",
+    "editor_title": "Редактор субтитров",
+    "toggle_cc": "Субтитры (CC)",
+    "no_cues": "Субтитры не найдены",
+    "add_cue": "Добавить строку",
+    "delete_cue": "Удалить",
+    "start_time": "Начало",
+    "end_time": "Конец",
+    "text": "Текст субтитра",
+    "save": "Сохранить субтитры",
+    "saved_success": "Субтитры успешно сохранены!",
+    "save_failed": "Ошибка сохранения субтитров",
+    "generate": "Сгенерировать субтитры ИИ",
+    "empty_timeline": "Субтитры не загружены.",
+    "close": "Закрыть редактор"
   }
 }

@@ -30,6 +30,10 @@ export function usePreferencesViewModel(onClose?: () => void, isOpen?: boolean) 
       highContrast: prefs.highContrast,
       largeText: prefs.largeText,
       theme: prefs.theme,
+      scanMaxDepth: prefs.scanMaxDepth,
+      monitorVolume: prefs.monitorVolume,
+      monitorMuted: prefs.monitorMuted,
+      subtitlesEnabled: prefs.subtitlesEnabled,
     });
     if (onClose) {
       onClose();

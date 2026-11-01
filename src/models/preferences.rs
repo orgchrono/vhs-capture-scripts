@@ -54,6 +54,26 @@ pub struct AppPreferences {
 
     #[serde(default = "default_dark", alias = "theme")]
     pub theme: String,
+
+    #[serde(default = "default_scan_depth", alias = "scanMaxDepth")]
+    pub scan_max_depth: usize,
+
+    #[serde(default = "default_monitor_volume", alias = "monitorVolume")]
+    pub monitor_volume: u8,
+
+    #[serde(default, alias = "monitorMuted")]
+    pub monitor_muted: bool,
+
+    #[serde(default = "default_true", alias = "subtitlesEnabled")]
+    pub subtitles_enabled: bool,
+}
+
+fn default_scan_depth() -> usize {
+    crate::models::constants::DEFAULT_SCAN_MAX_DEPTH
+}
+
+fn default_monitor_volume() -> u8 {
+    80
 }
 
 fn default_true() -> bool {
@@ -103,6 +123,10 @@ impl Default for AppPreferences {
             high_contrast: false,
             large_text: false,
             theme: "dark".to_string(),
+            scan_max_depth: crate::models::constants::DEFAULT_SCAN_MAX_DEPTH,
+            monitor_volume: 80,
+            monitor_muted: false,
+            subtitles_enabled: true,
         }
     }
 }
@@ -114,6 +138,8 @@ pub fn validate_and_clamp_preferences(mut prefs: AppPreferences) -> AppPreferenc
     prefs.max_console_lines = prefs.max_console_lines.clamp(10, 5000);
     prefs.panasonic_poll_interval_ms = prefs.panasonic_poll_interval_ms.clamp(500, 60000);
     prefs.whisper_max_threads = prefs.whisper_max_threads.clamp(1, 32);
+    prefs.scan_max_depth = prefs.scan_max_depth.clamp(1, crate::models::constants::MAX_SCAN_DEPTH_LIMIT);
+    prefs.monitor_volume = prefs.monitor_volume.min(100);
 
     let clean_theme = prefs.theme.trim().to_ascii_lowercase();
     prefs.theme = if clean_theme == "light" {

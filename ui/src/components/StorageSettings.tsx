@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { HardDrive, Cloud, Database, Box, Server, Globe, CheckCircle2 } from "lucide-react";
+import { HardDrive, Cloud, Database, Box, Server, Globe, CheckCircle2, FolderOpen } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { useStorageViewModel } from "../viewmodels/useStorageViewModel";
+import { DirectoryPickerModal } from "./DirectoryPickerModal";
 
 // ============================================================================
 // VIEW: Strict MVVM (Dumb Component)
@@ -13,6 +15,7 @@ export function StorageSettings() {
   const { t } = useTranslation();
   const vm = useStorageViewModel();
   const { saveFeedback, onSaveClick } = vm;
+  const [showDirSelector, setShowDirSelector] = useState(false);
 
   const providers = [
     { id: "local_nas_usb", name: t("storage.provider_local"), icon: HardDrive },
@@ -69,13 +72,25 @@ export function StorageSettings() {
             <label className="text-[11px] font-mono font-medium text-slate-400 block">
               {t("storage.destination_path_label")}
             </label>
-            <Input
-              type="text"
-              value={vm.config.path || ""}
-              onChange={(e) => vm.updateConfig("path", e.target.value)}
-              className="bg-studio-surface border-studio-border text-white text-xs rounded-sm font-mono"
-              placeholder={t("storage.path_placeholder")}
-            />
+            <div className="flex items-center gap-2">
+              <Input
+                type="text"
+                value={vm.config.path || ""}
+                onChange={(e) => vm.updateConfig("path", e.target.value)}
+                className="flex-1 bg-studio-surface border-studio-border text-white text-xs rounded-sm font-mono"
+                placeholder={t("storage.path_placeholder")}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowDirSelector(true)}
+                className="bg-studio-surface hover:bg-studio-surface-hover border-studio-border text-slate-200 font-mono text-xs px-3 h-9 shrink-0 flex items-center gap-1.5 cursor-pointer"
+                data-testid="storage-browse-btn"
+              >
+                <FolderOpen className="w-3.5 h-3.5 text-emerald-400 self-center" />
+                <span className="self-center leading-none">{t("folders.browse_btn")}</span>
+              </Button>
+            </div>
             {vm.status.ready && (
               <p className="text-xs text-emerald-400 flex items-center gap-1 pt-1 font-mono">
                 <CheckCircle2 className="w-3.5 h-3.5" /> {t("storage.ready_free_space")} {vm.status.free_space_gb} GB
@@ -302,6 +317,12 @@ export function StorageSettings() {
       >
         {vm.loading ? t("storage.validating") : t("storage.save_btn")}
       </Button>
+      <DirectoryPickerModal
+        isOpen={showDirSelector}
+        onClose={() => setShowDirSelector(false)}
+        initialPath={vm.config.path || ""}
+        onSelect={(selectedPath) => vm.updateConfig("path", selectedPath)}
+      />
     </div>
   );
 }

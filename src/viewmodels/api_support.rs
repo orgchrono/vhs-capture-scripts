@@ -67,11 +67,38 @@ pub fn save_preferences(prefs: &AppPreferences) -> Result<(), String> {
     std::fs::write(path, content).map_err(|e| e.to_string())
 }
 
-/// Media directories for the current preferences, anchored at the working directory.
+/// Media directories for the current preferences.
+/// Ensures the native OS Videos folder hierarchy (`VHS Studio Pro/{raw,restored,captures,subtitles,work}`)
+/// exists and anchors default directories there when running outside a local dev repository.
 #[must_use]
 pub fn media_dirs() -> MediaDirs {
     let base = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-    media_dirs_for(&load_preferences(), &base)
+    let prefs = load_preferences();
+    let os_videos_root = crate::infrastructure::paths::default_videos_root();
+    let _ = crate::infrastructure::paths::ensure_default_media_hierarchy(&os_videos_root);
+
+    if !base.join(MEDIA_RAW_REL_PATH).exists() {
+        let raw_trimmed = prefs.raw_dir.trim();
+        let raw = if raw_trimmed.is_empty() || raw_trimmed == MEDIA_RAW_REL_PATH {
+            os_videos_root.join("raw")
+        } else {
+            resolve_dir(raw_trimmed, "raw", &os_videos_root)
+        };
+        let restored_trimmed = prefs.restored_dir.trim();
+        let restored = if restored_trimmed.is_empty() || restored_trimmed == MEDIA_RESTORED_REL_PATH {
+            os_videos_root.join("restored")
+        } else {
+            resolve_dir(restored_trimmed, "restored", &os_videos_root)
+        };
+        return MediaDirs {
+            media: os_videos_root.clone(),
+            raw,
+            restored,
+            work: os_videos_root.join("work"),
+        };
+    }
+
+    media_dirs_for(&prefs, &base)
 }
 
 /// Validates a user-supplied media reference and resolves plain file names against the raw

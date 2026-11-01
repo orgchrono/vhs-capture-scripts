@@ -2,7 +2,9 @@
 
 pub mod app_context;
 pub mod cpu_usage;
+pub mod embedded_assets;
 pub mod executor;
+pub mod fs_browser;
 pub mod hardware;
 pub mod http_codec;
 pub mod http_server;

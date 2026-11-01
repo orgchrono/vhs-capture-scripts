@@ -199,7 +199,7 @@ test.describe('Split Comparison & Timeline Slider E2E Study', () => {
     await timelineInput.dispatchEvent('pointerup');
     await timelineInput.dispatchEvent('mouseup');
 
-    await expect(timelineInfo).toContainText('00:00:45');
+    await expect(timelineInfo).toContainText('00:45');
 
     // Take screenshot of split comparison monitor for visual inspection
     await monitor.screenshot({ path: 'test-results/split-comparison-refined.png' });

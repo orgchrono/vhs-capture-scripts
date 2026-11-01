@@ -73,28 +73,54 @@ body {
 
 /* Hardware-grade recessed status LED indicator styles */
 .led-lamp {
-  display: inline-block;
-  width: 0.5rem;
-  height: 0.5rem;
+  display: inline-grid;
+  place-content: center;
+  place-items: center;
+  width: 0.4375rem;
+  height: 0.4375rem;
   border-radius: 9999px;
   flex-shrink: 0;
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.6);
+  box-shadow: inset 0 0 1px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+/* Optical vertical alignment for icons and tally indicators */
+svg.lucide,
+.led-lamp,
+[class*="rounded-full"] {
+  align-self: center;
+  flex-shrink: 0;
+}
+
+/* Universal optical vertical centering for buttons, badges and pill containers */
+button > svg.lucide,
+button > span,
+[role="button"] > svg.lucide,
+[role="button"] > span {
+  align-self: center;
+}
+
+/* Universal optical left-alignment for comboboxes, select triggers and option elements (SSOT) */
+button[role="combobox"],
+[data-radix-select-trigger],
+select,
+option {
+  text-align: left !important;
 }
 .led-live {
   background-color: #10b981;
-  box-shadow: 0 0 3px rgba(16, 185, 129, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 3px rgba(16, 185, 129, 0.5), inset 0 0 1px rgba(255, 255, 255, 0.5);
 }
 .led-rec {
   background-color: #ef4444;
-  box-shadow: 0 0 3px rgba(239, 68, 68, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 3px rgba(239, 68, 68, 0.5), inset 0 0 1px rgba(255, 255, 255, 0.5);
 }
 .led-warn {
   background-color: #f59e0b;
-  box-shadow: 0 0 3px rgba(245, 158, 11, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 3px rgba(245, 158, 11, 0.5), inset 0 0 1px rgba(255, 255, 255, 0.5);
 }
 .led-idle {
   background-color: #4b5563;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.8);
+  box-shadow: inset 0 0 1px rgba(0, 0, 0, 0.8);
 }
 
 /* Precision NLE Scrollbar */

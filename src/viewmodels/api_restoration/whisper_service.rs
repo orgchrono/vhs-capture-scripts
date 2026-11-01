@@ -185,3 +185,112 @@ pub fn handle_generate_subtitles(params: &Value, ctx: &AppContext) -> ApiRespons
         }
     }
 }
+
+pub fn handle_get_subtitles(req: &crate::viewmodels::api_types::ApiRequest) -> ApiResponse {
+    let raw_source = req.query("source")
+        .or_else(|| req.query("input"))
+        .unwrap_or_default();
+    let dirs = media_dirs();
+    let resolved_source = if !raw_source.is_empty() {
+        resolve_media_input(&raw_source, &dirs).unwrap_or(raw_source)
+    } else {
+        String::new()
+    };
+
+    let stem = if !resolved_source.is_empty() {
+        Path::new(&resolved_source)
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("")
+    } else {
+        ""
+    };
+
+    let mut candidates = Vec::new();
+    if !resolved_source.is_empty() {
+        let p = Path::new(&resolved_source);
+        if let Some(parent) = p.parent() {
+            candidates.push(parent.join(format!("{stem}.vtt")));
+            candidates.push(parent.join(format!("{stem}.srt")));
+        }
+    }
+    if !stem.is_empty() {
+        candidates.push(dirs.restored.join(format!("{stem}.vtt")));
+        candidates.push(dirs.restored.join(format!("{stem}.srt")));
+        candidates.push(dirs.work.join(format!("{stem}.vtt")));
+        candidates.push(dirs.work.join(format!("{stem}.srt")));
+    }
+
+    for candidate in candidates {
+        if candidate.is_file() {
+            if let Ok(content) = std::fs::read_to_string(&candidate) {
+                let segments = crate::domain::whisper::parse_subtitles(&content);
+                let ext = candidate.extension().and_then(|e| e.to_str()).unwrap_or("vtt");
+                return ApiResponse::ok(&json!({
+                    "status": "ok",
+                    "found": true,
+                    "format": ext,
+                    "file_path": candidate.to_string_lossy().to_string(),
+                    "segments": segments,
+                    "raw_content": content,
+                }));
+            }
+        }
+    }
+
+    ApiResponse::ok(&json!({
+        "status": "ok",
+        "found": false,
+        "segments": [],
+    }))
+}
+
+pub fn handle_save_subtitles(req: &crate::viewmodels::api_types::ApiRequest) -> ApiResponse {
+    let body = req.json_body();
+    let raw_source = body.get("source")
+        .or_else(|| body.get("file_path"))
+        .or_else(|| body.get("filePath"))
+        .and_then(Value::as_str)
+        .unwrap_or("");
+
+    let dirs = media_dirs();
+    let resolved_source = if !raw_source.is_empty() {
+        resolve_media_input(raw_source, &dirs).unwrap_or_else(|| raw_source.to_string())
+    } else {
+        String::new()
+    };
+
+    let segments_val = body.get("segments").and_then(Value::as_array);
+    let segments: Vec<crate::domain::whisper::SubtitleSegment> = match segments_val {
+        Some(arr) => arr.iter().filter_map(|v| serde_json::from_value(v.clone()).ok()).collect(),
+        None => Vec::new(),
+    };
+
+    let stem = if !resolved_source.is_empty() {
+        Path::new(&resolved_source)
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("subtitles")
+    } else {
+        "subtitles"
+    };
+
+    let target_vtt = dirs.restored.join(format!("{stem}.vtt"));
+    let target_srt = dirs.restored.join(format!("{stem}.srt"));
+
+    let vtt_content = crate::domain::whisper::generate_vtt_content(&segments);
+    let srt_content = crate::domain::whisper::generate_srt_content(&segments);
+
+    if let Err(e) = std::fs::write(&target_vtt, &vtt_content) {
+        return ApiResponse::error(500, &format!("Failed to write VTT subtitles: {e}"));
+    }
+    let _ = std::fs::write(&target_srt, &srt_content);
+
+    ApiResponse::ok(&json!({
+        "status": "ok",
+        "success": true,
+        "vtt_path": target_vtt.to_string_lossy().to_string(),
+        "srt_path": target_srt.to_string_lossy().to_string(),
+        "count": segments.len(),
+    }))
+}

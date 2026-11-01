@@ -4,6 +4,8 @@ export interface RawFile {
   size_mb: number;
   date?: string;
   thumbnail_url?: string;
+  relative_dir?: string;
+  depth?: number;
 }
 
 export interface PanasonicInspection {
