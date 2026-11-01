@@ -222,7 +222,14 @@
     "tab_raw": "Bandes Brutes",
     "tab_masters": "Masters Prêts",
     "no_masters_yet": "Aucun master terminé pour l'instant",
-    "master_tape_badge": "MASTER"
+    "master_tape_badge": "MASTER",
+    "raw_analog_badge": "RAW 480i",
+    "master_progressive_badge": "MASTER 60p",
+    "stage1_done_badge": "Étape 1 Terminée",
+    "ai_ready_badge": "IA Prête",
+    "trimmed_badge": "Nettoyé",
+    "blackframe_clean_btn": "Nettoyer Trames Noires",
+    "blackframe_clean_tooltip": "Exécute une coupe de flux rapide et un gel TBC Frame-Hold sur les trames noires"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
@@ -287,7 +294,12 @@
     "checkpoint_interval_label": "Intervalle de Point de Contrôle",
     "checkpoint_interval_desc": "Fréquence de synchronisation disque en trames",
     "fixity_label": "Fixité Cryptographique OAIS",
-    "fixity_desc": "Vérification continue d'intégrité SHA-256 pour les masters"
+    "fixity_desc": "Vérification continue d'intégrité SHA-256 pour les masters",
+    "master_guard_banner_title": "Mode Master Protégé",
+    "master_guard_banner_desc": "Le fichier sélectionné est déjà un master progressif. Le désentrelacement analogique (QTGMC), le décalage chroma et l'overscan sont contournés pour éviter toute perte de génération.",
+    "master_locked_badge": "Protégé (Contourné)",
+    "tbc_hold_label": "Protection TBC Frame-Hold contre Pertes de Signal",
+    "tbc_hold_desc": "Fige l'image valide précédente lors des pertes de signal analogique pour préserver une synchronisation A/V absolue."
   },
   "hardware": {
     "tier_1": "De base (CPU Limitée)",
@@ -439,7 +451,10 @@
     "capture_start_failed": "Échec du démarrage de la capture",
     "capture_stop_failed": "Échec de l'arrêt de la capture",
     "invalid_video_format_title": "Format vidéo non valide",
-    "invalid_video_format_desc": "Fichier non pris en charge. Veuillez utiliser des formats vidéo (.mkv, .mp4, .avi, .mov, .ts, .vob)."
+    "invalid_video_format_desc": "Fichier non pris en charge. Veuillez utiliser des formats vidéo (.mkv, .mp4, .avi, .mov, .ts, .vob).",
+    "blackframe_clean_title": "Nettoyage des Trames Noires",
+    "blackframe_clean_desc": "Nettoyage des trames noires exécuté avec succès : {{file}}",
+    "blackframe_clean_error": "Échec du nettoyage des trames noires : {{error}}"
   },
   "telemetry": {
     "title": "Télémétrie de Restauration Analogique",
@@ -570,7 +585,10 @@
     "whisper_error": "[WHISPER ERREUR] {{error}}",
     "obs_watcher_armed": "[OBS] Auto-Watcher armé: surveillance active du signal.",
     "obs_watcher_disarmed": "[OBS] Auto-Watcher désarmé.",
-    "obs_watcher_error": "[OBS] Erreur Auto-Watcher: {{error}}"
+    "obs_watcher_error": "[OBS] Erreur Auto-Watcher: {{error}}",
+    "blackframe_clean_starting": "[BLACKFRAME] Début du nettoyage rapide sur {{file}}...",
+    "blackframe_clean_done": "[BLACKFRAME] Nettoyage terminé. Sortie : {{output}}",
+    "planner_guard_bypass": "[PLANNER-GUARD] L'entrée est déjà progressive/master. Contournement des filtres purement analogiques."
   },
   "recovery": {
     "title": "Projets en cours / Interrompus",

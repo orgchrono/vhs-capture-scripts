@@ -10,6 +10,7 @@ import {
   Cpu,
   Cloud,
   X,
+  ShieldCheck,
 } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from './ui/tabs'
 import { Input } from './ui/input'
@@ -38,6 +39,7 @@ export const RestorationSettings: React.FC = () => {
     setWhisperLanguage,
     isGeneratingSubtitles,
     handleGenerateSubtitles,
+    isMasterSelected,
   } = useRestorationViewModel()
 
   const {
@@ -105,6 +107,28 @@ export const RestorationSettings: React.FC = () => {
         </div>
       </div>
 
+      {isMasterSelected && (
+        <div
+          data-testid="master-guard-banner"
+          className="mb-2.5 p-2.5 rounded-sm bg-amber-500/10 border border-amber-500/30 flex items-start gap-2.5 shrink-0"
+        >
+          <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-amber-300 font-mono">
+                {t('settings.master_guard_banner_title')}
+              </span>
+              <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 border border-amber-400/40 shrink-0">
+                {t('settings.master_locked_badge')}
+              </span>
+            </div>
+            <p className="text-[11px] text-amber-200/80 font-mono mt-0.5 leading-relaxed">
+              {t('settings.master_guard_banner_desc')}
+            </p>
+          </div>
+        </div>
+      )}
+
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 min-h-0 flex flex-col overflow-hidden" aria-label={t('settings.tabs_aria_label')}>
         <TabsList className="w-full min-w-0 flex items-center justify-start overflow-x-auto overflow-y-hidden custom-scrollbar gap-1 mb-2.5 bg-studio-surface p-1 border border-studio-border rounded-sm shrink-0">
           <TabsTrigger value="presets" data-testid="tab-presets" className={`flex items-center justify-center gap-1.5 text-xs py-1.5 px-2.5 font-medium font-mono rounded-sm shrink-0 whitespace-nowrap ${isTabMatching('presets') ? 'text-amber-400' : ''}`}><Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0 self-center" /><span className="self-center leading-none">{t('settings.tab_presets')}</span></TabsTrigger>
@@ -157,6 +181,7 @@ export const RestorationSettings: React.FC = () => {
           overscanBlanking={overscanBlanking}
           setOverscanBlanking={setOverscanBlanking}
           isLocked={isLocked}
+          isMaster={isMasterSelected}
           matches={matches}
         />
 

@@ -222,7 +222,14 @@
     "tab_raw": "Nastri Grezzi",
     "tab_masters": "Master Pronti",
     "no_masters_yet": "Nessun master completato ancora",
-    "master_tape_badge": "MASTER"
+    "master_tape_badge": "MASTER",
+    "raw_analog_badge": "RAW 480i",
+    "master_progressive_badge": "MASTER 60p",
+    "stage1_done_badge": "Fase 1 Completata",
+    "ai_ready_badge": "IA Pronta",
+    "trimmed_badge": "Rifilato",
+    "blackframe_clean_btn": "Pulisci Fotogrammi Neri",
+    "blackframe_clean_tooltip": "Esegue il taglio rapido dello stream e il blocco TBC Frame-Hold sui fotogrammi neri"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
@@ -287,7 +294,12 @@
     "checkpoint_interval_label": "Intervallo Punto di Ripristino",
     "checkpoint_interval_desc": "Frequenza di sincronizzazione atomica su disco in frame",
     "fixity_label": "Integrità Crittografica OAIS",
-    "fixity_desc": "Verifica continua dell'integrità SHA-256 per i master di archivio"
+    "fixity_desc": "Verifica continua dell'integrità SHA-256 per i master di archivio",
+    "master_guard_banner_title": "Modalità Master Protetto",
+    "master_guard_banner_desc": "Il file selezionato è già un master progressivo. Il deinterlacciamento analogico (QTGMC), correzione croma e overscan sono ignorati per prevenire perdite generazionali.",
+    "master_locked_badge": "Protetto (Ignorato)",
+    "tbc_hold_label": "Protezione Dropout TBC Frame-Hold",
+    "tbc_hold_desc": "Congela il fotogramma valido precedente durante le perdite di segnale analogico per mantenere la sincronia A/V assoluta."
   },
   "hardware": {
     "tier_1": "Base (CPU Limitata)",
@@ -439,7 +451,10 @@
     "capture_start_failed": "Avvio acquisizione non riuscito",
     "capture_stop_failed": "Arresto acquisizione non riuscito",
     "invalid_video_format_title": "Formato video non valido",
-    "invalid_video_format_desc": "File non supportato. Utilizzare formati video analogici (.mkv, .mp4, .avi, .mov, .ts, .vob)."
+    "invalid_video_format_desc": "File non supportato. Utilizzare formati video analogici (.mkv, .mp4, .avi, .mov, .ts, .vob).",
+    "blackframe_clean_title": "Pulizia Fotogrammi Neri",
+    "blackframe_clean_desc": "Pulizia dei fotogrammi neri eseguita con successo: {{file}}",
+    "blackframe_clean_error": "Impossibile pulire i fotogrammi neri: {{error}}"
   },
   "telemetry": {
     "title": "Telemetria di Restauro Analogico",
@@ -570,7 +585,10 @@
     "whisper_error": "[WHISPER ERRORE] {{error}}",
     "obs_watcher_armed": "[OBS] Auto-Watcher armato: sorveglianza segnale attiva.",
     "obs_watcher_disarmed": "[OBS] Auto-Watcher disarmato.",
-    "obs_watcher_error": "[OBS] Errore Auto-Watcher: {{error}}"
+    "obs_watcher_error": "[OBS] Errore Auto-Watcher: {{error}}",
+    "blackframe_clean_starting": "[BLACKFRAME] Avvio pulizia rapida su {{file}}...",
+    "blackframe_clean_done": "[BLACKFRAME] Pulizia completata. Uscita: {{output}}",
+    "planner_guard_bypass": "[PLANNER-GUARD] L'input è già progressivo/master. Bypass dei filtri analogici in corso."
   },
   "recovery": {
     "title": "Progetti in corso / Interrotti",

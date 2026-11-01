@@ -222,7 +222,14 @@
     "tab_raw": "Cintas Brutas",
     "tab_masters": "Masters Listos",
     "no_masters_yet": "Ningún master completado aún",
-    "master_tape_badge": "MASTER"
+    "master_tape_badge": "MASTER",
+    "raw_analog_badge": "RAW 480i",
+    "master_progressive_badge": "MÁSTER 60p",
+    "stage1_done_badge": "Paso 1 Listo",
+    "ai_ready_badge": "IA Disponible",
+    "trimmed_badge": "Recortado",
+    "blackframe_clean_btn": "Limpiar Cuadros Negros",
+    "blackframe_clean_tooltip": "Ejecuta recorte rápido de flujo y congelación TBC Frame-Hold en cuadros negros"
   },
   "app": {
     "drop_title": "Suelte su cinta de video aquí",
@@ -287,7 +294,12 @@
     "checkpoint_interval_label": "Intervalo de Punto de Control",
     "checkpoint_interval_desc": "Frecuencia de sincronización en disco en fotogramas",
     "fixity_label": "Fijeza Criptográfica OAIS",
-    "fixity_desc": "Verificación continua de integridad SHA-256 para archivos máster"
+    "fixity_desc": "Verificación continua de integridad SHA-256 para archivos máster",
+    "master_guard_banner_title": "Modo Máster Protegido",
+    "master_guard_banner_desc": "El archivo seleccionado ya es un máster progresivo. El desentrelazado analógico (QTGMC), corrección de croma y sobrebarrido se omiten para evitar degradación generacional.",
+    "master_locked_badge": "Protegido (Omitido)",
+    "tbc_hold_label": "Protección TBC Frame-Hold contra Caídas",
+    "tbc_hold_desc": "Congela el cuadro válido anterior durante caídas de señal analógica para conservar sincronía A/V absoluta."
   },
   "hardware": {
     "tier_1": "Básico (CPU Limitada)",
@@ -439,7 +451,10 @@
     "capture_start_failed": "Error al iniciar captura",
     "capture_stop_failed": "Error al detener captura",
     "invalid_video_format_title": "Formato de video no válido",
-    "invalid_video_format_desc": "Archivo no compatible. Utilice formatos de video analógico (.mkv, .mp4, .avi, .mov, .ts, .vob)."
+    "invalid_video_format_desc": "Archivo no compatible. Utilice formatos de video analógico (.mkv, .mp4, .avi, .mov, .ts, .vob).",
+    "blackframe_clean_title": "Limpieza de Cuadros Negros",
+    "blackframe_clean_desc": "Higienización de cuadros negros ejecutada con éxito: {{file}}",
+    "blackframe_clean_error": "Error al limpiar cuadros negros: {{error}}"
   },
   "telemetry": {
     "title": "Telemetría de Masterización Analógica",
@@ -570,7 +585,10 @@
     "whisper_error": "[WHISPER ERROR] {{error}}",
     "obs_watcher_armed": "[OBS] Auto-Watcher armado: vigilancia de señal activa.",
     "obs_watcher_disarmed": "[OBS] Auto-Watcher desarmado.",
-    "obs_watcher_error": "[OBS] Error en Auto-Watcher: {{error}}"
+    "obs_watcher_error": "[OBS] Error en Auto-Watcher: {{error}}",
+    "blackframe_clean_starting": "[BLACKFRAME] Iniciando higienización rápida en {{file}}...",
+    "blackframe_clean_done": "[BLACKFRAME] Higienización completada. Salida: {{output}}",
+    "planner_guard_bypass": "[PLANNER-GUARD] La entrada ya es progresiva/máster. Omitiendo filtros puramente analógicos."
   },
   "recovery": {
     "title": "Proyectos en Curso / Interrumpidos",

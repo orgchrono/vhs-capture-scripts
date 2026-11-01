@@ -41,12 +41,12 @@ const badgeVariants = cva(
 
 export interface BadgeProps
   extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof badgeVariants> {}
+  VariantProps<typeof badgeVariants> { }
 
 function Badge({ className, variant, size, children, ...props }: BadgeProps) {
   return (
     <div className={cn(badgeVariants({ variant, size }), className)} {...props}>
-      <span className="inline-grid grid-flow-col auto-cols-max items-center justify-center gap-1.5 leading-none place-self-center">
+      <span className="inline-grid grid-flow-col auto-cols-max items-center justify-center gap-1.5 leading-none place-self-center pt-px">
         {children}
       </span>
     </div>

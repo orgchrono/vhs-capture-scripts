@@ -426,5 +426,70 @@ pub fn emit_oais_archival_sidecars(
     let manifest_path = format!("{stem_path}_manifest-sha256.txt");
     fs::write(&manifest_path, &manifest_content)?;
 
+    // 4. Generate companion .manifest.json sidecar
+    let mut completed_stages = Vec::new();
+    if let Some(existing) = crate::models::manifest::load_manifest_sidecar(Path::new(&planned.input_path)) {
+        completed_stages.extend(existing.completed_stages);
+    }
+    if planned.is_qtgmc_active {
+        completed_stages.push(crate::models::constants::STAGE_1_DEINTERLACE_QTGMC.to_string());
+    } else if planned.plan.video_filtergraph.contains("bwdif") {
+        completed_stages.push(crate::models::constants::STAGE_1_DEINTERLACE_BWDIF.to_string());
+    }
+    if planned.plan.video_filtergraph.contains("tcomb") || planned.plan.video_filtergraph.contains("dedot") {
+        completed_stages.push(crate::models::constants::STAGE_1_COMB_FILTER.to_string());
+    }
+    if planned.plan.video_filtergraph.contains("chromashift") {
+        completed_stages.push(crate::models::constants::STAGE_1_CHROMA_SHIFT.to_string());
+    }
+    if planned.plan.video_filtergraph.contains("drawbox") {
+        completed_stages.push(crate::models::constants::STAGE_1_OVERSCAN_BLANKING.to_string());
+    }
+    if planned.plan.video_filtergraph.contains("limiter") {
+        completed_stages.push(crate::models::constants::STAGE_1_BROADCAST_LEGALIZER.to_string());
+    }
+    if planned.plan.audio_filtergraph.contains("loudnorm") {
+        completed_stages.push(crate::models::constants::STAGE_1_AUDIO_EBU_R128.to_string());
+    }
+    completed_stages.sort();
+    completed_stages.dedup();
+
+    let available_stages = crate::models::manifest::compute_available_stages(true, &completed_stages);
+
+    let is_1080p = planned.plan.video_filtergraph.contains("1080");
+    let width = if is_1080p { 1440 } else { 720 };
+    let height = if is_1080p { 1080 } else { 480 };
+    let fps = if planned.is_qtgmc_active || planned.plan.video_filtergraph.contains("bwdif") {
+        59.94
+    } else {
+        29.97
+    };
+
+    let media_manifest = crate::models::manifest::MediaManifest {
+        version: crate::models::constants::MEDIA_MANIFEST_SCHEMA_VERSION,
+        file_path: planned.final_output_path.clone(),
+        source_raw: planned.input_path.clone(),
+        source_raw_sha256: Some(source_sha256.clone()).filter(|s| !s.is_empty()),
+        created_at: now.clone(),
+        is_progressive: true,
+        width,
+        height,
+        fps,
+        completed_stages,
+        available_stages,
+        history: vec![crate::models::manifest::ManifestStageEvent {
+            stage: "stage_1_restoration".to_string(),
+            timestamp: now.clone(),
+            params: serde_json::json!({
+                "master_guard_bypassed": planned.master_guard_bypassed,
+                "is_qtgmc_active": planned.is_qtgmc_active,
+            }),
+        }],
+    };
+    let _ = crate::models::manifest::save_manifest_sidecar(
+        Path::new(&planned.final_output_path),
+        &media_manifest,
+    );
+
     Ok(())
 }

@@ -6,6 +6,7 @@
 pub mod ai;
 pub mod archive;
 pub mod audio;
+pub mod blackframe;
 pub mod chapters;
 pub mod filter;
 pub mod fixity;

@@ -3,11 +3,14 @@
 //! Exposes REST endpoints for video restoration pipelines, presets, process lifecycle,
 //! incomplete job management, and comparison frames.
 
+pub mod blackframe_handlers;
 pub mod checkpoint_handlers;
 pub mod comparison_frame;
 pub mod lifecycle_handlers;
 pub mod qc_handlers;
 pub mod whisper_service;
+
+pub use blackframe_handlers::handle_blackframe_clean;
 
 pub use checkpoint_handlers::{handle_check_existing, handle_incomplete_action, handle_incomplete_list};
 pub use comparison_frame::{extract_comparison_frame_unified, handle_comparison_frame, handle_live_frame, ComparisonFrameResult};
@@ -49,6 +52,7 @@ pub fn handle_restoration_route(req: &ApiRequest, ctx: &AppContext) -> Option<Ap
         ("POST", "/api/install_qtgmc") => Some(handle_install_qtgmc(ctx)),
         ("GET", "/api/monitor/comparison-frame") => Some(handle_comparison_frame(req)),
         ("GET", "/api/monitor/live-restoration-frame") => Some(handle_live_frame()),
+        ("POST", "/api/restoration/blackframe-clean") => Some(handle_blackframe_clean(req, ctx)),
         _ => None,
     }
 }

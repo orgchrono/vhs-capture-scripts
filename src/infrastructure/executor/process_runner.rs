@@ -106,6 +106,12 @@ pub fn execute_restoration_job(
 ) -> Result<RestorationSummary, String> {
     let start_time = Instant::now();
 
+    if let Some(l) = listener {
+        if planned.master_guard_bypassed {
+            l.on_log("[PLANNER-GUARD] Input is already progressive/master. Bypassing analog-only filters.");
+        }
+    }
+
     // 1. Ensure target directory exists
     if let Some(parent) = Path::new(&planned.part_output_path).parent() {
         if !parent.as_os_str().is_empty() {

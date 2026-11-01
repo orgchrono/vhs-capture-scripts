@@ -169,15 +169,12 @@ async function main(): Promise<void> {
     (s) => s.command.startsWith('cargo') || s.name === 'i18n Parity (10 Locales)'
   );
 
-  const [uiResults, rustResults] = await Promise.all([
-    (async () => {
-      const concurrentResults = await Promise.all(concurrentUiSteps.map((s) => runStep(s)));
-      if (playwrightStep) {
-        const pwResult = await runStep(playwrightStep);
-        return [...concurrentResults, pwResult];
-      }
-      return concurrentResults;
-    })(),
+  // 1. Run UI quality checks concurrently first so ui/dist embedded assets are stable
+  const concurrentUiResults = await Promise.all(concurrentUiSteps.map((s) => runStep(s)));
+
+  // 2. Run Playwright and Rust quality checks concurrently (Rust runs sequentially to avoid target/ lock collisions)
+  const [playwrightResult, rustResults] = await Promise.all([
+    playwrightStep ? runStep(playwrightStep) : Promise.resolve(null),
     (async () => {
       const res: StepResult[] = [];
       for (const step of rustSteps) {
@@ -190,6 +187,8 @@ async function main(): Promise<void> {
       return res;
     })(),
   ]);
+
+  const uiResults = playwrightResult ? [...concurrentUiResults, playwrightResult] : concurrentUiResults;
 
   // Maintain original step ordering for reports
   const resultsMap = new Map<string, StepResult>();

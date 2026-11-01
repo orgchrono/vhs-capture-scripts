@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   Trash2,
   ClipboardCheck,
+  Scissors,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTapeLibraryViewModel } from '../viewmodels/useTapeLibraryViewModel';
@@ -35,8 +36,10 @@ interface TapeItemCardProps {
   isPaused: boolean;
   isMaster?: boolean;
   inc?: IncompleteJob;
+  isCleaning?: boolean;
   onSelect: (file: RawFile) => void;
   onOpenQc: (path: string) => void;
+  onCleanBlackframes?: (path: string) => void;
 }
 
 const TapeItemCard: React.FC<TapeItemCardProps> = ({
@@ -46,8 +49,10 @@ const TapeItemCard: React.FC<TapeItemCardProps> = ({
   isPaused,
   isMaster = false,
   inc,
+  isCleaning = false,
   onSelect,
   onOpenQc,
+  onCleanBlackframes,
 }) => {
   const { t } = useTranslation();
   const ext = file.name.split('.').pop()?.toUpperCase() || '';
@@ -127,15 +132,51 @@ const TapeItemCard: React.FC<TapeItemCardProps> = ({
             {file.name}
           </h4>
           <div className="grid grid-flow-col auto-cols-max items-center gap-1 shrink-0">
-            {isMaster ? (
+            {isMaster || file.is_master ? (
               <Badge variant="live" size="sm">
                 {t('files.master_tape_badge')}
               </Badge>
-            ) : inc ? (
+            ) : (
+              <Badge variant="secondary" size="sm">
+                {t('files.raw_analog_badge')}
+              </Badge>
+            )}
+            {file.completed_stages?.some((s) => s.startsWith('stage_1_deinterlace')) && (
+              <Badge variant="info" size="sm">
+                {t('files.stage1_done_badge')}
+              </Badge>
+            )}
+            {file.completed_stages?.includes('stage_3_blackframe_trim') && (
+              <Badge variant="outline" size="sm">
+                {t('files.trimmed_badge')}
+              </Badge>
+            )}
+            {file.available_stages?.some((s) => s.startsWith('stage_2')) && (
+              <Badge variant="warn" size="sm">
+                {t('files.ai_ready_badge')}
+              </Badge>
+            )}
+            {inc ? (
               <Badge variant="warn" size="sm">
                 {t('recovery.badge_incomplete', { pct: inc.progress_percent })}
               </Badge>
             ) : null}
+            {onCleanBlackframes && (
+              <button
+                type="button"
+                data-testid="blackframe-clean-btn"
+                disabled={isRestoring || isPaused || isCleaning}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCleanBlackframes(file.path);
+                }}
+                className="p-1 text-slate-400 hover:text-amber-400 hover:bg-studio-panel rounded-xs transition flex items-center justify-center disabled:opacity-50"
+                title={t('files.blackframe_clean_tooltip')}
+                aria-label={t('files.blackframe_clean_btn')}
+              >
+                <Scissors className="w-3.5 h-3.5 self-center text-amber-400" />
+              </button>
+            )}
             <button
               type="button"
               onClick={(e) => {
@@ -194,6 +235,8 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
     orphanJobs,
     handleAction,
     isPerformingAction,
+    handleCleanBlackframes,
+    isCleaningBlackframes,
   } = useTapeLibraryViewModel({ files, onRefreshParent: onRefresh });
   const [qcModalFile, setQcModalFile] = useState<string | null>(null);
   const [isDirPickerOpen, setIsDirPickerOpen] = useState(false);
@@ -519,8 +562,10 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
                     isPaused={isPaused}
                     isMaster={false}
                     inc={findIncompleteJob(file.path)}
+                    isCleaning={isCleaningBlackframes}
                     onSelect={handleSelectTape}
                     onOpenQc={setQcModalFile}
+                    onCleanBlackframes={handleCleanBlackframes}
                   />
                 ))}
               </>
@@ -546,8 +591,10 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
                   isRestoring={isRestoring}
                   isPaused={isPaused}
                   isMaster={true}
+                  isCleaning={isCleaningBlackframes}
                   onSelect={handleSelectTape}
                   onOpenQc={setQcModalFile}
+                  onCleanBlackframes={handleCleanBlackframes}
                 />
               ))
             )

@@ -222,7 +222,14 @@
     "tab_raw": "原始磁带",
     "tab_masters": "母带成品",
     "no_masters_yet": "暂无已完成的母带",
-    "master_tape_badge": "母带"
+    "master_tape_badge": "母带",
+    "raw_analog_badge": "RAW 480i",
+    "master_progressive_badge": "母带 60p",
+    "stage1_done_badge": "阶段1已完成",
+    "ai_ready_badge": "AI可用",
+    "trimmed_badge": "已修剪",
+    "blackframe_clean_btn": "清理黑帧",
+    "blackframe_clean_tooltip": "对黑帧执行快速流修剪与 TBC Frame-Hold 冻结"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
@@ -287,7 +294,12 @@
     "checkpoint_interval_label": "检查点写入间隔",
     "checkpoint_interval_desc": "以处理帧为单位的磁盘原子同步频率",
     "fixity_label": "OAIS 加密完整性校验",
-    "fixity_desc": "针对归档母带的持续 SHA-256 完整性检验"
+    "fixity_desc": "针对归档母带的持续 SHA-256 完整性检验",
+    "master_guard_banner_title": "受保护的母带模式",
+    "master_guard_banner_desc": "所选文件已是逐行母带。模拟反交错 (QTGMC)、色度位移和过扫描遮罩已被安全旁路，以防止多次转码损失。",
+    "master_locked_badge": "已保护（已旁路）",
+    "tbc_hold_label": "TBC Frame-Hold 信号丢失保护",
+    "tbc_hold_desc": "在模拟信号丢失期间冻结上一有效帧，以保持绝对的音画同步。"
   },
   "hardware": {
     "tier_1": "入门级（性能受限的 CPU）",
@@ -439,7 +451,10 @@
     "capture_start_failed": "启动捕获失败",
     "capture_stop_failed": "停止捕获失败",
     "invalid_video_format_title": "无效的视频格式",
-    "invalid_video_format_desc": "不支持的文件。请使用模拟视频格式（.mkv、.mp4、.avi、.mov、.ts、.vob）。"
+    "invalid_video_format_desc": "不支持的文件。请使用模拟视频格式（.mkv、.mp4、.avi、.mov、.ts、.vob）。",
+    "blackframe_clean_title": "黑帧清理",
+    "blackframe_clean_desc": "黑帧清理已成功执行：{{file}}",
+    "blackframe_clean_error": "清理黑帧失败：{{error}}"
   },
   "telemetry": {
     "title": "模拟修复母带遥测数据",
@@ -570,7 +585,10 @@
     "whisper_error": "[WHISPER 错误] {{error}}",
     "obs_watcher_armed": "[OBS] 自动守望已就绪：信号监控活动中。",
     "obs_watcher_disarmed": "[OBS] 自动守望已撤防。",
-    "obs_watcher_error": "[OBS] 自动守望错误: {{error}}"
+    "obs_watcher_error": "[OBS] 自动守望错误: {{error}}",
+    "blackframe_clean_starting": "[BLACKFRAME] 正在对 {{file}} 启动快速清理...",
+    "blackframe_clean_done": "[BLACKFRAME] 清理完成。输出：{{output}}",
+    "planner_guard_bypass": "[PLANNER-GUARD] 输入已是逐行/母带文件。正在旁路纯模拟滤镜。"
   },
   "recovery": {
     "title": "进行中 / 中断的项目",

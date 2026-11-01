@@ -1,8 +1,7 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { TabsContent } from '../ui/tabs'
-import { Switch } from '../ui/switch'
-import { TabTransition } from './SettingsPrimitives'
+import { TabTransition, SettingToggleCard } from './SettingsPrimitives'
 
 interface FiltersTabProps {
   chromaFix: boolean
@@ -14,6 +13,7 @@ interface FiltersTabProps {
   overscanBlanking: boolean
   setOverscanBlanking: (val: boolean) => void
   isLocked: boolean
+  isMaster?: boolean
   matches: (keywords: string[]) => boolean
 }
 
@@ -27,108 +27,62 @@ export const FiltersTab: React.FC<FiltersTabProps> = ({
   overscanBlanking,
   setOverscanBlanking,
   isLocked,
+  isMaster = false,
   matches,
 }) => {
   const { t } = useTranslation()
+
+  const masterBadge = isMaster ? t('settings.master_locked_badge') : undefined
 
   return (
     <TabsContent value="filters" className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 pb-4">
       <TabTransition>
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-3.5 items-stretch">
           {matches(['chroma', 'cores', 'filtros']) && (
-            <div className="flex flex-col justify-between bg-studio-surface p-3.5 rounded-sm border border-studio-border min-h-[96px]">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <Switch
-                  aria-label={t('settings.chroma_fix_label')}
-                  checked={chromaFix}
-                  onCheckedChange={setChromaFix}
-                  disabled={isLocked}
-                  className="shrink-0"
-                />
-                <label
-                  className="text-xs font-semibold text-slate-200 font-mono cursor-pointer truncate"
-                  title={t('settings.chroma_fix_label')}
-                  onClick={() => !isLocked && setChromaFix(!chromaFix)}
-                >
-                  {t('settings.chroma_fix_label')}
-                </label>
-              </div>
-              <p className="text-[11px] text-slate-400 font-mono leading-relaxed mt-2">
-                {t('settings.chroma_fix_desc')}
-              </p>
-            </div>
+            <SettingToggleCard
+              id="filter-chroma-fix"
+              label={t('settings.chroma_fix_label')}
+              description={t('settings.chroma_fix_desc')}
+              checked={chromaFix}
+              onChange={setChromaFix}
+              disabled={isLocked || isMaster}
+              badge={masterBadge}
+            />
           )}
 
           {matches(['denoise', 'ruído', 'filtros']) && (
-            <div className="flex flex-col justify-between bg-studio-surface p-3.5 rounded-sm border border-studio-border min-h-[96px]">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <Switch
-                  aria-label={t('settings.denoise_label')}
-                  checked={denoise}
-                  onCheckedChange={setDenoise}
-                  disabled={isLocked}
-                  className="shrink-0"
-                />
-                <label
-                  className="text-xs font-semibold text-slate-200 font-mono cursor-pointer truncate"
-                  title={t('settings.denoise_label')}
-                  onClick={() => !isLocked && setDenoise(!denoise)}
-                >
-                  {t('settings.denoise_label')}
-                </label>
-              </div>
-              <p className="text-[11px] text-slate-400 font-mono leading-relaxed mt-2">
-                {t('settings.denoise_desc')}
-              </p>
-            </div>
+            <SettingToggleCard
+              id="filter-denoise"
+              label={t('settings.denoise_label')}
+              description={t('settings.denoise_desc')}
+              checked={denoise}
+              onChange={setDenoise}
+              disabled={isLocked}
+            />
           )}
 
           {matches(['dotcrawl', 'comb', 'filtros']) && (
-            <div className="flex flex-col justify-between bg-studio-surface p-3.5 rounded-sm border border-studio-border min-h-[96px]">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <Switch
-                  aria-label={t('settings.comb_filter_label')}
-                  checked={combFilter}
-                  onCheckedChange={setCombFilter}
-                  disabled={isLocked}
-                  className="shrink-0"
-                />
-                <label
-                  className="text-xs font-semibold text-slate-200 font-mono cursor-pointer truncate"
-                  title={t('settings.comb_filter_label')}
-                  onClick={() => !isLocked && setCombFilter(!combFilter)}
-                >
-                  {t('settings.comb_filter_label')}
-                </label>
-              </div>
-              <p className="text-[11px] text-slate-400 font-mono leading-relaxed mt-2">
-                {t('settings.comb_filter_desc')}
-              </p>
-            </div>
+            <SettingToggleCard
+              id="filter-comb"
+              label={t('settings.comb_filter_label')}
+              description={t('settings.comb_filter_desc')}
+              checked={combFilter}
+              onChange={setCombFilter}
+              disabled={isLocked || isMaster}
+              badge={masterBadge}
+            />
           )}
 
           {matches(['overscan', 'bordas', 'filtros']) && (
-            <div className="flex flex-col justify-between bg-studio-surface p-3.5 rounded-sm border border-studio-border min-h-[96px]">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <Switch
-                  aria-label={t('settings.overscan_label')}
-                  checked={overscanBlanking}
-                  onCheckedChange={setOverscanBlanking}
-                  disabled={isLocked}
-                  className="shrink-0"
-                />
-                <label
-                  className="text-xs font-semibold text-slate-200 font-mono cursor-pointer truncate"
-                  title={t('settings.overscan_label')}
-                  onClick={() => !isLocked && setOverscanBlanking(!overscanBlanking)}
-                >
-                  {t('settings.overscan_label')}
-                </label>
-              </div>
-              <p className="text-[11px] text-slate-400 font-mono leading-relaxed mt-2">
-                {t('settings.overscan_desc')}
-              </p>
-            </div>
+            <SettingToggleCard
+              id="filter-overscan"
+              label={t('settings.overscan_label')}
+              description={t('settings.overscan_desc')}
+              checked={overscanBlanking}
+              onChange={setOverscanBlanking}
+              disabled={isLocked || isMaster}
+              badge={masterBadge}
+            />
           )}
         </div>
       </TabTransition>

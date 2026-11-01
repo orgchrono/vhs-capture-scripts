@@ -383,6 +383,7 @@ mod tests {
             expected_frames: 100,
             expected_duration_sec: 10.0,
             request_json: serde_json::to_string(&req).ok(),
+            master_guard_bypassed: false,
         };
 
         execute_neural_post_chain("media/restored/tape_custom.mp4", &planned, Some(&listener), None);
@@ -452,6 +453,7 @@ mod tests {
             expected_frames: 100,
             expected_duration_sec: 10.0,
             request_json: None,
+            master_guard_bypassed: false,
         };
 
         emit_oais_archival_sidecars(&planned, "master_hash_123456").expect("emit sidecars");
@@ -459,10 +461,12 @@ mod tests {
         let premis_file = temp_dir.join("master_tape_premis.xml");
         let bag_info_file = temp_dir.join("master_tape_bag-info.txt");
         let manifest_file = temp_dir.join("master_tape_manifest-sha256.txt");
+        let media_manifest_file = crate::models::manifest::resolve_manifest_path(&master_file);
 
         assert!(premis_file.is_file());
         assert!(bag_info_file.is_file());
         assert!(manifest_file.is_file());
+        assert!(media_manifest_file.is_file());
 
         let premis_content = fs::read_to_string(&premis_file).unwrap();
         assert!(premis_content.contains("<objectIdentifierValue>master_tape.mov</objectIdentifierValue>"));
@@ -494,5 +498,42 @@ mod tests {
         assert!(bag_info_dip_content.contains(".2"));
 
         let _ = fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn test_planner_guardrail_bypasses_analog_filters_on_progressive_master() {
+        let mut probe = dummy_probe();
+        probe.is_interlaced = false; // Input is progressive master
+
+        let req = RestorationJobRequest {
+            input_path: "master_tape.mp4".to_string(),
+            output_dir: "restored".to_string(),
+            preset: RestorationPreset::Gold,
+            target_1080p: false,
+            output_codec: None,
+            custom_deinterlacer: Some(DeinterlaceFilter::Qtgmc),
+            audio_policy: None,
+            apply_audio_notch_hum: false,
+            apply_loudness_norm: false,
+            apply_ai_audio_denoise: false,
+            apply_azimuth_correction: false,
+            start_sec: 0.0,
+            base_start_sec: None,
+            duration_sec: Some(10.0),
+            overrides: RestorationOverrides {
+                chroma_fix: Some(true),
+                comb_filter: Some(true),
+                overscan_blanking: Some(true),
+                ..Default::default()
+            },
+        };
+
+        let planned = plan_restoration_job(&req, &probe, Some("vspipe.exe"), "ffmpeg.exe").unwrap();
+
+        assert!(planned.master_guard_bypassed);
+        assert!(!planned.is_qtgmc_active);
+        assert!(!planned.plan.video_filtergraph.contains("tcomb"));
+        assert!(!planned.plan.video_filtergraph.contains("chromashift"));
+        assert!(!planned.plan.video_filtergraph.contains("drawbox"));
     }
 }

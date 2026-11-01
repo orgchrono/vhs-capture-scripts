@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useStudioStore } from '../store/useStudioStore';
 import { useRecoveryViewModel } from './useRecoveryViewModel';
+import { useCleanBlackframesMutation } from '../api/studioRtkApi';
 import type { RawFile, IncompleteJob } from '../types';
 import { formatMbSize } from '../lib/formatters';
 
@@ -52,6 +53,35 @@ export function useTapeLibraryViewModel({ files, onRefreshParent }: UseTapeLibra
     });
   }, [recoveryVm.incompleteJobs, files]);
 
+  const [cleanBlackframesMutation, { isLoading: isCleaningBlackframes }] =
+    useCleanBlackframesMutation();
+
+  const handleCleanBlackframes = async (filePath: string) => {
+    const fileName = filePath.split(/[\\/]/).pop() || filePath;
+    addLog(t('logs.blackframe_clean_starting', { file: fileName }));
+    try {
+      const res = await cleanBlackframesMutation({
+        input_path: filePath,
+        mode: 'auto',
+      }).unwrap();
+
+      if (res.success) {
+        addLog(t('logs.blackframe_clean_done', { output: res.output_path }));
+        toast.success(t('toast.blackframe_clean_title'), {
+          description: t('toast.blackframe_clean_desc', { file: fileName }),
+        });
+        if (onRefreshParent) {
+          onRefreshParent();
+        }
+      } else {
+        toast.error(t('toast.blackframe_clean_error', { error: res.message }));
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(t('toast.blackframe_clean_error', { error: msg }));
+    }
+  };
+
   return {
     isLibraryExpanded,
     setIsLibraryExpanded,
@@ -65,5 +95,7 @@ export function useTapeLibraryViewModel({ files, onRefreshParent }: UseTapeLibra
     orphanJobs,
     handleAction: recoveryVm.handleAction,
     isPerformingAction: recoveryVm.isPerformingAction,
+    handleCleanBlackframes,
+    isCleaningBlackframes,
   };
 }

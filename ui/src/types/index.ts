@@ -6,6 +6,10 @@ export interface RawFile {
   thumbnail_url?: string;
   relative_dir?: string;
   depth?: number;
+  is_master?: boolean;
+  is_progressive?: boolean;
+  completed_stages?: string[];
+  available_stages?: string[];
 }
 
 export interface PanasonicInspection {
@@ -240,6 +244,23 @@ export interface PanasonicRecordingTreeResponse {
   total_size_mb: number;
   titles: PanasonicRecordingTitle[];
 }
+
+export type BlackframeCleanMode = 'auto' | 'leader_trailer_only' | 'freeze_midgaps';
+
+export interface BlackframeCleanRequest {
+  input_path: string;
+  output_path?: string;
+  mode?: BlackframeCleanMode;
+}
+
+export interface BlackframeCleanResponse {
+  success: boolean;
+  input_path: string;
+  output_path: string;
+  cleaned: boolean;
+  message: string;
+}
+
 
 
 

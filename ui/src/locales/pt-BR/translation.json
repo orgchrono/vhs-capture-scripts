@@ -222,7 +222,14 @@
     "tab_raw": "Fitas Brutas",
     "tab_masters": "Masters Prontos",
     "no_masters_yet": "Nenhum master concluído",
-    "master_tape_badge": "MASTER"
+    "master_tape_badge": "MASTER",
+    "raw_analog_badge": "RAW 480i",
+    "master_progressive_badge": "MASTER 60p",
+    "stage1_done_badge": "Passo 1 Concluído",
+    "ai_ready_badge": "IA Disponível",
+    "trimmed_badge": "Higienizado",
+    "blackframe_clean_btn": "Limpar Blackframes",
+    "blackframe_clean_tooltip": "Executa corte rápido de stream e TBC Frame-Hold em quadros pretos"
   },
   "app": {
     "drop_title": "Solte sua Fita de Vídeo Aqui",
@@ -287,7 +294,12 @@
     "checkpoint_interval_label": "Intervalo de Checkpoint",
     "checkpoint_interval_desc": "Frequência de flush atômico no disco em frames",
     "fixity_label": "Fixidade Criptográfica OAIS",
-    "fixity_desc": "Validação contínua de integridade SHA-256 para masters de arquivo"
+    "fixity_desc": "Validação contínua de integridade SHA-256 para masters de arquivo",
+    "master_guard_banner_title": "Modo Master Protegido",
+    "master_guard_banner_desc": "O arquivo selecionado já é um master progressivo. Desentrelaçamento analógico (QTGMC), correção de croma e overscan são ignorados para evitar perda de geração.",
+    "master_locked_badge": "Protegido (Ignorado)",
+    "tbc_hold_label": "Proteção TBC Frame-Hold contra Dropouts",
+    "tbc_hold_desc": "Congela o quadro anterior válido durante perdas de sinal analógico para manter sincronia A/V absoluta."
   },
   "hardware": {
     "tier_1": "Básico (CPU Limitada)",
@@ -439,7 +451,10 @@
     "capture_start_failed": "Falha ao iniciar captura",
     "capture_stop_failed": "Falha ao parar captura",
     "invalid_video_format_title": "Formato de Vídeo Inválido",
-    "invalid_video_format_desc": "Arquivo não suportado. Utilize formatos de vídeo analógico (.mkv, .mp4, .avi, .mov, .ts, .vob)."
+    "invalid_video_format_desc": "Arquivo não suportado. Utilize formatos de vídeo analógico (.mkv, .mp4, .avi, .mov, .ts, .vob).",
+    "blackframe_clean_title": "Limpeza de Blackframes",
+    "blackframe_clean_desc": "Higienização de blackframes concluída com sucesso: {{file}}",
+    "blackframe_clean_error": "Falha ao limpar blackframes: {{error}}"
   },
   "telemetry": {
     "title": "Telemetria de Masterização Analógica",
@@ -570,7 +585,10 @@
     "whisper_error": "[WHISPER ERRO] {{error}}",
     "obs_watcher_armed": "[OBS] Auto-Watcher armado: vigilância de sinal ativa.",
     "obs_watcher_disarmed": "[OBS] Auto-Watcher desarmado.",
-    "obs_watcher_error": "[OBS] Erro no Auto-Watcher: {{error}}"
+    "obs_watcher_error": "[OBS] Erro no Auto-Watcher: {{error}}",
+    "blackframe_clean_starting": "[BLACKFRAME] Iniciando higienização rápida em {{file}}...",
+    "blackframe_clean_done": "[BLACKFRAME] Higienização concluída. Saída: {{output}}",
+    "planner_guard_bypass": "[PLANNER-GUARD] Entrada já é progressiva/master. Bypassa filtros exclusivamente analógicos."
   },
   "recovery": {
     "title": "Projetos em Andamento / Interrompidos",

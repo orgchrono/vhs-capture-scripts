@@ -222,7 +222,14 @@
     "tab_raw": "未編集テープ",
     "tab_masters": "完成マスター",
     "no_masters_yet": "完成したマスターはまだありません",
-    "master_tape_badge": "マスター"
+    "master_tape_badge": "マスター",
+    "raw_analog_badge": "RAW 480i",
+    "master_progressive_badge": "マスター 60p",
+    "stage1_done_badge": "ステップ1完了",
+    "ai_ready_badge": "AI利用可能",
+    "trimmed_badge": "トリミング済",
+    "blackframe_clean_btn": "黒フレームをクリーン",
+    "blackframe_clean_tooltip": "黒フレームの高速ストリームトリムおよびTBCフレームホールドフリーズを実行します"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
@@ -287,7 +294,12 @@
     "checkpoint_interval_label": "チェックポイント間隔",
     "checkpoint_interval_desc": "処理フレーム単位のアトミックディスク同期頻度",
     "fixity_label": "OAIS 暗号検証と完全性",
-    "fixity_desc": "アーカイブマスター向けの継続的なSHA-256整合性検証"
+    "fixity_desc": "アーカイブマスター向けの継続的なSHA-256整合性検証",
+    "master_guard_banner_title": "保護されたマスターモード",
+    "master_guard_banner_desc": "選択されたファイルは既にプログレッシブマスターです。世代劣化を防ぐため、アナログインターレース解除（QTGMC）、クロマシフト、オーバースキャンは安全にバイパスされます。",
+    "master_locked_badge": "保護中（バイパス）",
+    "tbc_hold_label": "TBCフレームホールド ドロップアウト保護",
+    "tbc_hold_desc": "アナログ信号損失時に直前の有効フレームを固定し、絶対的なA/Vリップシンクを維持します。"
   },
   "hardware": {
     "tier_1": "エントリー (低スペックCPU)",
@@ -439,7 +451,10 @@
     "capture_start_failed": "キャプチャの開始に失敗しました",
     "capture_stop_failed": "キャプチャの停止に失敗しました",
     "invalid_video_format_title": "無効な動画形式",
-    "invalid_video_format_desc": "サポートされていないファイルです。動画形式（.mkv、.mp4、.avi、.mov、.ts、.vob）を使用してください。"
+    "invalid_video_format_desc": "サポートされていないファイルです。動画形式（.mkv、.mp4、.avi、.mov、.ts、.vob）を使用してください。",
+    "blackframe_clean_title": "黒フレームクリーン",
+    "blackframe_clean_desc": "黒フレームの衛生化が正常に完了しました: {{file}}",
+    "blackframe_clean_error": "黒フレームのクリーンに失敗しました: {{error}}"
   },
   "telemetry": {
     "title": "アナログマスタリング テレメトリ",
@@ -570,7 +585,10 @@
     "whisper_error": "[WHISPER エラー] {{error}}",
     "obs_watcher_armed": "[OBS] オートウォッチャー監視中：信号監視が有効です。",
     "obs_watcher_disarmed": "[OBS] オートウォッチャー監視解除。",
-    "obs_watcher_error": "[OBS] オートウォッチャーエラー: {{error}}"
+    "obs_watcher_error": "[OBS] オートウォッチャーエラー: {{error}}",
+    "blackframe_clean_starting": "[BLACKFRAME] {{file}} の高速クリーンを開始中...",
+    "blackframe_clean_done": "[BLACKFRAME] クリーンが完了しました。出力: {{output}}",
+    "planner_guard_bypass": "[PLANNER-GUARD] 入力は既にプログレッシブ/マスターです。アナログ専用フィルターをバイパスします。"
   },
   "recovery": {
     "title": "進行中 / 中断されたプロジェクト",

@@ -222,7 +222,14 @@
     "tab_raw": "Rohbänder",
     "tab_masters": "Masterbänder",
     "no_masters_yet": "Noch keine fertigen Master",
-    "master_tape_badge": "MASTER"
+    "master_tape_badge": "MASTER",
+    "raw_analog_badge": "RAW 480i",
+    "master_progressive_badge": "MASTER 60p",
+    "stage1_done_badge": "Stufe 1 Fertig",
+    "ai_ready_badge": "KI Bereit",
+    "trimmed_badge": "Getrimmt",
+    "blackframe_clean_btn": "Schwarzbilder Bereinigen",
+    "blackframe_clean_tooltip": "Führt schnellen Stream-Trim und TBC Frame-Hold-Einfrieren für Schwarzbilder aus"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
@@ -287,7 +294,12 @@
     "checkpoint_interval_label": "Prüfpunkt-Intervall",
     "checkpoint_interval_desc": "Frequenz der atomaren Festplattensynchronisierung in Frames",
     "fixity_label": "OAIS-Kryptografische Fixität",
-    "fixity_desc": "Kontinuierliche SHA-256-Integritätsprüfung für Archiv-Master"
+    "fixity_desc": "Kontinuierliche SHA-256-Integritätsprüfung für Archiv-Master",
+    "master_guard_banner_title": "Geschützter Master-Modus",
+    "master_guard_banner_desc": "Die ausgewählte Datei ist bereits ein progressiver Master. Analoges Deinterlacing (QTGMC), Chroma-Shift und Overscan werden übersprungen, um Generationsverluste zu vermeiden.",
+    "master_locked_badge": "Geschützt (Übersprungen)",
+    "tbc_hold_label": "TBC Frame-Hold Dropout-Schutz",
+    "tbc_hold_desc": "Friert das vorherige gültige Bild bei Signalausfällen ein, um die absolute A/V-Synchronisation zu wahren."
   },
   "hardware": {
     "tier_1": "Basis (Begrenzte CPU)",
@@ -439,7 +451,10 @@
     "capture_start_failed": "Starten der Aufnahme fehlgeschlagen",
     "capture_stop_failed": "Beenden der Aufnahme fehlgeschlagen",
     "invalid_video_format_title": "Ungültiges Videoformat",
-    "invalid_video_format_desc": "Nicht unterstützte Datei. Bitte analoge Videoformate verwenden (.mkv, .mp4, .avi, .mov, .ts, .vob)."
+    "invalid_video_format_desc": "Nicht unterstützte Datei. Bitte analoge Videoformate verwenden (.mkv, .mp4, .avi, .mov, .ts, .vob).",
+    "blackframe_clean_title": "Schwarzbild-Bereinigung",
+    "blackframe_clean_desc": "Schwarzbild-Bereinigung erfolgreich abgeschlossen: {{file}}",
+    "blackframe_clean_error": "Fehler beim Bereinigen von Schwarzbildern: {{error}}"
   },
   "telemetry": {
     "title": "Analoge Mastering-Telemetrie",
@@ -570,7 +585,10 @@
     "whisper_error": "[WHISPER FEHLER] {{error}}",
     "obs_watcher_armed": "[OBS] Auto-Watcher aktiviert: Signalüberwachung läuft.",
     "obs_watcher_disarmed": "[OBS] Auto-Watcher deaktiviert.",
-    "obs_watcher_error": "[OBS] Auto-Watcher-Fehler: {{error}}"
+    "obs_watcher_error": "[OBS] Auto-Watcher-Fehler: {{error}}",
+    "blackframe_clean_starting": "[BLACKFRAME] Starte schnelle Bereinigung für {{file}}...",
+    "blackframe_clean_done": "[BLACKFRAME] Bereinigung abgeschlossen. Ausgabe: {{output}}",
+    "planner_guard_bypass": "[PLANNER-GUARD] Eingabe ist bereits progressiv/Master. Analoge Filter werden übersprungen."
   },
   "recovery": {
     "title": "Laufende / Unterbrochene Projekte",

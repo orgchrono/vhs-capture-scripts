@@ -14,6 +14,8 @@ import type {
   ComparisonFrameResponse,
   PanasonicRecordingTreeResponse,
   ExistingRestorationCheck,
+  BlackframeCleanRequest,
+  BlackframeCleanResponse,
 } from '../types';
 import { tauriBridge, isTauriEnvironment, getApiBaseUrl } from './tauriBridge';
 
@@ -467,6 +469,17 @@ export const studioRtkApi = createApi({
       },
       invalidatesTags: ['Preferences'],
     }),
+    cleanBlackframes: builder.mutation<
+      BlackframeCleanResponse,
+      BlackframeCleanRequest
+    >({
+      query: (body) => ({
+        url: 'api/restoration/blackframe-clean',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Status'],
+    }),
   }),
 });
 
@@ -512,6 +525,7 @@ export const {
   useSavePreferencesMutation,
   useCheckExistingRestorationQuery,
   useLazyCheckExistingRestorationQuery,
+  useCleanBlackframesMutation,
 } = studioRtkApi;
 
 

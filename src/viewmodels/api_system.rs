@@ -23,22 +23,44 @@ fn round_to(value: f64, decimals: i32) -> f64 {
     (value * factor).round() / factor
 }
 
-fn list_media(dir: &Path, max_depth: usize) -> Vec<Value> {
+fn serialize_media_entry(f: &crate::models::media::MediaFileEntry, is_restored_dir: bool) -> Value {
+    let manifest_opt = crate::models::manifest::load_manifest_sidecar(Path::new(&f.path));
+    let is_master = is_restored_dir || manifest_opt.is_some();
+    let is_progressive = manifest_opt.as_ref().map_or(is_restored_dir, |m| m.is_progressive);
+    let completed_stages = manifest_opt
+        .as_ref()
+        .map(|m| m.completed_stages.clone())
+        .unwrap_or_default();
+    let available_stages = manifest_opt
+        .as_ref()
+        .map(|m| m.available_stages.clone())
+        .unwrap_or_else(|| {
+            crate::models::manifest::compute_available_stages(is_progressive, &completed_stages)
+        });
+
+    json!({
+        "name": f.name,
+        "path": f.path,
+        "size_mb": round_to(f.size_mb, 2),
+        "relative_dir": f.relative_dir,
+        "depth": f.depth,
+        "thumbnail_url": format!("/api/media/thumbnail?path={}", f.path),
+        "is_master": is_master,
+        "is_progressive": is_progressive,
+        "completed_stages": completed_stages,
+        "available_stages": available_stages,
+    })
+}
+
+fn list_media(dir: &Path, max_depth: usize, is_restored_dir: bool) -> Vec<Value> {
     scan_media_directory_with_depth(dir, max_depth)
         .unwrap_or_default()
         .into_iter()
-        .map(|f| json!({
-            "name": f.name,
-            "path": f.path,
-            "size_mb": round_to(f.size_mb, 2),
-            "relative_dir": f.relative_dir,
-            "depth": f.depth,
-            "thumbnail_url": format!("/api/media/thumbnail?path={}", f.path)
-        }))
+        .map(|f| serialize_media_entry(&f, is_restored_dir))
         .collect()
 }
 
-fn list_media_multiple(dirs: &[&Path], max_depth: usize) -> Vec<Value> {
+fn list_media_multiple(dirs: &[&Path], max_depth: usize, is_restored_dir: bool) -> Vec<Value> {
     let mut seen_paths = HashSet::new();
     let mut result = Vec::new();
 
@@ -47,14 +69,7 @@ fn list_media_multiple(dirs: &[&Path], max_depth: usize) -> Vec<Value> {
             for f in entries {
                 let norm = f.path.replace('\\', "/").to_ascii_lowercase();
                 if seen_paths.insert(norm) {
-                    result.push(json!({
-                        "name": f.name,
-                        "path": f.path,
-                        "size_mb": round_to(f.size_mb, 2),
-                        "relative_dir": f.relative_dir,
-                        "depth": f.depth,
-                        "thumbnail_url": format!("/api/media/thumbnail?path={}", f.path)
-                    }));
+                    result.push(serialize_media_entry(&f, is_restored_dir));
                 }
             }
         }
@@ -84,7 +99,7 @@ fn status(ctx: &AppContext) -> ApiResponse {
     let vs = is_vapoursynth_available();
     let obs = is_obs_running();
     let obs_installed = is_obs_installed();
-    let raw = list_media(&dirs.raw, prefs.scan_max_depth);
+    let raw = list_media(&dirs.raw, prefs.scan_max_depth, false);
 
     let base = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
     let root_restored = base.join("restored");
@@ -92,7 +107,7 @@ fn status(ctx: &AppContext) -> ApiResponse {
     if root_restored.exists() && root_restored != dirs.restored {
         restored_targets.push(root_restored.as_path());
     }
-    let restored = list_media_multiple(&restored_targets, prefs.scan_max_depth);
+    let restored = list_media_multiple(&restored_targets, prefs.scan_max_depth, true);
 
     let hw = get_active_hardware_profile();
     let cpu = sample_cpu_percent();

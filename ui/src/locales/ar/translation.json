@@ -222,7 +222,14 @@
     "tab_raw": "أشرطة خام",
     "tab_masters": "الأشرطة الرئيسية",
     "no_masters_yet": "لا توجد أشرطة رئيسية مكتملة بعد",
-    "master_tape_badge": "رئيسي"
+    "master_tape_badge": "رئيسي",
+    "raw_analog_badge": "RAW 480i",
+    "master_progressive_badge": "ماستر 60p",
+    "stage1_done_badge": "المرحلة 1 مكتملة",
+    "ai_ready_badge": "الذكاء الاصطناعي جاهز",
+    "trimmed_badge": "تم التشذيب",
+    "blackframe_clean_btn": "تنظيف الإطارات السوداء",
+    "blackframe_clean_tooltip": "تنفيذ تشذيب سريع للبث وتجميد TBC Frame-Hold للإطارات السوداء"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
@@ -287,7 +294,12 @@
     "checkpoint_interval_label": "فاصل نقطة التحقق",
     "checkpoint_interval_desc": "تكرار المزامنة الذرية على القرص بعدد الإطارات",
     "fixity_label": "ثبات التشفير التابع لمعيار OAIS",
-    "fixity_desc": "تحقق مستمر من سلامة SHA-256 للنسخ الرئيسية للأرشيف"
+    "fixity_desc": "تحقق مستمر من سلامة SHA-256 للنسخ الرئيسية للأرشيف",
+    "master_guard_banner_title": "وضع الماستر المحمي",
+    "master_guard_banner_desc": "الملف المحدد هو بالفعل ماستر تصاعدي. يتم تجاوز إلغاء التشابك التناظري (QTGMC) وتصحيح الكروما ومسح الحواف لتجنب فقدان الجودة التوليدي.",
+    "master_locked_badge": "محمي (تم التجاوز)",
+    "tbc_hold_label": "حماية TBC Frame-Hold من انقطاع الإشارة",
+    "tbc_hold_desc": "تجميد الإطار الصالح السابق أثناء انقطاع الإشارة التناظرية للحفاظ على التزامن الصوتي والمرئي المطلق."
   },
   "hardware": {
     "tier_1": "أساسي (معالج محدود)",
@@ -439,7 +451,10 @@
     "capture_start_failed": "فشل بدء الالتقاط",
     "capture_stop_failed": "فشل إيقاف الالتقاط",
     "invalid_video_format_title": "تنسيق فيديو غير صالح",
-    "invalid_video_format_desc": "ملف غير مدعوم. يرجى استخدام تنسيقات الفيديو التناظرية (.mkv, .mp4, .avi, .mov, .ts, .vob)."
+    "invalid_video_format_desc": "ملف غير مدعوم. يرجى استخدام تنسيقات الفيديو التناظرية (.mkv, .mp4, .avi, .mov, .ts, .vob).",
+    "blackframe_clean_title": "تنظيف الإطارات السوداء",
+    "blackframe_clean_desc": "تم تنفيذ تنظيف الإطارات السوداء بنجاح: {{file}}",
+    "blackframe_clean_error": "فشل تنظيف الإطارات السوداء: {{error}}"
   },
   "telemetry": {
     "title": "قياسات معالجة الفيديو التناظري المباشرة",
@@ -570,7 +585,10 @@
     "whisper_error": "[WHISPER خطأ] {{error}}",
     "obs_watcher_armed": "[OBS] المراقب التلقائي مفعّل: مراقبة الإشارة نشطة.",
     "obs_watcher_disarmed": "[OBS] تم إيقاف المراقب التلقائي.",
-    "obs_watcher_error": "[OBS] خطأ في المراقب التلقائي: {{error}}"
+    "obs_watcher_error": "[OBS] خطأ في المراقب التلقائي: {{error}}",
+    "blackframe_clean_starting": "[BLACKFRAME] بدء التنظيف السريع على {{file}}...",
+    "blackframe_clean_done": "[BLACKFRAME] اكتمل التنظيف. المخرج: {{output}}",
+    "planner_guard_bypass": "[PLANNER-GUARD] الإدخال تصاعدي/ماستر بالفعل. يتم تجاوز الفلاتر التناظرية فقط."
   },
   "recovery": {
     "title": "المشاريع الجارية / المعلقة",

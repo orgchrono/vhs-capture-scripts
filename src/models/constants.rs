@@ -237,6 +237,71 @@ pub const DEFAULT_SCAN_MAX_DEPTH: usize = 3;
 /// Hard upper limit for recursive directory scan depth to prevent stack overflow or filesystem lockup.
 pub const MAX_SCAN_DEPTH_LIMIT: usize = 6;
 
+/// Schema version for `.manifest.json` lineage sidecar files.
+pub const MEDIA_MANIFEST_SCHEMA_VERSION: u32 = 1;
+
+/// File extension suffix appended to media paths for lineage sidecar persistence.
+pub const MANIFEST_SIDECAR_SUFFIX: &str = ".manifest.json";
+
+// Canonical Multi-Pipeline Stage Identifiers (SSOT)
+pub const STAGE_1_DEINTERLACE_QTGMC: &str = "stage_1_deinterlace_qtgmc";
+pub const STAGE_1_DEINTERLACE_BWDIF: &str = "stage_1_deinterlace_bwdif";
+pub const STAGE_1_COMB_FILTER: &str = "stage_1_comb_filter";
+pub const STAGE_1_CHROMA_SHIFT: &str = "stage_1_chroma_shift";
+pub const STAGE_1_OVERSCAN_BLANKING: &str = "stage_1_overscan_blanking";
+pub const STAGE_1_BROADCAST_LEGALIZER: &str = "stage_1_broadcast_legalizer";
+pub const STAGE_1_AUDIO_EBU_R128: &str = "stage_1_audio_ebu_r128";
+pub const STAGE_1_TBC_HOLD: &str = "stage_1_tbc_hold";
+pub const STAGE_2_AI_FACE_RESTORE: &str = "stage_2_ai_face_restore";
+pub const STAGE_2_AI_UPSCALER: &str = "stage_2_ai_upscaler";
+pub const STAGE_2_AI_RIFE_60FPS: &str = "stage_2_ai_rife_60fps";
+pub const STAGE_2_WHISPER_SUBTITLES: &str = "stage_2_whisper_subtitles";
+pub const STAGE_3_BLACKFRAME_TRIM: &str = "stage_3_blackframe_trim";
+
+/// Complete ordered catalog of pipeline stages for `available_stages` computation.
+pub const ALL_PIPELINE_STAGES: [&str; 13] = [
+    STAGE_1_DEINTERLACE_QTGMC,
+    STAGE_1_DEINTERLACE_BWDIF,
+    STAGE_1_COMB_FILTER,
+    STAGE_1_CHROMA_SHIFT,
+    STAGE_1_OVERSCAN_BLANKING,
+    STAGE_1_BROADCAST_LEGALIZER,
+    STAGE_1_AUDIO_EBU_R128,
+    STAGE_1_TBC_HOLD,
+    STAGE_2_AI_FACE_RESTORE,
+    STAGE_2_AI_UPSCALER,
+    STAGE_2_AI_RIFE_60FPS,
+    STAGE_2_WHISPER_SUBTITLES,
+    STAGE_3_BLACKFRAME_TRIM,
+];
+
+/// Stage 2 & Stage 3 non-destructive stages allowed on progressive Master files.
+pub const MASTER_ELIGIBLE_STAGES: [&str; 5] = [
+    STAGE_2_AI_FACE_RESTORE,
+    STAGE_2_AI_UPSCALER,
+    STAGE_2_AI_RIFE_60FPS,
+    STAGE_2_WHISPER_SUBTITLES,
+    STAGE_3_BLACKFRAME_TRIM,
+];
+
+/// Default minimum black interval duration in seconds for FFmpeg `blackdetect` (40ms = ~1 NTSC frame).
+pub const BLACK_DETECT_MIN_DURATION_SEC: f64 = 0.040;
+
+/// Default pixel black threshold (`pix_th`) for FFmpeg `blackdetect`.
+pub const BLACK_DETECT_PIX_TH: f64 = 0.12;
+
+/// Default picture black ratio threshold (`pic_th`) for FFmpeg `blackdetect`.
+pub const BLACK_DETECT_PIC_TH: f64 = 0.96;
+
+/// Maximum gap in seconds between two black intervals to fuse them (`merge_black_intervals`).
+pub const BLACK_MERGE_MAX_GAP_SEC: f64 = 0.25;
+
+/// Maximum timestamp from 0.0s for a black interval to be classified as a tape `Leader`.
+pub const BLACK_LEADER_MAX_START_SEC: f64 = 0.50;
+
+/// Tolerance in seconds from total duration for a black interval to be classified as a `Trailer`.
+pub const BLACK_TRAILER_EPSILON_SEC: f64 = 0.50;
+
 #[cfg(test)]
 mod tests {
     use super::*;

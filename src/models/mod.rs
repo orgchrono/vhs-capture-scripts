@@ -3,6 +3,7 @@
 pub mod config;
 pub mod constants;
 pub mod errors;
+pub mod manifest;
 pub mod media;
 pub mod preferences;
 pub mod presets;

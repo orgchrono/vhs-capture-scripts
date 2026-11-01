@@ -91,4 +91,27 @@ describe('TapeLibraryCard Component', () => {
 
     expect(screen.getByText(/nenhum master concluído/i)).toBeInTheDocument();
   });
+
+  it('renders raw badges and blackframe clean button', () => {
+    const enrichedFiles: RawFile[] = [
+      {
+        name: 'tape_01.mkv',
+        path: 'C:/media/raw/tape_01.mkv',
+        size_mb: 500,
+        completed_stages: ['stage_1_deinterlace_qtgmc', 'stage_3_blackframe_trim'],
+        available_stages: ['stage_2_ai_face_restore'],
+      },
+    ];
+
+    renderComponent(enrichedFiles, []);
+
+    expect(screen.getByText('RAW 480i')).toBeInTheDocument();
+    expect(screen.getByText(/Passo 1 Concluído|Stage 1 Done/i)).toBeInTheDocument();
+    expect(screen.getByText(/Higienizado|Trimmed/i)).toBeInTheDocument();
+    expect(screen.getByText(/IA Disponível|AI Ready/i)).toBeInTheDocument();
+
+    const cleanBtn = screen.getByTestId('blackframe-clean-btn');
+    expect(cleanBtn).toBeInTheDocument();
+    fireEvent.click(cleanBtn);
+  });
 });

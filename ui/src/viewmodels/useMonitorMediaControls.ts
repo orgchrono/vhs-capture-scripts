@@ -9,11 +9,22 @@ export interface UseMonitorMediaControlsOptions {
 
 export function useMonitorMediaControls({ sourceFile, videoRef }: UseMonitorMediaControlsOptions = {}) {
   const prefs = usePreferencesStore();
-  const [subtitlesEnabled, setSubtitlesEnabled] = useState(prefs.subtitlesEnabled);
   const [isSubtitleEditorOpen, setIsSubtitleEditorOpen] = useState(false);
   const [subtitleCues, setSubtitleCues] = useState<SubtitleCue[]>([]);
-  const [volume, setVolume] = useState(prefs.monitorVolume);
-  const [isMuted, setIsMuted] = useState(prefs.monitorMuted);
+
+  // Single Source of Truth (SSOT) from usePreferencesStore (Redux + LocalStorage)
+  const volume = prefs.monitorVolume;
+  const isMuted = prefs.monitorMuted;
+  const subtitlesEnabled = prefs.subtitlesEnabled;
+
+  // Synchronize native HTML5 <video> audio properties with SSOT
+  useEffect(() => {
+    if (videoRef?.current) {
+      const normalizedVol = Math.max(0, Math.min(1, volume / 100));
+      videoRef.current.volume = normalizedVol;
+      videoRef.current.muted = isMuted;
+    }
+  }, [videoRef, volume, isMuted]);
 
   useEffect(() => {
     if (!sourceFile) {
@@ -40,28 +51,19 @@ export function useMonitorMediaControls({ sourceFile, videoRef }: UseMonitorMedi
   }, [sourceFile]);
 
   const toggleSubtitles = useCallback(() => {
-    setSubtitlesEnabled((prev) => {
-      const next = !prev;
-      prefs.setSubtitlesEnabled(next);
-      return next;
-    });
+    prefs.setSubtitlesEnabled(!prefs.subtitlesEnabled);
   }, [prefs]);
 
   const handleVolumeChange = useCallback((newVol: number) => {
-    setVolume(newVol);
     prefs.setMonitorVolume(newVol);
-    if (videoRef?.current) {
-      videoRef.current.volume = newVol;
+    if (prefs.monitorMuted && newVol > 0) {
+      prefs.setMonitorMuted(false);
     }
-  }, [prefs, videoRef]);
+  }, [prefs]);
 
   const handleMuteChange = useCallback((muted: boolean) => {
-    setIsMuted(muted);
     prefs.setMonitorMuted(muted);
-    if (videoRef?.current) {
-      videoRef.current.muted = muted;
-    }
-  }, [prefs, videoRef]);
+  }, [prefs]);
 
   return {
     subtitlesEnabled,

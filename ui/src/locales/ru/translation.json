@@ -222,7 +222,14 @@
     "tab_raw": "Исходные ленты",
     "tab_masters": "Готовые мастера",
     "no_masters_yet": "Готовых мастеров пока нет",
-    "master_tape_badge": "МАСТЕР"
+    "master_tape_badge": "МАСТЕР",
+    "raw_analog_badge": "RAW 480i",
+    "master_progressive_badge": "МАСТЕР 60p",
+    "stage1_done_badge": "Этап 1 Завершен",
+    "ai_ready_badge": "ИИ Доступен",
+    "trimmed_badge": "Очищен",
+    "blackframe_clean_btn": "Очистить Черные Кадры",
+    "blackframe_clean_tooltip": "Выполняет быструю обрезку потока и удержание TBC Frame-Hold на черных кадрах"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
@@ -287,7 +294,12 @@
     "checkpoint_interval_label": "Интервал контрольных точек",
     "checkpoint_interval_desc": "Частота атомарной записи на диск в обработанных кадрах",
     "fixity_label": "Криптографическая фиксация OAIS",
-    "fixity_desc": "Непрерывная проверка целостности SHA-256 для архивных мастеров"
+    "fixity_desc": "Непрерывная проверка целостности SHA-256 для архивных мастеров",
+    "master_guard_banner_title": "Режим Защищенного Мастера",
+    "master_guard_banner_desc": "Выбранный файл уже является прогрессивным мастером. Аналоговый деинтерлейсинг (QTGMC), сдвиг цветности и оверскан безопасно пропускаются во избежание потери поколений.",
+    "master_locked_badge": "Защищено (Пропущено)",
+    "tbc_hold_label": "Защита от Выпадений TBC Frame-Hold",
+    "tbc_hold_desc": "Замораживает предыдущий валидный кадр при потере аналогового сигнала для сохранения абсолютной синхронизации A/V."
   },
   "hardware": {
     "tier_1": "Базовый (Ограниченный CPU)",
@@ -439,7 +451,10 @@
     "capture_start_failed": "Не удалось запустить захват",
     "capture_stop_failed": "Не удалось остановить захват",
     "invalid_video_format_title": "Неподдерживаемый формат видео",
-    "invalid_video_format_desc": "Неподдерживаемый файл. Используйте видеоформаты (.mkv, .mp4, .avi, .mov, .ts, .vob)."
+    "invalid_video_format_desc": "Неподдерживаемый файл. Используйте видеоформаты (.mkv, .mp4, .avi, .mov, .ts, .vob).",
+    "blackframe_clean_title": "Очистка Черных Кадров",
+    "blackframe_clean_desc": "Очистка черных кадров успешно выполнена: {{file}}",
+    "blackframe_clean_error": "Не удалось очистить черные кадры: {{error}}"
   },
   "telemetry": {
     "title": "Телеметрия аналогового мастеринга",
@@ -570,7 +585,10 @@
     "whisper_error": "[WHISPER ОШИБКА] {{error}}",
     "obs_watcher_armed": "[OBS] Автонаблюдатель взведен: мониторинг сигнала активен.",
     "obs_watcher_disarmed": "[OBS] Автонаблюдатель отключен.",
-    "obs_watcher_error": "[OBS] Ошибка автонаблюдателя: {{error}}"
+    "obs_watcher_error": "[OBS] Ошибка автонаблюдателя: {{error}}",
+    "blackframe_clean_starting": "[BLACKFRAME] Запуск быстрой очистки для {{file}}...",
+    "blackframe_clean_done": "[BLACKFRAME] Очистка завершена. Выходной файл: {{output}}",
+    "planner_guard_bypass": "[PLANNER-GUARD] Входной файл уже прогрессивный/мастер. Пропуск аналоговых фильтров."
   },
   "recovery": {
     "title": "Текущие / Прерванные проекты",

@@ -7,7 +7,9 @@ import {
   useGenerateSubtitlesMutation,
   useDetectWhisperLanguageMutation,
   useGetHardwareProfileQuery,
+  useGetStatusQuery,
 } from '../api/studioRtkApi';
+import { TIMING } from '../lib/constants';
 import { promptWhisperLanguageDisambiguation } from '../lib/whisperDialog';
 import type { HardwareProfile } from '../types';
 
@@ -21,6 +23,7 @@ export interface UseRestorationViewModelResult {
   setWhisperLanguage: (lang: string) => void;
   isGeneratingSubtitles: boolean;
   handleGenerateSubtitles: () => Promise<void>;
+  isMasterSelected: boolean;
 }
 
 /**
@@ -32,6 +35,19 @@ export function useRestorationViewModel(): UseRestorationViewModelResult {
   const { t } = useTranslation();
   const store = useStudioStore();
   const { data: hardwareProfile, isLoading: isLoadingHardware } = useGetHardwareProfileQuery();
+  const { data: status } = useGetStatusQuery(undefined, {
+    pollingInterval: TIMING.SYSTEM_STATUS_POLL_MS,
+  });
+
+  const isMasterSelected = Boolean(
+    store.selectedFile &&
+      (status?.restored_files?.some((f) => f.path === store.selectedFile) ||
+        status?.raw_files?.some(
+          (f) => f.path === store.selectedFile && f.is_master
+        ) ||
+        store.selectedFile.toLowerCase().replace(/\\/g, '/').includes('/restored/') ||
+        store.selectedFile.toLowerCase().includes('_master'))
+  );
 
   const [whisperModel, setWhisperModelState] = useState<string>(() => {
     if (typeof window !== 'undefined') {
@@ -165,5 +181,6 @@ export function useRestorationViewModel(): UseRestorationViewModelResult {
     setWhisperLanguage,
     isGeneratingSubtitles: isGeneratingSubtitles || isDetectingLanguage,
     handleGenerateSubtitles,
+    isMasterSelected,
   };
 }

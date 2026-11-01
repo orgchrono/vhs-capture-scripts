@@ -222,7 +222,14 @@
     "tab_raw": "Raw Tapes",
     "tab_masters": "Master Tapes",
     "no_masters_yet": "No completed masters yet",
-    "master_tape_badge": "MASTER"
+    "master_tape_badge": "MASTER",
+    "raw_analog_badge": "RAW 480i",
+    "master_progressive_badge": "MASTER 60p",
+    "stage1_done_badge": "Stage 1 Done",
+    "ai_ready_badge": "AI Ready",
+    "trimmed_badge": "Trimmed",
+    "blackframe_clean_btn": "Clean Blackframes",
+    "blackframe_clean_tooltip": "Run fast stream trim and TBC Frame-Hold freeze on blackframes"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
@@ -287,7 +294,12 @@
     "checkpoint_interval_label": "Checkpoint Flush Interval",
     "checkpoint_interval_desc": "Atomic disk sync frequency in processed video frames",
     "fixity_label": "OAIS Fixity & Cryptographic Audit",
-    "fixity_desc": "Continuous SHA-256 integrity verification for archive masters"
+    "fixity_desc": "Continuous SHA-256 integrity verification for archive masters",
+    "master_guard_banner_title": "Protected Master Mode",
+    "master_guard_banner_desc": "Selected file is already a progressive master. Analog deinterlacing (QTGMC), chroma shift, and overscan filters are safely bypassed to prevent generational loss.",
+    "master_locked_badge": "Protected (Bypassed)",
+    "tbc_hold_label": "TBC Frame-Hold Dropout Protection",
+    "tbc_hold_desc": "Freezes previous valid frame during signal dropouts to preserve absolute A/V lip-sync."
   },
   "hardware": {
     "tier_1": "Basic (Limited CPU)",
@@ -439,7 +451,10 @@
     "capture_start_failed": "Capture start failed",
     "capture_stop_failed": "Capture stop failed",
     "invalid_video_format_title": "Invalid Video Format",
-    "invalid_video_format_desc": "Unsupported file. Please use analog video formats (.mkv, .mp4, .avi, .mov, .ts, .vob)."
+    "invalid_video_format_desc": "Unsupported file. Please use analog video formats (.mkv, .mp4, .avi, .mov, .ts, .vob).",
+    "blackframe_clean_title": "Blackframe Cleaning",
+    "blackframe_clean_desc": "Blackframe hygiene executed successfully: {{file}}",
+    "blackframe_clean_error": "Failed to clean blackframes: {{error}}"
   },
   "telemetry": {
     "title": "Analog Mastering Telemetry",
@@ -570,7 +585,10 @@
     "whisper_error": "[WHISPER ERROR] {{error}}",
     "obs_watcher_armed": "[OBS] Auto-Watcher armed: active signal surveillance.",
     "obs_watcher_disarmed": "[OBS] Auto-Watcher disarmed.",
-    "obs_watcher_error": "[OBS] Auto-Watcher error: {{error}}"
+    "obs_watcher_error": "[OBS] Auto-Watcher error: {{error}}",
+    "blackframe_clean_starting": "[BLACKFRAME] Starting fast hygiene on {{file}}...",
+    "blackframe_clean_done": "[BLACKFRAME] Hygiene completed. Output: {{output}}",
+    "planner_guard_bypass": "[PLANNER-GUARD] Input is already progressive/master. Bypassing analog-only filters."
   },
   "recovery": {
     "title": "Incomplete / Interrupted Projects",

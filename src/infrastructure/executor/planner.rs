@@ -91,6 +91,8 @@ pub struct PlannedRestoration {
     pub expected_frames: u64,
     pub expected_duration_sec: f64,
     pub request_json: Option<String>,
+    #[serde(default)]
+    pub master_guard_bypassed: bool,
 }
 
 /// Completed restoration telemetry report.
@@ -151,7 +153,7 @@ pub fn plan_restoration_job(
     });
     let target_1080p = request.target_1080p;
 
-    let deinterlacer = request.custom_deinterlacer.unwrap_or(match preset_conf.deinterlacer {
+    let raw_deinterlacer = request.custom_deinterlacer.unwrap_or(match preset_conf.deinterlacer {
         Deinterlacer::Qtgmc | Deinterlacer::QtgmcFast | Deinterlacer::QtgmcSlow => DeinterlaceFilter::Qtgmc,
         Deinterlacer::Bwdif => DeinterlaceFilter::BwdifBob,
         Deinterlacer::Znedi3 => DeinterlaceFilter::Znedi3,
@@ -159,6 +161,33 @@ pub fn plan_restoration_job(
         Deinterlacer::Ivtc => DeinterlaceFilter::Ivtc,
         Deinterlacer::None => DeinterlaceFilter::None,
     });
+
+    let existing_manifest = crate::models::manifest::load_manifest_sidecar(Path::new(&request.input_path));
+    let is_already_progressive = !probe.is_interlaced || existing_manifest.as_ref().is_some_and(|m| m.is_progressive);
+
+    let (
+        deinterlacer,
+        apply_chroma_fix,
+        comb_filter,
+        apply_overscan_blanking,
+        master_guard_bypassed,
+    ) = if is_already_progressive {
+        (
+            DeinterlaceFilter::None,
+            false,
+            false,
+            false,
+            true,
+        )
+    } else {
+        (
+            raw_deinterlacer,
+            ov.chroma_fix.unwrap_or(preset_conf.chroma_fix),
+            comb_filter,
+            ov.overscan_blanking.unwrap_or(preset_conf.overscan_blanking),
+            false,
+        )
+    };
 
     let hash_start = request.base_start_sec.unwrap_or(request.start_sec);
     let params_payload = serde_json::json!({
@@ -168,14 +197,15 @@ pub fn plan_restoration_job(
         "deinterlacer": format!("{:?}", deinterlacer),
         "comb_filter": comb_filter,
         "denoise": ov.denoise.unwrap_or(preset_conf.denoise),
-        "chroma_fix": ov.chroma_fix.unwrap_or(preset_conf.chroma_fix),
-        "overscan": ov.overscan_blanking.unwrap_or(preset_conf.overscan_blanking),
+        "chroma_fix": apply_chroma_fix,
+        "overscan": apply_overscan_blanking,
         "dropout": ov.dropout_clean.unwrap_or(preset_conf.dropout_clean),
         "audio_policy": format!("{:?}", request.audio_policy),
         "notch_hum": request.apply_audio_notch_hum,
         "loudness": request.apply_loudness_norm,
         "start_sec": format!("{:.2}", hash_start),
         "duration_sec": request.duration_sec.map(|d| format!("{d:.2}")),
+        "master_guard_bypassed": master_guard_bypassed,
     });
     let phash = crate::models::media::generate_param_hash(params_payload.to_string().as_bytes());
 
@@ -245,10 +275,10 @@ pub fn plan_restoration_job(
         output_codec,
         encoder,
         deinterlacer,
-        apply_chroma_fix: ov.chroma_fix.unwrap_or(preset_conf.chroma_fix),
+        apply_chroma_fix,
         apply_denoise: ov.denoise.unwrap_or(preset_conf.denoise),
         apply_comb_filter: comb_filter,
-        apply_overscan_blanking: ov.overscan_blanking.unwrap_or(preset_conf.overscan_blanking),
+        apply_overscan_blanking,
         apply_dropout_clean: ov.dropout_clean.unwrap_or(preset_conf.dropout_clean),
         audio_policy,
         apply_audio_notch_hum: request.apply_audio_notch_hum,
@@ -494,6 +524,7 @@ pub fn plan_restoration_job(
         expected_frames,
         expected_duration_sec: expected_duration,
         request_json: serde_json::to_string(request).ok(),
+        master_guard_bypassed,
     })
 }
 
