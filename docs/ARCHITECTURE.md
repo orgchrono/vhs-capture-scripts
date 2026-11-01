@@ -274,7 +274,7 @@ In accordance with broadcast and institutional archiving standards (**IASA-TC 04
 
 ## 13. Multi-Pipeline Architecture, Media Lineage & Smart Pass Guardrail
 
-The digitization and mastering workflow in VHS Studio Pro v0.2.0 is partitioned into three distinct phases to prevent multi-generational degradation:
+The digitization and mastering workflow in VHS Studio Pro v0.1.0 is partitioned into three distinct phases to prevent multi-generational degradation:
 
 ```mermaid
 flowchart TD

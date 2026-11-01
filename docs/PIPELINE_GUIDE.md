@@ -250,8 +250,8 @@ ffprobe -v error -show_entries format=duration -of csv=p=0 "restored\2026-10-02 
 
 > Note: a finalized `.mp4` with the same name from a previous run (2026-10-25) already exists in `restored/`; back it up or rename it before moving the `.part` over it.
 
-### 12.5 Resolution: Smart Pass Guardrail (v0.2.0)
-The observation regarding redundant deinterlacing and double framerates on progressive inputs has been formally resolved in **v0.2.0** via the **Smart Pass Guardrail** in [`src/infrastructure/executor/planner.rs`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/infrastructure/executor/planner.rs):
+### 12.5 Resolution: Smart Pass Guardrail (v0.1.0)
+The observation regarding redundant deinterlacing and double framerates on progressive inputs has been formally resolved in **v0.1.0** via the **Smart Pass Guardrail** in [`src/infrastructure/executor/planner.rs`](file:///c:/Users/danie/Documents/vhs-capture-scripts-main/src/infrastructure/executor/planner.rs):
 - Probing detects whether the media is already progressive (`!probe.is_interlaced`) or carries a progressive flag in its `.manifest.json` sidecar.
 - If progressive, the planner automatically forces `deinterlacer` to `DeinterlaceFilter::None`, disables chroma shifts, comb filters, and overscan masks, and marks `master_guard_bypassed = true`.
 - Output framerates and frame counts match nominal content cadences with 100% temporal fidelity.
@@ -293,7 +293,7 @@ if current_logs.len() > cursor {
 
 ---
 
-## 14. Multi-Pipeline Architecture & Lineage Manifest (v0.2.0)
+## 14. Multi-Pipeline Architecture & Lineage Manifest (v0.1.0)
 
 Professional archival digitization requires multiple passes with clear role separation:
 

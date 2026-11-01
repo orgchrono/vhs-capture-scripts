@@ -4,7 +4,7 @@ All notable changes to **VHS Studio Pro** are documented in this file.
 
 ---
 
-## [0.2.0] - 2026-10-31
+## [0.1.0] - 2026-11-01
 
 ### 🚀 Highlights & Major Improvements
 

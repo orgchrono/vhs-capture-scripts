@@ -1,74 +1,66 @@
-### 🚀 Highlights & Major Improvements
+# 📼 VHS Studio Pro v0.1.0 — Official Foundation Release
 
-#### 1. Live Preview & Stream Proxy Desync Resolution
-- **Processed Master Stream Fix:** Corrected stream proxy mode selection in `StreamProxySpec` (`src/domain/stream.rs`) and HTTP server routing (`src/infrastructure/http_server.rs`). Live preview now streams the actual restored master during playback instead of falling back to raw deinterlacing.
-- **Accurate Seeking & Geometry Preservation:** Added `-accurate_seek` and uniform `pad=640:360:(ow-iw)/2:(oh-ih)/2:black,setsar=1:1` pillarboxing across all raw and processed proxy streams, eliminating geometry shifts and timecode drift between split comparison panes.
-
-#### 2. Truly Portable Single Self-Contained Executable
-- **Embedded UI Engine:** React 19 / Vite frontend assets are now pre-compiled and embedded directly into the native Rust binary via `build.rs` compile-time code generation and `src/infrastructure/embedded_assets.rs`.
-- **Embedded C Toolchain:** Native Panasonic recovery tools (`extract_meihdfs`, `dvd-vr`, `udf_dump`) are embedded inside the executable and automatically extracted to `~/.vhs_studio/bin/` if not present.
-- **No Loose Folders Required:** The release binary (`dist/VHS_Studio_Pro.exe` on Windows or `dist/VHS_Studio_Pro` on Linux/macOS) runs standalone without requiring external `ui/` or `tools/` folders.
-
-#### 3. Native OS Folder Sandbox & Directory Tree Explorer
-- **Native OS Picker:** Invokes platform-native directory picker dialogs (PowerShell `FolderBrowserDialog` on Windows, `osascript` on macOS, `zenity`/`kdialog` on Linux) via `/api/system/pick-folder`.
-- **Sandboxed Filesystem Explorer:** Added interactive directory tree modal (`DirectoryPickerModal.tsx`) with breadcrumb navigation and safe path traversal checks (`/api/system/browse-filesystem`).
-- **Configurable Scan Depth:** Operators can now select scan depth (1 to 5 levels) for library media discovery, with recursive scanning and folder badges.
-
-#### 4. OS Videos Directory Default Hierarchy
-- Defaults media paths to the user's OS native Videos directory (`Videos/VHS Studio Pro/` on Windows / `~/Movies/VHS Studio Pro/` on macOS / `~/Videos/VHS Studio Pro/` on Linux).
-- Automatically initializes clean subfolder structure:
-  - `raw/`: Incoming analog captures and disk images.
-  - `restored/`: Final restored masters (ProRes / H.264 / H.265 / FFV1).
-  - `captures/`: Direct live capture recordings.
-  - `subtitles/`: Generated `.vtt` and `.srt` subtitle files.
-  - `work/`: Checkpoints and temporary render fragments.
-
-#### 5. Real-Time Subtitle OSD & Native Subtitle Editor
-- **Transport Bar [CC] Toggle:** Instant on-screen display of subtitles directly over the video canvas with high-contrast broadcast styling (`SubtitleOverlay.tsx`).
-- **Interactive Subtitle Editor Modal:** Built-in editor (`SubtitleEditorModal.tsx`) for inspecting, adding, editing, and deleting cues, with timestamp validation, persistence (`/api/restoration/subtitles`), and Faster-Whisper generation triggers.
-
-#### 6. Volume Control
-- Added broadcast volume level slider and one-click mute/unmute control directly in the bottom transport bar (`VolumeControl.tsx`) and the Audio Configuration tab.
-
-#### 7. Visual Harmony, Symmetry & Badge Alignment ("Feng Shui")
-- **Symmetric Configuration Tabs:** Standardized all settings tabs (`PresetsTab`, `VideoTab`, `AudioTab`, `FiltersTab`, `AdvancedTab`, `AiTab`, `StorageTab`) with uniform `min-h-[320px]` and 2x2 grid cards, preventing layout shifts when toggling tabs.
-- **Vertical Badge Centering:** Removed manual `translate-y-[0.5px]` offsets across all badges, status meters, and VU labels, achieving clean vertical centering with icons, borders, and status LEDs.
-
-#### 8. 100% Internationalization (i18n) Parity
-- Full key parity across all 10 supported languages: English (`en-US`), Portuguese (`pt-BR`), Spanish (`es`), French (`fr`), German (`de`), Italian (`it`), Japanese (`ja`), Arabic (`ar`), Russian (`ru`), and Simplified Chinese (`zh-CN`).
-- Zero hardcoded user-facing strings in UI components.
-
-#### 9. Multi-Pipeline Architecture & Media Lineage Manifest (`.manifest.json`)
-- **Three-Tier Pipeline Structure:** Segregates archival restoration into **Passo 1 (Broadcast Master)** analog restoration, **Passo 2 (AI Post-Chain)** neural enhancement, and **Passo 3 (Fast Blackframe Hygiene)**.
-- **Companion Lineage Sidecars (`MediaManifest`):** Implements `.manifest.json` sidecar files tracking `source_raw`, `is_progressive`, dimension/FPS telemetry, cryptographic SHA-256 fixity hashes, and chronological `history` events for all applied stages.
-- **Dynamic Stage Filtering:** `compute_available_stages` dynamically restricts subsequent processing options, presenting only neural and hygiene stages for progressive masters.
-
-#### 10. Smart Pass Guardrail in Restoration Planner
-- **Anti-Generational Degradation:** When processing an existing progressive master or file with `manifest.is_progressive == true`, `plan_restoration_job` automatically forces `deinterlacer` to `DeinterlaceFilter::None`, disables chroma shifts, comb filters, and overscan masks, and marks `master_guard_bypassed = true`.
-- **UI Master Guardrail Banner:** Selecting an item from the "Masters" library renders an informative security shield banner (`master-guard-banner`), and locks destructive filter switches in `FiltersTab.tsx` with dedicated `MASTER` badges.
-
-#### 11. Native Blackframe & TBC Frame-Hold Engine
-- **FFmpeg Blackdetect & Micro-Gap Fusion:** Pure functional parser and interval merger combining consecutive black intervals separated by brief noise gaps ($\le 0.25\text{s}$).
-- **Forensic Region Classification:** Classifies regions into `leader` (start $\le 0.5\text{s}$), `trailer` (end $\le 0.5\text{s}$ from total duration), and `mid_gaps` (interior dropouts).
-- **Fast Hygiene Endpoint (`POST /api/restoration/blackframe-clean`):** Enables operators to sanitize media in seconds via lossless stream-copy trims on unrecorded leaders/trailers while applying TBC frame freezing on mid-tape signal dropouts to maintain lip-sync lockstep.
-- **One-Click Library Action:** Added scissors action button (`blackframe-clean-btn`) on library cards with loading spinner feedback and toast notifications.
-
-#### 12. Subtitle REST API Endpoints
-- **Subtitle Inspection (`GET /api/restoration/subtitles`):** Resolves and parses `.vtt` and `.srt` subtitles associated with media files across `restored/`, `subtitles/`, and `work/` directories.
-- **Subtitle Persistence (`POST /api/restoration/subtitles`):** Saves edited subtitle cue segments synchronously to both `.vtt` and `.srt` format specifications.
+> **Broadcast-Grade Analog Video Digitization, Neural AI Restoration & Preservation Suite**  
+> *Engineered in Native Rust 2021 & React 19 / Vite / Tailwind CSS*
 
 ---
 
-### 🛡️ Quality Gate Verification Results
+## 🌟 Highlights & Core Architecture
 
-| Quality Gate | Tool / Check | Result |
+**VHS Studio Pro v0.1.0** marks the foundational official release of the next-generation archival restoration platform for analog magnetic media (VHS, S-VHS, Video8, Hi8, Betamax) and digital disc camcorder images (Panasonic MEIHDFS DVD-RAM / DVD-R).
+
+### 🚀 Key Capabilities
+
+#### 1. Native High-Performance Rust Core
+- **Deterministic Concurrency & Zero-GC Execution:** Engineered with strict memory safety, non-blocking asynchronous I/O (`tokio`), and pure functional domain logic (`src/domain/`).
+- **Truly Portable Single Executable:** The compiled React 19 frontend assets and native Panasonic C recovery tools (`extract_meihdfs`, `dvd-vr`, `udf_dump`) are embedded directly into the binary via compile-time asset generation (`build.rs`). No loose folders or external runtimes required.
+
+#### 2. Three-Tier Multi-Pipeline Architecture
+- **Phase 1: Broadcast Master (Analog Restoration):** Temporal field reconstruction (`QTGMC 60p` / `BWDIF`), analog comb filtering (`TComb`), horizontal chroma phase shift correction (`chromashift`), bottom head-switching overscan masking, and EBU R128 audio normalization.
+- **Phase 2: AI Post-Chain (Neural Enhancements):** Deep facial reconstruction (`CodeFormer`), 4x neural super-resolution (`Real-ESRGAN` / `Real-CUGAN`), 60fps optical motion smoothing (`RIFE v4.6`), and automated speech-to-text subtitling (`Faster-Whisper`).
+- **Phase 3: Fast Blackframe & TBC Hygiene:** FFmpeg-powered micro-gap fusion ($\le 0.25\text{s}$) with lossless stream-copy trimming for unrecorded leaders/trailers and TBC Frame-Hold freezing on interior tracking dropouts to guarantee sample-accurate A/V lip-sync.
+
+#### 3. Smart Pass Guardrail & Lineage Manifest
+- **Anti-Generational Degradation Protection:** When loading progressive masters or previously restored files, the planner automatically locks and bypasses destructive Phase 1 filters (no redundant deinterlacing, double framerates, or color shifts).
+- **Companion `.manifest.json` Sidecars:** Full cryptographic SHA-256 provenance tracking, chronological history logs, and dynamic stage eligibility calculation.
+
+#### 4. Real-Time Video Preview & Subtitle Studio
+- **Zero-Desync Master Preview:** Stream proxy with `-accurate_seek` and geometry pillarboxing to eliminate seeking drift between split comparison panes.
+- **Broadcast Subtitle OSD & Interactive Editor:** Instant on-screen display [CC] overlay, real-time cue editing modal with timestamp validation, and dual `.vtt` / `.srt` persistence.
+- **Transport Bar Audio Controls:** Integrated volume slider and one-click broadcast mute toggle.
+
+#### 5. 100% Internationalization (i18n) & Broadcast Feng Shui
+- **Strict Zero-Hardcode Policy:** 100% translation key parity across **10 languages**: English (`en-US`), Portuguese (`pt-BR`), Spanish (`es`), French (`fr`), German (`de`), Italian (`it`), Japanese (`ja`), Arabic (`ar`), Russian (`ru`), and Simplified Chinese (`zh-CN`).
+- **Visual Harmony & Symmetry:** Standardized 2x2 grid cards, uniform min-height tabs, and vertically aligned status badges.
+
+---
+
+## 🛡️ 9 Automated Quality Gates Verification
+
+Every commit and release artifact is validated against the repository's 9 automated quality gates across Windows, Ubuntu, and macOS:
+
+| Gate | Category | Target / Engine | Result |
+| :---: | :--- | :--- | :---: |
+| **1** | Anti-Duplication | JSCPD Structural Clone Scanner | **0.00% Clones (PASS)** |
+| **2** | UI Code Quality | Oxlint / ESLint Strict Rules | **0 Errors, 0 Warnings (PASS)** |
+| **3** | TypeScript Types | TypeScript Compiler (`tsc -b`) | **0 Type Errors (PASS)** |
+| **4** | Frontend Unit Tests | Vitest (React 19 / RTK Query) | **100% Passing (167/167 Tests)** |
+| **5** | E2E Integration | Playwright Headless Chromium | **100% Passing** |
+| **6** | Rust Compilation | `cargo check` (Native Rust Core) | **0 Errors (PASS)** |
+| **7** | Rust Linter | `cargo clippy -- -D warnings` | **0 Warnings (PASS)** |
+| **8** | Rust Unit Tests | `cargo test` (Native Test Harness) | **100% Passing (264/264 Tests)** |
+| **9** | Localization Parity | i18n Dictionary Parity (10 Locales) | **100% Parity (0 Missing Keys)** |
+
+---
+
+## 📦 Distribution Packages
+
+| Platform | Binary / Package | Architecture |
 | :--- | :--- | :--- |
-| Gate 1 | JSCPD Anti-Duplication | **0.00% Clones (PASS)** |
-| Gate 2 | Oxlint / ESLint UI Linter | **0 Errors, 0 Warnings (PASS)** |
-| Gate 3 | TypeScript Strict Types (TSC) | **0 Errors (PASS)** |
-| Gate 4 | React Unit Tests (Vitest) | **34/34 Files, 167/167 Tests PASS (100%)** |
-| Gate 5 | End-to-End Integration Tests (Playwright) | **Headless Chromium PASS (100%)** |
-| Gate 6 | Cargo Check (Rust Compilation) | **0 Errors (PASS)** |
-| Gate 7 | Cargo Clippy (Rust Quality) | **0 Warnings with `-D warnings` (PASS)** |
-| Gate 8 | Cargo Test (Native Rust Tests) | **264/264 Tests PASS (100%)** |
-| Gate 9 | i18n Translation Key Parity | **10/10 Locales, 0 Missing Keys (100%)** |
+| **Windows** | `VHS_Studio_Pro-v0.1.0-windows-x64.zip` | x86_64 / MSVC |
+| **Linux** | `VHS_Studio_Pro-v0.1.0-linux-x64.tar.gz` | x86_64 / glibc |
+| **macOS** | `VHS_Studio_Pro-v0.1.0-macos-x64.zip` | x86_64 & Apple Silicon |
+
+---
+
+*Architected and maintained by the VHS Studio Pro Engineering Team.*
