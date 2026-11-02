@@ -1,83 +1,25 @@
 import React from 'react';
 import {
   RefreshCw,
-  Play,
-  Pause,
   ChevronLeft,
   ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-  Layers,
-  Film,
-  Radio,
-  Columns2,
-  X,
 } from 'lucide-react';
 import { useSplitComparisonViewModel } from '../viewmodels/useSplitComparisonViewModel';
-import { LiveEdgeIndicator } from './LiveEdgeIndicator';
-import { TimelineScrubber } from './TimelineScrubber';
-import { formatDuration } from '../lib/formatters';
 import { MonitorReticleOverlay } from './MonitorReticleOverlay';
 import { Badge } from './ui/badge';
-import { VolumeControl } from './VolumeControl';
 import { SubtitleOverlay } from './SubtitleOverlay';
 import { SubtitleEditorModal } from './SubtitleEditorModal';
-import { SubtitleToolbarButtons } from './SubtitleToolbarButtons';
 import { useMonitorMediaControls } from '../viewmodels/useMonitorMediaControls';
 import { getApiBaseUrl } from '../api/tauriBridge';
-
-const SPLIT_PRESETS = [0, 25, 50, 75, 100] as const;
+import { ComparisonPane } from './comparison/ComparisonPane';
+import { SplitComparisonHeader } from './comparison/SplitComparisonHeader';
+import { SplitTransportBar } from './comparison/SplitTransportBar';
 
 export interface SplitComparisonMonitorProps {
   source?: string;
   onClose?: () => void;
   initialMode?: 'stream' | 'freeze';
 }
-
-interface ComparisonPaneProps {
-  type: 'raw' | 'restored';
-  imageSrc?: string;
-  label: string;
-  testId: string;
-}
-
-const ComparisonPane = React.memo<ComparisonPaneProps>(({
-  type,
-  imageSrc,
-  label,
-  testId,
-}) => {
-  const isRaw = type === 'raw';
-  const badgePosition = isRaw ? 'bottom-12 left-3' : 'bottom-12 right-3';
-  const emptyBg = isRaw ? 'bg-slate-950' : 'bg-slate-900';
-
-  return (
-    <>
-      {imageSrc ? (
-        <img
-          src={imageSrc}
-          alt={label}
-          crossOrigin="anonymous"
-          className="w-full h-full object-contain pointer-events-none"
-          data-testid={testId}
-        />
-      ) : (
-        <div className={`w-full h-full ${emptyBg} flex items-center justify-center select-none`} />
-      )}
-
-      <div className={`absolute ${badgePosition} z-10 pointer-events-none`}>
-        <Badge
-          variant={isRaw ? 'warn' : 'live'}
-          size="sm"
-          className="uppercase tracking-wider shadow-xs backdrop-blur-xs"
-        >
-          {label}
-        </Badge>
-      </div>
-    </>
-  );
-});
-ComparisonPane.displayName = 'ComparisonPane';
 
 export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = (props) => {
   const {
@@ -129,8 +71,8 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = (pr
     handleMuteChange,
   } = useMonitorMediaControls({ sourceFile: source });
 
-  const rawStreamUrl = `${getApiBaseUrl()}/api/monitor/stream-proxy?mode=raw&source=${encodeURIComponent(source)}&fps=15&timestamp=${streamAnchor}&k=${streamKey}`;
-  const procStreamUrl = `${getApiBaseUrl()}/api/monitor/stream-proxy?mode=processed&source=${encodeURIComponent(source)}&fps=15&timestamp=${streamAnchor}&k=${streamKey}`;
+  const rawStreamUrl = `${getApiBaseUrl()}/api/monitor/stream-proxy?mode=raw&source=${encodeURIComponent(source || '')}&fps=15&timestamp=${streamAnchor}&k=${streamKey}`;
+  const procStreamUrl = `${getApiBaseUrl()}/api/monitor/stream-proxy?mode=processed&source=${encodeURIComponent(source || '')}&fps=15&timestamp=${streamAnchor}&k=${streamKey}`;
 
   const rawSrc = isStreamActive ? rawStreamUrl : displayedFrames.raw;
   const procSrc = isStreamActive ? procStreamUrl : displayedFrames.processed;
@@ -144,147 +86,19 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = (pr
       aria-label={t('monitor.split_title')}
       data-testid="split-comparison-monitor"
     >
-      {/* Top Header Bar: Zero Overflow Guaranteed Single-Line Ribbon */}
-      <div className="absolute top-2 left-2 right-2 z-20 flex flex-nowrap items-center justify-between pointer-events-auto gap-1.5 min-w-0 overflow-hidden">
-        {/* Left: Compact A/B Monitor Title & Split Percentage Badge */}
-        <div className="flex items-center gap-1.5 shrink-0 min-w-0">
-          <button
-            type="button"
-            onClick={onClose}
-            className="bg-black/85 hover:bg-studio-surface backdrop-blur-md h-6 px-2 rounded-sm text-[10px] font-mono text-slate-300 hover:text-white border border-studio-border hover:border-amber-400/50 shadow-sm flex items-center gap-1.5 shrink-0 whitespace-nowrap cursor-pointer transition min-w-0"
-            title={t('monitor.split_title')}
-            aria-label={t('monitor.split_title')}
-            data-testid="split-title-badge-btn"
-          >
-            <Layers className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <span className="font-bold text-slate-200">{t('monitor.split_title_short')}</span>
-            {splitLayout === 'wipe' && (
-              <span className="text-amber-300 font-bold border-l border-studio-border pl-1.5 tabular-nums text-center font-mono">
-                {splitPos}%
-              </span>
-            )}
-          </button>
-
-          {/* Real-time Live indicator in header when active */}
-          {isRestoring && (
-            <LiveEdgeIndicator
-              isAtLiveEdge={isAtLiveEdge}
-              onJumpToLive={handleJumpToLive}
-              compact
-              testId="split-header-live-badge"
-            />
-          )}
-        </div>
-
-        {/* Right: Controls & Actions (Layout Mode, Split Presets, View Mode & Close) */}
-        <div className="flex items-center gap-1 ml-auto shrink-0 flex-nowrap">
-          {/* Layout Mode Selector (Wipe vs Dual) */}
-          <div className="flex items-center gap-0.5 bg-black/85 backdrop-blur-md p-0.5 rounded-sm border border-studio-border shadow-sm shrink-0" role="group" aria-label={t('monitor.split_title')}>
-            <button
-              type="button"
-              aria-pressed={splitLayout === 'wipe'}
-              onClick={() => setSplitLayout('wipe')}
-              className={`h-6 px-1.5 min-w-[22px] flex items-center justify-center rounded-xs transition cursor-pointer text-[9px] font-mono ${
-                splitLayout === 'wipe'
-                  ? 'bg-amber-500/25 text-amber-300 font-semibold border border-amber-400/40'
-                  : 'text-slate-400 hover:text-slate-200 border border-transparent'
-              }`}
-              title={t('monitor.split_wipe')}
-              aria-label={t('monitor.split_wipe')}
-              data-testid="split-layout-wipe-btn"
-            >
-              <Layers className="w-3 h-3 shrink-0 pointer-events-none" aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              aria-pressed={splitLayout === 'dual'}
-              onClick={() => setSplitLayout('dual')}
-              className={`h-6 px-1.5 min-w-[22px] flex items-center justify-center rounded-xs transition cursor-pointer text-[9px] font-mono ${
-                splitLayout === 'dual'
-                  ? 'bg-amber-500/25 text-amber-300 font-semibold border border-amber-400/40'
-                  : 'text-slate-400 hover:text-slate-200 border border-transparent'
-              }`}
-              title={t('monitor.split_dual')}
-              aria-label={t('monitor.split_dual')}
-              data-testid="split-layout-dual-btn"
-            >
-              <Columns2 className="w-3 h-3 shrink-0 pointer-events-none" aria-hidden="true" />
-            </button>
-          </div>
-
-          {/* Quick Split Presets (only in Wipe mode) */}
-          {splitLayout === 'wipe' && (
-            <div className="hidden @md:flex items-center gap-0.5 bg-black/85 backdrop-blur-md p-0.5 rounded-sm border border-studio-border text-[8px] font-mono shadow-sm shrink-0" role="group">
-              {SPLIT_PRESETS.map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  aria-pressed={splitPos === p}
-                  onClick={() => handlePresetSelect(p)}
-                  className={`h-5 px-1 min-w-[17px] flex items-center justify-center rounded-xs transition-colors cursor-pointer border ${
-                    splitPos === p
-                      ? 'bg-amber-500/25 text-amber-300 font-semibold border-amber-400/50'
-                      : 'text-slate-400 hover:text-slate-200 border-transparent'
-                  }`}
-                  title={t('monitor.split_preset', { percent: p })}
-                  aria-label={t('monitor.split_preset', { percent: p })}
-                  data-testid={`split-preset-${p}-btn`}
-                >
-                  {p}%
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Sub-Screen / View Mode Selector */}
-          <div className="flex items-center gap-0.5 bg-black/85 backdrop-blur-md p-0.5 rounded-sm border border-studio-border shadow-sm shrink-0" role="group">
-            <button
-              type="button"
-              aria-pressed={viewMode === 'stream'}
-              onClick={() => handleModeChange('stream')}
-              className={`h-6 px-1.5 min-w-[22px] flex items-center justify-center rounded-xs transition cursor-pointer ${
-                viewMode === 'stream'
-                  ? 'bg-amber-500/20 text-amber-300 font-semibold'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-              title={t('monitor.mode_live_stream')}
-              aria-label={t('monitor.mode_live_stream')}
-              data-testid="mode-stream-btn"
-            >
-              <Radio className="w-3 h-3" aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              aria-pressed={viewMode === 'freeze'}
-              onClick={() => handleModeChange('freeze')}
-              className={`h-6 px-1.5 min-w-[22px] flex items-center justify-center rounded-xs transition cursor-pointer ${
-                viewMode === 'freeze'
-                  ? 'bg-amber-500/20 text-amber-300 font-semibold'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-              title={t('monitor.mode_freeze_frame')}
-              aria-label={t('monitor.mode_freeze_frame')}
-              data-testid="mode-freeze-btn"
-            >
-              <Film className="w-3 h-3" aria-hidden="true" />
-            </button>
-          </div>
-
-          {/* Close Button */}
-          {onClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-6 h-6 flex items-center justify-center bg-black/85 hover:bg-red-950/60 backdrop-blur-md text-slate-300 hover:text-red-200 rounded-sm border border-studio-border hover:border-red-600/70 shadow-sm transition cursor-pointer shrink-0 z-30"
-              title={t('monitor.split_close')}
-              aria-label={t('monitor.split_close')}
-              data-testid="split-close-btn"
-            >
-              <X className="w-3.5 h-3.5 text-red-400 shrink-0" />
-            </button>
-          )}
-        </div>
-      </div>
+      {/* Top Header Bar: Zero Overflow Single-Line Ribbon */}
+      <SplitComparisonHeader
+        onClose={onClose}
+        splitLayout={splitLayout}
+        setSplitLayout={setSplitLayout}
+        splitPos={splitPos}
+        handlePresetSelect={handlePresetSelect}
+        isRestoring={isRestoring}
+        isAtLiveEdge={isAtLiveEdge}
+        handleJumpToLive={handleJumpToLive}
+        viewMode={viewMode}
+        handleModeChange={handleModeChange}
+      />
 
       {/* Main Full-Frame Video Canvas */}
       <div
@@ -406,132 +220,26 @@ export const SplitComparisonMonitor: React.FC<SplitComparisonMonitorProps> = (pr
       </div>
 
       {/* Bottom Transport Controls - 2-tier NLE Layout */}
-      <div className="absolute bottom-0 left-0 right-0 z-30 bg-studio-panel/95 border-t border-studio-border px-3 py-1.5 flex flex-col gap-1.5 text-xs font-mono select-none min-w-0">
-        {/* Tier 1: 100% Full-width Scrubber Track */}
-        <TimelineScrubber
-          currentTimestamp={effectiveTimestamp}
-          totalDuration={totalDuration}
-          progressPct={progressPct}
-          disabled={!hasMedia}
-          onScrubStart={() => {
-            setIsScrubbing(true);
-          }}
-          onScrubChange={(val) => {
-            handleTimelineInput(val);
-          }}
-          onScrubCommit={() => {
-            setIsScrubbing(false);
-            handleTimelineCommit();
-          }}
-          inputTestId="timeline-scrubber-input"
-          infoTestId="split-timeline-info"
-          hideTimeBadge
-        />
-
-        {/* Tier 2: Controls & Metrics */}
-        <div className="flex items-center justify-between gap-2 min-w-0">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="grid grid-flow-col auto-cols-max items-center gap-1 shrink-0">
-              <button
-                type="button"
-                onClick={() => handleSeek(-30)}
-                disabled={!hasMedia}
-                className="w-6 h-6 flex items-center justify-center rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-slate-300 hover:text-white transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                title={t('monitor.split_seek_backward_30s')}
-                aria-label={t('monitor.split_seek_backward_30s')}
-                data-testid="split-seek-prev-30-btn"
-              >
-                <ChevronsLeft className="w-3.5 h-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSeek(-5)}
-                disabled={!hasMedia}
-                className="w-6 h-6 flex items-center justify-center rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-slate-300 hover:text-white transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                title={t('monitor.split_seek_backward')}
-                aria-label={t('monitor.split_seek_backward')}
-                data-testid="split-seek-prev-btn"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (hasMedia) {
-                    const nextPlaying = !isPlaying;
-                    setIsPlaying(nextPlaying);
-                    if (nextPlaying) {
-                      handleModeChange('stream');
-                    } else {
-                      handleModeChange('freeze');
-                    }
-                  }
-                }}
-                disabled={!hasMedia}
-                className={`w-6 h-6 flex items-center justify-center rounded-sm border transition cursor-pointer shrink-0 disabled:opacity-40 disabled:cursor-not-allowed ${
-                  isPlaying
-                    ? 'bg-amber-600/30 text-amber-300 border-amber-500/50 hover:bg-amber-600/40'
-                    : 'bg-studio-surface hover:bg-studio-surface-hover border-studio-border text-slate-300 hover:text-white'
-                }`}
-                title={isPlaying ? t('monitor.split_pause') : t('monitor.split_play')}
-                aria-label={isPlaying ? t('monitor.split_pause') : t('monitor.split_play')}
-                data-testid="split-play-toggle-btn"
-              >
-                {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSeek(5)}
-                disabled={!hasMedia}
-                className="w-6 h-6 flex items-center justify-center rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-slate-300 hover:text-white transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                title={t('monitor.split_seek_forward')}
-                aria-label={t('monitor.split_seek_forward')}
-                data-testid="split-seek-next-btn"
-              >
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSeek(30)}
-                disabled={!hasMedia}
-                className="w-6 h-6 flex items-center justify-center rounded-sm bg-studio-surface hover:bg-studio-surface-hover border border-studio-border text-slate-300 hover:text-white transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                title={t('monitor.split_seek_forward_30s')}
-                aria-label={t('monitor.split_seek_forward_30s')}
-                data-testid="split-seek-next-30-btn"
-              >
-                <ChevronsRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            <span
-              className="text-[10px] text-slate-300 font-mono tabular-nums shrink-0 bg-studio-surface/90 px-1.5 py-0.5 rounded-xs border border-studio-border whitespace-nowrap self-center leading-none"
-              data-testid="split-timeline-info"
-            >
-              {t('monitor.split_timeline_info', {
-                current: formatDuration(effectiveTimestamp, totalDuration >= 3600 || effectiveTimestamp >= 3600),
-                total: formatDuration(totalDuration, totalDuration >= 3600 || effectiveTimestamp >= 3600),
-                percent: progressPct,
-              })}
-            </span>
-          </div>
-
-          <div className="grid grid-flow-col auto-cols-max items-center gap-1.5 shrink-0">
-            <VolumeControl
-              volume={volume}
-              isMuted={isMuted}
-              onVolumeChange={handleVolumeChange}
-              onMuteToggle={handleMuteChange}
-              compact
-            />
-
-            <SubtitleToolbarButtons
-              subtitlesEnabled={subtitlesEnabled}
-              onToggleSubtitles={toggleSubtitles}
-              onOpenSubtitleEditor={() => setIsSubtitleEditorOpen(true)}
-            />
-          </div>
-        </div>
-      </div>
+      <SplitTransportBar
+        effectiveTimestamp={effectiveTimestamp}
+        totalDuration={totalDuration}
+        progressPct={progressPct}
+        hasMedia={hasMedia}
+        setIsScrubbing={setIsScrubbing}
+        handleTimelineInput={handleTimelineInput}
+        handleTimelineCommit={handleTimelineCommit}
+        handleSeek={handleSeek}
+        isPlaying={isPlaying}
+        setIsPlaying={setIsPlaying}
+        handleModeChange={handleModeChange}
+        volume={volume}
+        isMuted={isMuted}
+        handleVolumeChange={handleVolumeChange}
+        handleMuteChange={handleMuteChange}
+        subtitlesEnabled={subtitlesEnabled}
+        toggleSubtitles={toggleSubtitles}
+        onOpenSubtitleEditor={() => setIsSubtitleEditorOpen(true)}
+      />
 
       <SubtitleEditorModal
         isOpen={isSubtitleEditorOpen}

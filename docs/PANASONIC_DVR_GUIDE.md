@@ -59,7 +59,7 @@ When connecting a Panasonic DVR hard drive to the workstation, select high-compa
 
 To prevent physical wear on fragile mechanical drive bearings, optical DVD-RAM dyes, and read heads, best practice dictates cloning an uncompressed bitstream image before extraction.
 
-Historically, archivists relied on external utilities (`dd` or `Win32DiskImager`). In **VHS Studio Pro v0.2.0**, a **native raw disk block imaging engine** is built directly into the Rust functional core (`src/domain/disk_imager.rs` and `src/infrastructure/disk_imager/`), requiring **zero third-party binary dependencies**:
+Historically, archivists relied on external utilities (`dd` or `Win32DiskImager`). In **VHS Studio Pro v0.1.0**, a **native raw disk block imaging engine** is built directly into the Rust functional core (`src/domain/disk_imager.rs` and `src/infrastructure/disk_imager/`), requiring **zero third-party binary dependencies**:
 
 ```mermaid
 flowchart TD

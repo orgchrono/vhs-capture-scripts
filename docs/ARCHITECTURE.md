@@ -354,9 +354,9 @@ Analog tape players often produce unrecorded black leaders, trailing run-outs, a
 
 ---
 
-## 15. Modular Architecture & God-Module Decomposition (v0.2.0)
+## 15. Modular Architecture & God-Module Decomposition (v0.1.0)
 
-In version 0.2.0, VHS Studio Pro underwent a comprehensive architectural audit and refactoring to eliminate monolithic modules, isolate pure domain logic from side-effects, and achieve strict adherence to MVVM, Functional Programming (FP), SRP, SoC, DRY, and SSOT principles:
+In version 0.1.0, VHS Studio Pro underwent a comprehensive architectural audit and refactoring to eliminate monolithic modules, isolate pure domain logic from side-effects, and achieve strict adherence to MVVM, Functional Programming (FP), SRP, SoC, DRY, and SSOT principles:
 
 ### 15.1 Pure Domain Extraction (FP Core)
 1. **Hardware Assessment (`src/domain/hardware.rs`):**
@@ -373,16 +373,20 @@ In version 0.2.0, VHS Studio Pro underwent a comprehensive architectural audit a
    - Pure mathematical calculations: `expected_output_frames`, `is_output_truncated`, and `bounded_tail`.
 
 ### 15.2 Rust Infrastructure & ViewModel Modularization
-1. **Desktop App Lifecycle Isolation (`src/infrastructure/desktop_runtime.rs`):**
+1. **Quality Control Subsystem (`src/domain/qc/`):**
+   - Monolithic 671-line module decomposed into `models.rs` (data structures & broadcast thresholds), `metrics.rs` (pure planar mathematical calculations & frame delta MSE), `reporting.rs` (forensic Markdown report generators), and clean facade in `mod.rs`.
+2. **Native Toolchain Engine (`src/infrastructure/toolchain/`):**
+   - Monolithic 710-line engine decomposed into `types.rs` (process flags & manifests), `resolver.rs` (executable path candidate search & environment resolution), `process.rs` (silent & compute command creation), `probes.rs` (QTGMC, OBS, and FFmpeg encoder viability probes), and `integrity.rs` (SHA-256 fixity manifest validation).
+3. **Desktop App Lifecycle Isolation (`src/infrastructure/desktop_runtime.rs`):**
    - Isolates Tauri desktop window creation, local HTTP/SSE background daemon startup, and graceful shutdown into `run_desktop_app`.
-2. **Job Recovery Subsystem (`src/infrastructure/job_recovery/`):**
+4. **Job Recovery Subsystem (`src/infrastructure/job_recovery/`):**
    - `scanner.rs`: File-system traversal, recursive directory discovery, and target resolution.
    - `repair.rs`: FFmpeg partial stream finalizing (`finalize_partial_video`) and atomic orphan job discard.
    - `conflict_resolver.rs`: Checks existing restoration runs and pair resolutions.
-3. **Panasonic Ingest Decomposition (`src/viewmodels/api_ingest/`):**
+5. **Panasonic Ingest Decomposition (`src/viewmodels/api_ingest/`):**
    - `panasonic_routes.rs`: Handles disk inspections, title trees, and MEIHDFS/DVD-VR extraction.
    - `disk_image_routes.rs`: Direct physical block imaging endpoints (`drives`, `start`, `cancel`).
-4. **IPC Commands Modularization (`src/viewmodels/ipc/`):**
+6. **IPC Commands Modularization (`src/viewmodels/ipc/`):**
    - Split 52 Tauri IPC commands into 4 focused submodules: `system_ipc.rs`, `restoration_ipc.rs`, `ingest_ipc.rs`, and `storage_ipc.rs`.
    - `src/viewmodels/ipc_commands.rs` serves as a clean, backward-compatible facade.
 
@@ -392,10 +396,14 @@ In version 0.2.0, VHS Studio Pro underwent a comprehensive architectural audit a
    - Circular dependency between `studioApi.ts` and `tauriBridge.ts` eliminated via `ui/src/api/runtimeEnv.ts`.
 2. **Redux Store Modularization (`ui/src/store/studio/`):**
    - Monolithic slice partitioned into `types.ts`, `logReducers.ts`, `layoutReducers.ts`, and `restorationReducers.ts`.
-3. **Decoupled View Components:**
-   - **Scopes (`ui/src/components/scopes/`):** Audio metering extracted to `ScopeAudioMeters.tsx`; Canvas 2D rasterization math extracted to `scopeCanvasRenderers.ts`.
+3. **Studio Primary ViewModel Sub-Hooks (`ui/src/viewmodels/studio/`):**
+   - Monolithic 526-line `useStudioViewModel.ts` decomposed into focused sub-hooks: `useStudioLogStream.ts` (SSE streaming & batching), `useStudioToolInstallers.ts` (OBS & QTGMC installation workflows), `useStudioCapture.ts` (live capture triggers), and `useStudioRestoration.ts` (restoration lifecycle coordination).
+4. **Decoupled View Components:**
+   - **Scopes (`ui/src/components/scopes/`):** Modularized 706-line `BroadcastScopes.tsx` into `ScopeHeader.tsx`, `ScopeViews.tsx`, `ScopeAudioMeters.tsx`, and Canvas 2D rasterizers in `scopeCanvasRenderers.ts`.
+   - **Preferences Modal (`ui/src/components/preferences/`):** Modularized 565-line `AppPreferencesModal.tsx` into `DirectoryField.tsx`, `PreferenceSwitchRow.tsx`, `DirectoriesTabContent.tsx`, `PerformanceTabContent.tsx`, `ConsoleTabContent.tsx`, `HardwareTabContent.tsx`, and `InterfaceTabContent.tsx`.
+   - **A/B Split Monitor (`ui/src/components/comparison/`):** Modularized 545-line `SplitComparisonMonitor.tsx` into `ComparisonPane.tsx`, `SplitComparisonHeader.tsx`, and `SplitTransportBar.tsx`.
    - **Panasonic Ingest (`ui/src/components/panasonic/`):** Title trees extracted to `PanasonicRecordingTreePanel.tsx`; block imaging extracted to `PanasonicDiskImagingPanel.tsx`; drive header extracted to `DetectedDrivesHeader.tsx`.
    - **Tape Library (`ui/src/components/library/`):** Individual tape cards extracted to `TapeItemCard.tsx`; empty states extracted to `EmptyTapeListState.tsx`.
-   - **Preferences Constants (`ui/src/lib/constants.ts`):** 8 configuration option arrays extracted from inline JSX into immutable constant singletons.
+   - **Preferences Constants (`ui/src/lib/constants.ts`):** Configuration option arrays extracted from inline JSX into immutable constant singletons.
 
 

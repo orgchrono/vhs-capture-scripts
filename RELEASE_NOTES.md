@@ -1,4 +1,4 @@
-# 📼 VHS Studio Pro v0.2.0 — Release Notes
+# 📼 VHS Studio Pro v0.1.0 — Release Notes
 
 > **Broadcast-Grade Analog Video Digitization, Neural AI Restoration & Preservation Suite**  
 > *Engineered in Native Rust 2021 & React 19 / Vite / Tailwind CSS*
@@ -7,9 +7,9 @@
 
 ## 🌟 Highlights & Core Architecture
 
-**VHS Studio Pro v0.2.0** introduces a high-performance **Native Raw Disk Block Imaging Engine**, automated **SignPath.io Code Signing** for trusted Windows distribution, seamless **Restoration Pipeline Chaining**, and a complete **Modular Architecture & God-Module Decomposition** adhering to Argon's blueprint.
+**VHS Studio Pro v0.1.0** introduces a high-performance **Native Raw Disk Block Imaging Engine**, automated **SignPath.io Code Signing** for trusted Windows distribution, seamless **Restoration Pipeline Chaining**, and a complete **Modular Architecture & God-Module Decomposition** adhering to Argon's blueprint.
 
-### 🚀 Key Capabilities in v0.2.0
+### 🚀 Key Capabilities in v0.1.0
 
 #### 1. Native Raw Disk Block Imaging Engine (`.img` / `.bin` / `.iso`)
 - **Zero Third-Party Binary Dependencies:** Pure Rust raw block device reader eliminating reliance on external utilities (`dd.exe`, `Win32DiskImager`, Cygwin/MSYS2).
@@ -47,18 +47,23 @@
   - `src/domain/pipeline/encoder_args.rs`: Pure function `resolve_optimal_encoder_args` evaluating encoder CLI args across all GPU backends.
   - `src/domain/pipeline/mod.rs`: Pure bounds and frame calculations `expected_output_frames`, `is_output_truncated`, and `bounded_tail`.
 - **Rust God Modules Decomposed:**
+  - `src/domain/qc/`: Partitioned 671-line monolith into `models.rs`, `metrics.rs`, `reporting.rs`, and re-exports in `mod.rs`.
+  - `src/infrastructure/toolchain/`: Partitioned 710-line monolith into `types.rs`, `resolver.rs`, `process.rs`, `probes.rs`, `integrity.rs`, and re-exports in `mod.rs`.
   - `src/infrastructure/desktop_runtime.rs`: Isolated desktop WebView and local HTTP/SSE daemon lifecycle (`run_desktop_app`).
   - `src/infrastructure/job_recovery/`: Split into `scanner.rs`, `repair.rs`, `conflict_resolver.rs`, and re-export facade in `mod.rs`.
   - `src/viewmodels/api_ingest/`: Split into `panasonic_routes.rs`, `disk_image_routes.rs`, and router in `mod.rs`.
   - `src/viewmodels/ipc/`: Split 52 IPC commands into `system_ipc.rs`, `restoration_ipc.rs`, `ingest_ipc.rs`, and `storage_ipc.rs`.
-- **TypeScript Bridges, Stores, and Views Decomposed:**
+- **TypeScript Bridges, Stores, Views and ViewModels Decomposed:**
   - `ui/src/api/bridge/`: Modularized into `systemBridge.ts`, `restorationBridge.ts`, `ingestBridge.ts`, `storageBridge.ts`, `types.ts`, and aggregated in `index.ts`.
   - `ui/src/api/runtimeEnv.ts`: Broke circular dependencies between `studioApi.ts` and `tauriBridge.ts`.
   - `ui/src/store/studio/`: Partitioned monolith into `types.ts`, `logReducers.ts`, `layoutReducers.ts`, and `restorationReducers.ts`.
-  - `ui/src/components/scopes/`: Extracted `ScopeAudioMeters.tsx` and Canvas 2D rasterizers in `scopeCanvasRenderers.ts`.
+  - `ui/src/viewmodels/studio/`: Decomposed 526-line `useStudioViewModel.ts` into `useStudioLogStream.ts`, `useStudioToolInstallers.ts`, `useStudioCapture.ts`, and `useStudioRestoration.ts`.
+  - `ui/src/components/scopes/`: Modularized 706-line `BroadcastScopes.tsx` into `ScopeHeader.tsx`, `ScopeViews.tsx`, `ScopeAudioMeters.tsx`, and Canvas rasterizers in `scopeCanvasRenderers.ts`.
+  - `ui/src/components/preferences/`: Modularized 565-line `AppPreferencesModal.tsx` into `DirectoryField.tsx`, `PreferenceSwitchRow.tsx`, `DirectoriesTabContent.tsx`, `PerformanceTabContent.tsx`, `ConsoleTabContent.tsx`, `HardwareTabContent.tsx`, and `InterfaceTabContent.tsx`.
+  - `ui/src/components/comparison/`: Modularized 545-line `SplitComparisonMonitor.tsx` into `ComparisonPane.tsx`, `SplitComparisonHeader.tsx`, and `SplitTransportBar.tsx`.
   - `ui/src/components/panasonic/`: Extracted `PanasonicRecordingTreePanel.tsx`, `PanasonicDiskImagingPanel.tsx`, and `DetectedDrivesHeader.tsx`.
   - `ui/src/components/library/`: Extracted `TapeItemCard.tsx` and `EmptyTapeListState.tsx`.
-  - `ui/src/lib/constants.ts`: Extracted 8 option arrays from JSX to immutable constants.
+  - `ui/src/lib/constants.ts`: Extracted option arrays from JSX to immutable constants.
 
 #### 5. 100% Internationalization (i18n) Parity
 - **Strict Zero-Hardcode Policy:** 100% translation key parity across **10 languages**: English (`en-US`), Portuguese (`pt-BR`), Spanish (`es`), French (`fr`), German (`de`), Italian (`it`), Japanese (`ja`), Arabic (`ar`), Russian (`ru`), and Simplified Chinese (`zh-CN`).
@@ -88,9 +93,9 @@ Every commit and release artifact is validated against the repository's 9 automa
 
 | Platform | Binary / Package | Architecture |
 | :--- | :--- | :--- |
-| **Windows** | `VHS_Studio_Pro-v0.2.0-windows-x64.zip` / `.msi` | x86_64 / MSVC |
-| **Linux** | `VHS_Studio_Pro-v0.2.0-linux-x64.tar.gz` / `.AppImage` | x86_64 / glibc |
-| **macOS** | `VHS_Studio_Pro-v0.2.0-macos-x64.zip` / `.dmg` | x86_64 & Apple Silicon |
+| **Windows** | `VHS_Studio_Pro-v0.1.0-windows-x64.zip` / `.msi` | x86_64 / MSVC |
+| **Linux** | `VHS_Studio_Pro-v0.1.0-linux-x64.tar.gz` / `.AppImage` | x86_64 / glibc |
+| **macOS** | `VHS_Studio_Pro-v0.1.0-macos-x64.zip` / `.dmg` | x86_64 & Apple Silicon |
 
 ---
 
