@@ -1394,7 +1394,61 @@ export const tauriBridge = {
     }
     return { success: true, preferences: prefs };
   },
+
+  async browseFilesystem(path?: string): Promise<FsBrowseResult> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      try {
+        return await tauri.invoke<FsBrowseResult>('ipc_browse_filesystem', { path: path || null });
+      } catch {
+        // Fallback to HTTP
+      }
+    }
+    const res = await fetch(`${getApiBaseUrl()}/api/system/browse-filesystem`, {
+      method: 'POST',
+      headers: getSyncAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ path: path || '' }),
+    });
+    if (!res.ok) throw new Error('Failed to browse filesystem');
+    return res.json();
+  },
+
+  async pickFolderNative(initialPath?: string): Promise<string | null> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      try {
+        return await tauri.invoke<string | null>('ipc_pick_folder', { initialPath: initialPath || null });
+      } catch {
+        // Fallback to HTTP
+      }
+    }
+    const res = await fetch(`${getApiBaseUrl()}/api/system/pick-folder`, {
+      method: 'POST',
+      headers: getSyncAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ initial_path: initialPath || '' }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && data.path) return data.path;
+    }
+    return null;
+  },
 };
+
+export interface FsDirectoryEntry {
+  name: string;
+  path: string;
+  is_dir: boolean;
+  has_children: boolean;
+  size_bytes: number;
+}
+
+export interface FsBrowseResult {
+  current_path: string;
+  parent_path: string | null;
+  roots: string[];
+  entries: FsDirectoryEntry[];
+}
 
 
 

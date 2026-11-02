@@ -143,6 +143,18 @@ pub fn ipc_save_preferences(preferences: Value) -> Result<Value, String> {
     }))
 }
 
+#[tauri::command]
+pub fn ipc_browse_filesystem(path: Option<String>) -> crate::infrastructure::fs_browser::FsBrowseResult {
+    crate::infrastructure::fs_browser::browse_filesystem(path.as_deref())
+}
+
+#[tauri::command]
+pub fn ipc_pick_folder(initial_path: Option<String>) -> Option<String> {
+    let p = initial_path.as_deref().map(Path::new);
+    crate::infrastructure::fs_browser::pick_folder_native(p)
+        .map(|buf| buf.to_string_lossy().to_string())
+}
+
 // ============================================================================
 // RESTORATION & PIPELINE COMMANDS
 // ============================================================================
@@ -725,6 +737,8 @@ pub fn run_desktop_app() {
             ipc_parse_preferences,
             ipc_get_preferences,
             ipc_save_preferences,
+            ipc_browse_filesystem,
+            ipc_pick_folder,
             // Restoration & Pipeline
             ipc_get_preset_config,
             ipc_build_realesrgan_command,

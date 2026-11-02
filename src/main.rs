@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 //! VHS Studio Pro - Native Desktop Application & Functional CLI Core.
 //!
 //! High-performance native desktop application powered by OS WebView
@@ -15,6 +17,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         vhs_studio_core::viewmodels::run_desktop_app();
         Ok(())
     } else {
+        #[cfg(windows)]
+        unsafe {
+            let _ = windows_sys::Win32::System::Console::AttachConsole(
+                windows_sys::Win32::System::Console::ATTACH_PARENT_PROCESS,
+            );
+        }
         vhs_studio_core::viewmodels::cli_vm::run_cli(&args)
     }
 }

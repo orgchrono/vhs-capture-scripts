@@ -76,14 +76,17 @@ export const RestorationSettings: React.FC = () => {
 
   return (
     <div className="bg-studio-panel border border-studio-border rounded-md p-3 shadow-sm flex-1 min-h-0 flex flex-col h-full overflow-hidden">
-      <div className="flex items-center justify-between gap-2.5 mb-2.5 shrink-0">
-        <div className="flex items-center gap-2 min-w-0">
+      <div className="flex items-center justify-between gap-2 mb-2.5 shrink-0 min-w-0">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           <Sliders className="w-4 h-4 text-slate-400 shrink-0" />
-          <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono shrink-0">
+          <h3
+            className="text-xs font-bold text-white uppercase tracking-wider font-mono truncate min-w-0"
+            title={t('settings.technical_title')}
+          >
             {t('settings.technical_title')}
           </h3>
         </div>
-        <div className="relative w-44 sm:w-56 shrink-0">
+        <div className="relative w-32 sm:w-44 md:w-56 shrink-0">
           <Search className="absolute left-2.5 top-2 h-4 w-4 text-slate-500 pointer-events-none" />
           <Input
             placeholder={t('settings.search_placeholder')}

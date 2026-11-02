@@ -1,25 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { X, Folder, ArrowUp, HardDrive, FolderCheck, Monitor, Film } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { getApiBaseUrl } from '../api/tauriBridge';
-import { getAuthHeaders } from '../api/studioApi';
+import { tauriBridge, type FsBrowseResult, type FsDirectoryEntry } from '../api/tauriBridge';
 import { isSupportedVideoFile } from '../lib/constants';
 import { formatFileSize } from '../lib/formatters';
 
-export interface FsDirectoryEntry {
-  name: string;
-  path: string;
-  is_dir: boolean;
-  has_children: boolean;
-  size_bytes: number;
-}
-
-export interface FsBrowseResult {
-  current_path: string;
-  parent_path: string | null;
-  roots: string[];
-  entries: FsDirectoryEntry[];
-}
+export type { FsDirectoryEntry, FsBrowseResult };
 
 export interface DirectoryPickerModalProps {
   isOpen: boolean;
@@ -46,18 +32,22 @@ export const DirectoryPickerModal: React.FC<DirectoryPickerModalProps> = ({
   const fetchDirectory = async (targetPath?: string) => {
     setIsLoading(true);
     try {
-      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
-      const res = await fetch(`${getApiBaseUrl()}/api/system/browse-filesystem`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ path: targetPath || '' }),
-      });
-      if (res.ok) {
-        const data: FsBrowseResult = await res.json();
-        setBrowseData(data);
-      }
+      const data = await tauriBridge.browseFilesystem(targetPath);
+      setBrowseData(data);
     } catch {
-      // Graceful fallback
+      // If fetch fails or initial target is unavailable, fallback to default root
+      try {
+        const fallbackData = await tauriBridge.browseFilesystem('');
+        setBrowseData(fallbackData);
+      } catch {
+        // Safe offline/test fallback so modal is never a blank void
+        setBrowseData({
+          current_path: targetPath || 'C:\\',
+          parent_path: null,
+          roots: ['C:\\'],
+          entries: [],
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -75,18 +65,10 @@ export const DirectoryPickerModal: React.FC<DirectoryPickerModalProps> = ({
 
   const handleNativePick = async () => {
     try {
-      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
-      const res = await fetch(`${getApiBaseUrl()}/api/system/pick-folder`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ initial_path: browseData?.current_path || initialPath || '' }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && data.path) {
-          onSelect(data.path);
-          onClose();
-        }
+      const path = await tauriBridge.pickFolderNative(browseData?.current_path || initialPath || '');
+      if (path) {
+        onSelect(path);
+        onClose();
       }
     } catch {
       // Fallback
@@ -107,11 +89,16 @@ export const DirectoryPickerModal: React.FC<DirectoryPickerModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 select-none"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 select-none animate-in fade-in duration-150"
       role="dialog"
       aria-modal="true"
       aria-label={title || t('folders.title')}
       data-testid="directory-picker-modal"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
     >
       <div className="w-full max-w-2xl h-[550px] bg-studio-surface border border-studio-border rounded-md shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}

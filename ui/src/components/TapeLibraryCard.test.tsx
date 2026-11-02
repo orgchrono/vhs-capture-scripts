@@ -114,4 +114,23 @@ describe('TapeLibraryCard Component', () => {
     expect(cleanBtn).toBeInTheDocument();
     fireEvent.click(cleanBtn);
   });
+
+  it('renders interactive button when raw library is empty and opens directory picker', () => {
+    renderComponent([], []);
+
+    const emptyBtn = screen.getByTestId('empty-tape-select-btn');
+    expect(emptyBtn).toBeInTheDocument();
+
+    fireEvent.click(emptyBtn);
+    expect(screen.getByTestId('directory-picker-modal')).toBeInTheDocument();
+  });
+
+  it('opens directory picker when __browse__ is selected from dropdown', () => {
+    renderComponent();
+
+    const select = screen.getByTestId('tape-select-dropdown');
+    fireEvent.change(select, { target: { value: '__browse__' } });
+
+    expect(screen.getByTestId('directory-picker-modal')).toBeInTheDocument();
+  });
 });

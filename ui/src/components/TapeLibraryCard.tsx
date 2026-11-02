@@ -221,6 +221,54 @@ const TapeItemCard: React.FC<TapeItemCardProps> = ({
   );
 };
 
+interface EmptyTapeListStateProps {
+  icon: React.ReactNode;
+  titleKey: string;
+  hintKey: string;
+  testId: string;
+  onBrowse: () => void;
+}
+
+const EmptyTapeListState: React.FC<EmptyTapeListStateProps> = ({
+  icon,
+  titleKey,
+  hintKey,
+  testId,
+  onBrowse,
+}) => {
+  const { t } = useTranslation();
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onBrowse}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onBrowse();
+        }
+      }}
+      className="p-5 border border-dashed border-studio-border hover:border-amber-400/60 rounded-sm bg-studio-surface/40 hover:bg-studio-surface/70 flex flex-col items-center justify-center text-center text-slate-400 gap-2 cursor-pointer transition group"
+      data-testid={testId}
+    >
+      <div className="p-2 rounded-full bg-studio-panel border border-studio-border group-hover:border-amber-400/40 text-amber-400 transition">
+        {icon}
+      </div>
+      <div className="space-y-0.5">
+        <p className="text-xs font-mono font-medium text-slate-300 group-hover:text-amber-300 transition">
+          {t(titleKey)}
+        </p>
+        <p className="text-[10px] text-slate-500 font-mono">
+          {t(hintKey)}
+        </p>
+      </div>
+      <span className="mt-1 px-3 py-1 text-[11px] font-mono font-semibold text-amber-300 bg-amber-500/15 border border-amber-400/40 rounded-xs group-hover:bg-amber-500/25 transition">
+        {t('folders.browse_btn')}
+      </span>
+    </div>
+  );
+};
+
 export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
   files,
   restoredFiles = [],
@@ -356,73 +404,96 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
           )}
         </div>
         <div className="relative">
-          <select
-            value={selectedFile}
-            disabled={isRestoring || isPaused}
-            onChange={(e) => {
-              const val = e.target.value;
-              if (val) {
-                const matchedRaw = files.find((f) => f.path === val);
-                if (matchedRaw) {
-                  handleSelectTape(matchedRaw);
+          {((libraryTab === 'raw' && files.length === 0 && orphanJobs.length === 0) ||
+            (libraryTab === 'masters' && restoredFiles.length === 0)) ? (
+            <button
+              type="button"
+              disabled={isRestoring || isPaused}
+              onClick={() => setIsDirPickerOpen(true)}
+              title={t('files.select_placeholder')}
+              className="w-full h-9 bg-studio-surface border border-studio-border hover:border-amber-400/60 rounded-sm px-3 py-1.5 text-xs font-mono text-left text-slate-300 flex items-center justify-between cursor-pointer transition disabled:opacity-60 disabled:cursor-not-allowed truncate"
+              data-testid="empty-tape-select-btn"
+            >
+              <span className="truncate">{t('files.select_placeholder')}</span>
+              <HardDrive className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            </button>
+          ) : (
+            <select
+              value={selectedFile}
+              disabled={isRestoring || isPaused}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === '__browse__') {
+                  setIsDirPickerOpen(true);
                   return;
                 }
-                const matchedMaster = restoredFiles.find((f) => f.path === val);
-                if (matchedMaster) {
-                  handleSelectTape(matchedMaster);
-                  return;
+                if (val) {
+                  const matchedRaw = files.find((f) => f.path === val);
+                  if (matchedRaw) {
+                    handleSelectTape(matchedRaw);
+                    return;
+                  }
+                  const matchedMaster = restoredFiles.find((f) => f.path === val);
+                  if (matchedMaster) {
+                    handleSelectTape(matchedMaster);
+                    return;
+                  }
+                  setSelectedFile(val);
                 }
-                setSelectedFile(val);
-              }
-            }}
-            title={selectedFile || t('files.select_placeholder')}
-            className="w-full h-9 bg-studio-surface border border-studio-border rounded-sm pl-3 pr-8 py-1.5 text-xs font-mono text-left text-slate-200 outline-none focus:border-studio-border-focus focus:ring-1 focus:ring-studio-border-focus transition appearance-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed truncate"
-          >
-            <option value="" disabled hidden className="text-left">
-              {t('files.select_placeholder')}
-            </option>
-            {libraryTab === 'raw' ? (
-              <>
-                {files.map((f) => {
-                  const inc = findIncompleteJob(f.path);
-                  return (
-                    <option key={f.path} value={f.path} className="bg-studio-panel text-slate-200 text-left">
-                      {f.name} ({formatMbSize(f.size_mb)}){inc ? ` [${inc.progress_percent}%]` : ''}
+              }}
+              title={selectedFile || t('files.select_placeholder')}
+              data-testid="tape-select-dropdown"
+              className="w-full h-9 bg-studio-surface border border-studio-border rounded-sm pl-3 pr-8 py-1.5 text-xs font-mono text-left text-slate-200 outline-none focus:border-studio-border-focus focus:ring-1 focus:ring-studio-border-focus transition appearance-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed truncate"
+            >
+              <option value="" disabled hidden className="text-left">
+                {t('files.select_placeholder')}
+              </option>
+              <option value="__browse__" className="bg-studio-panel text-amber-300 font-bold text-left">
+                📁 {t('folders.browse_btn')}
+              </option>
+              {libraryTab === 'raw' ? (
+                <>
+                  {files.map((f) => {
+                    const inc = findIncompleteJob(f.path);
+                    return (
+                      <option key={f.path} value={f.path} className="bg-studio-panel text-slate-200 text-left">
+                        {f.name} ({formatMbSize(f.size_mb)}){inc ? ` [${inc.progress_percent}%]` : ''}
+                      </option>
+                    );
+                  })}
+                  {orphanJobs.map((j) => {
+                    const name = j.source_file ? (j.source_file.split(/[/\\]/).pop() || j.source_file) : j.job_id;
+                    const val = j.source_file || j.output_file;
+                    return (
+                      <option key={j.job_id} value={val} className="bg-amber-950 text-amber-200 text-left">
+                        {name} [{j.progress_percent}%]
+                      </option>
+                    );
+                  })}
+                  {selectedFile &&
+                    !files.some((f) => f.path === selectedFile) &&
+                    !orphanJobs.some((j) => (j.source_file || j.output_file) === selectedFile) && (
+                      <option value={selectedFile} className="bg-studio-panel text-slate-300 text-left">
+                        {selectedFile.split(/[/\\]/).pop()}
+                      </option>
+                    )}
+                </>
+              ) : (
+                <>
+                  {restoredFiles.map((f) => (
+                    <option key={f.path} value={f.path} className="bg-studio-panel text-emerald-300 text-left">
+                      ★ {f.name} ({formatMbSize(f.size_mb)})
                     </option>
-                  );
-                })}
-                {orphanJobs.map((j) => {
-                  const name = j.source_file ? (j.source_file.split(/[/\\]/).pop() || j.source_file) : j.job_id;
-                  const val = j.source_file || j.output_file;
-                  return (
-                    <option key={j.job_id} value={val} className="bg-amber-950 text-amber-200 text-left">
-                      {name} [{j.progress_percent}%]
-                    </option>
-                  );
-                })}
-                {selectedFile &&
-                  !files.some((f) => f.path === selectedFile) &&
-                  !orphanJobs.some((j) => (j.source_file || j.output_file) === selectedFile) && (
+                  ))}
+                  {selectedFile && !restoredFiles.some((f) => f.path === selectedFile) && (
                     <option value={selectedFile} className="bg-studio-panel text-slate-300 text-left">
                       {selectedFile.split(/[/\\]/).pop()}
                     </option>
                   )}
-              </>
-            ) : (
-              <>
-                {restoredFiles.map((f) => (
-                  <option key={f.path} value={f.path} className="bg-studio-panel text-emerald-300 text-left">
-                    ★ {f.name} ({formatMbSize(f.size_mb)})
-                  </option>
-                ))}
-                {selectedFile && !restoredFiles.some((f) => f.path === selectedFile) && (
-                  <option value={selectedFile} className="bg-studio-panel text-slate-300 text-left">
-                    {selectedFile.split(/[/\\]/).pop()}
-                  </option>
-                )}
-              </>
-            )}
-          </select>
+                </>
+              )}
+            </select>
+          )}
           <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
             <HardDrive className="w-3.5 h-3.5" />
           </div>
@@ -478,15 +549,13 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
         <div className="space-y-1.5 max-h-[380px] overflow-y-auto custom-scrollbar pr-0.5 pt-0.5">
           {libraryTab === 'raw' ? (
             files.length === 0 && orphanJobs.length === 0 ? (
-              <div className="p-4 border border-dashed border-studio-border rounded-sm bg-studio-surface/40 flex flex-col items-center justify-center text-center text-slate-400 gap-1.5">
-                <UploadCloud className="w-6 h-6 text-slate-500 mb-0.5" />
-                <p className="text-xs font-mono font-medium text-slate-300">
-                  {t('files.no_files_found')}
-                </p>
-                <p className="text-[10px] text-slate-500 font-mono">
-                  {t('files.empty_hint')}
-                </p>
-              </div>
+              <EmptyTapeListState
+                icon={<UploadCloud className="w-6 h-6 text-slate-500 group-hover:text-amber-400 transition mb-0.5" />}
+                titleKey="files.no_files_found"
+                hintKey="files.empty_hint"
+                testId="empty-raw-card-btn"
+                onBrowse={() => setIsDirPickerOpen(true)}
+              />
             ) : (
               <>
                 {/* Orphan Incomplete Jobs */}
@@ -580,15 +649,13 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
           ) : (
             /* Master Files List */
             restoredFiles.length === 0 ? (
-              <div className="p-4 border border-dashed border-studio-border rounded-sm bg-studio-surface/40 flex flex-col items-center justify-center text-center text-slate-400 gap-1.5">
-                <CheckCircle2 className="w-6 h-6 text-slate-500 mb-0.5" />
-                <p className="text-xs font-mono font-medium text-slate-300">
-                  {t('files.no_masters_yet')}
-                </p>
-                <p className="text-[10px] text-slate-500 font-mono">
-                  {t('files.empty_hint')}
-                </p>
-              </div>
+              <EmptyTapeListState
+                icon={<CheckCircle2 className="w-6 h-6 text-slate-500 group-hover:text-emerald-400 transition mb-0.5" />}
+                titleKey="files.no_masters_yet"
+                hintKey="files.empty_hint"
+                testId="empty-masters-card-btn"
+                onBrowse={() => setIsDirPickerOpen(true)}
+              />
             ) : (
               restoredFiles.map((file) => (
                 <TapeItemCard
@@ -624,12 +691,18 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
         onSelect={(path) => {
           if (isSupportedVideoFile(path)) {
             const parentDir = path.replace(/[/\\][^/\\]+$/, '');
+            const fileName = path.split(/[/\\]/).pop() || path;
             if (libraryTab === 'raw') {
               prefs.updatePreferences({ rawDir: parentDir });
             } else {
               prefs.updatePreferences({ restoredDir: parentDir });
             }
-            setSelectedFile(path);
+            handleSelectTape({
+              name: fileName,
+              path,
+              size_mb: 0,
+              is_master: libraryTab === 'masters',
+            });
           } else {
             if (libraryTab === 'raw') {
               prefs.updatePreferences({ rawDir: path });

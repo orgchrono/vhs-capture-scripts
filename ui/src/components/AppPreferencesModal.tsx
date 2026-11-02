@@ -146,17 +146,18 @@ export const AppPreferencesModal: React.FC<AppPreferencesModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="preferences-modal-title"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          onClose();
-        }
-      }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200"
-    >
+    <>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="preferences-modal-title"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            onClose();
+          }
+        }}
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200"
+      >
       <div className="bg-studio-panel border border-studio-border rounded-md max-w-3xl w-full h-[600px] max-h-[92vh] p-5 shadow-2xl flex flex-col overflow-hidden select-none">
         {/* Header */}
         <div className="flex items-start justify-between gap-4 mb-4 pb-3 border-b border-studio-border shrink-0">
@@ -590,17 +591,18 @@ export const AppPreferencesModal: React.FC<AppPreferencesModalProps> = ({
           </Button>
         </div>
       </div>
-
-      <DirectoryPickerModal
-        isOpen={pickerTarget !== null}
-        onClose={() => setPickerTarget(null)}
-        initialPath={pickerTarget ? prefs[pickerTarget] : ''}
-        onSelect={(selectedPath) => {
-          if (pickerTarget) {
-            prefs.updatePreferences({ [pickerTarget]: selectedPath });
-          }
-        }}
-      />
     </div>
-  );
+
+    <DirectoryPickerModal
+      isOpen={pickerTarget !== null}
+      onClose={() => setPickerTarget(null)}
+      initialPath={pickerTarget ? prefs[pickerTarget] : ''}
+      onSelect={(selectedPath) => {
+        if (pickerTarget) {
+          prefs.updatePreferences({ [pickerTarget]: selectedPath });
+        }
+      }}
+    />
+  </>
+);
 };
