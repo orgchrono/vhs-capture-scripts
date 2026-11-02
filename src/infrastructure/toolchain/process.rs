@@ -2,6 +2,7 @@
 
 use std::path::Path;
 use std::process::{Command, Output};
+#[cfg(windows)]
 use super::types::{BELOW_NORMAL_PRIORITY_CLASS, CREATE_NO_WINDOW};
 
 #[cfg(windows)]

@@ -3,7 +3,9 @@
 //! Provides direct, unbuffered DMA block reads using `CreateFileW` with `FILE_FLAG_NO_BUFFERING`
 //! and optional volume-locking via `FSCTL_LOCK_VOLUME`.
 
+#[cfg(windows)]
 use super::RawBlockReader;
+#[cfg(windows)]
 use std::io::Error;
 
 #[cfg(windows)]
