@@ -1,8 +1,6 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react'
-import { UploadCloud, Film } from 'lucide-react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
 import {
   Header,
   CaptureBar,
@@ -29,10 +27,11 @@ import { useStudioStore } from './store/useStudioStore'
 import { usePreferencesStore } from './store/usePreferencesStore'
 import { useGetPreferencesQuery } from './api/studioRtkApi'
 import { useConflictResolutionViewModel } from './viewmodels/useConflictResolutionViewModel'
-import { LAYOUT_CONFIG, isSupportedVideoFile } from './lib/constants'
+import { LAYOUT_CONFIG } from './lib/constants'
+import { useAppDragAndDrop } from './hooks/useAppDragAndDrop'
+import { DragDropOverlay } from './components/layout/DragDropOverlay'
 
 const telemetryParser = createTelemetryParser()
-
 
 const StudioMain: React.FC<{
   onOpenPrivacy?: () => void
@@ -82,9 +81,16 @@ const StudioMain: React.FC<{
     return labels[preset] || t('settings.custom')
   }, [t, preset])
 
-  const [isDragOver, setIsDragOver] = useState(false)
-  const dragCounterRef = useRef<number>(0)
-  const shouldReduceMotion = useReducedMotion()
+  const { isDragOver, dragHandlers } = useAppDragAndDrop({
+    rawFiles: status?.raw_files,
+    restoredFiles: status?.restored_files,
+    onFileSelected: (filePath) => {
+      setSelectedFile(filePath)
+      setPreviewTimestamp(0)
+    },
+    onAddLog: addLog,
+    t,
+  })
 
   const executeStartRestoration = async (resume = false) => {
     if (!selectedFile) {
@@ -121,100 +127,10 @@ const StudioMain: React.FC<{
     },
   })
 
-  const isFileDragEvent = (e: React.DragEvent) => {
-    if (!e.dataTransfer) return false
-    const types = Array.from(e.dataTransfer.types || [])
-    return types.includes('Files') || types.includes('application/x-moz-file')
-  }
-
-  const handleDragEnter = (e: React.DragEvent) => {
-    if (!isFileDragEvent(e)) return
-    e.preventDefault()
-    e.stopPropagation()
-    dragCounterRef.current += 1
-    if (dragCounterRef.current === 1) {
-      setIsDragOver(true)
-    }
-  }
-
-  const handleDragOver = (e: React.DragEvent) => {
-    if (!isFileDragEvent(e)) return
-    e.preventDefault()
-    e.stopPropagation()
-    if (e.dataTransfer) {
-      e.dataTransfer.dropEffect = 'copy'
-    }
-    if (!isDragOver) {
-      setIsDragOver(true)
-    }
-  }
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    if (!isFileDragEvent(e)) return
-    e.preventDefault()
-    e.stopPropagation()
-    dragCounterRef.current = Math.max(0, dragCounterRef.current - 1)
-    if (dragCounterRef.current === 0) {
-      setIsDragOver(false)
-    }
-  }
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    dragCounterRef.current = 0
-    setIsDragOver(false)
-
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const file = e.dataTransfer.files[0]
-      if (!isSupportedVideoFile(file.name)) {
-        toast.error(t('toast.invalid_video_format_title'), {
-          description: t('toast.invalid_video_format_desc', { file: file.name }),
-        })
-        return
-      }
-
-      const electronFile = file as File & { path?: string }
-      const matched =
-        status?.raw_files?.find((f) => f.name.toLowerCase() === file.name.toLowerCase()) ||
-        status?.restored_files?.find((f) => f.name.toLowerCase() === file.name.toLowerCase())
-
-      const filePath = (matched && typeof matched.path === 'string' ? matched.path : electronFile.path) || file.name
-      setSelectedFile(filePath)
-      setPreviewTimestamp(0)
-      addLog(t('toast.file_loaded_log', { file: filePath }))
-      toast.success(t('toast.file_loaded_title'), {
-        description: `${file.name} - ${t('toast.file_loaded_desc')}`,
-      })
-    }
-  }
-
-  useEffect(() => {
-    const handleWindowDragLeave = (e: DragEvent) => {
-      if (!e.relatedTarget && e.clientY <= 0) {
-        dragCounterRef.current = 0
-        setIsDragOver(false)
-      }
-    }
-    const handleWindowBlur = () => {
-      dragCounterRef.current = 0
-      setIsDragOver(false)
-    }
-    window.addEventListener('dragleave', handleWindowDragLeave)
-    window.addEventListener('blur', handleWindowBlur)
-    return () => {
-      window.removeEventListener('dragleave', handleWindowDragLeave)
-      window.removeEventListener('blur', handleWindowBlur)
-    }
-  }, [])
-
   return (
     <div
       className="relative h-screen w-screen overflow-hidden bg-studio-bg text-slate-100 flex flex-col font-sans"
-      onDragEnter={handleDragEnter}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
+      {...dragHandlers}
     >
       {/* Precision Broadcast Header Progress Stripe */}
       <ProgressBar
@@ -244,42 +160,7 @@ const StudioMain: React.FC<{
       />
 
       {/* OS File Drag and Drop Visual Feedback Overlay */}
-      <AnimatePresence>
-        {isDragOver && (
-          <motion.div
-            initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.15, ease: 'easeOut' }}
-            onDragEnter={handleDragEnter}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            className="absolute inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center border-2 border-dashed border-emerald-500/70 shadow-[0_0_80px_rgba(16,185,129,0.25)] m-4 rounded-md select-none"
-          >
-            <div className="w-20 h-20 rounded-full bg-emerald-950/60 border border-emerald-500/40 flex items-center justify-center mb-4 shadow-inner">
-              <Film className="w-10 h-10 text-emerald-400 animate-pulse" />
-            </div>
-            <h3 className="text-xl font-bold text-white mb-2 font-mono tracking-tight flex items-center gap-2">
-              <UploadCloud className="w-5 h-5 text-emerald-400" />
-              {t('app.drop_title')}
-            </h3>
-            <p className="text-xs text-slate-400 font-mono mb-4 text-center max-w-md">
-              {t('app.drop_formats')}
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-1.5 font-mono text-[10px]">
-              {['.MKV', '.MP4', '.AVI', '.MOV', '.TS', '.VOB', '.M2TS', '.ISO'].map((fmt) => (
-                <span
-                  key={fmt}
-                  className="px-2 py-0.5 rounded-xs bg-emerald-950/80 text-emerald-300 border border-emerald-600/40 shadow-xs font-semibold"
-                >
-                  {fmt}
-                </span>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <DragDropOverlay isDragOver={isDragOver} dragHandlers={dragHandlers} />
 
       {/* ADAPTIVE MODULAR WORKSPACE (VS Code Style) */}
       <main className="flex-1 flex overflow-hidden">
@@ -327,7 +208,7 @@ const StudioMain: React.FC<{
               orientation="vertical"
               className="h-full"
             >
-              {/* Top Half: Settings & Video (Expansível via CSS Grid Proporcional) */}
+              {/* Top Half: Settings & Video */}
               <ResizablePanel
                 id="workspace-top"
                 defaultSize={LAYOUT_CONFIG.WORKSPACE_TOP_DEFAULT_SIZE}
@@ -335,7 +216,7 @@ const StudioMain: React.FC<{
                 className="overflow-hidden p-3 lg:p-4 bg-studio-bg"
               >
                 <ResizablePanelGroup orientation="horizontal" className="w-full h-full min-h-0">
-                  {/* Left: Video Monitor (+ docked scopes) - takes the whole width when the right panel is hidden */}
+                  {/* Left: Video Monitor */}
                   <ResizablePanel
                     id="monitor-panel"
                     defaultSize={rightPanelCollapsed ? '100%' : LAYOUT_CONFIG.MONITOR_DEFAULT_SIZE}
@@ -345,7 +226,7 @@ const StudioMain: React.FC<{
                     <LiveMonitor health={status?.health} />
                   </ResizablePanel>
 
-                  {/* Right: Engine Settings (collapsible from the header) */}
+                  {/* Right: Engine Settings */}
                   {!rightPanelCollapsed && (
                     <>
                       <ResizableHandle withHandle className="mx-1.5 rounded-sm" />
@@ -379,7 +260,8 @@ const StudioMain: React.FC<{
                       </ResizablePanel>
                     </>
                   )}
-                </ResizablePanelGroup>              </ResizablePanel>
+                </ResizablePanelGroup>
+              </ResizablePanel>
 
               {/* Bottom Half: Console & Action */}
               {!consoleCollapsed && (
