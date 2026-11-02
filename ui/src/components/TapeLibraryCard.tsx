@@ -1,27 +1,18 @@
 import React, { useState } from 'react';
-import {
-  Folder,
-  HardDrive,
-  RefreshCw,
-  Film,
-  Plus,
-  Minus,
-  UploadCloud,
-  AlertTriangle,
-  CheckCircle2,
-  Trash2,
-  ClipboardCheck,
-} from 'lucide-react';
+import { UploadCloud, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTapeLibraryViewModel } from '../viewmodels/useTapeLibraryViewModel';
 import type { RawFile } from '../types';
-import { formatMbSize } from '../lib/formatters';
 import { QcReportModal } from './QcReportModal';
 import { DirectoryPickerModal } from './DirectoryPickerModal';
 import { usePreferencesStore } from '../store/usePreferencesStore';
 import { isSupportedVideoFile } from '../lib/constants';
 import { TapeItemCard } from './library/TapeItemCard';
 import { EmptyTapeListState } from './library/EmptyTapeListState';
+import { LibraryHeader } from './library/LibraryHeader';
+import { QuickTapeSelector } from './library/QuickTapeSelector';
+import { RecoveryCheckpointRibbon } from './library/RecoveryCheckpointRibbon';
+import { OrphanTapeCard } from './library/OrphanTapeCard';
 
 export interface TapeLibraryCardProps {
   files: RawFile[];
@@ -60,249 +51,40 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
 
   return (
     <div className="bg-studio-panel border border-studio-border rounded-md p-2.5 flex flex-col gap-2 select-none">
-      {/* Top Header: Title, File Count, and Refresh Button */}
-      <div className="flex items-center justify-between gap-1.5 min-w-0">
-        <div className="flex items-center gap-1.5 font-mono text-[11px] text-slate-300 font-bold uppercase tracking-wider min-w-0 flex-1">
-          <Film className="w-3.5 h-3.5 text-slate-400 shrink-0 self-center" />
-          <span className="truncate self-center leading-none">{t('files.library_explorer_title')}</span>
-          <span className="text-[10px] bg-studio-surface px-1.5 py-0.5 rounded-sm text-slate-400 border border-studio-border shrink-0 self-center leading-none inline-flex items-center justify-center">
-            {libraryTab === 'raw' ? files.length + orphanJobs.length : restoredFiles.length}
-          </span>
-        </div>
+      <LibraryHeader
+        rawCount={files.length + orphanJobs.length}
+        mastersCount={restoredFiles.length}
+        libraryTab={libraryTab}
+        setLibraryTab={setLibraryTab}
+        isLibraryExpanded={isLibraryExpanded}
+        setIsLibraryExpanded={setIsLibraryExpanded}
+        isRefetching={isRefetching}
+        onRefresh={onRefresh}
+        onOpenDirPicker={() => setIsDirPickerOpen(true)}
+      />
 
-        <div className="flex items-center gap-1 shrink-0">
-          <button
-            type="button"
-            onClick={() => setIsDirPickerOpen(true)}
-            className="text-slate-400 hover:text-amber-300 transition text-[10px] flex items-center gap-1 cursor-pointer hover:bg-studio-surface-hover px-1.5 py-0.5 rounded-sm font-mono border border-studio-border"
-            title={t('folders.browse_btn')}
-            aria-label={t('folders.browse_btn')}
-            data-testid="open-dir-picker-btn"
-          >
-            <Folder className="w-3 h-3 text-amber-400 self-center" />
-            <span className="self-center leading-none">{t('folders.browse_btn')}</span>
-          </button>
+      <QuickTapeSelector
+        libraryTab={libraryTab}
+        files={files}
+        restoredFiles={restoredFiles}
+        orphanJobs={orphanJobs}
+        selectedFile={selectedFile}
+        setSelectedFile={setSelectedFile}
+        handleSelectTape={handleSelectTape}
+        findIncompleteJob={findIncompleteJob}
+        isRestoring={isRestoring}
+        isPaused={isPaused}
+        onOpenDirPicker={() => setIsDirPickerOpen(true)}
+        onOpenQcModal={(f) => setQcModalFile(f)}
+      />
 
-          <button
-            type="button"
-            onClick={onRefresh}
-            disabled={isRefetching}
-            className="text-slate-400 hover:text-slate-200 transition text-[10px] flex items-center gap-1 cursor-pointer hover:bg-studio-surface-hover px-1.5 py-0.5 rounded-sm font-mono border border-studio-border"
-            title={t('files.refresh_list')}
-          >
-            <RefreshCw className={`w-3 h-3 ${isRefetching ? 'animate-spin' : ''} self-center`} />
-            <span className="self-center leading-none">{t('files.refresh')}</span>
-          </button>
-
-          <button
-            type="button"
-            aria-expanded={isLibraryExpanded}
-            onClick={() => setIsLibraryExpanded(!isLibraryExpanded)}
-            className="flex items-center justify-center w-5 h-5 text-slate-400 hover:text-slate-100 bg-studio-surface hover:bg-studio-surface-hover rounded-sm border border-studio-border cursor-pointer transition shrink-0"
-            title={isLibraryExpanded ? t('files.collapse') : t('files.expand')}
-            aria-label={isLibraryExpanded ? t('files.collapse') : t('files.expand')}
-            data-testid="toggle-tape-library-btn"
-          >
-            {isLibraryExpanded ? (
-              <Minus className="w-3 h-3 self-center" aria-hidden="true" />
-            ) : (
-              <Plus className="w-3 h-3 self-center" aria-hidden="true" />
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* Library Mode Tabs: Raw Tapes vs Master Files */}
-      <div className="grid grid-cols-2 gap-1 p-0.5 bg-studio-surface border border-studio-border rounded-sm text-[10px] font-mono">
-        <button
-          type="button"
-          onClick={() => setLibraryTab('raw')}
-          className={`py-1 px-2 rounded-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer ${
-            libraryTab === 'raw'
-              ? 'bg-studio-panel text-amber-300 shadow-xs border border-studio-border'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-          data-testid="tab-raw-btn"
-        >
-          <Film className="w-3 h-3 shrink-0 self-center" />
-          <span className="truncate self-center leading-none">{t('files.tab_raw')}</span>
-          <span className="text-[9px] opacity-75 self-center leading-none">({files.length + orphanJobs.length})</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setLibraryTab('masters')}
-          className={`py-1 px-2 rounded-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer ${
-            libraryTab === 'masters'
-              ? 'bg-studio-panel text-emerald-300 shadow-xs border border-studio-border'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-          data-testid="tab-masters-btn"
-        >
-          <CheckCircle2 className="w-3 h-3 shrink-0 self-center" />
-          <span className="truncate self-center leading-none">{t('files.tab_masters')}</span>
-          <span className="text-[9px] opacity-75 self-center leading-none">({restoredFiles.length})</span>
-        </button>
-      </div>
-
-      {/* Primary Dropdown Selector (Quick Tape Switcher) */}
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center justify-between">
-          <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 font-mono">
-            <Folder className="w-3 h-3 text-slate-400 self-center" />
-            <span className="self-center leading-none">{t('files.input_file_label')}</span>
-          </label>
-          {selectedFile && (
-            <button
-              type="button"
-              onClick={() => setQcModalFile(selectedFile)}
-              className="text-slate-400 hover:text-emerald-400 transition text-[10px] flex items-center gap-1 cursor-pointer hover:bg-studio-surface px-1.5 py-0.5 rounded-sm font-mono border border-studio-border"
-              title={t('files.qc_report_button')}
-              aria-label={t('files.qc_report_button')}
-            >
-              <ClipboardCheck className="w-3 h-3 text-emerald-400 self-center" />
-              <span className="self-center leading-none">{t('files.qc_report_button')}</span>
-            </button>
-          )}
-        </div>
-        <div className="relative">
-          {((libraryTab === 'raw' && files.length === 0 && orphanJobs.length === 0) ||
-            (libraryTab === 'masters' && restoredFiles.length === 0)) ? (
-            <button
-              type="button"
-              disabled={isRestoring || isPaused}
-              onClick={() => setIsDirPickerOpen(true)}
-              title={t('files.select_placeholder')}
-              className="w-full h-9 bg-studio-surface border border-studio-border hover:border-amber-400/60 rounded-sm px-3 py-1.5 text-xs font-mono text-left text-slate-300 flex items-center justify-between cursor-pointer transition disabled:opacity-60 disabled:cursor-not-allowed truncate"
-              data-testid="empty-tape-select-btn"
-            >
-              <span className="truncate">{t('files.select_placeholder')}</span>
-              <HardDrive className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            </button>
-          ) : (
-            <select
-              value={selectedFile}
-              disabled={isRestoring || isPaused}
-              onChange={(e) => {
-                const val = e.target.value;
-                if (val === '__browse__') {
-                  setIsDirPickerOpen(true);
-                  return;
-                }
-                if (val) {
-                  const matchedRaw = files.find((f) => f.path === val);
-                  if (matchedRaw) {
-                    handleSelectTape(matchedRaw);
-                    return;
-                  }
-                  const matchedMaster = restoredFiles.find((f) => f.path === val);
-                  if (matchedMaster) {
-                    handleSelectTape(matchedMaster);
-                    return;
-                  }
-                  setSelectedFile(val);
-                }
-              }}
-              title={selectedFile || t('files.select_placeholder')}
-              data-testid="tape-select-dropdown"
-              className="w-full h-9 bg-studio-surface border border-studio-border rounded-sm pl-3 pr-8 py-1.5 text-xs font-mono text-left text-slate-200 outline-none focus:border-studio-border-focus focus:ring-1 focus:ring-studio-border-focus transition appearance-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed truncate"
-            >
-              <option value="" disabled hidden className="text-left">
-                {t('files.select_placeholder')}
-              </option>
-              <option value="__browse__" className="bg-studio-panel text-amber-300 font-bold text-left">
-                📁 {t('folders.browse_btn')}
-              </option>
-              {libraryTab === 'raw' ? (
-                <>
-                  {files.map((f) => {
-                    const inc = findIncompleteJob(f.path);
-                    return (
-                      <option key={f.path} value={f.path} className="bg-studio-panel text-slate-200 text-left">
-                        {f.name} ({formatMbSize(f.size_mb)}){inc ? ` [${inc.progress_percent}%]` : ''}
-                      </option>
-                    );
-                  })}
-                  {orphanJobs.map((j) => {
-                    const name = j.source_file ? (j.source_file.split(/[/\\]/).pop() || j.source_file) : j.job_id;
-                    const val = j.source_file || j.output_file;
-                    return (
-                      <option key={j.job_id} value={val} className="bg-amber-950 text-amber-200 text-left">
-                        {name} [{j.progress_percent}%]
-                      </option>
-                    );
-                  })}
-                  {selectedFile &&
-                    !files.some((f) => f.path === selectedFile) &&
-                    !orphanJobs.some((j) => (j.source_file || j.output_file) === selectedFile) && (
-                      <option value={selectedFile} className="bg-studio-panel text-slate-300 text-left">
-                        {selectedFile.split(/[/\\]/).pop()}
-                      </option>
-                    )}
-                </>
-              ) : (
-                <>
-                  {restoredFiles.map((f) => (
-                    <option key={f.path} value={f.path} className="bg-studio-panel text-emerald-300 text-left">
-                      ★ {f.name} ({formatMbSize(f.size_mb)})
-                    </option>
-                  ))}
-                  {selectedFile && !restoredFiles.some((f) => f.path === selectedFile) && (
-                    <option value={selectedFile} className="bg-studio-panel text-slate-300 text-left">
-                      {selectedFile.split(/[/\\]/).pop()}
-                    </option>
-                  )}
-                </>
-              )}
-            </select>
-          )}
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
-            <HardDrive className="w-3.5 h-3.5" />
-          </div>
-        </div>
-      </div>
-
-      {/* In-Context Compact Recovery Ribbon if Selected Tape Has Checkpoint */}
       {selectedIncompleteJob && (
-        <div className="p-2 rounded-sm bg-amber-950/40 border border-amber-800/60 flex flex-col gap-1.5 font-mono text-[10px]">
-          <div className="flex items-center justify-between text-amber-300">
-            <span className="flex items-center gap-1 font-semibold">
-              <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0 self-center" />
-              <span className="self-center leading-none">
-                {t('recovery.checkpoint_saved_info', {
-                  current: selectedIncompleteJob.processed_frames.toLocaleString(),
-                  total: selectedIncompleteJob.total_expected_frames > 0
-                    ? selectedIncompleteJob.total_expected_frames.toLocaleString()
-                    : '?',
-                  pct: selectedIncompleteJob.progress_percent,
-                })}
-              </span>
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1.5 pt-1 border-t border-amber-800/40 min-w-0">
-            <button
-              type="button"
-              disabled={isRestoring || isPerformingAction}
-              onClick={() => handleAction(selectedIncompleteJob, 'finalize')}
-              className="flex-1 min-w-0 bg-emerald-800/80 hover:bg-emerald-700 disabled:opacity-50 text-emerald-100 py-1 px-1.5 rounded-xs flex items-center justify-center gap-1 font-semibold border border-emerald-600/40 cursor-pointer transition"
-              title={t('recovery.finalize_tooltip')}
-            >
-              <CheckCircle2 className="w-2.5 h-2.5 shrink-0 self-center" />
-              <span className="truncate self-center leading-none">{t('recovery.finalize_button')}</span>
-            </button>
-
-            <button
-              type="button"
-              disabled={isRestoring || isPerformingAction}
-              onClick={() => handleAction(selectedIncompleteJob, 'discard')}
-              className="bg-studio-surface hover:bg-red-950/80 hover:text-red-300 disabled:opacity-50 text-slate-400 py-1 px-2 rounded-xs flex items-center justify-center gap-1 font-semibold border border-studio-border cursor-pointer transition shrink-0"
-              title={t('recovery.discard_tooltip')}
-            >
-              <Trash2 className="w-2.5 h-2.5 shrink-0 self-center" />
-              <span className="truncate self-center leading-none">{t('recovery.discard_button')}</span>
-            </button>
-          </div>
-        </div>
+        <RecoveryCheckpointRibbon
+          job={selectedIncompleteJob}
+          isRestoring={isRestoring}
+          isPerformingAction={isPerformingAction}
+          onAction={handleAction}
+        />
       )}
 
       {/* Tape Cards List */}
@@ -319,77 +101,28 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
               />
             ) : (
               <>
-                {/* Orphan Incomplete Jobs */}
                 {orphanJobs.map((job) => {
                   const targetPath = job.source_file || job.output_file;
                   const isSelected = selectedFile === targetPath;
                   const name = job.source_file ? (job.source_file.split(/[/\\]/).pop() || job.source_file) : job.job_id;
-                  const jobExt = (job.output_file || '.part').split('.').pop()?.toUpperCase() || '';
-                  const selectOrphan = () => {
-                    if (isRestoring || isPaused) return;
-                    handleSelectTape({
-                      name,
-                      path: targetPath,
-                      size_mb: Math.round(job.output_size_bytes / (1024 * 1024)),
-                    });
-                  };
                   return (
-                    <div
+                    <OrphanTapeCard
                       key={job.job_id}
-                      role="button"
-                      tabIndex={isRestoring || isPaused ? -1 : 0}
-                      aria-pressed={isSelected}
-                      onClick={selectOrphan}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          selectOrphan();
-                        }
+                      job={job}
+                      isSelected={isSelected}
+                      isRestoring={isRestoring}
+                      isPaused={isPaused}
+                      onSelect={() => {
+                        handleSelectTape({
+                          name,
+                          path: targetPath,
+                          size_mb: Math.round(job.output_size_bytes / (1024 * 1024)),
+                        });
                       }}
-                      className={`group relative p-2 rounded-sm border transition-all flex items-center gap-2.5 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/80 ${
-                        isRestoring || isPaused ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'
-                      } ${
-                        isSelected
-                          ? 'bg-amber-950/30 border-amber-500 ring-1 ring-amber-500/30 shadow-xs'
-                          : 'bg-studio-surface border-amber-900/60 hover:border-amber-600 hover:bg-studio-surface-hover'
-                      }`}
-                    >
-                      <div className="w-12 h-9 rounded-sm bg-amber-950/60 border border-amber-800/80 flex flex-col items-center justify-center shrink-0 relative overflow-hidden">
-                        <AlertTriangle className="w-4 h-4 text-amber-400" aria-hidden="true" />
-                        <span className="text-[8px] font-mono font-bold text-amber-300 mt-0.5 uppercase tracking-tighter">
-                          {jobExt}
-                        </span>
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-1 mb-0.5">
-                          <h4
-                            className={`text-xs font-mono truncate ${
-                              isSelected ? 'text-amber-200 font-semibold' : 'text-slate-200 group-hover:text-white'
-                            }`}
-                            title={name}
-                          >
-                            {name}
-                          </h4>
-                          <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-xs bg-amber-950/90 text-amber-300 border border-amber-800 hover:border-amber-600 transition-colors shadow-xs shrink-0 inline-flex items-center justify-center leading-none self-center">
-                            <span className="self-center leading-none">{t('recovery.badge_incomplete', { pct: job.progress_percent })}</span>
-                          </span>
-                        </div>
-                        <div className="grid grid-flow-col auto-cols-max items-center gap-1.5 text-[10px] font-mono text-slate-400">
-                          <span className="text-slate-400 tabular-nums self-center leading-none">
-                            {formatMbSize(Math.round(job.output_size_bytes / (1024 * 1024)))}
-                          </span>
-                          <span className="self-center leading-none">•</span>
-                          <span className="text-slate-500 truncate self-center leading-none">
-                            {job.last_modified}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+                    />
                   );
                 })}
 
-                {/* Standard Raw Files */}
                 {files.map((file) => (
                   <TapeItemCard
                     key={file.path}
@@ -408,7 +141,6 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
               </>
             )
           ) : (
-            /* Master Files List */
             restoredFiles.length === 0 ? (
               <EmptyTapeListState
                 icon={<CheckCircle2 className="w-6 h-6 text-slate-500 group-hover:text-emerald-400 transition mb-0.5" />}
@@ -437,13 +169,33 @@ export const TapeLibraryCard: React.FC<TapeLibraryCardProps> = ({
         </div>
       )}
 
-      {/* Quality Control & Forensic Defect Modal */}
-      <QcReportModal
-        filePath={qcModalFile}
-        isOpen={Boolean(qcModalFile)}
-        onClose={() => setQcModalFile(null)}
-      />
+      {/* Contextual Quick Blackframe Clean Action */}
+      {selectedFile && isSupportedVideoFile(selectedFile) && (
+        <div className="pt-2 border-t border-studio-border/60 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            disabled={isRestoring || isPaused || isCleaningBlackframes}
+            onClick={() => handleCleanBlackframes(selectedFile)}
+            className="w-full h-7 bg-studio-surface hover:bg-studio-surface-hover disabled:opacity-50 text-slate-300 hover:text-amber-300 font-mono text-[10px] rounded-sm border border-studio-border flex items-center justify-center gap-1.5 transition cursor-pointer"
+            title={t('blackframes.quick_clean_tooltip')}
+            data-testid="quick-clean-blackframes-btn"
+          >
+            <CheckCircle2 className="w-3 h-3 text-amber-400" />
+            <span>{isCleaningBlackframes ? t('blackframes.cleaning_in_progress') : t('blackframes.quick_clean_button')}</span>
+          </button>
+        </div>
+      )}
 
+      {/* QC Modal Overlay */}
+      {qcModalFile && (
+        <QcReportModal
+          isOpen={Boolean(qcModalFile)}
+          filePath={qcModalFile}
+          onClose={() => setQcModalFile(null)}
+        />
+      )}
+
+      {/* Directory Picker Modal */}
       <DirectoryPickerModal
         isOpen={isDirPickerOpen}
         onClose={() => setIsDirPickerOpen(false)}

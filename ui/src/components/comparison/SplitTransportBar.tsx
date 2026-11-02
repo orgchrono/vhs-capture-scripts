@@ -9,9 +9,8 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { TimelineScrubber } from '../TimelineScrubber';
-import { VolumeControl } from '../VolumeControl';
-import { SubtitleToolbarButtons } from '../SubtitleToolbarButtons';
-import { formatDuration } from '../../lib/formatters';
+import { MonitorMediaControlsGroup } from '../monitor/MonitorMediaControlsGroup';
+import { TimelineTimecodeBadge } from '../monitor/TimelineTimecodeBadge';
 
 export interface SplitTransportBarProps {
   effectiveTimestamp: number;
@@ -154,33 +153,25 @@ export const SplitTransportBar: React.FC<SplitTransportBarProps> = ({
             </button>
           </div>
 
-          <span
-            className="text-[10px] text-slate-300 font-mono tabular-nums shrink-0 bg-studio-surface/90 px-1.5 py-0.5 rounded-xs border border-studio-border whitespace-nowrap self-center leading-none"
-            data-testid="split-timeline-info"
-          >
-            {t('monitor.split_timeline_info', {
-              current: formatDuration(effectiveTimestamp, totalDuration >= 3600 || effectiveTimestamp >= 3600),
-              total: formatDuration(totalDuration, totalDuration >= 3600 || effectiveTimestamp >= 3600),
-              percent: progressPct,
-            })}
-          </span>
-        </div>
-
-        <div className="grid grid-flow-col auto-cols-max items-center gap-1.5 shrink-0">
-          <VolumeControl
-            volume={volume}
-            isMuted={isMuted}
-            onVolumeChange={handleVolumeChange}
-            onMuteToggle={handleMuteChange}
-            compact
-          />
-
-          <SubtitleToolbarButtons
-            subtitlesEnabled={subtitlesEnabled}
-            onToggleSubtitles={toggleSubtitles}
-            onOpenSubtitleEditor={onOpenSubtitleEditor}
+          <TimelineTimecodeBadge
+            currentTimestamp={effectiveTimestamp}
+            totalDuration={totalDuration}
+            progressPct={progressPct}
+            testId="split-timeline-info"
           />
         </div>
+
+        <MonitorMediaControlsGroup
+          controls={{
+            volume,
+            isMuted,
+            subtitlesEnabled,
+            onVolumeChange: handleVolumeChange,
+            onMuteToggle: handleMuteChange,
+            onToggleSubtitles: toggleSubtitles,
+            onOpenSubtitleEditor,
+          }}
+        />
       </div>
     </div>
   );

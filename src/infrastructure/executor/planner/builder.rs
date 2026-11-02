@@ -1,135 +1,15 @@
-//! VHS Studio Pro - Restoration Pipeline Planner (`executor/planner.rs`).
-//!
-//! Pure planning and specification building for video restoration jobs.
-
-use std::path::{Path, PathBuf};
-use serde::{Deserialize, Serialize};
-
-use crate::media::{get_part_path, seconds_to_timecode};
+use std::path::Path;
+use super::models::{PlannedRestoration, RestorationJobRequest};
+use super::path_resolver::resolve_final_output_path;
+use crate::domain::pipeline::expected_output_frames;
+use crate::media::get_part_path;
 use crate::models::constants::DEFAULT_VPY_CACHE_SIZE_MB;
 use crate::pipeline::{
-    build_pipeline_plan, AudioChannelPolicy, DeinterlaceFilter, OutputCodec,
-    PipelinePlan, PipelineSpec, VideoEncoder,
+    build_pipeline_plan, DeinterlaceFilter, OutputCodec, PipelineSpec, VideoEncoder,
 };
 use crate::presets::{Deinterlacer, PresetConfig, RestorationPreset};
 use crate::probe::MediaProbeResult;
 use crate::qtgmc::{build_qtgmc_script_content, build_vspipe_cli_args, FieldOrder, QtgmcScriptParams};
-use crate::runner::ProgressAccumulator;
-
-/// Maximum stderr tail (bytes) retained for failure diagnostics.
-pub const STDERR_TAIL_MAX_BYTES: usize = 8 * 1024;
-
-/// Optional per-job overrides taking precedence over the selected preset (SSOT: `PresetConfig`).
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-pub struct RestorationOverrides {
-    pub crf: Option<u8>,
-    pub chroma_fix: Option<bool>,
-    pub denoise: Option<bool>,
-    pub comb_filter: Option<bool>,
-    pub overscan_blanking: Option<bool>,
-    pub dropout_clean: Option<bool>,
-    pub audio_offset_sec: Option<f64>,
-    #[serde(default)]
-    pub ai_face_restore: Option<bool>,
-    #[serde(default)]
-    pub ai_face_fidelity: Option<f32>,
-    #[serde(default)]
-    pub ai_rife_60fps: Option<bool>,
-    #[serde(default)]
-    pub ai_upscaler: Option<bool>,
-    #[serde(default)]
-    pub ai_upscaler_model: Option<String>,
-}
-
-/// Declarative user request to execute a restoration job.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct RestorationJobRequest {
-    pub input_path: String,
-    pub output_dir: String,
-    pub preset: RestorationPreset,
-    #[serde(default)]
-    pub target_1080p: bool,
-    #[serde(default)]
-    pub output_codec: Option<OutputCodec>,
-    #[serde(default)]
-    pub custom_deinterlacer: Option<DeinterlaceFilter>,
-    #[serde(default)]
-    pub audio_policy: Option<AudioChannelPolicy>,
-    #[serde(default)]
-    pub apply_audio_notch_hum: bool,
-    #[serde(default)]
-    pub apply_loudness_norm: bool,
-    #[serde(default)]
-    pub apply_ai_audio_denoise: bool,
-    #[serde(default)]
-    pub apply_azimuth_correction: bool,
-    #[serde(default)]
-    pub start_sec: f64,
-    #[serde(default)]
-    pub base_start_sec: Option<f64>,
-    #[serde(default)]
-    pub duration_sec: Option<f64>,
-    #[serde(default)]
-    pub overrides: RestorationOverrides,
-}
-
-/// Fully planned restoration ready for subprocess invocation.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct PlannedRestoration {
-    pub input_path: String,
-    pub final_output_path: String,
-    pub part_output_path: String,
-    pub plan: PipelinePlan,
-    pub is_qtgmc_active: bool,
-    pub qtgmc_vpy_content: Option<String>,
-    pub qtgmc_vpy_path: Option<String>,
-    pub ffmpeg_cli_args: Vec<String>,
-    pub vspipe_cli_args: Option<Vec<String>>,
-    pub expected_frames: u64,
-    pub expected_duration_sec: f64,
-    pub request_json: Option<String>,
-    #[serde(default)]
-    pub master_guard_bypassed: bool,
-}
-
-/// Completed restoration telemetry report.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct RestorationSummary {
-    pub input_path: String,
-    pub final_output_path: String,
-    pub total_frames_processed: u64,
-    pub total_duration_sec: f64,
-    pub duration_formatted: String,
-    pub elapsed_wall_clock_sec: f64,
-    pub average_fps: f32,
-    pub sha256_checksum: String,
-    pub success: bool,
-    pub error_message: Option<String>,
-}
-
-/// Computes the final output filename based on input path, preset, target container codec, and optional parameter hash.
-#[must_use]
-pub fn resolve_final_output_path(
-    input_path: &str,
-    output_dir: &str,
-    preset: RestorationPreset,
-    codec: OutputCodec,
-    target_1080p: bool,
-    param_hash: Option<&str>,
-) -> PathBuf {
-    let p = Path::new(input_path);
-    let stem = p.file_stem().and_then(|s| s.to_str()).unwrap_or("restored");
-    let ext = match codec {
-        OutputCodec::ProRes => "mov",
-        OutputCodec::Ffv1 => "mkv",
-        OutputCodec::H264 | OutputCodec::Hevc => "mp4",
-    };
-
-    let suffix_1080p = if target_1080p { "_1080p" } else { "" };
-    let hash_part = param_hash.map(|h| format!("_{h}")).unwrap_or_default();
-    let filename = format!("{stem}_{preset:?}{suffix_1080p}{hash_part}.{ext}").to_lowercase();
-    Path::new(output_dir).join(filename)
-}
 
 /// Pure planner transforming a job request and probe result into a deterministic `PlannedRestoration`.
 pub fn plan_restoration_job(
@@ -524,47 +404,3 @@ pub fn plan_restoration_job(
         master_guard_bypassed,
     })
 }
-
-/// Builds the final restoration summary after execution terminates.
-#[must_use]
-pub fn build_restoration_summary(
-    planned: &PlannedRestoration,
-    accumulator: &ProgressAccumulator,
-    elapsed_wall_clock_sec: f64,
-    sha256_checksum: &str,
-    success: bool,
-    error_message: Option<String>,
-) -> RestorationSummary {
-    let total_duration = if accumulator.current_out_time_seconds > 0.0 {
-        accumulator.current_out_time_seconds
-    } else {
-        planned.expected_duration_sec
-    };
-
-    let total_frames = if accumulator.current_frame > 0 {
-        accumulator.current_frame
-    } else {
-        planned.expected_frames
-    };
-
-    let avg_fps = if elapsed_wall_clock_sec > 0.0 {
-        (total_frames as f64 / elapsed_wall_clock_sec) as f32
-    } else {
-        0.0
-    };
-
-    RestorationSummary {
-        input_path: planned.input_path.clone(),
-        final_output_path: planned.final_output_path.clone(),
-        total_frames_processed: total_frames,
-        total_duration_sec: total_duration,
-        duration_formatted: seconds_to_timecode(total_duration, false),
-        elapsed_wall_clock_sec,
-        average_fps: avg_fps,
-        sha256_checksum: sha256_checksum.to_string(),
-        success,
-        error_message,
-    }
-}
-
-pub use crate::domain::pipeline::{bounded_tail, expected_output_frames, is_output_truncated};
