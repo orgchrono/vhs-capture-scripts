@@ -37,18 +37,20 @@ graph TD
     end
 
     subgraph VIEWMODELS["VIEWMODELS (Typed Custom Hooks & Rust REST Routers)"]
-        VM1["React ViewModels: useStudioViewModel · useConsoleViewModel · useConflictResolutionViewModel"]
-        VM2["Rust REST Routers: api_system · api_restoration (decomposed) · api_queue · api_ingest · api_obs · cli_vm"]
+        VM1["React ViewModels: useStudioViewModel · useConsoleViewModel · useConflictResolutionViewModel · useDiskImagingViewModel"]
+        VM2["Rust REST Routers: api_system · api_restoration · api_queue · api_ingest (panasonic & disk_image) · api_obs · cli_vm"]
     end
 
     subgraph INFRASTRUCTURE["INFRASTRUCTURE (OS / IO / Subprocess Shell)"]
         INF1["http_server · job_recovery · panasonic (probe_io / drive_scanner) · meihdfs · obs (ws_codec / rpc_client / auto_watcher)"]
         INF2["executor (planner / checkpoint / neural_chain / oais_packager / remux / process_runner) · storage · toolchain"]
+        INF3["disk_imager (SectorAlignedBuffer · windows_io CreateFileW Direct I/O · unix_io O_DIRECT · engine)"]
     end
 
     subgraph DOMAIN["DOMAIN (Pure Functional Core / Zero I/O)"]
         DOM1["qc · qtgmc · stream · recovery · filter · fixity · audio · panasonic_format · obs_signal"]
         DOM2["pipeline (spec / video_filters / audio_filters / encoder_args) · ai · archive · chapters"]
+        DOM3["disk_imager (pure mathematical models · conv=noerror,sync sector padding · NIST fixity formatter · error coalescer)"]
     end
 
     subgraph MODELS["MODELS (Entities & Constants SSOT)"]

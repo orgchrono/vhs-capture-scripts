@@ -229,7 +229,23 @@
     "ai_ready_badge": "AI Ready",
     "trimmed_badge": "Trimmed",
     "blackframe_clean_btn": "Clean Blackframes",
-    "blackframe_clean_tooltip": "Run fast stream trim and TBC Frame-Hold freeze on blackframes"
+    "blackframe_clean_tooltip": "Run fast stream trim and TBC Frame-Hold freeze on blackframes",
+    "ingest_mode_titles": "Title Extraction",
+    "ingest_mode_raw_image": "Raw Disk Image (.img / .bin)",
+    "disk_image_output_label": "Raw Image Destination (.img / .bin / .iso):",
+    "disk_image_output_placeholder": "Select output folder or path for disk image...",
+    "disk_image_format_label": "Container Format:",
+    "disk_image_zero_fill_label": "Bad Sector Fault Tolerance (conv=noerror,sync • 0x00 Zero-Fill)",
+    "disk_image_sha256_label": "Generate SHA-256 Fixity Sidecar (.sha256 + .dump_log.json)",
+    "disk_image_auto_chain_label": "Auto-Chain Extracted Streams into Restoration Queue (QTGMC)",
+    "disk_image_sector_map_title": "Physical Sector Health Map (LBA)",
+    "disk_image_legend_good": "Verified",
+    "disk_image_legend_retried": "Retried",
+    "disk_image_legend_bad": "Bad Sector (0x00)",
+    "disk_image_lba_status": "LBA {{current}} / {{total}} ({{percent}}%)",
+    "disk_image_telemetry_bar": "Throughput: {{speed}} MB/s • ETA: {{eta}} • Bad Sectors: {{errors}}",
+    "disk_image_start_btn": "Start Bit-for-Bit Forensic Imaging",
+    "disk_image_cancel_btn": "Cancel Imaging"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
@@ -454,7 +470,11 @@
     "invalid_video_format_desc": "Unsupported file. Please use analog video formats (.mkv, .mp4, .avi, .mov, .ts, .vob).",
     "blackframe_clean_title": "Blackframe Cleaning",
     "blackframe_clean_desc": "Blackframe hygiene executed successfully: {{file}}",
-    "blackframe_clean_error": "Failed to clean blackframes: {{error}}"
+    "blackframe_clean_error": "Failed to clean blackframes: {{error}}",
+    "disk_imaging_started_title": "Forensic Disk Imaging Started",
+    "disk_imaging_completed_title": "Disk Image Completed with SHA-256 Fixity",
+    "disk_imaging_cancelled_title": "Disk Imaging Cancelled",
+    "disk_imaging_error_title": "Raw Disk Imaging Failed"
   },
   "telemetry": {
     "title": "Analog Mastering Telemetry",
@@ -504,7 +524,8 @@
     "task_install_obs": "OBS Studio Installation",
     "task_whisper_subtitles": "Whisper Subtitles & Transcription",
     "task_panasonic_extract": "Panasonic Title Extraction",
-    "task_image_generation": "A/B Comparison Frame Extraction"
+    "task_image_generation": "A/B Comparison Frame Extraction",
+    "task_disk_imaging": "Imaging Raw Physical Disk (.img)..."
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",
@@ -588,7 +609,11 @@
     "obs_watcher_error": "[OBS] Auto-Watcher error: {{error}}",
     "blackframe_clean_starting": "[BLACKFRAME] Starting fast hygiene on {{file}}...",
     "blackframe_clean_done": "[BLACKFRAME] Hygiene completed. Output: {{output}}",
-    "planner_guard_bypass": "[PLANNER-GUARD] Input is already progressive/master. Bypassing analog-only filters."
+    "planner_guard_bypass": "[PLANNER-GUARD] Input is already progressive/master. Bypassing analog-only filters.",
+    "disk_imaging_starting": "[IMAGER] Starting raw block read from {{device}} to {{output}}",
+    "disk_imaging_bad_sector": "[IMAGER] Unreadable sector at LBA {{lba}}: zero-padded with 0x00 (sync preserved)",
+    "disk_imaging_completed": "[IMAGER] Completed: {{output}} (SHA-256: {{sha256}}, Bad Sectors: {{errors}})",
+    "disk_imaging_cancelled": "[IMAGER] Disk imaging operation aborted by operator."
   },
   "recovery": {
     "title": "Incomplete / Interrupted Projects",

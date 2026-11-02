@@ -489,6 +489,83 @@ Extracts selected program titles via native C utilities into `media/raw/`.
 
 ---
 
+## 6.1 Native Raw Disk Block Imaging (`src/domain/disk_imager.rs` & `src/infrastructure/disk_imager/`)
+
+### `GET /api/ingest/disk-image/drives`
+Enumerates physical storage drives and volume-locked devices available for direct, unbuffered raw block imaging (`\\.\PhysicalDriveN` on Windows, `/dev/sdX` / `/dev/srX` on Linux, `/dev/rdiskN` on macOS).
+
+- **Tauri IPC Equivalent:** `ipc_list_physical_drives`
+- **Response (HTTP 200):**
+  ```json
+  [
+    {
+      "device_id": "\\\\.\\PhysicalDrive1",
+      "display_name": "MATSHITA DVD-RAM LF-D310 (4.7 GB)",
+      "size_bytes": 4700000000,
+      "sector_size": 2048,
+      "media_kind": "optical_disc",
+      "is_removable": true,
+      "is_read_only": false
+    }
+  ]
+  ```
+
+---
+
+### `POST /api/ingest/disk-image/start`
+Initiates a background direct block imaging job with adaptive bad-sector recovery (`conv=noerror,sync`), in-flight SHA-256 fixity sidecar calculation, and optional automated restoration pipeline chaining.
+
+- **Tauri IPC Equivalent:** `ipc_start_disk_imaging`
+- **Payload Schema (`ImagingConfig`):**
+  ```json
+  {
+    "source_device_id": "\\\\.\\PhysicalDrive1",
+    "output_image_path": "C:\\VHS\\raw\\panasonic_archive.img",
+    "container_format": "img",
+    "primary_chunk_bytes": 1048576,
+    "physical_sector_bytes": 2048,
+    "max_sector_retries": 3,
+    "zero_fill_corrupt_sectors": true,
+    "compute_sha256_sidecar": true,
+    "auto_chain_restoration": true,
+    "auto_enqueue_preset": "gold"
+  }
+  ```
+- **Response (HTTP 200) - Completed Forensic Dump Report:**
+  ```json
+  {
+    "schema_version": 1,
+    "source_device_id": "\\\\.\\PhysicalDrive1",
+    "output_image_path": "C:\\VHS\\raw\\panasonic_archive.img",
+    "container_format": "img",
+    "total_bytes_requested": 4700000000,
+    "total_bytes_written": 4700000000,
+    "sha256_hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "damaged_sector_count": 0,
+    "retried_sector_count": 0,
+    "damaged_ranges": [],
+    "elapsed_seconds": 124.5,
+    "average_speed_mb_per_sec": 37.75,
+    "completed_timestamp": "2026-11-02T01:00:00Z"
+  }
+  ```
+
+---
+
+### `POST /api/ingest/disk-image/cancel`
+Signals the active background disk imaging job to abort cleanly, terminating direct I/O without corrupting system handles.
+
+- **Tauri IPC Equivalent:** `ipc_cancel_disk_imaging`
+- **Response (HTTP 200):**
+  ```json
+  {
+    "status": "cancelled",
+    "message": "Disk imaging cancelled by operator."
+  }
+  ```
+
+---
+
 ## 7. Media & Storage Endpoints (`src/viewmodels/storage_vm.rs` & `src/infrastructure/storage.rs`)
 
 ### `GET /api/media/thumbnail`

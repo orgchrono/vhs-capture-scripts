@@ -6,6 +6,7 @@
 
 use crate::domain::archive::ArchivalFileEntry;
 use crate::domain::chapters::ChapterInterval;
+use crate::domain::disk_imager::{DiskDevice, ForensicDumpReport, ImagingConfig};
 use crate::domain::pipeline::OutputCodec;
 use crate::domain::qtgmc::QtgmcScriptParams;
 use crate::domain::queue::{JobRecord, QueueStats};
@@ -363,6 +364,34 @@ pub async fn ipc_detect_connected_drives() -> Vec<PanasonicDiskInfo> {
     })
     .await
     .unwrap_or_default()
+}
+
+#[tauri::command]
+pub async fn ipc_list_physical_drives() -> Vec<DiskDevice> {
+    tauri::async_runtime::spawn_blocking(|| {
+        crate::viewmodels::ingest_vm::ipc_list_physical_drives()
+    })
+    .await
+    .unwrap_or_default()
+}
+
+#[tauri::command]
+pub async fn ipc_start_disk_imaging(
+    window: tauri::Window,
+    config: ImagingConfig,
+) -> Result<ForensicDumpReport, String> {
+    let ctx = crate::viewmodels::api_router::default_app_context().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::viewmodels::ingest_vm::ipc_start_disk_imaging(&ctx, config, Some(window))
+    })
+    .await
+    .map_err(|e| format!("Disk imaging worker join error: {e}"))?
+}
+
+#[tauri::command]
+pub fn ipc_cancel_disk_imaging() -> Result<bool, String> {
+    let ctx = crate::viewmodels::api_router::default_app_context();
+    Ok(crate::viewmodels::ingest_vm::ipc_cancel_disk_imaging(ctx))
 }
 
 #[tauri::command]
@@ -757,6 +786,9 @@ pub fn run_desktop_app() {
             ipc_parse_ffprobe_json,
             ipc_build_ffprobe_args,
             ipc_detect_connected_drives,
+            ipc_list_physical_drives,
+            ipc_start_disk_imaging,
+            ipc_cancel_disk_imaging,
             ipc_generate_panasonic_chapters,
             ipc_score_frame_candidate,
             ipc_build_thumbnail_extract_args,

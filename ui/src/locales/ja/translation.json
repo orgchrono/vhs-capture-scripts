@@ -229,7 +229,23 @@
     "ai_ready_badge": "AI利用可能",
     "trimmed_badge": "トリミング済",
     "blackframe_clean_btn": "黒フレームをクリーン",
-    "blackframe_clean_tooltip": "黒フレームの高速ストリームトリムおよびTBCフレームホールドフリーズを実行します"
+    "blackframe_clean_tooltip": "黒フレームの高速ストリームトリムおよびTBCフレームホールドフリーズを実行します",
+    "ingest_mode_titles": "タイトル抽出",
+    "ingest_mode_raw_image": "Rawディスクイメージ (.img / .bin)",
+    "disk_image_output_label": "Rawイメージ保存先 (.img / .bin / .iso):",
+    "disk_image_output_placeholder": "イメージの保存フォルダまたはパスを選択...",
+    "disk_image_format_label": "コンテナ形式:",
+    "disk_image_zero_fill_label": "不良セクタ耐性 (conv=noerror,sync • 0x00 ゼロフィル)",
+    "disk_image_sha256_label": "SHA-256 真正性マニフェスト生成 (.sha256 + .dump_log.json)",
+    "disk_image_auto_chain_label": "修復キューへ自動連携 (QTGMC)",
+    "disk_image_sector_map_title": "物理セクタ状態マップ (LBA)",
+    "disk_image_legend_good": "正常",
+    "disk_image_legend_retried": "再試行復旧",
+    "disk_image_legend_bad": "不良セクタ (0x00)",
+    "disk_image_lba_status": "LBA {{current}} / {{total}} ({{percent}}%)",
+    "disk_image_telemetry_bar": "転送速度: {{speed}} MB/s • ETA: {{eta}} • 不良セクタ: {{errors}}",
+    "disk_image_start_btn": "完全ビット単位フォレンジック作成開始",
+    "disk_image_cancel_btn": "イメージ作成キャンセル"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
@@ -454,7 +470,11 @@
     "invalid_video_format_desc": "サポートされていないファイルです。動画形式（.mkv、.mp4、.avi、.mov、.ts、.vob）を使用してください。",
     "blackframe_clean_title": "黒フレームクリーン",
     "blackframe_clean_desc": "黒フレームの衛生化が正常に完了しました: {{file}}",
-    "blackframe_clean_error": "黒フレームのクリーンに失敗しました: {{error}}"
+    "blackframe_clean_error": "黒フレームのクリーンに失敗しました: {{error}}",
+    "disk_imaging_started_title": "フォレンジックディスククローン開始",
+    "disk_imaging_completed_title": "SHA-256 真正性検証付きイメージ作成完了",
+    "disk_imaging_cancelled_title": "ディスクイメージ作成がキャンセルされました",
+    "disk_imaging_error_title": "Rawディスクイメージ作成失敗"
   },
   "telemetry": {
     "title": "アナログマスタリング テレメトリ",
@@ -504,7 +524,8 @@
     "task_install_obs": "OBS Studio インストール",
     "task_whisper_subtitles": "Whisper 字幕・文字起こし",
     "task_panasonic_extract": "Panasonic タイトル抽出",
-    "task_image_generation": "A/B比較フレーム抽出"
+    "task_image_generation": "A/B比較フレーム抽出",
+    "task_disk_imaging": "Raw物理ディスクイメージを作成中 (.img)..."
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",
@@ -588,7 +609,11 @@
     "obs_watcher_error": "[OBS] オートウォッチャーエラー: {{error}}",
     "blackframe_clean_starting": "[BLACKFRAME] {{file}} の高速クリーンを開始中...",
     "blackframe_clean_done": "[BLACKFRAME] クリーンが完了しました。出力: {{output}}",
-    "planner_guard_bypass": "[PLANNER-GUARD] 入力は既にプログレッシブ/マスターです。アナログ専用フィルターをバイパスします。"
+    "planner_guard_bypass": "[PLANNER-GUARD] 入力は既にプログレッシブ/マスターです。アナログ専用フィルターをバイパスします。",
+    "disk_imaging_starting": "[IMAGER] {{device}} から {{output}} へのRaw読み取りを開始",
+    "disk_imaging_bad_sector": "[IMAGER] LBA {{lba}} で不良セクタを検出: 0x00でゼロフィル (同期を維持)",
+    "disk_imaging_completed": "[IMAGER] 完了: {{output}} (SHA-256: {{sha256}}, 不良セクタ: {{errors}})",
+    "disk_imaging_cancelled": "[IMAGER] オペレーターによりイメージ作成が中断されました。"
   },
   "recovery": {
     "title": "進行中 / 中断されたプロジェクト",

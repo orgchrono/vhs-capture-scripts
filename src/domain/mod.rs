@@ -8,6 +8,7 @@ pub mod archive;
 pub mod audio;
 pub mod blackframe;
 pub mod chapters;
+pub mod disk_imager;
 pub mod filter;
 pub mod fixity;
 pub mod log_buffer;

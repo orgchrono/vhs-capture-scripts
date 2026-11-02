@@ -85,4 +85,27 @@ describe('PanasonicIngestCard Component', () => {
       delete (window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;
     }
   });
+
+  it('switches between title extraction and raw disk imaging mode', () => {
+    renderComponent();
+
+    const toggle = screen.getByTestId('toggle-panasonic-ingest-btn');
+    fireEvent.click(toggle);
+
+    // Initial mode is titles
+    expect(screen.getByTestId('panasonic-path-input')).toBeInTheDocument();
+
+    // Switch to raw disk image mode
+    const diskImageBtn = screen.getByTestId('ingest-mode-raw-image-btn');
+    fireEvent.click(diskImageBtn);
+
+    expect(screen.getByTestId('disk-image-output-input')).toBeInTheDocument();
+    expect(screen.getByTestId('start-disk-imaging-btn')).toBeInTheDocument();
+
+    // Switch back to titles mode
+    const titlesBtn = screen.getByTestId('ingest-mode-titles-btn');
+    fireEvent.click(titlesBtn);
+
+    expect(screen.getByTestId('panasonic-path-input')).toBeInTheDocument();
+  });
 });

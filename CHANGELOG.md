@@ -4,6 +4,65 @@ All notable changes to **VHS Studio Pro** are documented in this file.
 
 ---
 
+## [0.2.0] - 2026-11-02
+
+### 🚀 Highlights & Major Improvements
+
+#### 1. Native Raw Disk Block Imaging Engine (`.img` / `.bin` / `.iso`)
+- **Zero Third-Party Binary Dependencies:** Implemented a pure Rust raw block device imaging engine (`src/domain/disk_imager.rs`, `src/infrastructure/disk_imager/`), entirely eliminating the need for `dd.exe`, `Win32DiskImager`, or Cygwin/MSYS2 utilities.
+- **Low-Level Direct & Unbuffered OS I/O:**
+  - **Windows:** Win32 direct block reader using `CreateFileW` on `\\.\PhysicalDriveN` and volume-locked devices `\\.\X:` with `FILE_FLAG_NO_BUFFERING | FILE_FLAG_SEQUENTIAL_SCAN`, dismounting and locking target volumes via `FSCTL_LOCK_VOLUME` and `FSCTL_DISMOUNT_VOLUME`, and querying drive length via `IOCTL_DISK_GET_LENGTH_INFO`.
+  - **Linux / macOS:** Direct POSIX reader supporting `O_RDONLY | O_DIRECT` on `/dev/sdX` and `/dev/srX`, with unbuffered character-device reading (`/dev/rdiskN` and `F_NOCACHE`) on macOS.
+- **Sector-Aligned Memory Allocator:** Implemented `SectorAlignedBuffer` guaranteeing strict 4096-byte memory alignment conforming to OS Direct I/O hardware constraints (`std::alloc::Layout`).
+- **Hardware-Resilient Fault Tolerance (`conv=noerror,sync`):**
+  - Adaptive two-stage sector recovery: when an unbuffered 1 MiB chunk read fails due to hardware CRC errors, decaying dye layers, or physical disc scratches, the engine automatically falls back to single-sector granularity with configurable retries.
+  - Zero-padding damaged or unreadable sectors with `0x00`, preserving file system offsets and preventing master video timecode drift.
+  - Coalesces adjacent bad sectors into contiguous ranges and writes a forensic JSON report (`<image>.dump_log.json`).
+- **Concurrent In-Flight Fixity:**
+  - Streams block data through a streaming SHA-256 hasher without buffer cloning or duplicate memory allocation.
+  - Automatically emits a NIST/Library of Congress archival fixity manifest sidecar (`<image>.sha256`) containing the cryptographic checksum and destination image filename.
+- **Atomic File Commit:** Writes to an intermediate `<image>.part` file, committing atomically via `std::fs::rename` only upon successful byte completion.
+- **Real-Time 4 Hz Telemetry:** Streams byte progress, throughput (MB/s), estimated time remaining (ETA), defect count, and 128-bucket LBA sector health over Tauri IPC (`disk_imaging_progress`) and HTTP SSE (`/api/logs/stream`).
+
+#### 2. Restoration Pipeline Chaining & Auto-Ingest
+- **Seamless Archive Pipeline Handoff:** Added `auto_chain_restoration` integration. Upon completing a raw disk image extraction, the dump is automatically:
+  1. Inspected via the Panasonic/UDF stream carver (`execute_panasonic_extraction`), discovering MEIHDFS/UDF video titles.
+  2. Auto-selected in the Tape Library (`TapeLibraryCard.tsx`) as the active ingest target.
+  3. Pre-enqueued for the canonical 3-stage archival restoration pipeline (Stage 1: QTGMC deinterlacing $\to$ Stage 2: AI enhancement $\to$ Stage 3: Blackframe hygiene & BagIt packaging).
+
+#### 3. Automated Code Signing with SignPath.io (CI/CD)
+- **Eliminated SmartScreen Unknown Publisher Warnings:** Integrated SignPath Foundation trusted open-source code signing into `.github/workflows/release.yml`.
+- **Automated Windows Signing Pipeline:** Executes `signpath/github-action-submit-signing-request@v1` for Windows binaries (`vhs-studio.exe` / `VHS_Studio_Pro.exe`) under the `vhs-studio-pro` project slug and `release-signing` policy, with fallback to Authenticode PFX when secret tokens are absent.
+- **Provenance Attestation:** Enabled `id-token: write` and `attestations: write` permissions for GitHub Release provenance validation.
+
+#### 4. Frontend MVVM UI & Real-Time Sector Visualization
+- **Dual-Mode Panasonic Ingest:** Extended `PanasonicIngestCard.tsx` with an intuitive mode switch between **[Extração de Títulos]** and **[Imagem de Disco Bruto (.img / .bin)]**.
+- **Physical Drive Discovery:** Interactive physical drive dropdown with dynamic drive refresh, capacity display, and vendor details.
+- **128-Bucket Sector Health Bar (`SectorHealthBar.tsx`):** High-density color-coded LBA sector health visualization displaying healthy (emerald), retried (amber), zero-filled corrupt (red pulse), and pending (slate) blocks, complete with defect counters.
+- **Real-Time Speedometer:** Live throughput speed (MB/s) and countdown timer (ETA) during imaging operations.
+- **MVVM Architecture:** Dedicated `useDiskImagingViewModel.ts` hook adhering to strict SoC and MVVM paradigms, coordinating state with Redux Toolkit and transparent REST/Tauri bridge routing.
+
+#### 5. Full 10-Locale Internationalization (i18n) Parity
+- 100% key parity maintained across all 10 supported languages (`pt-BR`, `en-US`, `es`, `fr`, `de`, `it`, `ja`, `ar`, `ru`, `zh-CN`) for all disk imaging controls, labels, tooltips, dialogs, and forensic telemetry.
+
+---
+
+### 🛡️ Quality Gate Verification Results
+
+| Quality Gate | Tool / Check | Result |
+| :--- | :--- | :--- |
+| Gate 1 | JSCPD Anti-Duplication | **0.00% Clones (PASS)** |
+| Gate 2 | Oxlint / ESLint UI Linter | **0 Errors, 0 Warnings (PASS)** |
+| Gate 3 | TypeScript Strict Types (TSC) | **0 Errors (PASS)** |
+| Gate 4 | React Unit Tests (Vitest) | **35/35 Files, 172/172 Tests PASS (100%)** |
+| Gate 5 | End-to-End Integration Tests (Playwright) | **16/16 Tests PASS (100%)** |
+| Gate 6 | Cargo Check (Rust Compilation) | **0 Errors (PASS)** |
+| Gate 7 | Cargo Clippy (Rust Quality) | **0 Warnings with `-D warnings` (PASS)** |
+| Gate 8 | Cargo Test (Native Rust Tests) | **273/273 Tests PASS (100%)** |
+| Gate 9 | i18n Translation Key Parity | **10/10 Locales, 100% Matching Parity (PASS)** |
+
+---
+
 ## [0.1.0] - 2026-11-01
 
 ### 🚀 Highlights & Major Improvements

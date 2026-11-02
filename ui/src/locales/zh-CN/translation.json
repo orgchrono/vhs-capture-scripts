@@ -229,7 +229,23 @@
     "ai_ready_badge": "AI可用",
     "trimmed_badge": "已修剪",
     "blackframe_clean_btn": "清理黑帧",
-    "blackframe_clean_tooltip": "对黑帧执行快速流修剪与 TBC Frame-Hold 冻结"
+    "blackframe_clean_tooltip": "对黑帧执行快速流修剪与 TBC Frame-Hold 冻结",
+    "ingest_mode_titles": "标题提取",
+    "ingest_mode_raw_image": "物理磁盘原始镜像 (.img / .bin)",
+    "disk_image_output_label": "原始镜像保存目标 (.img / .bin / .iso)：",
+    "disk_image_output_placeholder": "选择镜像输出文件夹或路径...",
+    "disk_image_format_label": "容器格式：",
+    "disk_image_zero_fill_label": "坏道容错 (conv=noerror,sync • 填充 0x00)",
+    "disk_image_sha256_label": "生成 SHA-256 完整性清单 (.sha256 + .dump_log.json)",
+    "disk_image_auto_chain_label": "自动链接至修复处理队列 (QTGMC)",
+    "disk_image_sector_map_title": "物理扇区健康映射图 (LBA)",
+    "disk_image_legend_good": "完好",
+    "disk_image_legend_retried": "重试恢复",
+    "disk_image_legend_bad": "坏扇区 (0x00)",
+    "disk_image_lba_status": "LBA {{current}} / {{total}} ({{percent}}%)",
+    "disk_image_telemetry_bar": "速率：{{speed}} MB/s • 预估剩余：{{eta}} • 坏扇区数：{{errors}}",
+    "disk_image_start_btn": "启动逐位取证级磁盘克隆",
+    "disk_image_cancel_btn": "取消克隆"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
@@ -454,7 +470,11 @@
     "invalid_video_format_desc": "不支持的文件。请使用模拟视频格式（.mkv、.mp4、.avi、.mov、.ts、.vob）。",
     "blackframe_clean_title": "黑帧清理",
     "blackframe_clean_desc": "黑帧清理已成功执行：{{file}}",
-    "blackframe_clean_error": "清理黑帧失败：{{error}}"
+    "blackframe_clean_error": "清理黑帧失败：{{error}}",
+    "disk_imaging_started_title": "取证级磁盘克隆已启动",
+    "disk_imaging_completed_title": "磁盘镜像已完成并附带 SHA-256 固定校验",
+    "disk_imaging_cancelled_title": "磁盘镜像任务已取消",
+    "disk_imaging_error_title": "原始物理磁盘克隆失败"
   },
   "telemetry": {
     "title": "模拟修复母带遥测数据",
@@ -504,7 +524,8 @@
     "task_install_obs": "OBS Studio 安装",
     "task_whisper_subtitles": "Whisper 离线转录与字幕生成",
     "task_panasonic_extract": "松下录像标题提取",
-    "task_image_generation": "A/B 对比帧提取"
+    "task_image_generation": "A/B 对比帧提取",
+    "task_disk_imaging": "正在读取物理原始磁盘镜像 (.img)..."
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",
@@ -588,7 +609,11 @@
     "obs_watcher_error": "[OBS] 自动守望错误: {{error}}",
     "blackframe_clean_starting": "[BLACKFRAME] 正在对 {{file}} 启动快速清理...",
     "blackframe_clean_done": "[BLACKFRAME] 清理完成。输出：{{output}}",
-    "planner_guard_bypass": "[PLANNER-GUARD] 输入已是逐行/母带文件。正在旁路纯模拟滤镜。"
+    "planner_guard_bypass": "[PLANNER-GUARD] 输入已是逐行/母带文件。正在旁路纯模拟滤镜。",
+    "disk_imaging_starting": "[IMAGER] 开始从 {{device}} 读取原始扇区至 {{output}}",
+    "disk_imaging_bad_sector": "[IMAGER] LBA {{lba}} 处存在无法读取扇区：已填入 0x00 保持物理偏移对齐",
+    "disk_imaging_completed": "[IMAGER] 已完成：{{output}} (SHA-256: {{sha256}}, 坏扇区数: {{errors}})",
+    "disk_imaging_cancelled": "[IMAGER] 磁盘克隆操作已被操作员中止。"
   },
   "recovery": {
     "title": "进行中 / 中断的项目",

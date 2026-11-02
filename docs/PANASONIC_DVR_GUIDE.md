@@ -55,14 +55,65 @@ When connecting a Panasonic DVR hard drive to the workstation, select high-compa
 - **Verified Chipsets:** **JMicron JMS567**, **ASMedia ASM1153E**, **Realtek RTL9210B**.
 - The backend automatically detects hardware controller signatures (`is_jmicron`, `is_asmedia`, `is_usb`) via WMI queries on Windows, `udev` attributes on Linux, and `diskutil` / IOKit properties on macOS.
 
-### 2.2 Forensic Bit-Level Disk Image Creation (Raw Dump)
+### 2.2 Native Pure Rust Raw Disk Block Imaging Engine (`.img` / `.bin` / `.iso`)
 
-To prevent physical wear on fragile mechanical drive bearings and reading heads, best practice dictates cloning an uncompressed bitstream image before extraction:
-- **Linux / macOS:**
-  ```bash
-  sudo dd if=/dev/sdX of=/path/to/panasonic_dump.img bs=64k status=progress conv=noerror,sync
-  ```
-- **Windows:** Utilize **FTK Imager** (*Create Disk Image -> Raw dd*) or **Win32DiskImager** to generate a flat `.img` or `.raw` bitstream container.
+To prevent physical wear on fragile mechanical drive bearings, optical DVD-RAM dyes, and read heads, best practice dictates cloning an uncompressed bitstream image before extraction.
+
+Historically, archivists relied on external utilities (`dd` or `Win32DiskImager`). In **VHS Studio Pro v0.2.0**, a **native raw disk block imaging engine** is built directly into the Rust functional core (`src/domain/disk_imager.rs` and `src/infrastructure/disk_imager/`), requiring **zero third-party binary dependencies**:
+
+```mermaid
+flowchart TD
+    subgraph DirectIO ["Low-Level OS Direct I/O Engine"]
+        Dev["Physical Block Device (\\\\.\\PhysicalDriveN / \\\\.\\X: / /dev/sdX / /dev/rdiskN)"]
+        Buffer["SectorAlignedBuffer (4096-byte Alignment)"]
+        Reader["1 MiB Chunk Reader (Unbuffered Direct I/O)"]
+        Fallback["Adaptive Bad Sector Recovery (conv=noerror,sync)<br/>0x00 Zero-Padding Damaged Sectors"]
+    end
+
+    subgraph Fixity ["Fixity & Forensic Reporting"]
+        Hasher["Concurrent In-Flight SHA-256 Hasher"]
+        DumpLog["Contiguous LBA Error Coalescer (*.dump_log.json)"]
+        Manifest["NIST / Library of Congress Fixity Manifest (*.img.sha256)"]
+        Telemetry["4 Hz Telemetry Stream (Tauri IPC + SSE /api/logs/stream)"]
+    end
+
+    subgraph Chaining ["Restoration Pipeline Handoff"]
+        Carver["Panasonic Stream Carver (execute_panasonic_extraction)"]
+        TapeLib["Auto-Select Target in TapeLibraryCard"]
+        Queue["Pre-Populate Canonical 3-Stage Restoration Queue"]
+    end
+
+    Dev --> Reader
+    Buffer --> Reader
+    Reader -->|Hardware CRC Error| Fallback
+    Reader --> Hasher
+    Fallback --> Hasher
+    Hasher --> Manifest
+    Fallback --> DumpLog
+    Reader --> Telemetry
+    Manifest --> Carver
+    Carver --> TapeLib
+    TapeLib --> Queue
+```
+
+#### Key Technical Capabilities:
+1. **Low-Level Unbuffered Direct I/O:**
+   - **Windows:** Invokes `CreateFileW` on `\\.\PhysicalDriveN` or volume handles `\\.\X:` using flags `FILE_FLAG_NO_BUFFERING | FILE_FLAG_SEQUENTIAL_SCAN`. Dismounts and locks target volumes via `FSCTL_LOCK_VOLUME` and `FSCTL_DISMOUNT_VOLUME` to guarantee exclusive sector read access. Drive geometry and total capacities are queried via `IOCTL_DISK_GET_LENGTH_INFO`.
+   - **Linux / macOS:** Uses POSIX `open()` with `O_RDONLY | O_DIRECT` on `/dev/sdX` and `/dev/srX`, or direct unbuffered character device reading (`/dev/rdiskN` with `F_NOCACHE`) on macOS.
+2. **Sector-Aligned Memory Allocator (`SectorAlignedBuffer`):**
+   - Direct I/O requires buffer memory addresses and transfer lengths to be exact multiples of the sector size (512, 2048, or 4096 bytes). `SectorAlignedBuffer` enforces strict 4096-byte hardware alignment using `std::alloc`.
+3. **Adaptive Fault Tolerance (`conv=noerror,sync`):**
+   - Reads occur in 1 MiB chunks for high throughput. If an optical dye defect or read error occurs, the engine automatically falls back to single-sector granularity with configurable retries.
+   - Damaged sectors are zero-padded with `0x00`, preserving file system offsets and ensuring audio/video stream timecodes remain in lockstep.
+   - Coalesces adjacent bad sectors into contiguous ranges and writes a forensic JSON defect report (`<image>.dump_log.json`).
+4. **Concurrent In-Flight Fixity:**
+   - Block data is streamed simultaneously into an unbuffered file writer (`std::fs::File`) and a SHA-256 hasher without buffer cloning or duplicate memory overhead.
+   - Outputs a NIST/Library of Congress archival sidecar (`<image>.sha256`) upon completion.
+5. **Atomic Commit & Real-Time Telemetry:**
+   - Writes to a temporary `<image>.part` file and atomically renames upon completion.
+   - Emits progress events at 4 Hz over Tauri IPC and SSE: processed bytes, total capacity, instantaneous throughput (MB/s), countdown timer (ETA), and 128-bucket sector map health.
+6. **Automated Pipeline Chaining:**
+   - When `auto_chain_restoration` is enabled, completing an imaging job automatically unpacks video titles, selects the media in `TapeLibraryCard`, and pre-populates the 3-stage archival restoration queue.
 
 ---
 

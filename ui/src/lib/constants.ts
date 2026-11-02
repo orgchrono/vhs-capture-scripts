@@ -149,6 +149,13 @@ export const LOG_LIMITS = {
   MAX_LINES: 500,
 } as const;
 
+export const DISK_IMAGING_CONFIG = {
+  SECTOR_MAP_BUCKETS: 128,
+  TELEMETRY_INTERVAL_MS: 250,
+  DEFAULT_PRIMARY_CHUNK_BYTES: 1024 * 1024,
+  DEFAULT_MAX_RETRIES: 2,
+} as const;
+
 export const MONITOR_FORMATS = {
   SMPTE_NTSC: 'SMPTE 4:3 • NTSC 59.94p',
 } as const;

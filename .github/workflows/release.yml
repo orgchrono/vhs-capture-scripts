@@ -10,6 +10,8 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -81,11 +83,53 @@ jobs:
         cp -f target/release/WebView2Loader.dll dist/bundle/WebView2Loader.dll 2>/dev/null || true
         cp -f README.md dist/bundle/README.md || true
 
-    - name: Authenticode Sign Executable (Windows)
-      if: runner.os == 'Windows' && env.WINDOWS_CERT_PFX_BASE64 != ''
+    - name: Prepare Unsigned Package for SignPath (Windows)
+      if: runner.os == 'Windows' && env.SIGNPATH_API_TOKEN != ''
+      env:
+        SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+      shell: pwsh
+      run: |
+        New-Item -ItemType Directory -Path "dist/unsigned" -Force | Out-Null
+        Copy-Item -Path "dist/bundle/${{ matrix.target_binary }}" -Destination "dist/unsigned/${{ matrix.target_binary }}"
+        Compress-Archive -Path "dist/unsigned/*" -DestinationPath "dist/unsigned.zip" -Force
+
+    - name: Sign Executable via SignPath.io (Windows Trusted Foundation Signing)
+      if: runner.os == 'Windows' && env.SIGNPATH_API_TOKEN != ''
+      uses: signpath/github-action-submit-signing-request@v1
+      env:
+        SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+      with:
+        api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+        organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID || secrets.SIGNPATH_ORGANIZATION_ID }}
+        project-slug: 'vhs-studio-pro'
+        signing-policy-slug: 'release-signing'
+        artifact-configuration-slug: 'windows-executable'
+        input-artifact-path: 'dist/unsigned.zip'
+        output-artifact-directory: 'dist/signed'
+        wait-for-completion: true
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Apply SignPath Signed Binary (Windows)
+      if: runner.os == 'Windows' && env.SIGNPATH_API_TOKEN != ''
+      env:
+        SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+      shell: pwsh
+      run: |
+        if (Test-Path "dist/signed/${{ matrix.target_binary }}") {
+          Copy-Item -Path "dist/signed/${{ matrix.target_binary }}" -Destination "dist/bundle/${{ matrix.target_binary }}" -Force
+          Write-Host "[+] Replaced with SignPath-signed binary: dist/bundle/${{ matrix.target_binary }}"
+        } elseif (Test-Path "dist/signed/*.exe") {
+          $signedExe = Get-ChildItem "dist/signed/*.exe" | Select-Object -First 1
+          Copy-Item -Path $signedExe.FullName -Destination "dist/bundle/${{ matrix.target_binary }}" -Force
+          Write-Host "[+] Replaced with SignPath-signed binary ($($signedExe.Name)): dist/bundle/${{ matrix.target_binary }}"
+        }
+
+    - name: Authenticode Sign Executable (Windows PFX Fallback)
+      if: runner.os == 'Windows' && env.SIGNPATH_API_TOKEN == '' && env.WINDOWS_CERT_PFX_BASE64 != ''
       env:
         WINDOWS_CERT_PFX_BASE64: ${{ secrets.WINDOWS_CERT_PFX_BASE64 }}
         WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+        SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
       shell: pwsh
       run: |
         $certBytes = [Convert]::FromBase64String($env:WINDOWS_CERT_PFX_BASE64)

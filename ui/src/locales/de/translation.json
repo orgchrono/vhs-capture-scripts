@@ -229,7 +229,23 @@
     "ai_ready_badge": "KI Bereit",
     "trimmed_badge": "Getrimmt",
     "blackframe_clean_btn": "Schwarzbilder Bereinigen",
-    "blackframe_clean_tooltip": "Führt schnellen Stream-Trim und TBC Frame-Hold-Einfrieren für Schwarzbilder aus"
+    "blackframe_clean_tooltip": "Führt schnellen Stream-Trim und TBC Frame-Hold-Einfrieren für Schwarzbilder aus",
+    "ingest_mode_titles": "Titelextraktion",
+    "ingest_mode_raw_image": "Roh-Disk-Abbild (.img / .bin)",
+    "disk_image_output_label": "Ziel des Roh-Abbilds (.img / .bin / .iso):",
+    "disk_image_output_placeholder": "Zielordner oder Ausgabepfad auswählen...",
+    "disk_image_format_label": "Containerformat:",
+    "disk_image_zero_fill_label": "Fehlertoleranz bei Defekten Sektoren (conv=noerror,sync • 0x00 Auffüllen)",
+    "disk_image_sha256_label": "SHA-256 Integritätsmanifest Generieren (.sha256 + .dump_log.json)",
+    "disk_image_auto_chain_label": "Automatisch in die Restaurierungs-Warteschlange Einreihen (QTGMC)",
+    "disk_image_sector_map_title": "Physische Sektorkarte (LBA)",
+    "disk_image_legend_good": "Verifiziert",
+    "disk_image_legend_retried": "Wiederholt",
+    "disk_image_legend_bad": "Defekter Sektor (0x00)",
+    "disk_image_lba_status": "LBA {{current}} / {{total}} ({{percent}}%)",
+    "disk_image_telemetry_bar": "Durchsatz: {{speed}} MB/s • ETA: {{eta}} • Defekte Sektoren: {{errors}}",
+    "disk_image_start_btn": "Bitgenaues Forensisches Klonen Starten",
+    "disk_image_cancel_btn": "Klonen Abbrechen"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
@@ -454,7 +470,11 @@
     "invalid_video_format_desc": "Nicht unterstützte Datei. Bitte analoge Videoformate verwenden (.mkv, .mp4, .avi, .mov, .ts, .vob).",
     "blackframe_clean_title": "Schwarzbild-Bereinigung",
     "blackframe_clean_desc": "Schwarzbild-Bereinigung erfolgreich abgeschlossen: {{file}}",
-    "blackframe_clean_error": "Fehler beim Bereinigen von Schwarzbildern: {{error}}"
+    "blackframe_clean_error": "Fehler beim Bereinigen von Schwarzbildern: {{error}}",
+    "disk_imaging_started_title": "Forensisches Klonen Gestartet",
+    "disk_imaging_completed_title": "Disk-Abbild mit SHA-256 Fixität Abgeschlossen",
+    "disk_imaging_cancelled_title": "Disk-Klonen Abgebrochen",
+    "disk_imaging_error_title": "Roh-Disk-Klonen Fehlgeschlagen"
   },
   "telemetry": {
     "title": "Analoge Mastering-Telemetrie",
@@ -504,7 +524,8 @@
     "task_install_obs": "OBS Studio Installation",
     "task_whisper_subtitles": "Whisper Transkription & Untertitel",
     "task_panasonic_extract": "Panasonic Titel-Extraktion",
-    "task_image_generation": "A/B-Vergleichsbild-Extraktion"
+    "task_image_generation": "A/B-Vergleichsbild-Extraktion",
+    "task_disk_imaging": "Klone Physisches Roh-Abbild (.img)..."
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",
@@ -588,7 +609,11 @@
     "obs_watcher_error": "[OBS] Auto-Watcher-Fehler: {{error}}",
     "blackframe_clean_starting": "[BLACKFRAME] Starte schnelle Bereinigung für {{file}}...",
     "blackframe_clean_done": "[BLACKFRAME] Bereinigung abgeschlossen. Ausgabe: {{output}}",
-    "planner_guard_bypass": "[PLANNER-GUARD] Eingabe ist bereits progressiv/Master. Analoge Filter werden übersprungen."
+    "planner_guard_bypass": "[PLANNER-GUARD] Eingabe ist bereits progressiv/Master. Analoge Filter werden übersprungen.",
+    "disk_imaging_starting": "[IMAGER] Starte Roh-Blocklesevorgang von {{device}} nach {{output}}",
+    "disk_imaging_bad_sector": "[IMAGER] Unlesbarer Sektor bei LBA {{lba}}: mit 0x00 aufgefüllt (Sync bewahrt)",
+    "disk_imaging_completed": "[IMAGER] Abgeschlossen: {{output}} (SHA-256: {{sha256}}, Fehler: {{errors}})",
+    "disk_imaging_cancelled": "[IMAGER] Klonvorgang durch Bediener abgebrochen."
   },
   "recovery": {
     "title": "Laufende / Unterbrochene Projekte",

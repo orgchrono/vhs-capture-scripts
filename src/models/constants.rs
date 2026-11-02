@@ -103,6 +103,33 @@ pub const BLOCK_DEVICE_PREFIXES: [&str; 5] = [
     "/dev/disk",
 ];
 
+/// Default primary read chunk size (1 MiB) for sequential raw disk imaging.
+pub const DISK_IMAGER_PRIMARY_CHUNK_BYTES: usize = 1024 * 1024;
+
+/// Standard legacy ATA/SATA/SD physical sector size in bytes (512 B).
+pub const DISK_SECTOR_SIZE_512: u32 = 512;
+
+/// Optical DVD-RAM / DVD-VR / ISO9660 physical sector size in bytes (2048 B).
+pub const DISK_SECTOR_SIZE_OPTICAL_2048: u32 = 2048;
+
+/// Advanced Format 4Kn physical sector size in bytes (4096 B).
+pub const DISK_SECTOR_SIZE_4K: u32 = 4096;
+
+/// Telemetry broadcast frequency interval in milliseconds (250 ms = 4 Hz).
+pub const DISK_IMAGER_TELEMETRY_INTERVAL_MS: u64 = 250;
+
+/// Number of visual buckets in the UI Sector Health Map.
+pub const DISK_IMAGER_SECTOR_MAP_BUCKETS: usize = 128;
+
+/// Forensic ingest report sidecar suffix.
+pub const DUMP_LOG_SIDECAR_SUFFIX: &str = ".dump_log.json";
+
+/// Cryptographic SHA-256 fixity sidecar suffix.
+pub const SHA256_SIDECAR_SUFFIX: &str = ".sha256";
+
+/// Structured SSE log prefix for 4 Hz real-time disk imaging telemetry.
+pub const DISK_IMAGING_SSE_PREFIX: &str = "DISK_IMAGING_PROGRESS:";
+
 /// Relative path to the compiled React frontend bundle from project root.
 pub const UI_DIST_REL_PATH: &str = "ui/dist";
 

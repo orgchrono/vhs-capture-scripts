@@ -31,6 +31,7 @@ Built upon a **Concurrent Directed Acyclic Graph (DAG) Pipeline Engine**, the sy
 
 ## 🚀 Overview & Core Highlights
 
+- **Native Raw Disk Block Imaging Engine (`.img` / `.bin` / `.iso`):** Pure Rust block device reader with zero external binary dependencies (eliminates `dd.exe`, `Win32DiskImager`, Cygwin/MSYS2). Utilizes unbuffered direct OS I/O (`CreateFileW` with `FILE_FLAG_NO_BUFFERING | FILE_FLAG_SEQUENTIAL_SCAN` on Windows; `O_RDONLY | O_DIRECT` / `/dev/rdiskN` on POSIX) and 4096-byte sector-aligned memory buffers. Implements hardware-resilient bad-sector tolerance (`conv=noerror,sync`) with automatic adaptive single-sector fallback and `0x00` zero-padding to preserve physical offsets and master audio/video timecode sync. Computes in-flight SHA-256 fixity hashes without memory cloning, writes forensic JSON defect reports (`*.dump_log.json`), and automatically chains completed dumps into the archival restoration pipeline.
 - **Multi-Pipeline Architecture & Media Lineage Manifest:** Complete operational separation between **Passo 1 (Broadcast Master)** analog restoration (QTGMC 60p, chromashift, comb filter, overscan mask, EBU R128), **Passo 2 (AI Post-Chain)** neural enhancement (CodeFormer, Real-ESRGAN, RIFE 60fps, Faster-Whisper), and **Passo 3 (Fast Blackframe Hygiene)**. All media files are accompanied by an immutable companion sidecar (`<filename>.manifest.json`) tracking stage lineage, source cryptographic hashes, and permitted available stages.
 - **Smart Pass Guardrail (Anti-Degradação Geracional):** Intelligent planning guardrail in [`src/infrastructure/executor/planner.rs`](src/infrastructure/executor/planner.rs) that automatically detects progressive master files, bypassing destructive analog deinterlacing, chroma phase shifts, comb filtering, and overscan masks. Prevents multi-generational recompression loss and wasted compute time.
 - **Native Blackframe & TBC Frame-Hold Hygiene Engine:** Rapid, standalone hygiene subsystem ([`src/domain/blackframe.rs`](src/domain/blackframe.rs) / `POST /api/restoration/blackframe-clean`) scanning media via FFmpeg `blackdetect`, merging noise micro-gaps ($\le 0.25\text{s}$), and executing lossless stream-copy trims on unrecorded leaders/trailers while freezing video on mid-recording dropouts to lock lip sync without audio drift.
@@ -89,9 +90,54 @@ flowchart TD
 
 ---
 
-### 📀 Panasonic DVR Forensic Ingest Pipeline & Cryptographic Fixity
+### 📀 Panasonic DVR Forensic Ingest Pipeline & Native Raw Disk Imager
 
-The forensic ingest subsystem accesses proprietary Panasonic DVR file systems directly at the raw block level (**MEIHDFS-V1.0**, **MEIHDFS-V2.0**, and **DVD-VR**), bypassing OS file-system drivers and preventing accidental formatting prompts:
+The ingest subsystem offers two synchronized modes for optical media (DVD-RAM Panasonic DMR-E series, Pioneer DVRs), internal PATA/SATA DVR hard drives, and camcorder flash cards (Sony/Firestore):
+
+1. **Title & Session Extraction (High-Level):** Direct parsing of proprietary Panasonic file systems (**MEIHDFS-V1.0**, **MEIHDFS-V2.0**, and **DVD-VR**), generating an interactive session and title tree, chapter segmentation, and frame-accurate extraction.
+2. **Native Raw Block Imaging (Forensic `.img` / `.bin`):** Bit-for-bit physical block extraction implemented in pure Rust (`src/domain/disk_imager.rs`, `src/infrastructure/disk_imager/`), with zero third-party dependencies.
+
+```mermaid
+flowchart TD
+    subgraph SourceMedia ["Physical Media & Direct OS Block Device"]
+        Drive["Direct Block Reader<br/>(\\\\.\\PhysicalDriveN / \\\\.\\X: / /dev/sdX / /dev/rdiskN)"]
+    end
+
+    subgraph DirectIO ["Low-Level OS Direct I/O Engine"]
+        Buffer["SectorAlignedBuffer (4096-byte Alignment)"]
+        Reader["1 MiB Chunk Reader (Unbuffered Direct I/O)"]
+        Fallback["Adaptive Sector Recovery (conv=noerror,sync)<br/>0x00 Zero-Padding Damaged LBAs"]
+    end
+
+    subgraph Fixity ["Fixity & Forensic Telemetry"]
+        Hasher["Concurrent In-Flight SHA-256 Hasher"]
+        DumpLog["Contiguous LBA Error Coalescer (*.dump_log.json)"]
+        Manifest["NIST / LOC Checksum Manifest (*.img.sha256)"]
+        Telemetry["4 Hz Telemetry Stream (Tauri IPC + SSE /api/logs/stream)"]
+    end
+
+    subgraph Chaining ["Restoration Pipeline Handoff"]
+        Carver["Panasonic / UDF Stream Carver (execute_panasonic_extraction)"]
+        TapeLib["Auto-Select Target in TapeLibraryCard"]
+        Queue["Pre-Populate Canonical 3-Stage Restoration Queue"]
+    end
+
+    Drive --> Reader
+    Buffer --> Reader
+    Reader -->|Unreadable Sector| Fallback
+    Reader --> Hasher
+    Fallback --> Hasher
+    Hasher --> Manifest
+    Fallback --> DumpLog
+    Reader --> Telemetry
+    Manifest --> Carver
+    Carver --> TapeLib
+    TapeLib --> Queue
+```
+
+---
+
+### 📀 Title-Level Extraction & Cryptographic Fixity
 
 ```mermaid
 flowchart TD

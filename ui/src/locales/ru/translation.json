@@ -229,7 +229,23 @@
     "ai_ready_badge": "ИИ Доступен",
     "trimmed_badge": "Очищен",
     "blackframe_clean_btn": "Очистить Черные Кадры",
-    "blackframe_clean_tooltip": "Выполняет быструю обрезку потока и удержание TBC Frame-Hold на черных кадрах"
+    "blackframe_clean_tooltip": "Выполняет быструю обрезку потока и удержание TBC Frame-Hold на черных кадрах",
+    "ingest_mode_titles": "Извлечение Записей",
+    "ingest_mode_raw_image": "Посекторный Образ Диска (.img / .bin)",
+    "disk_image_output_label": "Путь для Образа Диска (.img / .bin / .iso):",
+    "disk_image_output_placeholder": "Выберите папку или путь к файлу образа...",
+    "disk_image_format_label": "Формат Контейнера:",
+    "disk_image_zero_fill_label": "Устойчивость к Бэд-Секторам (conv=noerror,sync • Заполнение 0x00)",
+    "disk_image_sha256_label": "Создать Манифест Целостности SHA-256 (.sha256 + .dump_log.json)",
+    "disk_image_auto_chain_label": "Автоматически Передать в Очередь Реставрации (QTGMC)",
+    "disk_image_sector_map_title": "Карта Физических Секторов (LBA)",
+    "disk_image_legend_good": "Проверен",
+    "disk_image_legend_retried": "Восстановлен",
+    "disk_image_legend_bad": "Бэд-Сектор (0x00)",
+    "disk_image_lba_status": "LBA {{current}} / {{total}} ({{percent}}%)",
+    "disk_image_telemetry_bar": "Скорость: {{speed}} МБ/с • Осталось: {{eta}} • Бэд-Секторов: {{errors}}",
+    "disk_image_start_btn": "Запустить Посекторное Криминалистическое Клонирование",
+    "disk_image_cancel_btn": "Отменить Создание Образа"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
@@ -454,7 +470,11 @@
     "invalid_video_format_desc": "Неподдерживаемый файл. Используйте видеоформаты (.mkv, .mp4, .avi, .mov, .ts, .vob).",
     "blackframe_clean_title": "Очистка Черных Кадров",
     "blackframe_clean_desc": "Очистка черных кадров успешно выполнена: {{file}}",
-    "blackframe_clean_error": "Не удалось очистить черные кадры: {{error}}"
+    "blackframe_clean_error": "Не удалось очистить черные кадры: {{error}}",
+    "disk_imaging_started_title": "Клонирование Диска Запущено",
+    "disk_imaging_completed_title": "Образ Диска Завершен с Хешем SHA-256",
+    "disk_imaging_cancelled_title": "Создание Образа Диска Отменено",
+    "disk_imaging_error_title": "Ошибка Посекторного Клонирования Диска"
   },
   "telemetry": {
     "title": "Телеметрия аналогового мастеринга",
@@ -504,7 +524,8 @@
     "task_install_obs": "Установка OBS Studio",
     "task_whisper_subtitles": "Транскрипция и субтитры Whisper",
     "task_panasonic_extract": "Извлечение заголовка Panasonic",
-    "task_image_generation": "Извлечение кадров сравнения A/B"
+    "task_image_generation": "Извлечение кадров сравнения A/B",
+    "task_disk_imaging": "Посекторное клонирование диска (.img)..."
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",
@@ -588,7 +609,11 @@
     "obs_watcher_error": "[OBS] Ошибка автонаблюдателя: {{error}}",
     "blackframe_clean_starting": "[BLACKFRAME] Запуск быстрой очистки для {{file}}...",
     "blackframe_clean_done": "[BLACKFRAME] Очистка завершена. Выходной файл: {{output}}",
-    "planner_guard_bypass": "[PLANNER-GUARD] Входной файл уже прогрессивный/мастер. Пропуск аналоговых фильтров."
+    "planner_guard_bypass": "[PLANNER-GUARD] Входной файл уже прогрессивный/мастер. Пропуск аналоговых фильтров.",
+    "disk_imaging_starting": "[IMAGER] Запуск посекторного чтения с {{device}} в {{output}}",
+    "disk_imaging_bad_sector": "[IMAGER] Нечитаемый сектор в LBA {{lba}}: заполнен 0x00 (синхронизация сохранена)",
+    "disk_imaging_completed": "[IMAGER] Завершено: {{output}} (SHA-256: {{sha256}}, Ошибок: {{errors}})",
+    "disk_imaging_cancelled": "[IMAGER] Операция клонирования прервана оператором."
   },
   "recovery": {
     "title": "Текущие / Прерванные проекты",

@@ -229,7 +229,23 @@
     "ai_ready_badge": "الذكاء الاصطناعي جاهز",
     "trimmed_badge": "تم التشذيب",
     "blackframe_clean_btn": "تنظيف الإطارات السوداء",
-    "blackframe_clean_tooltip": "تنفيذ تشذيب سريع للبث وتجميد TBC Frame-Hold للإطارات السوداء"
+    "blackframe_clean_tooltip": "تنفيذ تشذيب سريع للبث وتجميد TBC Frame-Hold للإطارات السوداء",
+    "ingest_mode_titles": "استخراج العناوين",
+    "ingest_mode_raw_image": "صورة القرص الخام (.img / .bin)",
+    "disk_image_output_label": "وجهة الصورة الخام (.img / .bin / .iso):",
+    "disk_image_output_placeholder": "اختر مجلد الإخراج أو مسار الصورة...",
+    "disk_image_format_label": "تنسيق الحاوية:",
+    "disk_image_zero_fill_label": "تحمل القطاعات التالفة (conv=noerror,sync • تعبئة 0x00)",
+    "disk_image_sha256_label": "إنشاء بيان صحة SHA-256 (.sha256 + .dump_log.json)",
+    "disk_image_auto_chain_label": "الربط التلقائي بقائمة الترميم (QTGMC)",
+    "disk_image_sector_map_title": "خريطة سلامة القطاعات الفيزيائية (LBA)",
+    "disk_image_legend_good": "سليم",
+    "disk_image_legend_retried": "مسترد بعد إعادة المحاولة",
+    "disk_image_legend_bad": "قطاع تالف (0x00)",
+    "disk_image_lba_status": "LBA {{current}} / {{total}} ({{percent}}%)",
+    "disk_image_telemetry_bar": "السرعة: {{speed}} ميغابايت/ث • الوقت المتبقي: {{eta}} • القطاعات التالفة: {{errors}}",
+    "disk_image_start_btn": "بدء النسخ الجنائي الكامل بت بعد بت",
+    "disk_image_cancel_btn": "إلغاء الاستخراج"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
@@ -454,7 +470,11 @@
     "invalid_video_format_desc": "ملف غير مدعوم. يرجى استخدام تنسيقات الفيديو التناظرية (.mkv, .mp4, .avi, .mov, .ts, .vob).",
     "blackframe_clean_title": "تنظيف الإطارات السوداء",
     "blackframe_clean_desc": "تم تنفيذ تنظيف الإطارات السوداء بنجاح: {{file}}",
-    "blackframe_clean_error": "فشل تنظيف الإطارات السوداء: {{error}}"
+    "blackframe_clean_error": "فشل تنظيف الإطارات السوداء: {{error}}",
+    "disk_imaging_started_title": "بدأ الاستخراج الجنائي للقرص",
+    "disk_imaging_completed_title": "اكتملت صورة القرص مع تثبيت SHA-256",
+    "disk_imaging_cancelled_title": "تم إلغاء استخراج القرص",
+    "disk_imaging_error_title": "فشل استخراج صورة القرص الخام"
   },
   "telemetry": {
     "title": "قياسات معالجة الفيديو التناظري المباشرة",
@@ -504,7 +524,8 @@
     "task_install_obs": "تثبيت OBS Studio",
     "task_whisper_subtitles": "نسخ وتوليد ترجمات Whisper",
     "task_panasonic_extract": "استخراج عنوان Panasonic",
-    "task_image_generation": "استخراج إطارات المقارنة A/B"
+    "task_image_generation": "استخراج إطارات المقارنة A/B",
+    "task_disk_imaging": "استخراج صورة القرص الخام (.img)..."
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",
@@ -588,7 +609,11 @@
     "obs_watcher_error": "[OBS] خطأ في المراقب التلقائي: {{error}}",
     "blackframe_clean_starting": "[BLACKFRAME] بدء التنظيف السريع على {{file}}...",
     "blackframe_clean_done": "[BLACKFRAME] اكتمل التنظيف. المخرج: {{output}}",
-    "planner_guard_bypass": "[PLANNER-GUARD] الإدخال تصاعدي/ماستر بالفعل. يتم تجاوز الفلاتر التناظرية فقط."
+    "planner_guard_bypass": "[PLANNER-GUARD] الإدخال تصاعدي/ماستر بالفعل. يتم تجاوز الفلاتر التناظرية فقط.",
+    "disk_imaging_starting": "[IMAGER] بدء القراءة الخام من {{device}} إلى {{output}}",
+    "disk_imaging_bad_sector": "[IMAGER] قطاع غير قابل للقراءة في LBA {{lba}}: تم ملؤه بـ 0x00 (الحفاظ على التزامن)",
+    "disk_imaging_completed": "[IMAGER] اكتمل: {{output}} (SHA-256: {{sha256}}, أخطاء: {{errors}})",
+    "disk_imaging_cancelled": "[IMAGER] تم إيقاف عملية الاستخراج من قبل المشغل."
   },
   "recovery": {
     "title": "المشاريع الجارية / المعلقة",

@@ -3,6 +3,8 @@
 //! Exposes typed Tauri IPC commands for Panasonic DVR/MEIHDFS inspection,
 //! physical drive scanning, FFprobe media inspection, and smart thumbnail extraction.
 
+use crate::domain::disk_imager::{DiskDevice, DiskMediaKind, ForensicDumpReport, ImagingConfig};
+use crate::infrastructure::app_context::AppContext;
 use crate::infrastructure::panasonic::{
     classify_panasonic_probe, detect_connected_drives, evaluate_panasonic_drive,
     generate_panasonic_chapters, inspect_panasonic_probe, IngestProbeError,
@@ -62,6 +64,68 @@ pub fn ipc_evaluate_panasonic_drive(
 #[must_use]
 pub fn ipc_detect_connected_drives() -> Vec<PanasonicDiskInfo> {
     detect_connected_drives()
+}
+
+/// Typed IPC ViewModel command listing physical block devices formatted as `DiskDevice`.
+#[must_use]
+pub fn ipc_list_physical_drives() -> Vec<DiskDevice> {
+    let disks = detect_connected_drives();
+    disks
+        .into_iter()
+        .map(|d| {
+            let model_l = d.model.to_lowercase();
+            let is_opt = model_l.contains("dvd")
+                || model_l.contains("cd-rom")
+                || model_l.contains("optical")
+                || model_l.contains("matshita");
+            let media_kind = if d.is_panasonic {
+                if is_opt {
+                    DiskMediaKind::OpticalDvdRam
+                } else {
+                    DiskMediaKind::PanasonicHddMeihdfs
+                }
+            } else if is_opt {
+                DiskMediaKind::OpticalDvdVr
+            } else if d.is_usb {
+                DiskMediaKind::FlashCardMedia
+            } else {
+                DiskMediaKind::GenericBlockDevice
+            };
+
+            let total_bytes = (d.size_gb * 1024.0 * 1024.0 * 1024.0) as u64;
+            let sector_size = if is_opt { 2048 } else { 512 };
+
+            DiskDevice {
+                device_id: d.device_id,
+                display_name: d.name,
+                model: d.model,
+                serial_number: "FORENSIC-DEVICE".to_string(),
+                total_bytes,
+                sector_size_bytes: sector_size,
+                media_kind,
+                is_removable: d.is_usb || is_opt,
+                is_optical: is_opt,
+                is_panasonic: d.is_panasonic,
+                bus_type: d.bus_type,
+                requires_elevation: d.needs_elevation,
+            }
+        })
+        .collect()
+}
+
+/// Typed IPC ViewModel command executing a raw block disk imaging job.
+pub fn ipc_start_disk_imaging(
+    ctx: &AppContext,
+    config: ImagingConfig,
+    window: Option<tauri::Window>,
+) -> Result<ForensicDumpReport, String> {
+    crate::infrastructure::disk_imager::run_disk_imaging_job(ctx, &config, window.as_ref(), None)
+}
+
+/// Typed IPC ViewModel command cancelling an active disk imaging operation.
+#[must_use]
+pub fn ipc_cancel_disk_imaging(ctx: &AppContext) -> bool {
+    ctx.process.terminate()
 }
 
 /// Typed IPC ViewModel command evaluating candidate frame quality for thumbnails.

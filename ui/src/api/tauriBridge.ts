@@ -126,6 +126,103 @@ export interface TauriPanasonicDriveHeuristic {
   probable_format: string;
 }
 
+export type DiskMediaKind =
+  | 'optical_dvd_ram'
+  | 'optical_dvd_vr'
+  | 'panasonic_hdd_meihdfs'
+  | 'flash_card_media'
+  | 'generic_block_device';
+
+export type SectorBucketHealth =
+  | 'pending'
+  | 'verified_good'
+  | 'retried_recovered'
+  | 'zero_filled_damaged';
+
+export type ImagingPhase =
+  | 'idle'
+  | 'locking_volume'
+  | 'streaming_blocks'
+  | 'recovering_bad_sectors'
+  | 'finalizing_fixity'
+  | 'carving_streams'
+  | 'completed'
+  | 'cancelled'
+  | 'failed';
+
+export interface TauriDiskDevice {
+  device_id: string;
+  display_name: string;
+  model: string;
+  serial_number: string;
+  total_bytes: number;
+  sector_size_bytes: number;
+  media_kind: DiskMediaKind;
+  is_removable: boolean;
+  is_optical: boolean;
+  is_panasonic: boolean;
+  bus_type: string;
+  requires_elevation: boolean;
+}
+
+export interface TauriImagingConfig {
+  source_device_id: string;
+  output_image_path: string;
+  container_format: 'img' | 'bin' | 'iso';
+  primary_chunk_bytes: number;
+  physical_sector_bytes: number;
+  max_sector_retries: number;
+  zero_fill_corrupt_sectors: boolean;
+  compute_sha256_sidecar: boolean;
+  auto_chain_restoration: boolean;
+  auto_enqueue_preset?: string | null;
+}
+
+export interface TauriImagingTelemetry {
+  phase: ImagingPhase;
+  source_device_id: string;
+  output_image_path: string;
+  current_lba: number;
+  total_lba: number;
+  processed_bytes: number;
+  total_bytes: number;
+  progress_percent: number;
+  throughput_mbps: number;
+  eta_seconds: number;
+  retried_sector_count: number;
+  bad_sector_count: number;
+  zero_filled_bytes: number;
+  sector_map_buckets: SectorBucketHealth[];
+  sha256_hex?: string | null;
+}
+
+export interface TauriForensicDumpReport {
+  schema_version: number;
+  source_device_id: string;
+  device_model: string;
+  device_serial: string;
+  output_image_path: string;
+  sha256_hex: string;
+  total_bytes_expected: number;
+  total_bytes_written: number;
+  sector_size_bytes: number;
+  total_sectors_read: number;
+  damaged_sector_count: number;
+  zero_filled_bytes: number;
+  average_speed_mbps: number;
+  peak_speed_mbps: number;
+  elapsed_seconds: number;
+  damaged_lba_ranges: Array<{
+    start_lba: number;
+    sector_count: number;
+    byte_offset: number;
+    byte_length: number;
+    error_kind: string;
+    retries_attempted: number;
+    zero_padded: boolean;
+  }>;
+}
+
 export type TauriJobRecord = QueueJob;
 
 export interface TauriQueueStats {
@@ -1432,6 +1529,48 @@ export const tauriBridge = {
       if (data.success && data.path) return data.path;
     }
     return null;
+  },
+
+  async listPhysicalDrives(): Promise<TauriDiskDevice[]> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<TauriDiskDevice[]>('ipc_list_physical_drives');
+    }
+    const res = await fetch(`${getApiBaseUrl()}/api/ingest/disk-image/drives`, {
+      headers: getSyncAuthHeaders(),
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.drives ?? [];
+  },
+
+  async startDiskImaging(config: TauriImagingConfig): Promise<TauriForensicDumpReport> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<TauriForensicDumpReport>('ipc_start_disk_imaging', { config });
+    }
+    const res = await fetch(`${getApiBaseUrl()}/api/ingest/disk-image/start`, {
+      method: 'POST',
+      headers: getSyncAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(config),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Disk imaging failed' }));
+      throw new Error(err.error || 'Disk imaging failed');
+    }
+    return res.json();
+  },
+
+  async cancelDiskImaging(): Promise<boolean> {
+    const tauri = getTauriInternals();
+    if (tauri) {
+      return tauri.invoke<boolean>('ipc_cancel_disk_imaging');
+    }
+    const res = await fetch(`${getApiBaseUrl()}/api/ingest/disk-image/cancel`, {
+      method: 'POST',
+      headers: getSyncAuthHeaders(),
+    });
+    return res.ok;
   },
 };
 

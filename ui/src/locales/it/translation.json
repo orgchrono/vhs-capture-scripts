@@ -229,7 +229,23 @@
     "ai_ready_badge": "IA Pronta",
     "trimmed_badge": "Rifilato",
     "blackframe_clean_btn": "Pulisci Fotogrammi Neri",
-    "blackframe_clean_tooltip": "Esegue il taglio rapido dello stream e il blocco TBC Frame-Hold sui fotogrammi neri"
+    "blackframe_clean_tooltip": "Esegue il taglio rapido dello stream e il blocco TBC Frame-Hold sui fotogrammi neri",
+    "ingest_mode_titles": "Estrazione Titoli",
+    "ingest_mode_raw_image": "Immagine Disco Grezzo (.img / .bin)",
+    "disk_image_output_label": "Destinazione Immagine Grezza (.img / .bin / .iso):",
+    "disk_image_output_placeholder": "Seleziona cartella o percorso di uscita...",
+    "disk_image_format_label": "Formato Contenitore:",
+    "disk_image_zero_fill_label": "Tolleranza Settori Danneggiati (conv=noerror,sync • Riempimento 0x00)",
+    "disk_image_sha256_label": "Genera Manifesto di Fissità SHA-256 (.sha256 + .dump_log.json)",
+    "disk_image_auto_chain_label": "Concatena Automaticamente nella Coda di Restauro (QTGMC)",
+    "disk_image_sector_map_title": "Mappa Fisica dei Settori (LBA)",
+    "disk_image_legend_good": "Verificato",
+    "disk_image_legend_retried": "Ritentato",
+    "disk_image_legend_bad": "Settore Danneggiato (0x00)",
+    "disk_image_lba_status": "LBA {{current}} / {{total}} ({{percent}}%)",
+    "disk_image_telemetry_bar": "Velocità: {{speed}} MB/s • ETA: {{eta}} • Settori Difettosi: {{errors}}",
+    "disk_image_start_btn": "Avvia Clonazione Forense Bit a Bit",
+    "disk_image_cancel_btn": "Annulla Clonazione"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
@@ -454,7 +470,11 @@
     "invalid_video_format_desc": "File non supportato. Utilizzare formati video analogici (.mkv, .mp4, .avi, .mov, .ts, .vob).",
     "blackframe_clean_title": "Pulizia Fotogrammi Neri",
     "blackframe_clean_desc": "Pulizia dei fotogrammi neri eseguita con successo: {{file}}",
-    "blackframe_clean_error": "Impossibile pulire i fotogrammi neri: {{error}}"
+    "blackframe_clean_error": "Impossibile pulire i fotogrammi neri: {{error}}",
+    "disk_imaging_started_title": "Clonazione Forense Avviata",
+    "disk_imaging_completed_title": "Immagine Disco Completata con Fissità SHA-256",
+    "disk_imaging_cancelled_title": "Clonazione Disco Annullata",
+    "disk_imaging_error_title": "Clonazione Disco Grezzo Fallita"
   },
   "telemetry": {
     "title": "Telemetria di Restauro Analogico",
@@ -504,7 +524,8 @@
     "task_install_obs": "Installazione OBS Studio",
     "task_whisper_subtitles": "Trascrizione e Sottotitoli Whisper",
     "task_panasonic_extract": "Estrazione Titolo Panasonic",
-    "task_image_generation": "Estrazione Fotogrammi Comparativi A/B"
+    "task_image_generation": "Estrazione Fotogrammi Comparativi A/B",
+    "task_disk_imaging": "Clonazione Immagine Disco Grezzo (.img)..."
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",
@@ -588,7 +609,11 @@
     "obs_watcher_error": "[OBS] Errore Auto-Watcher: {{error}}",
     "blackframe_clean_starting": "[BLACKFRAME] Avvio pulizia rapida su {{file}}...",
     "blackframe_clean_done": "[BLACKFRAME] Pulizia completata. Uscita: {{output}}",
-    "planner_guard_bypass": "[PLANNER-GUARD] L'input è già progressivo/master. Bypass dei filtri analogici in corso."
+    "planner_guard_bypass": "[PLANNER-GUARD] L'input è già progressivo/master. Bypass dei filtri analogici in corso.",
+    "disk_imaging_starting": "[IMAGER] Avvio lettura grezza da {{device}} a {{output}}",
+    "disk_imaging_bad_sector": "[IMAGER] Settore illeggibile su LBA {{lba}}: riempito con 0x00 (sincronismo preservato)",
+    "disk_imaging_completed": "[IMAGER] Completato: {{output}} (SHA-256: {{sha256}}, Errori: {{errors}})",
+    "disk_imaging_cancelled": "[IMAGER] Operazione di clonazione interrotta dall'operatore."
   },
   "recovery": {
     "title": "Progetti in corso / Interrotti",

@@ -229,7 +229,23 @@
     "ai_ready_badge": "IA Prête",
     "trimmed_badge": "Nettoyé",
     "blackframe_clean_btn": "Nettoyer Trames Noires",
-    "blackframe_clean_tooltip": "Exécute une coupe de flux rapide et un gel TBC Frame-Hold sur les trames noires"
+    "blackframe_clean_tooltip": "Exécute une coupe de flux rapide et un gel TBC Frame-Hold sur les trames noires",
+    "ingest_mode_titles": "Extraction des Titres",
+    "ingest_mode_raw_image": "Image Disque Brute (.img / .bin)",
+    "disk_image_output_label": "Destination de l'Image Brute (.img / .bin / .iso) :",
+    "disk_image_output_placeholder": "Sélectionnez le dossier ou le chemin de sortie...",
+    "disk_image_format_label": "Format de Conteneur :",
+    "disk_image_zero_fill_label": "Tolérance aux Secteurs Défectueux (conv=noerror,sync • Remplissage 0x00)",
+    "disk_image_sha256_label": "Générer le Manifeste de Fixité SHA-256 (.sha256 + .dump_log.json)",
+    "disk_image_auto_chain_label": "Enchaîner Automatiquement dans la File de Restauration (QTGMC)",
+    "disk_image_sector_map_title": "Carte Physique des Secteurs (LBA)",
+    "disk_image_legend_good": "Vérifié",
+    "disk_image_legend_retried": "Réessayé",
+    "disk_image_legend_bad": "Secteur Défectueux (0x00)",
+    "disk_image_lba_status": "LBA {{current}} / {{total}} ({{percent}}%)",
+    "disk_image_telemetry_bar": "Débit : {{speed}} Mo/s • ETA : {{eta}} • Secteurs Défectueux : {{errors}}",
+    "disk_image_start_btn": "Démarrer le Clonage Forensique Bit-à-Bit",
+    "disk_image_cancel_btn": "Annuler le Clonage"
   },
   "app": {
     "drop_title": "Drop Your Video Tape Here",
@@ -454,7 +470,11 @@
     "invalid_video_format_desc": "Fichier non pris en charge. Veuillez utiliser des formats vidéo (.mkv, .mp4, .avi, .mov, .ts, .vob).",
     "blackframe_clean_title": "Nettoyage des Trames Noires",
     "blackframe_clean_desc": "Nettoyage des trames noires exécuté avec succès : {{file}}",
-    "blackframe_clean_error": "Échec du nettoyage des trames noires : {{error}}"
+    "blackframe_clean_error": "Échec du nettoyage des trames noires : {{error}}",
+    "disk_imaging_started_title": "Clonage Forensique Démarré",
+    "disk_imaging_completed_title": "Image Disque Terminée avec Fixité SHA-256",
+    "disk_imaging_cancelled_title": "Clonage Disque Annulé",
+    "disk_imaging_error_title": "Échec du Clonage Disque Brut"
   },
   "telemetry": {
     "title": "Télémétrie de Restauration Analogique",
@@ -504,7 +524,8 @@
     "task_install_obs": "Installation d'OBS Studio",
     "task_whisper_subtitles": "Transcription et Sous-titres Whisper",
     "task_panasonic_extract": "Extraction de Titre Panasonic",
-    "task_image_generation": "Extraction de Trames Comparatives A/B"
+    "task_image_generation": "Extraction de Trames Comparatives A/B",
+    "task_disk_imaging": "Clonage d'Image Disque Brute (.img)..."
   },
   "storage": {
     "path_placeholder": "C:\\VHS_Archive",
@@ -588,7 +609,11 @@
     "obs_watcher_error": "[OBS] Erreur Auto-Watcher: {{error}}",
     "blackframe_clean_starting": "[BLACKFRAME] Début du nettoyage rapide sur {{file}}...",
     "blackframe_clean_done": "[BLACKFRAME] Nettoyage terminé. Sortie : {{output}}",
-    "planner_guard_bypass": "[PLANNER-GUARD] L'entrée est déjà progressive/master. Contournement des filtres purement analogiques."
+    "planner_guard_bypass": "[PLANNER-GUARD] L'entrée est déjà progressive/master. Contournement des filtres purement analogiques.",
+    "disk_imaging_starting": "[IMAGER] Démarrage de la lecture brute de {{device}} vers {{output}}",
+    "disk_imaging_bad_sector": "[IMAGER] Secteur illisible à LBA {{lba}} : rempli de 0x00 (synchro préservée)",
+    "disk_imaging_completed": "[IMAGER] Terminé : {{output}} (SHA-256 : {{sha256}}, Erreurs : {{errors}})",
+    "disk_imaging_cancelled": "[IMAGER] Opération de clonage interrompue par l'opérateur."
   },
   "recovery": {
     "title": "Projets en cours / Interrompus",
