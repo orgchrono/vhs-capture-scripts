@@ -5,6 +5,13 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { SCOPES_FLOAT_CONFIG } from '../lib/constants';
 import { Badge } from './ui/badge';
+import { StereoMeterPair, ScopeTraceLegend } from './scopes/ScopeAudioMeters';
+import {
+  extractImageData,
+  renderWaveform,
+  renderVectorscope,
+  type ComparisonView,
+} from './scopes/scopeCanvasRenderers';
 
 export interface BroadcastScopesProps {
   sourceImageSrc?: string | null;
@@ -22,138 +29,6 @@ export interface BroadcastScopesProps {
 }
 
 type ScopeMode = 'all' | 'waveform' | 'vectorscope' | 'audio';
-type ComparisonView = 'both' | 'proc' | 'raw';
-
-const calculateMeterWidth = (lufs: number): number => {
-  const minLufs = -70;
-  const maxLufs = 0;
-  const clamped = Math.max(minLufs, Math.min(maxLufs, lufs));
-  return Math.round(((clamped - minLufs) / (maxLufs - minLufs)) * 100);
-};
-
-const getLufsColorClass = (lufs: number): string => {
-  if (lufs >= -18) return 'text-red-400 font-bold';
-  if (lufs >= -21 || lufs <= -26) return 'text-amber-300 font-semibold';
-  return 'text-emerald-400 font-semibold';
-};
-
-interface LufsMeterBarProps {
-  label: string;
-  labelColorClass?: string;
-  lufs: number;
-  barColorClass?: string;
-  valueColorClass?: string;
-  isCompact?: boolean;
-}
-
-const LufsMeterBar: React.FC<LufsMeterBarProps> = ({
-  label,
-  labelColorClass = 'text-slate-400',
-  lufs,
-  barColorClass = 'bg-gradient-to-r from-emerald-600 via-emerald-500 to-amber-500',
-  valueColorClass,
-  isCompact = true,
-}) => {
-  const { t } = useTranslation();
-  const widthPct = calculateMeterWidth(lufs);
-  const valColor = valueColorClass ?? getLufsColorClass(lufs);
-  const heightClass = isCompact ? 'h-2' : 'h-3.5';
-  const textClass = isCompact ? 'text-[8.5px]' : 'text-[10px]';
-
-  return (
-    <div className={`flex items-center gap-1.5 ${textClass} font-mono leading-none`}>
-      <span className={`w-7 shrink-0 font-bold ${labelColorClass}`}>{label}</span>
-      <div className={`flex-1 ${heightClass} bg-slate-900 rounded-xs overflow-hidden relative border border-white/10`}>
-        <div
-          className={`absolute inset-y-0 left-0 ${barColorClass} transition-all duration-300`}
-          style={{ width: `${widthPct}%` }}
-        />
-        <div className="absolute inset-y-0 left-[67%] w-[1.5px] bg-sky-400 z-10" title={t('monitor.scopes_target_lufs_title')} />
-        <div className="absolute inset-y-0 left-[98%] w-[1.5px] bg-red-500 z-10" title={t('monitor.scopes_max_dbtp_title')} />
-      </div>
-      <span className={`w-16 text-right shrink-0 tabular-nums ${valColor}`}>
-        {t('monitor.scopes_lufs_value', { value: lufs.toFixed(1) })}
-      </span>
-    </div>
-  );
-};
-
-interface StereoMeterPairProps {
-  title?: string;
-  titleColorClass?: string;
-  lufsLeft: number;
-  lufsRight: number;
-  labelColorClass?: string;
-  barColorClass?: string;
-  valueColorClass?: string;
-  isCompact?: boolean;
-  className?: string;
-}
-
-const StereoMeterPair: React.FC<StereoMeterPairProps> = ({
-  title,
-  titleColorClass = 'text-slate-400',
-  lufsLeft,
-  lufsRight,
-  labelColorClass,
-  barColorClass,
-  valueColorClass,
-  isCompact = true,
-  className,
-}) => {
-  const { t } = useTranslation();
-  const defaultClass = isCompact
-    ? 'flex flex-col gap-0.5'
-    : 'flex flex-col gap-1.5 p-1.5 rounded-xs bg-black/40 border border-white/5';
-
-  return (
-    <div className={className ?? defaultClass}>
-      {title && (
-        <span className={`text-[8.5px] font-bold leading-none ${titleColorClass}`}>
-          {title}
-        </span>
-      )}
-      <LufsMeterBar
-        label={t('monitor.scopes_channel_l')}
-        labelColorClass={labelColorClass}
-        lufs={lufsLeft}
-        barColorClass={barColorClass}
-        valueColorClass={valueColorClass}
-        isCompact={isCompact}
-      />
-      <LufsMeterBar
-        label={t('monitor.scopes_channel_r')}
-        labelColorClass={labelColorClass}
-        lufs={lufsRight}
-        barColorClass={barColorClass}
-        valueColorClass={valueColorClass}
-        isCompact={isCompact}
-      />
-    </div>
-  );
-};
-
-const ScopeTraceLegend: React.FC<{
-  procColorClass?: string;
-  procDotColorClass?: string;
-}> = ({
-  procColorClass = 'text-emerald-400',
-  procDotColorClass = 'bg-emerald-400',
-}) => {
-  const { t } = useTranslation();
-  return (
-    <div className="flex items-center gap-1.5 text-[8.5px] font-mono leading-none">
-      <span className="text-amber-400 font-bold flex items-center gap-1 leading-none">
-        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 self-center shrink-0" />
-        <span className="self-center leading-none">{t('monitor.scopes_legend_raw')}</span>
-      </span>
-      <span className={`${procColorClass} font-bold flex items-center gap-1 leading-none`}>
-        <span className={`w-1.5 h-1.5 rounded-full ${procDotColorClass} self-center shrink-0`} />
-        <span className="self-center leading-none">{t('monitor.scopes_legend_proc')}</span>
-      </span>
-    </div>
-  );
-};
 
 export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
   sourceImageSrc,
@@ -207,7 +82,6 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
   const lastRawLufsRef = useRef({ left: -24.2, right: -24.8 });
 
   const measureRightPanel = useCallback((): DOMRect | null => {
-    // Priority 1: Match the settings panel on the right side if mounted
     const settingsPanel = document.getElementById('settings-panel');
     if (settingsPanel) {
       const rect = settingsPanel.getBoundingClientRect();
@@ -215,7 +89,6 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
         return rect;
       }
     }
-    // Fallback: Fill the right 45% of viewport, leaving the live video on the left untouched
     if (typeof window !== 'undefined') {
       const vw = window.innerWidth;
       const vh = window.innerHeight;
@@ -261,265 +134,34 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
   const activeRawLufsLeft = rawLufsLeft ?? derivedRawLufs.left;
   const activeRawLufsRight = rawLufsRight ?? derivedRawLufs.right;
 
-  const renderGraticules = useCallback(
-    (
-      ctxWave: CanvasRenderingContext2D | null,
-      ctxVec: CanvasRenderingContext2D | null,
-      procImgData?: ImageData,
-      rawImgData?: ImageData,
-      compView: ComparisonView = 'both'
-    ) => {
-      // 1. Draw Waveform (IRE graticules + trace)
-      if (ctxWave && waveformCanvasRef.current) {
-        const w = waveformCanvasRef.current.width;
-        const h = waveformCanvasRef.current.height;
-        ctxWave.fillStyle = '#050811';
-        ctxWave.fillRect(0, 0, w, h);
-
-        // Graticule grid lines: 100 IRE, 75 IRE, 50 IRE, 7.5 IRE, 0 IRE
-        const ireLevels = [
-          { ire: 100, label: '100', color: 'rgba(239, 68, 68, 0.55)', yRatio: 0.15 },
-          { ire: 75, label: '75', color: 'rgba(148, 163, 184, 0.25)', yRatio: 0.35 },
-          { ire: 50, label: '50', color: 'rgba(148, 163, 184, 0.25)', yRatio: 0.55 },
-          { ire: 7.5, label: '7.5', color: 'rgba(56, 189, 248, 0.55)', yRatio: 0.85 },
-          { ire: 0, label: '0', color: 'rgba(148, 163, 184, 0.35)', yRatio: 0.92 },
-        ];
-
-        ctxWave.font = '9px monospace';
-        ctxWave.textBaseline = 'middle';
-
-        for (const lvl of ireLevels) {
-          const y = h * lvl.yRatio;
-          ctxWave.beginPath();
-          ctxWave.strokeStyle = lvl.color;
-          ctxWave.lineWidth = 1;
-          ctxWave.setLineDash([3, 3]);
-          ctxWave.moveTo(28, y);
-          ctxWave.lineTo(w, y);
-          ctxWave.stroke();
-          ctxWave.setLineDash([]);
-
-          ctxWave.fillStyle = lvl.color;
-          ctxWave.fillText(lvl.label, 4, y);
+  const handleDerivedLufs = useCallback(
+    (lufs: { left: number; right: number }, isRaw: boolean) => {
+      if (isRaw) {
+        if (
+          Math.abs(lufs.left - lastRawLufsRef.current.left) >= 0.3 ||
+          Math.abs(lufs.right - lastRawLufsRef.current.right) >= 0.3
+        ) {
+          lastRawLufsRef.current = lufs;
+          setDerivedRawLufs(lufs);
         }
-
-        const drawWaveformTrace = (img: ImageData, traceColor: string, isRaw: boolean) => {
-          const { data, width: imgW, height: imgH } = img;
-          ctxWave.fillStyle = traceColor;
-          const stepX = Math.max(1, Math.floor(imgW / (w - 32)));
-          const stepY = Math.max(1, Math.floor(imgH / 120));
-          let sumLuma = 0;
-          let sampleCount = 0;
-
-          for (let ix = 0; ix < imgW; ix += stepX) {
-            const plotX = 30 + Math.floor((ix / imgW) * (w - 34));
-            for (let iy = 0; iy < imgH; iy += stepY) {
-              const idx = (iy * imgW + ix) * 4;
-              const r = data[idx];
-              const g = data[idx + 1];
-              const b = data[idx + 2];
-              // Rec.601 / SMPTE 170M Luma
-              const yVal = 0.299 * r + 0.587 * g + 0.114 * b;
-              sumLuma += yVal;
-              sampleCount += 1;
-              // Map [0..255] to [h * 0.92 .. h * 0.15]
-              const plotY = h * 0.92 - (yVal / 255.0) * (h * 0.77);
-              ctxWave.fillRect(plotX, plotY, 1.2, 1.2);
-            }
-          }
-
-          if (sampleCount > 0) {
-            const avg = sumLuma / sampleCount;
-            const derivedLeft = Math.round((-23.0 + (avg / 255.0 - 0.5) * 6) * 10) / 10;
-            const derivedRight = Math.round((-23.4 + (avg / 255.0 - 0.5) * 6) * 10) / 10;
-
-            if (isRaw) {
-              if (
-                Math.abs(derivedLeft - lastRawLufsRef.current.left) >= 0.3 ||
-                Math.abs(derivedRight - lastRawLufsRef.current.right) >= 0.3
-              ) {
-                lastRawLufsRef.current = { left: derivedLeft, right: derivedRight };
-                setDerivedRawLufs({ left: derivedLeft, right: derivedRight });
-              }
-            } else {
-              if (
-                Math.abs(derivedLeft - lastLufsRef.current.left) >= 0.3 ||
-                Math.abs(derivedRight - lastLufsRef.current.right) >= 0.3
-              ) {
-                lastLufsRef.current = { left: derivedLeft, right: derivedRight };
-                setDerivedLufs({ left: derivedLeft, right: derivedRight });
-              }
-            }
-          }
-        };
-
-        // Render Raw trace first in warm amber phosphor
-        if ((compView === 'both' || compView === 'raw') && rawImgData) {
-          drawWaveformTrace(rawImgData, 'rgba(251, 191, 36, 0.40)', true);
-        }
-
-        // Render Restored trace on top in emerald green phosphor
-        if ((compView === 'both' || compView === 'proc') && procImgData) {
-          drawWaveformTrace(procImgData, 'rgba(34, 197, 94, 0.60)', false);
-        }
-
-        // CRT Standby baseline at 7.5 IRE (pedestal) if no source is active
-        if (!rawImgData && !procImgData) {
-          ctxWave.strokeStyle = 'rgba(34, 197, 94, 0.35)';
-          ctxWave.lineWidth = 1.2;
-          ctxWave.beginPath();
-          const pedestalY = h * 0.85;
-          ctxWave.moveTo(28, pedestalY);
-          for (let x = 28; x < w; x += 4) {
-            const noise = Math.sin(x * 0.2 + Date.now() * 0.005) * 0.8;
-            ctxWave.lineTo(x, pedestalY + noise);
-          }
-          ctxWave.stroke();
-        }
-      }
-
-      // 2. Draw Vectorscope (Polar graticule + targets + trace)
-      if (ctxVec && vectorCanvasRef.current) {
-        const w = vectorCanvasRef.current.width;
-        const h = vectorCanvasRef.current.height;
-        const cx = w / 2;
-        const cy = h / 2;
-        const radius = Math.min(cx, cy) - 16;
-
-        ctxVec.fillStyle = '#050811';
-        ctxVec.fillRect(0, 0, w, h);
-
-        // Circular graticules (50%, 75%, 100%)
-        ctxVec.strokeStyle = 'rgba(148, 163, 184, 0.25)';
-        ctxVec.lineWidth = 1;
-        for (const pct of [0.5, 0.75, 1.0]) {
-          ctxVec.beginPath();
-          ctxVec.arc(cx, cy, radius * pct, 0, Math.PI * 2);
-          ctxVec.stroke();
-        }
-
-        // Center crosshair
-        ctxVec.strokeStyle = 'rgba(148, 163, 184, 0.35)';
-        ctxVec.beginPath();
-        ctxVec.moveTo(cx - 8, cy);
-        ctxVec.lineTo(cx + 8, cy);
-        ctxVec.moveTo(cx, cy - 8);
-        ctxVec.lineTo(cx, cy + 8);
-        ctxVec.stroke();
-
-        // Skin Tone / I-Axis Graticule Vector (123°) for analog color-phase & face calibration
-        ctxVec.strokeStyle = 'rgba(251, 146, 60, 0.45)';
-        ctxVec.lineWidth = 1;
-        ctxVec.setLineDash([2, 3]);
-        ctxVec.beginPath();
-        const skinRad = ((123 - 90) * Math.PI) / 180;
-        ctxVec.moveTo(cx + Math.cos(skinRad) * radius * 0.2, cy + Math.sin(skinRad) * radius * 0.2);
-        ctxVec.lineTo(cx + Math.cos(skinRad) * radius * 0.88, cy + Math.sin(skinRad) * radius * 0.88);
-        ctxVec.stroke();
-        ctxVec.setLineDash([]);
-
-        // SMPTE 75% target boxes (Angle in degrees for R, Mg, B, Cy, G, Yl)
-        const targets = [
-          { name: 'R', angleDeg: 103, color: '#ef4444' },
-          { name: 'Mg', angleDeg: 61, color: '#ec4899' },
-          { name: 'B', angleDeg: 347, color: '#3b82f6' },
-          { name: 'Cy', angleDeg: 283, color: '#06b6d4' },
-          { name: 'G', angleDeg: 241, color: '#22c55e' },
-          { name: 'Yl', angleDeg: 167, color: '#eab308' },
-        ];
-
-        ctxVec.font = '8px monospace';
-        ctxVec.textAlign = 'center';
-        ctxVec.textBaseline = 'middle';
-
-        for (const tgt of targets) {
-          const rad = ((tgt.angleDeg - 90) * Math.PI) / 180;
-          const tx = cx + Math.cos(rad) * radius * 0.75;
-          const ty = cy + Math.sin(rad) * radius * 0.75;
-
-          ctxVec.strokeStyle = tgt.color;
-          ctxVec.strokeRect(tx - 4, ty - 4, 8, 8);
-          ctxVec.fillStyle = tgt.color;
-          ctxVec.fillText(tgt.name, tx, ty - 8);
-        }
-
-        const drawVectorTrace = (img: ImageData, traceColor: string) => {
-          const { data, width: imgW, height: imgH } = img;
-          ctxVec.fillStyle = traceColor;
-          const step = Math.max(1, Math.floor((imgW * imgH) / 12000));
-          const scale = (radius / 128) * 0.85;
-
-          for (let i = 0; i < data.length; i += step * 4) {
-            const r = data[i];
-            const g = data[i + 1];
-            const b = data[i + 2];
-            // Rec.601 Color Difference: U = -0.147R - 0.289G + 0.436B; V = 0.615R - 0.515G - 0.100B
-            const u = -0.147 * r - 0.289 * g + 0.436 * b;
-            const v = 0.615 * r - 0.515 * g - 0.100 * b;
-
-            const px = cx + u * scale;
-            const py = cy - v * scale;
-            ctxVec.fillRect(px, py, 1.2, 1.2);
-          }
-        };
-
-        // Render Raw trace first in amber chroma cloud
-        if ((compView === 'both' || compView === 'raw') && rawImgData) {
-          drawVectorTrace(rawImgData, 'rgba(251, 191, 36, 0.38)');
-        }
-
-        // Render Restored trace on top in cyan chroma cloud
-        if ((compView === 'both' || compView === 'proc') && procImgData) {
-          drawVectorTrace(procImgData, 'rgba(56, 189, 248, 0.60)');
-        }
-
-        // Zero subcarrier carrier dot at center if no source is active
-        if (!rawImgData && !procImgData) {
-          ctxVec.fillStyle = 'rgba(56, 189, 248, 0.55)';
-          ctxVec.beginPath();
-          ctxVec.arc(cx, cy, 2, 0, Math.PI * 2);
-          ctxVec.fill();
+      } else {
+        if (
+          Math.abs(lufs.left - lastLufsRef.current.left) >= 0.3 ||
+          Math.abs(lufs.right - lastLufsRef.current.right) >= 0.3
+        ) {
+          lastLufsRef.current = lufs;
+          setDerivedLufs(lufs);
         }
       }
     },
     []
   );
 
-  const extractImageData = (
-    canvasRef: React.MutableRefObject<HTMLCanvasElement | null>,
-    source: CanvasImageSource,
-    w: number,
-    h: number
-  ): ImageData | undefined => {
-    if (w <= 0 || h <= 0) return undefined;
-    try {
-      if (!canvasRef.current) {
-        canvasRef.current = document.createElement('canvas');
-      }
-      const canvas = canvasRef.current;
-      const targetW = 160;
-      const targetH = 120;
-      if (canvas.width !== targetW || canvas.height !== targetH) {
-        canvas.width = targetW;
-        canvas.height = targetH;
-      }
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
-      if (ctx) {
-        ctx.drawImage(source, 0, 0, targetW, targetH);
-        return ctx.getImageData(0, 0, targetW, targetH);
-      }
-    } catch {
-      // Tainted canvas or restricted access - fallback gracefully
-    }
-    return undefined;
-  };
-
   const sampleFrame = useCallback(() => {
     if (mode === 'audio' || (!waveformCanvasRef.current && !vectorCanvasRef.current)) {
       return;
     }
 
-    // 1. Detect comparison streams or comparison monitor
     const splitComparison = document.querySelector('[data-testid="split-comparison-monitor"]');
     const splitRawEl = document.querySelector<HTMLImageElement>('[data-testid="split-raw-stream"]');
     const splitProcEl = document.querySelector<HTMLImageElement>('[data-testid="split-proc-stream"]');
@@ -548,7 +190,6 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
       procH = splitProcEl.naturalHeight;
     }
 
-    // 2. Fallback to live video element (DirectShow)
     if (!procSource) {
       const vid = videoRef?.current;
       if (vid && vid.readyState >= 2 && vid.videoWidth > 0 && !vid.paused) {
@@ -558,7 +199,6 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
       }
     }
 
-    // 3. Fallback to restoration stream / DOM stream proxy
     if (!procSource) {
       const liveImg =
         document.querySelector<HTMLImageElement>('[data-testid="live-restoration-stream"]') ||
@@ -570,7 +210,6 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
       }
     }
 
-    // 4. Fallback to cached sourceImageSrc
     if (!procSource && cachedImageRef.current && cachedImageRef.current.complete && cachedImageRef.current.naturalWidth > 0) {
       procSource = cachedImageRef.current;
       procW = cachedImageRef.current.naturalWidth;
@@ -590,16 +229,18 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
       rawData = extractImageData(offscreenRawRef, rawSource, rawW, rawH);
     }
 
-    renderGraticules(
-      waveformCanvasRef.current?.getContext('2d') ?? null,
-      vectorCanvasRef.current?.getContext('2d') ?? null,
-      procData,
-      rawData,
-      isComparing ? comparisonView : 'proc'
-    );
-  }, [videoRef, renderGraticules, comparisonView, mode]);
+    const currentCompView = isComparing ? comparisonView : 'proc';
+    const waveCtx = waveformCanvasRef.current?.getContext('2d');
+    if (waveCtx && waveformCanvasRef.current) {
+      renderWaveform(waveformCanvasRef.current, waveCtx, procData, rawData, currentCompView, handleDerivedLufs);
+    }
 
-  // Load sourceImageSrc when provided
+    const vecCtx = vectorCanvasRef.current?.getContext('2d');
+    if (vecCtx && vectorCanvasRef.current) {
+      renderVectorscope(vectorCanvasRef.current, vecCtx, procData, rawData, currentCompView);
+    }
+  }, [videoRef, comparisonView, mode, handleDerivedLufs]);
+
   useEffect(() => {
     if (sourceImageSrc) {
       const img = new Image();
@@ -615,7 +256,6 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
     }
   }, [sourceImageSrc, sampleFrame]);
 
-  // Load rawImageSrc when provided
   useEffect(() => {
     if (rawImageSrc) {
       const img = new Image();
@@ -631,13 +271,11 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
     }
   }, [rawImageSrc, sampleFrame]);
 
-  // Continuous animation loop for real-time video/stream tracking
   useEffect(() => {
     let animId: number;
     let lastDraw = 0;
 
     const sampleLoop = (now: number) => {
-      // Throttle sampling to ~22-25 FPS (42ms)
       if (now - lastDraw >= 42) {
         lastDraw = now;
         sampleFrame();
@@ -654,13 +292,11 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
 
   const headerContent = (
     <div className="flex flex-col shrink-0 select-none">
-      {/* Tier 1: Window Bar & Actions */}
       <div
         className={`scopes-drag-handle flex items-center justify-between px-2.5 py-1.5 bg-studio-panel border-b border-studio-border shrink-0 ${
           docked || isMaximized ? '' : 'cursor-grab active:cursor-grabbing'
         }`}
       >
-        {/* Left: Grip Handle, Activity Icon, Title, LIVE Badge */}
         <div className="flex items-center gap-2 shrink-0">
           {!docked && <GripHorizontal className="w-3.5 h-3.5 text-slate-500 shrink-0 self-center" />}
           <span
@@ -679,7 +315,6 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
           </Badge>
         </div>
 
-        {/* Right: Actions (Refresh, Dock/Float, Maximize, Close) */}
         <div className="flex items-center gap-1 shrink-0">
           <button
             type="button"
@@ -740,9 +375,7 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
         </div>
       </div>
 
-      {/* Tier 2: Navigation Toolbar (Scope Mode Tabs & Comparison Toggle) */}
       <div className="flex items-center justify-between flex-wrap gap-1.5 px-2.5 py-1 bg-black/40 border-b border-studio-border shrink-0">
-        {/* Left: Mode Tabs */}
         <div className="flex items-center bg-black/60 rounded-sm border border-studio-border p-0.5 text-[9.5px] shrink-0">
           <button
             type="button"
@@ -790,7 +423,6 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
           </button>
         </div>
 
-        {/* Right: Comparison Toggle */}
         {hasComparison && (
           <div
             className="flex items-center bg-black/60 rounded-sm border border-amber-500/40 p-0.5 text-[8.5px] shrink-0"
@@ -840,7 +472,6 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
       <div className="p-1.5 overflow-hidden flex-1 min-h-0 flex flex-col gap-1.5">
         {mode === 'all' ? (
           <div className="grid grid-cols-1 @md:grid-cols-2 gap-1.5 flex-1 min-h-0">
-            {/* Scope 1: Waveform (Luma 0 - 100 IRE) - Col 1, Row 1 */}
             <div className="order-1 @md:col-start-1 @md:row-start-1 flex flex-col gap-1 bg-black/60 p-1.5 rounded-sm border border-white/5 overflow-hidden justify-between">
               <div className="flex items-center justify-between text-[10px] text-slate-400 shrink-0 leading-none">
                 <span className="font-bold text-slate-300">{t('monitor.scopes_waveform')}</span>
@@ -861,7 +492,6 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
               </div>
             </div>
 
-            {/* Audio: EBU R128 Loudness VU Meters - Nested in Col 1 below Waveform to eliminate dead space */}
             <div className="order-3 @md:order-2 @md:col-start-1 @md:row-start-2 flex flex-col gap-1 bg-black/60 p-1.5 rounded-sm border border-white/5 overflow-hidden shrink-0 justify-between">
               <div className="flex items-center justify-between text-[10px] text-slate-400 shrink-0 gap-1 leading-none">
                 <span className="font-bold text-slate-300 truncate">{t('monitor.scopes_tab_audio')}</span>
@@ -899,7 +529,6 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
               </div>
             </div>
 
-            {/* Scope 2: Vectorscope (Chroma SMPTE 75%) - Spanning Col 2, Row 1 & 2 in 2-col mode */}
             <div className="order-2 @md:order-3 @md:col-start-2 @md:row-start-1 @md:row-span-2 flex flex-col gap-1 bg-black/60 p-1.5 rounded-sm border border-white/5 overflow-hidden justify-between">
               <div className="flex items-center justify-between text-[10px] text-slate-400 shrink-0 leading-none">
                 <span className="font-bold text-slate-300">{t('monitor.scopes_vectorscope')}</span>
@@ -961,7 +590,6 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
             </div>
           </div>
         ) : (
-          /* mode === 'audio' */
           <div className="flex flex-col gap-2 bg-black/60 p-3 rounded-sm border border-white/5 flex-1 min-h-0 overflow-hidden justify-center">
             <div className="flex items-center justify-between text-[10px] text-slate-400 shrink-0">
               <span className="font-bold text-slate-300">{t('monitor.scopes_audio')}</span>
@@ -1025,8 +653,6 @@ export const BroadcastScopes: React.FC<BroadcastScopesProps> = ({
     ? { x: Math.round(maximizedRect.left), y: Math.round(maximizedRect.top) }
     : { x: floatState.x, y: floatState.y };
 
-  // Floating window lives in a portal on <body>, so it is never clipped by the live preview frame.
-  // Rnd provides industry-standard 8-direction resizing and dragging with zero unpredictable side-effects.
   return createPortal(
     <div className="fixed inset-0 z-[35] pointer-events-none">
       <Rnd

@@ -2,6 +2,7 @@
 
 pub mod app_context;
 pub mod cpu_usage;
+pub mod desktop_runtime;
 pub mod disk_imager;
 pub mod embedded_assets;
 pub mod executor;

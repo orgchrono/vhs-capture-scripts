@@ -3,6 +3,84 @@
 use super::spec::{OutputCodec, PipelinePlan, PipelineSpec, VideoEncoder};
 use super::video_filters::build_video_filtergraph;
 use super::audio_filters::build_audio_filtergraph;
+use crate::domain::hardware::GpuType;
+
+/// Pure functional resolver selecting optimal FFmpeg hardware encoder CLI flags
+/// based on user encoder preference, target operating system, and detected GPU topology.
+#[must_use]
+pub fn resolve_optimal_encoder_args(
+    preference: &str,
+    platform: &str,
+    gpu_type: &GpuType,
+) -> Vec<String> {
+    let chosen = if preference == "auto" {
+        match (platform, gpu_type) {
+            ("darwin", GpuType::AppleSilicon) => "videotoolbox",
+            ("windows", GpuType::Dedicated) => "nvenc",
+            ("windows", GpuType::Integrated) => "qsv",
+            ("linux", GpuType::Dedicated) => "nvenc",
+            ("linux", _) => "vaapi",
+            _ => "software",
+        }
+    } else {
+        preference
+    };
+
+    match chosen {
+        "nvenc" => vec![
+            "-c:v".to_string(),
+            "h264_nvenc".to_string(),
+            "-preset".to_string(),
+            "p6".to_string(),
+            "-tune".to_string(),
+            "hq".to_string(),
+            "-rc".to_string(),
+            "vbr".to_string(),
+            "-cq".to_string(),
+            "18".to_string(),
+            "-b:v".to_string(),
+            "0".to_string(),
+        ],
+        "qsv" => vec![
+            "-c:v".to_string(),
+            "h264_qsv".to_string(),
+            "-preset".to_string(),
+            "veryfast".to_string(),
+            "-global_quality".to_string(),
+            "18".to_string(),
+        ],
+        "amf" => vec![
+            "-c:v".to_string(),
+            "h264_amf".to_string(),
+            "-quality".to_string(),
+            "quality".to_string(),
+            "-rc".to_string(),
+            "cqp".to_string(),
+            "-qp_i".to_string(),
+            "18".to_string(),
+        ],
+        "videotoolbox" => vec![
+            "-c:v".to_string(),
+            "h264_videotoolbox".to_string(),
+            "-q:v".to_string(),
+            "65".to_string(),
+        ],
+        "vaapi" => vec![
+            "-c:v".to_string(),
+            "h264_vaapi".to_string(),
+            "-qp".to_string(),
+            "18".to_string(),
+        ],
+        _ => vec![
+            "-c:v".to_string(),
+            "libx264".to_string(),
+            "-preset".to_string(),
+            "medium".to_string(),
+            "-crf".to_string(),
+            "18".to_string(),
+        ],
+    }
+}
 
 /// Pure functional resolver for video encoder command-line parameters.
 #[must_use]

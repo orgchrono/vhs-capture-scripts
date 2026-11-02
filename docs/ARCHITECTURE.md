@@ -352,3 +352,50 @@ Analog tape players often produce unrecorded black leaders, trailing run-outs, a
 - **Leader & Trailer Cutting:** Because both video and audio are silent/unrecorded, audio and video are trimmed synchronously (`-ss` and `-to` / `trim` + `atrim`), preserving sample-accurate lip sync.
 - **Mid-Recording Dropouts (TBC Frame-Hold):** Deleting mid-tape black frames from the video stream without trimming continuous audio destroys lip sync. In `Freeze` mode, the engine freezes the last valid video frame across the dropout gap, holding video timing in strict lockstep with the continuous audio stream.
 
+---
+
+## 15. Modular Architecture & God-Module Decomposition (v0.2.0)
+
+In version 0.2.0, VHS Studio Pro underwent a comprehensive architectural audit and refactoring to eliminate monolithic modules, isolate pure domain logic from side-effects, and achieve strict adherence to MVVM, Functional Programming (FP), SRP, SoC, DRY, and SSOT principles:
+
+### 15.1 Pure Domain Extraction (FP Core)
+1. **Hardware Assessment (`src/domain/hardware.rs`):**
+   - Pure models: `GpuType`, `HardwareSpecs`, `HardwareAssessment`.
+   - Pure function `assess_hardware(&HardwareSpecs) -> HardwareAssessment` evaluates capability tiers (Tier 1 to 4) and hardware-accelerated encoder eligibility with zero OS queries or side-effects.
+2. **Storage Calculations (`src/domain/storage.rs`):**
+   - Pure models: `StorageProviderKind`, `StorageConfig`, `StorageQuota`, `ChunkUploadPart`.
+   - Pure calculation functions: `calculate_chunk_plan`, `validate_storage_config`, `verify_capacity`, and `format_destination_key`.
+3. **Recovery Naming Rules (`src/domain/recovery.rs`):**
+   - Pure functions `extract_raw_stem_from_restored_name` and `is_restored_filename` provide single-source-of-truth logic for raw-to-restored filename associations.
+4. **Optimal Encoder Resolution (`src/domain/pipeline/encoder_args.rs`):**
+   - Pure function `resolve_optimal_encoder_args` determines encoder arguments across NVENC, QSV, AMF, VideoToolbox, VAAPI, and software fallbacks.
+5. **Frame Calculation Bounds (`src/domain/pipeline/mod.rs`):**
+   - Pure mathematical calculations: `expected_output_frames`, `is_output_truncated`, and `bounded_tail`.
+
+### 15.2 Rust Infrastructure & ViewModel Modularization
+1. **Desktop App Lifecycle Isolation (`src/infrastructure/desktop_runtime.rs`):**
+   - Isolates Tauri desktop window creation, local HTTP/SSE background daemon startup, and graceful shutdown into `run_desktop_app`.
+2. **Job Recovery Subsystem (`src/infrastructure/job_recovery/`):**
+   - `scanner.rs`: File-system traversal, recursive directory discovery, and target resolution.
+   - `repair.rs`: FFmpeg partial stream finalizing (`finalize_partial_video`) and atomic orphan job discard.
+   - `conflict_resolver.rs`: Checks existing restoration runs and pair resolutions.
+3. **Panasonic Ingest Decomposition (`src/viewmodels/api_ingest/`):**
+   - `panasonic_routes.rs`: Handles disk inspections, title trees, and MEIHDFS/DVD-VR extraction.
+   - `disk_image_routes.rs`: Direct physical block imaging endpoints (`drives`, `start`, `cancel`).
+4. **IPC Commands Modularization (`src/viewmodels/ipc/`):**
+   - Split 52 Tauri IPC commands into 4 focused submodules: `system_ipc.rs`, `restoration_ipc.rs`, `ingest_ipc.rs`, and `storage_ipc.rs`.
+   - `src/viewmodels/ipc_commands.rs` serves as a clean, backward-compatible facade.
+
+### 15.3 TypeScript Bridge, Store, and Component Decomposition
+1. **Modular IPC Bridge (`ui/src/api/bridge/`):**
+   - `systemBridge.ts`, `restorationBridge.ts`, `ingestBridge.ts`, `storageBridge.ts`, coordinated via `index.ts`.
+   - Circular dependency between `studioApi.ts` and `tauriBridge.ts` eliminated via `ui/src/api/runtimeEnv.ts`.
+2. **Redux Store Modularization (`ui/src/store/studio/`):**
+   - Monolithic slice partitioned into `types.ts`, `logReducers.ts`, `layoutReducers.ts`, and `restorationReducers.ts`.
+3. **Decoupled View Components:**
+   - **Scopes (`ui/src/components/scopes/`):** Audio metering extracted to `ScopeAudioMeters.tsx`; Canvas 2D rasterization math extracted to `scopeCanvasRenderers.ts`.
+   - **Panasonic Ingest (`ui/src/components/panasonic/`):** Title trees extracted to `PanasonicRecordingTreePanel.tsx`; block imaging extracted to `PanasonicDiskImagingPanel.tsx`; drive header extracted to `DetectedDrivesHeader.tsx`.
+   - **Tape Library (`ui/src/components/library/`):** Individual tape cards extracted to `TapeItemCard.tsx`; empty states extracted to `EmptyTapeListState.tsx`.
+   - **Preferences Constants (`ui/src/lib/constants.ts`):** 8 configuration option arrays extracted from inline JSX into immutable constant singletons.
+
+

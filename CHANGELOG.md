@@ -45,6 +45,27 @@ All notable changes to **VHS Studio Pro** are documented in this file.
 #### 5. Full 10-Locale Internationalization (i18n) Parity
 - 100% key parity maintained across all 10 supported languages (`pt-BR`, `en-US`, `es`, `fr`, `de`, `it`, `ja`, `ar`, `ru`, `zh-CN`) for all disk imaging controls, labels, tooltips, dialogs, and forensic telemetry.
 
+#### 6. Architectural Refactoring & God-Module Decomposition (Argon Blueprint)
+- **Rust Domain & FP Pure Extraction:**
+  - `src/domain/hardware.rs`: Pure models `GpuType`, `HardwareSpecs`, `HardwareAssessment` and algorithm `assess_hardware` with comprehensive unit tests.
+  - `src/domain/storage.rs`: Pure models `StorageProviderKind`, `StorageConfig`, `StorageQuota`, `ChunkUploadPart` and pure calculations `calculate_chunk_plan`, `validate_storage_config`, `verify_capacity`, and `format_destination_key` with unit tests.
+  - `src/domain/recovery.rs`: Pure stem and filename determination `extract_raw_stem_from_restored_name` and `is_restored_filename`.
+  - `src/domain/pipeline/encoder_args.rs`: Pure function `resolve_optimal_encoder_args` evaluating encoder CLI args across all GPU backends.
+  - `src/domain/pipeline/mod.rs`: Pure bounds and frame calculations `expected_output_frames`, `is_output_truncated`, and `bounded_tail`.
+- **Rust God Modules Decomposed:**
+  - `src/infrastructure/desktop_runtime.rs`: Isolated desktop WebView and local HTTP/SSE daemon lifecycle (`run_desktop_app`).
+  - `src/infrastructure/job_recovery/`: Split into `scanner.rs`, `repair.rs`, `conflict_resolver.rs`, and re-export facade in `mod.rs`.
+  - `src/viewmodels/api_ingest/`: Split into `panasonic_routes.rs`, `disk_image_routes.rs`, and router in `mod.rs`.
+  - `src/viewmodels/ipc/`: Split into `system_ipc.rs`, `restoration_ipc.rs`, `ingest_ipc.rs`, and `storage_ipc.rs`.
+- **TypeScript Bridges, Stores, and Views Decomposed:**
+  - `ui/src/api/bridge/`: Modularized into `systemBridge.ts`, `restorationBridge.ts`, `ingestBridge.ts`, `storageBridge.ts`, `types.ts`, and aggregated in `index.ts`.
+  - `ui/src/api/runtimeEnv.ts`: Broke circular dependencies between `studioApi.ts` and `tauriBridge.ts`.
+  - `ui/src/store/studio/`: Partitioned monolith into `types.ts`, `logReducers.ts`, `layoutReducers.ts`, and `restorationReducers.ts`.
+  - `ui/src/components/scopes/`: Extracted `ScopeAudioMeters.tsx` and Canvas 2D rasterizers in `scopeCanvasRenderers.ts`.
+  - `ui/src/components/panasonic/`: Extracted `PanasonicRecordingTreePanel.tsx`, `PanasonicDiskImagingPanel.tsx`, and `DetectedDrivesHeader.tsx`.
+  - `ui/src/components/library/`: Extracted `TapeItemCard.tsx` and `EmptyTapeListState.tsx`.
+  - `ui/src/lib/constants.ts`: Extracted 8 option arrays from JSX to immutable constants.
+
 ---
 
 ### 🛡️ Quality Gate Verification Results
@@ -58,7 +79,7 @@ All notable changes to **VHS Studio Pro** are documented in this file.
 | Gate 5 | End-to-End Integration Tests (Playwright) | **16/16 Tests PASS (100%)** |
 | Gate 6 | Cargo Check (Rust Compilation) | **0 Errors (PASS)** |
 | Gate 7 | Cargo Clippy (Rust Quality) | **0 Warnings with `-D warnings` (PASS)** |
-| Gate 8 | Cargo Test (Native Rust Tests) | **273/273 Tests PASS (100%)** |
+| Gate 8 | Cargo Test (Native Rust Tests) | **282/282 Tests PASS (100%)** |
 | Gate 9 | i18n Translation Key Parity | **10/10 Locales, 100% Matching Parity (PASS)** |
 
 ---

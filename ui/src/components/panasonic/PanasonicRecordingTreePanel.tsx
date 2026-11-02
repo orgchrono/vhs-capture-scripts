@@ -1,0 +1,475 @@
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+import { formatMbSize } from '../../lib/formatters';
+import {
+  Search,
+  RefreshCw,
+  Download,
+  AlertTriangle,
+  Info,
+  Film,
+  CheckSquare,
+  Square,
+  Usb,
+  ChevronDown,
+  ChevronRight,
+  FolderOpen,
+} from 'lucide-react';
+import { getApiBaseUrl } from '../../api/tauriBridge';
+import { DetectedDrivesHeader } from './DetectedDrivesHeader';
+import type {
+  PanasonicDisk,
+  PanasonicRecordingTreeResponse,
+  PanasonicRecordingTitle,
+  PanasonicInspection,
+} from '../../types';
+
+export interface PanasonicRecordingTreePanelProps {
+  connectedDisks: PanasonicDisk[];
+  isScanningDisks: boolean;
+  refetchDisks: () => void;
+  panasonicPath: string;
+  setPanasonicPath: (path: string) => void;
+  handleInspectPath: (path: string) => void;
+  isInspecting: boolean;
+  isLoadingTree: boolean;
+  onOpenFolderModal: () => void;
+  showGuidance: boolean;
+  setShowGuidance: (show: boolean) => void;
+  recordingTree: PanasonicRecordingTreeResponse | null;
+  selectedTitleIds: Set<number>;
+  expandedChapterTitles: Set<number>;
+  toggleSelectTitle: (id: number) => void;
+  handleSelectAll: () => void;
+  handleDeselectAll: () => void;
+  toggleExpandChapters: (id: number) => void;
+  handleLoadTitleToDesk: (title: PanasonicRecordingTitle) => void;
+  handleExtractSelectedTitles: () => void;
+  isExtractingTitles: boolean;
+  inspectionResult: PanasonicInspection | null;
+  isExtracting: boolean;
+  handleExtractAll: () => void;
+}
+
+export const PanasonicRecordingTreePanel: React.FC<PanasonicRecordingTreePanelProps> = ({
+  connectedDisks,
+  isScanningDisks,
+  refetchDisks,
+  panasonicPath,
+  setPanasonicPath,
+  handleInspectPath,
+  isInspecting,
+  isLoadingTree,
+  onOpenFolderModal,
+  showGuidance,
+  setShowGuidance,
+  recordingTree,
+  selectedTitleIds,
+  expandedChapterTitles,
+  toggleSelectTitle,
+  handleSelectAll,
+  handleDeselectAll,
+  toggleExpandChapters,
+  handleLoadTitleToDesk,
+  handleExtractSelectedTitles,
+  isExtractingTitles,
+  inspectionResult,
+  isExtracting,
+  handleExtractAll,
+}) => {
+  const { t } = useTranslation();
+
+  return (
+    <>
+      {/* Section 1: Auto-Detected Physical Disks & Hotplug Adapters */}
+      <div className="flex flex-col gap-1.5">
+        <DetectedDrivesHeader isScanning={isScanningDisks} onRefresh={refetchDisks} />
+
+        {connectedDisks.length === 0 ? (
+          <div className="p-2 border border-dashed border-studio-border rounded-sm bg-studio-panel/60 text-[10px] text-slate-500 text-center">
+            {t('files.no_drives_found')}
+          </div>
+        ) : (
+          <div className="space-y-1.5 max-h-[160px] overflow-y-auto custom-scrollbar">
+            {connectedDisks.map((disk) => {
+              const isPana = disk.is_panasonic;
+              const adapterLabel = disk.is_jmicron
+                ? t('files.adapter_jmicron')
+                : disk.is_asmedia
+                ? t('files.adapter_asmedia')
+                : disk.bus_type === 'NVMe'
+                ? t('files.adapter_nvme')
+                : disk.bus_type === 'IDE'
+                ? t('files.adapter_ide')
+                : disk.bus_type === 'SCSI'
+                ? t('files.adapter_scsi')
+                : disk.is_usb
+                ? t('files.adapter_usb')
+                : t('files.adapter_sata');
+
+              return (
+                <div
+                  key={disk.device_id}
+                  className={`p-2 rounded-sm border flex items-center justify-between gap-2 transition ${
+                    isPana
+                      ? 'bg-amber-950/40 border-amber-500/70 text-amber-200'
+                      : 'bg-studio-panel border-studio-border text-slate-300'
+                  }`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span
+                        className={`led-lamp ${isPana ? 'led-live animate-pulse' : 'led-idle'} shrink-0 self-center`}
+                        aria-hidden="true"
+                      />
+                      <span className="text-[11px] font-bold truncate self-center leading-none">
+                        {disk.model}
+                      </span>
+                      {isPana && (
+                        <span className="text-[9px] bg-amber-950 px-1 py-0.5 rounded-xs border border-amber-600/60 text-amber-300 shrink-0 uppercase self-center leading-none inline-flex items-center justify-center">
+                          {t('files.panasonic_detected_badge')}
+                        </span>
+                      )}
+                      <span className="text-[8px] bg-studio-surface px-1 py-0.5 rounded-xs border border-studio-border text-slate-400 shrink-0 inline-flex items-center justify-center gap-0.5 self-center leading-none">
+                        {disk.is_usb ? <Usb className="w-2.5 h-2.5 self-center" /> : null}
+                        <span className="self-center leading-none">{adapterLabel}</span>
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 flex items-center gap-2">
+                      <span className="truncate self-center leading-none">{disk.device_id}</span>
+                      <span className="self-center leading-none">•</span>
+                      <span className="self-center leading-none">{disk.size_gb} GB</span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPanasonicPath(disk.device_id);
+                      handleInspectPath(disk.device_id);
+                    }}
+                    className={`text-[10px] font-bold px-2 py-1 rounded-sm border transition cursor-pointer shrink-0 inline-flex items-center justify-center leading-none ${
+                      isPana
+                        ? 'bg-amber-600 hover:bg-amber-500 text-white border-amber-500/50 shadow-xs'
+                        : 'bg-studio-surface hover:bg-studio-surface-hover text-slate-300 border-studio-border'
+                    }`}
+                    title={t('files.connect_drive_btn')}
+                  >
+                    <span className="self-center leading-none">{t('files.connect_drive_btn')}</span>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Section 2: Manual Path Input / Disk Image */}
+      <div className="flex flex-col gap-1 pt-1 border-t border-studio-border">
+        <label className="text-[10px] text-slate-400 uppercase font-semibold">
+          {t('files.source_path_label')}
+        </label>
+        <div className="flex gap-1.5">
+          <input
+            type="text"
+            value={panasonicPath}
+            onChange={(e) => setPanasonicPath(e.target.value)}
+            placeholder={t('files.source_path_placeholder')}
+            className="flex-1 bg-studio-panel border border-studio-border rounded-sm px-2 py-1 text-[11px] text-slate-200 focus:outline-none focus:border-studio-border-focus font-mono"
+            data-testid="panasonic-path-input"
+          />
+          <button
+            type="button"
+            onClick={onOpenFolderModal}
+            className="bg-studio-panel hover:bg-studio-surface-hover text-slate-300 border border-studio-border px-2 py-1 rounded-sm text-[10px] font-bold transition cursor-pointer flex items-center justify-center gap-1 shrink-0"
+            title={t('folders.browse_btn')}
+            data-testid="panasonic-browse-btn"
+          >
+            <FolderOpen className="w-3 h-3 text-amber-400 self-center" />
+          </button>
+          <button
+            type="button"
+            disabled={!panasonicPath.trim() || isInspecting || isLoadingTree}
+            onClick={() => handleInspectPath(panasonicPath)}
+            className="bg-studio-panel hover:bg-studio-surface-hover text-amber-300 border border-amber-500/40 px-2.5 py-1 rounded-sm text-[10px] font-bold transition disabled:opacity-40 cursor-pointer flex items-center justify-center gap-1 shrink-0"
+            data-testid="inspect-panasonic-btn"
+          >
+            {isInspecting || isLoadingTree ? (
+              <RefreshCw className="w-3 h-3 animate-spin self-center" />
+            ) : (
+              <Search className="w-3 h-3 self-center" />
+            )}
+            <span className="self-center leading-none">{t('files.inspect')}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Section 3: Educational User Guidance & Safety Alert */}
+      <div className="border border-studio-border rounded-sm bg-studio-panel/70 p-2 flex flex-col gap-1">
+        <button
+          type="button"
+          aria-expanded={showGuidance}
+          onClick={() => setShowGuidance(!showGuidance)}
+          className="flex items-center justify-between text-[10px] font-bold text-slate-300 hover:text-white cursor-pointer"
+        >
+          <span className="flex items-center gap-1 text-amber-400">
+            <AlertTriangle className="w-3 h-3 shrink-0 self-center" />
+            <span className="self-center leading-none">{t('files.guidance_title')}</span>
+          </span>
+          <span className="text-[9px] text-slate-500 self-center leading-none">
+            {showGuidance ? t('files.collapse') : t('files.expand')}
+          </span>
+        </button>
+
+        {showGuidance && (
+          <div className="pt-1.5 space-y-1.5 text-[10px] text-slate-300 leading-relaxed border-t border-studio-border/60">
+            <div className="p-1.5 rounded-sm bg-red-950/40 border border-red-800/60 text-red-200 flex items-start gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
+              <p>{t('files.guidance_warning')}</p>
+            </div>
+            <div className="p-1.5 rounded-sm bg-studio-surface border border-studio-border text-slate-400 flex items-start gap-1.5">
+              <Info className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+              <p>{t('files.guidance_imaging')}</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Section 4: Interactive Recording Tree & Chapters Gallery */}
+      {recordingTree && recordingTree.titles.length > 0 && (
+        <div className="border border-amber-500/40 rounded-sm bg-studio-panel/80 p-2.5 flex flex-col gap-2.5">
+          <div className="flex items-center justify-between border-b border-studio-border pb-1.5">
+            <div className="flex items-center gap-1.5">
+              <FolderOpen className="w-3.5 h-3.5 text-amber-400 shrink-0 self-center" />
+              <span className="text-[11px] font-bold text-amber-200 self-center leading-none">
+                {t('files.recording_tree_title')}
+              </span>
+              <span className="text-[9px] bg-studio-surface px-1.5 py-0.5 rounded-xs border border-studio-border text-slate-300 shrink-0 self-center leading-none inline-flex items-center justify-center">
+                {recordingTree.format}
+              </span>
+            </div>
+            <div className="text-[10px] text-slate-400 flex items-center gap-2">
+              <span className="self-center leading-none">
+                {t('files.tree_total_titles', { count: recordingTree.total_titles })}
+              </span>
+              <span className="self-center leading-none">•</span>
+              <span className="self-center leading-none">
+                {t('files.tree_total_size', { size: recordingTree.total_size_mb })}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between text-[10px]">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleSelectAll}
+                className="text-amber-400 hover:text-amber-300 transition cursor-pointer flex items-center gap-1"
+              >
+                <CheckSquare className="w-3 h-3 self-center" />
+                <span className="self-center leading-none">{t('files.select_all')}</span>
+              </button>
+              <span className="text-slate-600 self-center leading-none">|</span>
+              <button
+                type="button"
+                onClick={handleDeselectAll}
+                className="text-slate-400 hover:text-slate-200 transition cursor-pointer flex items-center gap-1"
+              >
+                <Square className="w-3 h-3 self-center" />
+                <span className="self-center leading-none">{t('files.deselect_all')}</span>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              disabled={isExtractingTitles || selectedTitleIds.size === 0}
+              onClick={handleExtractSelectedTitles}
+              className="bg-amber-600 hover:bg-amber-500 disabled:opacity-40 text-white font-bold px-2.5 py-1 rounded-sm text-[10px] transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+            >
+              {isExtractingTitles ? (
+                <RefreshCw className="w-3 h-3 animate-spin self-center" />
+              ) : (
+                <Download className="w-3 h-3 self-center" />
+              )}
+              <span className="self-center leading-none">
+                {t('files.ingest_selected_btn', { count: selectedTitleIds.size })}
+              </span>
+            </button>
+          </div>
+
+          <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-0.5">
+            {recordingTree.titles.map((title) => {
+              const isSelected = selectedTitleIds.has(title.id);
+              const isExpandedChapters = expandedChapterTitles.has(title.id);
+
+              return (
+                <div
+                  key={title.id}
+                  className={`p-2 rounded-sm border transition flex flex-col gap-1.5 ${
+                    isSelected
+                      ? 'bg-amber-950/20 border-amber-500/50'
+                      : 'bg-studio-surface border-studio-border text-slate-400'
+                  }`}
+                >
+                  <div className="flex items-start gap-2">
+                    <button
+                      type="button"
+                      aria-pressed={isSelected}
+                      onClick={() => toggleSelectTitle(title.id)}
+                      className="mt-0.5 text-amber-400 hover:text-amber-300 transition cursor-pointer shrink-0"
+                      aria-label={title.title}
+                    >
+                      {isSelected ? (
+                        <CheckSquare className="w-4 h-4 text-amber-400" aria-hidden="true" />
+                      ) : (
+                        <Square className="w-4 h-4 text-slate-500" aria-hidden="true" />
+                      )}
+                    </button>
+
+                    <div className="relative w-16 h-11 bg-slate-900 rounded-xs border border-studio-border shrink-0 overflow-hidden flex items-center justify-center">
+                      {title.thumbnail_url ? (
+                        <img
+                          src={
+                            title.thumbnail_url.startsWith('http') || title.thumbnail_url.startsWith('data:')
+                              ? title.thumbnail_url
+                              : `${getApiBaseUrl()}${title.thumbnail_url}`
+                          }
+                          alt={title.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <Film className="w-4 h-4 text-slate-500" />
+                      )}
+                      <span className="absolute bottom-0 right-0 bg-black/80 text-[7px] font-mono px-0.5 rounded-xs text-amber-300 leading-none">
+                        {title.duration_formatted}
+                      </span>
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-[11px] font-bold text-slate-200 truncate self-center leading-none">
+                          {title.title}
+                        </span>
+                        <span className="text-[9px] bg-studio-panel px-1 py-0.5 rounded-xs border border-studio-border text-slate-400 shrink-0 self-center leading-none inline-flex items-center justify-center">
+                          {formatMbSize(title.size_mb)}
+                        </span>
+                      </div>
+
+                      <div className="text-[9px] text-slate-400 flex items-center gap-2 mt-0.5">
+                        <span className="self-center leading-none">{title.recorded_date}</span>
+                        <span className="self-center leading-none">•</span>
+                        <span className="self-center leading-none">{title.format}</span>
+                        {title.is_extracted && (
+                          <span className="text-emerald-400 font-bold self-center leading-none">
+                            {t('files.extracted_badge')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleLoadTitleToDesk(title)}
+                      className="bg-studio-panel hover:bg-studio-surface-hover text-slate-300 hover:text-white border border-studio-border px-1.5 py-1 rounded-sm text-[9px] font-semibold transition cursor-pointer shrink-0 inline-flex items-center justify-center"
+                      title={t('files.send_to_restoration_btn')}
+                    >
+                      <span className="self-center leading-none">{t('files.send_to_restoration_btn')}</span>
+                    </button>
+                  </div>
+
+                  {title.chapters.length > 0 && (
+                    <div className="border-t border-studio-border/60 pt-1 flex flex-col gap-1">
+                      <button
+                        type="button"
+                        aria-expanded={isExpandedChapters}
+                        onClick={() => toggleExpandChapters(title.id)}
+                        className="flex items-center gap-1 text-[9px] text-slate-400 hover:text-slate-200 transition cursor-pointer self-start"
+                      >
+                        {isExpandedChapters ? (
+                          <ChevronDown className="w-2.5 h-2.5 shrink-0 self-center" aria-hidden="true" />
+                        ) : (
+                          <ChevronRight className="w-2.5 h-2.5 shrink-0 self-center" aria-hidden="true" />
+                        )}
+                        <span className="self-center leading-none">
+                          {t('files.chapters_count', { count: title.chapters.length })}
+                        </span>
+                      </button>
+
+                      {isExpandedChapters && (
+                        <div className="pl-3.5 space-y-1 text-[9px] text-slate-400">
+                          {title.chapters.map((ch) => (
+                            <div
+                              key={ch.id}
+                              className="flex items-center justify-between pr-1 py-0.5 border-b border-studio-border/30 last:border-0"
+                            >
+                              <span>
+                                {t('files.chapter_item', {
+                                  num: ch.id,
+                                  time: ch.start_timecode,
+                                })}
+                              </span>
+                              <span className="font-mono text-slate-500">
+                                {ch.title}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Section 5: Diagnostic Inspection Result Display */}
+      {inspectionResult && (
+        <div
+          className={`p-2 rounded-sm border text-[11px] ${
+            inspectionResult.is_panasonic
+              ? 'bg-studio-panel border-amber-500/40 text-amber-200'
+              : 'bg-studio-panel border-red-500/40 text-red-200'
+          }`}
+        >
+          <div className="flex items-center justify-between mb-1">
+            <span className="font-bold self-center leading-none">
+              {t('files.format_label')} {inspectionResult.format}
+            </span>
+            <span className="text-[9px] px-1 py-0.5 rounded-sm bg-studio-surface border border-studio-border text-slate-300 shrink-0 self-center leading-none inline-flex items-center justify-center">
+              <span className="self-center leading-none">{t('files.binary_native')}</span>
+            </span>
+          </div>
+          <p className="text-[10px] text-slate-300 mb-2 leading-relaxed">
+            {inspectionResult.details}
+          </p>
+          {inspectionResult.can_extract && (
+            <button
+              type="button"
+              disabled={isExtracting}
+              onClick={handleExtractAll}
+              className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-1.5 rounded-sm text-xs transition disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+              data-testid="extract-panasonic-btn"
+            >
+              {isExtracting ? (
+                <>
+                  <RefreshCw className="w-3 h-3 animate-spin self-center" />
+                  <span className="self-center leading-none">{t('files.extracting')}</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-3 h-3 self-center" />
+                  <span className="self-center leading-none">{t('files.extract_btn')}</span>
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      )}
+    </>
+  );
+};

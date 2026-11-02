@@ -17,7 +17,8 @@ import type {
   BlackframeCleanRequest,
   BlackframeCleanResponse,
 } from '../types';
-import { tauriBridge, isTauriEnvironment, getApiBaseUrl } from './tauriBridge';
+import { tauriBridge } from './tauriBridge';
+import { isTauriEnvironment, getApiBaseUrl } from './runtimeEnv';
 
 
 let cachedSessionToken: string | null = null;

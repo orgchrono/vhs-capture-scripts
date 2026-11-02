@@ -212,5 +212,60 @@ export const isSupportedVideoFile = (fileName: string): boolean => {
   return (SUPPORTED_VIDEO_EXTENSIONS as readonly string[]).includes(ext);
 };
 
+export const DEPTH_OPTIONS = [
+  { value: '1', labelKey: 'folders.depth_1' },
+  { value: '2', labelKey: 'folders.depth_2' },
+  { value: '3', labelKey: 'folders.depth_3' },
+  { value: '4', labelKey: 'folders.depth_4' },
+  { value: '5', labelKey: 'folders.depth_5' },
+] as const;
+
+export const PREVIEW_FPS_OPTIONS = [
+  { value: '15', labelKey: 'preferences.fps_15' },
+  { value: '30', labelKey: 'preferences.fps_30' },
+  { value: '60', labelKey: 'preferences.fps_60' },
+] as const;
+
+export const BUFFER_LINES_OPTIONS = [
+  { value: '500', labelKey: 'preferences.lines_500' },
+  { value: '1000', labelKey: 'preferences.lines_1000' },
+  { value: '5000', labelKey: 'preferences.lines_5000' },
+] as const;
+
+export const POLL_INTERVAL_OPTIONS = [
+  { value: '1000', labelKey: 'preferences.poll_1s' },
+  { value: '3000', labelKey: 'preferences.poll_3s' },
+  { value: '5000', labelKey: 'preferences.poll_5s' },
+  { value: '10000', labelKey: 'preferences.poll_10s' },
+] as const;
+
+export const AI_DEVICE_OPTIONS = [
+  { value: 'auto', labelKey: 'preferences.device_auto' },
+  { value: 'vulkan', labelKey: 'preferences.device_vulkan' },
+  { value: 'directml', labelKey: 'preferences.device_directml' },
+  { value: 'cpu', labelKey: 'preferences.device_cpu' },
+] as const;
+
+export const THREADS_OPTIONS = [
+  { value: '2', labelKey: 'preferences.threads_2' },
+  { value: '4', labelKey: 'preferences.threads_4' },
+  { value: '8', labelKey: 'preferences.threads_8' },
+  { value: '16', labelKey: 'preferences.threads_16' },
+] as const;
+
+export const HARDWARE_ENCODER_OPTIONS = [
+  { value: 'auto', labelKey: 'preferences.enc_auto' },
+  { value: 'qsv', labelKey: 'preferences.enc_qsv' },
+  { value: 'nvenc', labelKey: 'preferences.enc_nvenc' },
+  { value: 'amf', labelKey: 'preferences.enc_amf' },
+  { value: 'software', labelKey: 'preferences.enc_software' },
+] as const;
+
+export const THEME_OPTIONS = [
+  { value: 'dark', labelKey: 'preferences.theme_dark' },
+  { value: 'oled_black', labelKey: 'preferences.theme_oled' },
+] as const;
+
+
 
 

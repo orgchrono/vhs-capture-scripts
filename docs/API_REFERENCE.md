@@ -676,3 +676,61 @@ To ensure idempotence, multi-pipeline interoperability, and complete historical 
 | `stage_2_whisper_subtitles` | Phase 2 (AI Post) | ✅ Allowed | Offline neural transcription via Faster-Whisper. |
 | `stage_3_blackframe_trim` | Phase 3 (Hygiene) | ✅ Allowed | Fast leader/trailer trim and TBC drop-freeze hygiene. |
 
+---
+
+## 10. Tauri Desktop IPC Commands & Sub-Bridge Mapping
+
+In desktop mode (Tauri v2), frontend calls utilize direct strongly-typed IPC bindings which seamlessly fall back to local HTTP REST (`http://127.0.0.1:8088`) when running in browser or preview environments. IPC commands are organized into modular domains:
+
+### 10.1 System Sub-Bridge (`src/viewmodels/ipc/system_ipc.rs` & `ui/src/api/bridge/systemBridge.ts`)
+- `ipc_get_system_status` $\leftrightarrow$ `GET /api/status`: Health metrics, detected hardware encoders, and system state.
+- `ipc_get_hardware_info` $\leftrightarrow$ `GET /api/hardware`: CPU/GPU/RAM metrics and capability assessment.
+- `ipc_assess_hardware` $\leftrightarrow$ `POST /api/hardware/assess`: Hardware tier calculation and encoder recommendations.
+- `ipc_get_toolchain_status` $\leftrightarrow$ `GET /api/toolchain`: Binary availability and path resolution.
+- `ipc_check_system_lock` $\leftrightarrow$ `GET /api/lock`: Process lock checking.
+- `ipc_get_app_preferences` $\leftrightarrow$ `GET /api/preferences`: Current user settings.
+- `ipc_save_app_preferences` $\leftrightarrow$ `POST /api/preferences`: Persist user preferences.
+- `ipc_browse_filesystem` $\leftrightarrow$ `GET /api/filesystem/browse`: Directory and file navigation.
+
+### 10.2 Restoration Sub-Bridge (`src/viewmodels/ipc/restoration_ipc.rs` & `ui/src/api/bridge/restorationBridge.ts`)
+- `ipc_get_preset_config` $\leftrightarrow$ `GET /api/restoration/preset-config`: Profile parameter lookup.
+- `ipc_build_realesrgan_command`: Neural super-resolution CLI argument builder.
+- `ipc_build_qtgmc_script_content`: VapourSynth QTGMC script generator.
+- `ipc_build_vspipe_cli_args`: VapourSynth vspipe argument generator.
+- `ipc_parse_chapters`: Scene detection CSV parser.
+- `ipc_format_vtt_subtitles`: WebVTT subtitle formatter.
+- `ipc_format_srt_subtitles`: SubRip (SRT) subtitle formatter.
+- `ipc_build_audio_extract_args`: Audio extraction argument generator.
+- `ipc_disambiguate_speech_language`: Language confidence evaluator.
+- `ipc_resolve_final_output_path`: Deterministic destination path calculator.
+- `ipc_plan_restoration_job`: Complete restoration job planning.
+- `ipc_execute_restoration_job`: Process execution runner.
+- `ipc_get_comparison_frame` $\leftrightarrow$ `GET /api/monitor/comparison-frame`: A/B comparison raster generator.
+
+### 10.3 Ingest Sub-Bridge (`src/viewmodels/ipc/ingest_ipc.rs` & `ui/src/api/bridge/ingestBridge.ts`)
+- `ipc_probe_media_file` $\leftrightarrow$ `GET /api/probe`: Media stream technical parameters.
+- `ipc_ffprobe_json`: Raw ffprobe JSON inspector.
+- `ipc_detect_connected_drives`: Hotplug Panasonic physical drive detection.
+- `ipc_disk_image_list_drives` $\leftrightarrow$ `GET /api/ingest/disk-image/drives`: Low-level physical disk enumeration.
+- `ipc_disk_image_start` $\leftrightarrow$ `POST /api/ingest/disk-image/start`: Raw direct I/O block imaging.
+- `ipc_disk_image_cancel` $\leftrightarrow$ `POST /api/ingest/disk-image/cancel`: Terminate active disk imaging.
+- `ipc_generate_qc_report` $\leftrightarrow$ `POST /api/qc/report`: Forensic analog defect analysis.
+- `ipc_get_obs_status` $\leftrightarrow$ `GET /api/obs/status`: OBS WebSocket connection status.
+- `ipc_start_obs_recording` $\leftrightarrow$ `POST /api/obs/start`: Trigger OBS capture recording.
+- `ipc_stop_obs_recording` $\leftrightarrow$ `POST /api/obs/stop`: Finalize OBS capture recording.
+- `ipc_clean_blackframes` $\leftrightarrow$ `POST /api/blackframe/clean`: Fast leader/trailer trim and TBC hold.
+
+### 10.4 Storage & Archival Sub-Bridge (`src/viewmodels/ipc/storage_ipc.rs` & `ui/src/api/bridge/storageBridge.ts`)
+- `ipc_compute_file_sha256`: Cryptographic SHA-256 fixity calculation.
+- `ipc_generate_bagit_package`: OAIS BagIt v1.0 archival packaging.
+- `ipc_generate_premis_record`: PREMIS v3 preservation metadata generation.
+- `ipc_evaluate_321_compliance`: 3-2-1 backup strategy verification.
+- `ipc_scan_incomplete_jobs`: Partial `.part` checkpoint scanner.
+- `ipc_finalize_incomplete_job`: Container repair and finalizing.
+- `ipc_discard_incomplete_job`: Atomic cleanup of abandoned runs.
+- `ipc_validate_storage_config`: Storage provider parameter validation.
+- `ipc_calculate_chunk_plan`: Multipart upload chunking planner.
+- `ipc_verify_storage_capacity`: Free space and quota checking.
+- `ipc_format_destination_key`: Object store key formatting.
+
+

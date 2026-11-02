@@ -14,6 +14,7 @@ pub mod api_types;
 pub mod capture_vm;
 pub mod cli_vm;
 pub mod ingest_vm;
+pub mod ipc;
 pub mod ipc_commands;
 pub mod job_request_vm;
 pub mod restoration_job_vm;

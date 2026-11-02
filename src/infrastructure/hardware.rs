@@ -1,39 +1,7 @@
 use std::path::Path;
-use serde::{Deserialize, Serialize};
 use crate::infrastructure::toolchain::create_silent_command;
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum GpuType {
-    Dedicated,
-    AppleSilicon,
-    Integrated,
-    CpuOnly,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct HardwareSpecs {
-    pub cpu_cores: u32,
-    pub ram_total_gb: f32,
-    pub ram_available_gb: f32,
-    pub gpu_type: GpuType,
-    pub gpu_name: String,
-    pub vram_gb: f32,
-    pub vulkan_available: bool,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct HardwareAssessment {
-    pub tier: u8,
-    pub tier_name: String,
-    pub tier_key: String,
-    pub tier_color: String,
-    pub recommendation: String,
-    pub recommendation_key: String,
-    pub recommended_encoder: String,
-    pub max_ai_workers: usize,
-    pub recommended_tile_size: u32,
-    pub supports_realtime_preview: bool,
-}
+pub use crate::domain::hardware::*;
+pub use crate::domain::pipeline::resolve_optimal_encoder_args;
 
 /// Detects host total and available physical RAM in GB without external heavyweight dependencies.
 #[must_use]
@@ -307,72 +275,6 @@ pub fn detect_gpu_info() -> (GpuType, String, bool, f32) {
     (gpu_type, gpu_name, vulkan_ok, vram_gb)
 }
 
-/// Pure functional hardware tiering evaluator.
-/// Classifies machine capabilities into 4 honest operational tiers without mutable global state.
-pub fn assess_hardware(specs: &HardwareSpecs) -> HardwareAssessment {
-    if specs.gpu_type == GpuType::Dedicated && specs.vram_gb >= 6.0 {
-        HardwareAssessment {
-            tier: 4,
-            tier_name: "AI Workstation (Dedicated High-End GPU)".to_string(),
-            tier_key: "hardware.tier_4".to_string(),
-            tier_color: "emerald".to_string(),
-            recommendation: "High-performance dedicated GPU detected. All neural AI features (CodeFormer, Real-ESRGAN, and RIFE 60fps) will run at maximum speed.".to_string(),
-            recommendation_key: "hardware.tier_4_rec".to_string(),
-            recommended_encoder: "nvenc".to_string(),
-            max_ai_workers: 4,
-            recommended_tile_size: 0, // 0 = no tiling needed, full frame VRAM capacity
-            supports_realtime_preview: true,
-        }
-    } else if specs.gpu_type == GpuType::Dedicated || specs.gpu_type == GpuType::AppleSilicon {
-        let enc = if specs.gpu_type == GpuType::AppleSilicon {
-            "videotoolbox".to_string()
-        } else {
-            "nvenc".to_string()
-        };
-        HardwareAssessment {
-            tier: 3,
-            tier_name: "Modern PC (Dedicated GPU / Apple Silicon)".to_string(),
-            tier_key: "hardware.tier_3".to_string(),
-            tier_color: "sky".to_string(),
-            recommendation: "Accelerated GPU detected. RIFE and Real-ESRGAN will run smoothly. CodeFormer is viable for targeted restoration.".to_string(),
-            recommendation_key: "hardware.tier_3_rec".to_string(),
-            recommended_encoder: enc,
-            max_ai_workers: 2,
-            recommended_tile_size: 400,
-            supports_realtime_preview: true,
-        }
-    } else if specs.cpu_cores >= 8 || specs.gpu_type == GpuType::Integrated {
-        HardwareAssessment {
-            tier: 2,
-            tier_name: "Multi-Core CPU + Vulkan iGPU".to_string(),
-            tier_key: "hardware.tier_2".to_string(),
-            tier_color: "amber".to_string(),
-            recommendation: format!(
-                "Multi-core CPU with {} cores and {:.1}GB RAM. Ideal for BWDIF/Lanczos restoration (~60-120 fps), real-time DeepFilterNet, and Whisper. Honest notice: Heavy neural models (CodeFormer / Real-ESRGAN) will run via CPU/iGPU at ~1-2 fps.",
-                specs.cpu_cores, specs.ram_total_gb
-            ),
-            recommendation_key: "hardware.tier_2_rec".to_string(),
-            recommended_encoder: "qsv".to_string(),
-            max_ai_workers: 1,
-            recommended_tile_size: 200,
-            supports_realtime_preview: true,
-        }
-    } else {
-        HardwareAssessment {
-            tier: 1,
-            tier_name: "Basic (Limited CPU)".to_string(),
-            tier_key: "hardware.tier_1".to_string(),
-            tier_color: "slate".to_string(),
-            recommendation: "Modest hardware detected. We recommend fast deinterlacing (BWDIF) and classic DSP filters. Avoid enabling heavy neural upscalers to prevent machine overload.".to_string(),
-            recommendation_key: "hardware.tier_1_rec".to_string(),
-            recommended_encoder: "software".to_string(),
-            max_ai_workers: 1,
-            recommended_tile_size: 128,
-            supports_realtime_preview: false,
-        }
-    }
-}
-
 static CACHED_HARDWARE: std::sync::OnceLock<(HardwareSpecs, String)> = std::sync::OnceLock::new();
 
 /// Cached query retrieving detected hardware specifications and host processor name.
@@ -497,79 +399,6 @@ pub fn get_active_hardware_profile() -> serde_json::Value {
     let (specs, cpu_model) = get_active_hardware_specs();
     let assessment = assess_hardware(&specs);
     build_hardware_profile_json(&specs, &assessment, &cpu_model)
-}
-
-/// Select optimal hardware encoder arguments matching user preference and detected platform.
-pub fn resolve_optimal_encoder_args(
-    preference: &str,
-    platform: &str,
-    gpu_type: &GpuType,
-) -> Vec<String> {
-    let chosen = if preference == "auto" {
-        match (platform, gpu_type) {
-            ("darwin", GpuType::AppleSilicon) => "videotoolbox",
-            ("windows", GpuType::Dedicated) => "nvenc",
-            ("windows", GpuType::Integrated) => "qsv",
-            ("linux", GpuType::Dedicated) => "nvenc",
-            ("linux", _) => "vaapi",
-            _ => "software",
-        }
-    } else {
-        preference
-    };
-
-    match chosen {
-        "nvenc" => vec![
-            "-c:v".to_string(),
-            "h264_nvenc".to_string(),
-            "-preset".to_string(),
-            "p6".to_string(),
-            "-tune".to_string(),
-            "hq".to_string(),
-            "-rc".to_string(),
-            "constqp".to_string(),
-            "-qp".to_string(),
-            "18".to_string(),
-        ],
-        "qsv" => vec![
-            "-c:v".to_string(),
-            "h264_qsv".to_string(),
-            "-preset".to_string(),
-            "veryfast".to_string(),
-            "-global_quality".to_string(),
-            "18".to_string(),
-        ],
-        "amf" => vec![
-            "-c:v".to_string(),
-            "h264_amf".to_string(),
-            "-quality".to_string(),
-            "quality".to_string(),
-            "-rc".to_string(),
-            "cqp".to_string(),
-            "-qp_i".to_string(),
-            "18".to_string(),
-        ],
-        "videotoolbox" => vec![
-            "-c:v".to_string(),
-            "h264_videotoolbox".to_string(),
-            "-q:v".to_string(),
-            "65".to_string(),
-        ],
-        "vaapi" => vec![
-            "-c:v".to_string(),
-            "h264_vaapi".to_string(),
-            "-qp".to_string(),
-            "18".to_string(),
-        ],
-        _ => vec![
-            "-c:v".to_string(),
-            "libx264".to_string(),
-            "-preset".to_string(),
-            "medium".to_string(),
-            "-crf".to_string(),
-            "18".to_string(),
-        ],
-    }
 }
 
 #[cfg(test)]

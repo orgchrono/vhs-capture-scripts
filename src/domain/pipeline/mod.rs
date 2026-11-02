@@ -13,6 +13,66 @@ pub use encoder_args::*;
 pub use spec::*;
 pub use video_filters::*;
 
+use crate::models::constants::{
+    DOUBLE_RATE_FPS_MULTIPLIER, IVTC_FPS_MULTIPLIER, MIN_RESTORATION_COMPLETION_PERCENT,
+};
+
+/// Pure estimator of the number of frames the restoration output will contain.
+#[must_use]
+pub fn expected_output_frames(
+    duration_sec: f64,
+    source_fps: f64,
+    deinterlacer: DeinterlaceFilter,
+    qtgmc_active: bool,
+    source_interlaced: bool,
+) -> u64 {
+    let fps_multiplier = match deinterlacer {
+        DeinterlaceFilter::Qtgmc if qtgmc_active => DOUBLE_RATE_FPS_MULTIPLIER,
+        DeinterlaceFilter::Qtgmc
+        | DeinterlaceFilter::BwdifBob
+        | DeinterlaceFilter::Znedi3
+        | DeinterlaceFilter::Nnedi3
+        | DeinterlaceFilter::Yadif => {
+            if source_interlaced {
+                DOUBLE_RATE_FPS_MULTIPLIER
+            } else {
+                1.0
+            }
+        }
+        DeinterlaceFilter::Ivtc => IVTC_FPS_MULTIPLIER,
+        _ => 1.0,
+    };
+    (duration_sec * source_fps * fps_multiplier).round().max(0.0) as u64
+}
+
+/// Pure completeness check for a finished FFmpeg run.
+#[must_use]
+pub fn is_output_truncated(
+    expected_duration_sec: f64,
+    out_time_sec: f64,
+    expected_frames: u64,
+    current_frame: u64,
+) -> bool {
+    if expected_duration_sec > 0.0 && out_time_sec > 0.0 {
+        return out_time_sec < expected_duration_sec * MIN_RESTORATION_COMPLETION_PERCENT as f64 / 100.0;
+    }
+    expected_frames > 0 && current_frame < expected_frames * MIN_RESTORATION_COMPLETION_PERCENT / 100
+}
+
+/// Pure helper keeping only the last `max_bytes` of `text`, cut on a UTF-8 boundary.
+#[must_use]
+pub fn bounded_tail(mut text: String, max_bytes: usize) -> String {
+    if text.len() <= max_bytes {
+        return text;
+    }
+    let mut start = text.len() - max_bytes;
+    while !text.is_char_boundary(start) {
+        start += 1;
+    }
+    text.drain(..start);
+    text
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

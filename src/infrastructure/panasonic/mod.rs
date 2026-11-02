@@ -4,10 +4,12 @@
 //! low-level disk sector probing and OS hardware discovery.
 
 pub mod drive_scanner;
+pub mod extractor;
 pub mod probe_io;
 
 pub use crate::domain::panasonic_format::*;
 pub use drive_scanner::*;
+pub use extractor::*;
 pub use probe_io::*;
 
 #[cfg(test)]
