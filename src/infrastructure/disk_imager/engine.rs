@@ -3,39 +3,30 @@
 //! Orchestrates direct I/O streaming, sector-granularity error recovery,
 //! in-flight SHA-256 fixity computation, 4 Hz telemetry, and forensic sidecars.
 
-use super::{aligned_buffer::SectorAlignedBuffer, open_block_device, RawBlockReader};
+use super::{
+    aligned_buffer::SectorAlignedBuffer,
+    manifest::{
+        build_and_write_dump_report, promote_part_to_final_image, write_sha256_sidecar,
+        DumpReportParams,
+    },
+    open_block_device,
+    recovery::{recover_failing_chunk_window, RecoveryContext, RecoveryWindowConfig},
+    telemetry::emit_imaging_telemetry,
+    RawBlockReader,
+};
 use crate::domain::disk_imager::{
-    align_up_to_sector, coalesce_sector_errors, compute_imaging_progress,
-    format_nist_sha256_sidecar, map_lba_to_bucket, normalize_sector_size, ForensicDumpReport,
-    ImagingConfig, ImagingPhase, ImagingTelemetry, SectorBucketHealth, SectorError,
-    SectorErrorKind,
+    align_up_to_sector, compute_imaging_progress, map_lba_to_bucket, normalize_sector_size,
+    ForensicDumpReport, ImagingConfig, ImagingPhase, ImagingTelemetry, SectorBucketHealth,
+    SectorError,
 };
 use crate::infrastructure::app_context::AppContext;
-use crate::models::constants::{
-    DISK_IMAGER_SECTOR_MAP_BUCKETS, DISK_IMAGING_SSE_PREFIX, DUMP_LOG_SIDECAR_SUFFIX,
-    SHA256_SIDECAR_SUFFIX,
-};
+use crate::models::constants::DISK_IMAGER_SECTOR_MAP_BUCKETS;
 use sha2::{Digest, Sha256};
-use tauri::Emitter;
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::path::Path;
 use std::sync::atomic::Ordering;
 use std::time::Instant;
-
-fn emit_telemetry(
-    ctx: &AppContext,
-    window: Option<&tauri::Window>,
-    telemetry: &ImagingTelemetry,
-) {
-    if let Ok(json_str) = serde_json::to_string(telemetry) {
-        ctx.process
-            .append_log(format!("{DISK_IMAGING_SSE_PREFIX}{json_str}"));
-    }
-    if let Some(win) = window {
-        let _ = win.emit("disk_imaging_progress", telemetry);
-    }
-}
 
 /// Executes a raw block device imaging operation.
 pub fn run_disk_imaging_job(
@@ -84,7 +75,7 @@ pub fn run_disk_imaging_job(
 
     // Open target file
     let part_file = File::create(part_target)
-        .map_err(|e| format!("Failed to create intermediate part file '{}': {e}", part_path))?;
+        .map_err(|e| format!("Failed to create intermediate part file '{part_path}': {e}"))?;
     let mut writer = BufWriter::with_capacity(primary_chunk_size, part_file);
 
     let mut hasher = Sha256::new();
@@ -127,7 +118,7 @@ pub fn run_disk_imaging_job(
         sector_map_buckets: sector_map_buckets.clone(),
         sha256_hex: None,
     };
-    emit_telemetry(ctx, window, &current_telemetry);
+    emit_imaging_telemetry(ctx, window, &current_telemetry);
 
     while dev_total_bytes == 0 || current_offset < dev_total_bytes {
         if ctx.process.cancel_flag().load(Ordering::SeqCst) {
@@ -181,100 +172,35 @@ pub fn run_disk_imaging_job(
                 processed_bytes += bytes_to_commit as u64;
             }
             Err(initial_err) => {
-                // Adaptive Bad-Sector Fallback: switch to single sector reads across chunk window
+                // Adaptive Bad-Sector Fallback: switch to single sector recovery across chunk window
                 let failing_window_bytes = aligned_req_len;
-                let mut window_offset = 0usize;
+                let rec_ctx = RecoveryContext {
+                    reader: &mut reader,
+                    writer: &mut writer,
+                    hasher: &mut hasher,
+                    buffer: &mut single_sector_buffer,
+                    cancel_flag: &ctx.process.cancel_flag(),
+                    sector_map_buckets: &mut sector_map_buckets,
+                    sector_errors: &mut sector_errors,
+                    retried_sectors: &mut retried_sectors,
+                    bad_sectors: &mut bad_sectors,
+                    zero_filled_bytes: &mut zero_filled_bytes,
+                };
 
-                while window_offset < failing_window_bytes {
-                    if ctx.process.cancel_flag().load(Ordering::SeqCst) {
-                        cleanup_part(part_target);
-                        ctx.process.set_result(false, Some(1));
-                        return Err("Imaging operation cancelled by user".to_string());
-                    }
+                let rec_cfg = RecoveryWindowConfig {
+                    current_offset,
+                    failing_window_bytes,
+                    sector_size,
+                    total_lba,
+                    max_sector_retries: config.max_sector_retries,
+                    zero_fill_corrupt_sectors: config.zero_fill_corrupt_sectors,
+                    initial_err: &initial_err,
+                };
 
-                    let sector_abs_offset = current_offset + window_offset as u64;
-                    let current_sector_lba = sector_abs_offset / (sector_size as u64);
-                    let mut sector_read_success = false;
-                    let mut retries = 0u8;
-
-                    while retries <= config.max_sector_retries {
-                        match reader.read_aligned_at(
-                            sector_abs_offset,
-                            single_sector_buffer.as_mut_slice(),
-                        ) {
-                            Ok(sn) if sn >= sector_size as usize => {
-                                sector_read_success = true;
-                                break;
-                            }
-                            _ => {
-                                retries += 1;
-                            }
-                        }
-                    }
-
-                    let bucket_idx = map_lba_to_bucket(
-                        current_sector_lba,
-                        total_lba,
-                        DISK_IMAGER_SECTOR_MAP_BUCKETS,
-                    );
-
-                    if sector_read_success {
-                        if retries > 0 {
-                            retried_sectors += 1;
-                            sector_map_buckets[bucket_idx] = SectorBucketHealth::RetriedRecovered;
-                        } else if sector_map_buckets[bucket_idx] == SectorBucketHealth::Pending {
-                            sector_map_buckets[bucket_idx] = SectorBucketHealth::VerifiedGood;
-                        }
-
-                        let slice = &single_sector_buffer.as_slice()[..sector_size as usize];
-                        if let Err(e) = writer.write_all(slice) {
-                            cleanup_part(part_target);
-                            ctx.process.set_result(false, Some(1));
-                            return Err(format!("Disk write error during recovery: {e}"));
-                        }
-                        hasher.update(slice);
-                    } else if config.zero_fill_corrupt_sectors {
-                        // Fault Tolerance: conv=noerror,sync zero-fill
-                        bad_sectors += 1;
-                        zero_filled_bytes += sector_size as u64;
-                        sector_map_buckets[bucket_idx] = SectorBucketHealth::ZeroFilledDamaged;
-
-                        let error_kind = match initial_err.raw_os_error() {
-                            Some(23) => SectorErrorKind::CrcDataError,
-                            Some(27) => SectorErrorKind::SectorNotFound,
-                            Some(1117) => SectorErrorKind::DeviceIoTimeout,
-                            Some(5) => SectorErrorKind::PermissionDenied,
-                            Some(other) => SectorErrorKind::UnknownOsError(other),
-                            None => SectorErrorKind::CrcDataError,
-                        };
-
-                        sector_errors.push(SectorError {
-                            start_lba: current_sector_lba,
-                            sector_count: 1,
-                            byte_offset: sector_abs_offset,
-                            byte_length: sector_size as u64,
-                            error_kind,
-                            retries_attempted: retries,
-                            zero_padded: true,
-                        });
-
-                        single_sector_buffer.as_mut_slice().fill(0x00);
-                        let slice = &single_sector_buffer.as_slice()[..sector_size as usize];
-                        if let Err(e) = writer.write_all(slice) {
-                            cleanup_part(part_target);
-                            ctx.process.set_result(false, Some(1));
-                            return Err(format!("Disk write error during zero-padding: {e}"));
-                        }
-                        hasher.update(slice);
-                    } else {
-                        cleanup_part(part_target);
-                        ctx.process.set_result(false, Some(1));
-                        return Err(format!(
-                            "Unrecoverable bad sector at LBA {current_sector_lba}: {initial_err}"
-                        ));
-                    }
-
-                    window_offset += sector_size as usize;
+                if let Err(err_msg) = recover_failing_chunk_window(rec_ctx, rec_cfg) {
+                    cleanup_part(part_target);
+                    ctx.process.set_result(false, Some(1));
+                    return Err(err_msg);
                 }
 
                 current_offset += failing_window_bytes as u64;
@@ -295,7 +221,11 @@ pub fn run_disk_imaging_job(
                 phase: ImagingPhase::StreamingBlocks,
                 source_device_id: config.source_device_id.clone(),
                 output_image_path: config.output_image_path.clone(),
-                current_lba: current_offset / (sector_size as u64),
+                current_lba: if sector_size > 0 {
+                    current_offset / (sector_size as u64)
+                } else {
+                    0
+                },
                 total_lba,
                 processed_bytes,
                 total_bytes: dev_total_bytes,
@@ -308,7 +238,7 @@ pub fn run_disk_imaging_job(
                 sector_map_buckets: sector_map_buckets.clone(),
                 sha256_hex: None,
             };
-            emit_telemetry(ctx, window, &current_telemetry);
+            emit_imaging_telemetry(ctx, window, &current_telemetry);
             last_telemetry_emit = Instant::now();
         }
     }
@@ -328,20 +258,15 @@ pub fn run_disk_imaging_job(
         .collect();
 
     // Atomic file promotion
-    if output_target.exists() {
-        let _ = std::fs::remove_file(output_target);
-    }
-    if let Err(e) = std::fs::rename(part_target, output_target) {
+    if let Err(e) = promote_part_to_final_image(part_target, output_target) {
         cleanup_part(part_target);
         ctx.process.set_result(false, Some(1));
-        return Err(format!("Failed to promote disk image file: {e}"));
+        return Err(e);
     }
 
     // Sidecars
     if config.compute_sha256_sidecar {
-        let sha256_sidecar_path = format!("{}{}", config.output_image_path, SHA256_SIDECAR_SUFFIX);
-        let content = format_nist_sha256_sidecar(&sha256_hex, &config.output_image_path);
-        let _ = std::fs::write(&sha256_sidecar_path, content);
+        write_sha256_sidecar(&config.output_image_path, &sha256_hex);
     }
 
     let elapsed_total = start_time.elapsed().as_secs_f64();
@@ -351,30 +276,19 @@ pub fn run_disk_imaging_job(
         0.0
     };
 
-    let coalesced_errors = coalesce_sector_errors(&sector_errors);
-    let dump_report = ForensicDumpReport {
-        schema_version: 1,
-        source_device_id: config.source_device_id.clone(),
-        device_model: "Direct Block Device".to_string(),
-        device_serial: "FORENSIC-RAW-INGEST".to_string(),
-        output_image_path: config.output_image_path.clone(),
-        sha256_hex: sha256_hex.clone(),
-        total_bytes_expected: dev_total_bytes,
-        total_bytes_written: processed_bytes,
-        sector_size_bytes: sector_size,
-        total_sectors_read: processed_bytes / (sector_size as u64),
-        damaged_sector_count: bad_sectors,
+    let dump_report = build_and_write_dump_report(DumpReportParams {
+        source_device_id: &config.source_device_id,
+        output_image_path: &config.output_image_path,
+        sha256_hex: &sha256_hex,
+        dev_total_bytes,
+        processed_bytes,
+        sector_size,
+        bad_sectors,
         zero_filled_bytes,
-        average_speed_mbps: avg_speed,
         peak_speed_mbps,
-        elapsed_seconds: (elapsed_total * 100.0).round() / 100.0,
-        damaged_lba_ranges: coalesced_errors,
-    };
-
-    let log_path = format!("{}{}", config.output_image_path, DUMP_LOG_SIDECAR_SUFFIX);
-    if let Ok(dump_json) = serde_json::to_string_pretty(&dump_report) {
-        let _ = std::fs::write(&log_path, dump_json);
-    }
+        elapsed_total,
+        sector_errors: &sector_errors,
+    });
 
     // Final completed telemetry
     current_telemetry.phase = ImagingPhase::Completed;
@@ -383,7 +297,7 @@ pub fn run_disk_imaging_job(
     current_telemetry.eta_seconds = 0;
     current_telemetry.sha256_hex = Some(sha256_hex);
     current_telemetry.sector_map_buckets = sector_map_buckets;
-    emit_telemetry(ctx, window, &current_telemetry);
+    emit_imaging_telemetry(ctx, window, &current_telemetry);
 
     ctx.process.set_result(true, Some(0));
     Ok(dump_report)
@@ -398,45 +312,26 @@ mod tests {
         data: Vec<u8>,
         sector_size: u32,
         bad_lbas: Vec<u64>,
-        read_attempts: AtomicU32,
-    }
-
-    impl MockBadSectorReader {
-        fn new(size_bytes: usize, sector_size: u32, bad_lbas: Vec<u64>) -> Self {
-            let mut data = vec![0u8; size_bytes];
-            for (i, b) in data.iter_mut().enumerate() {
-                *b = (i % 251) as u8;
-            }
-            Self {
-                data,
-                sector_size,
-                bad_lbas,
-                read_attempts: AtomicU32::new(0),
-            }
-        }
+        read_counts: AtomicU32,
     }
 
     impl RawBlockReader for MockBadSectorReader {
         fn read_aligned_at(&mut self, byte_offset: u64, buf: &mut [u8]) -> Result<usize, std::io::Error> {
-            self.read_attempts.fetch_add(1, Ordering::SeqCst);
-            let start_lba = byte_offset / (self.sector_size as u64);
-            let sector_count = buf.len() / (self.sector_size as usize);
+            self.read_counts.fetch_add(1, Ordering::SeqCst);
+            let lba = byte_offset / self.sector_size as u64;
 
-            // If reading more than 1 sector and any bad LBA is within the window, fail with CRC error
-            for lba in start_lba..(start_lba + sector_count as u64) {
-                if self.bad_lbas.contains(&lba) {
-                    return Err(std::io::Error::from_raw_os_error(23)); // ERROR_CRC
-                }
+            if self.bad_lbas.contains(&lba) {
+                return Err(std::io::Error::from_raw_os_error(23)); // ERROR_CRC
             }
 
-            if byte_offset as usize >= self.data.len() {
+            let start = byte_offset as usize;
+            if start >= self.data.len() {
                 return Ok(0);
             }
-
-            let available = self.data.len() - byte_offset as usize;
-            let to_copy = buf.len().min(available);
-            buf[..to_copy].copy_from_slice(&self.data[byte_offset as usize..byte_offset as usize + to_copy]);
-            Ok(to_copy)
+            let end = (start + buf.len()).min(self.data.len());
+            let n = end - start;
+            buf[..n].copy_from_slice(&self.data[start..end]);
+            Ok(n)
         }
 
         fn device_geometry(&self) -> (u64, u32) {
@@ -444,60 +339,74 @@ mod tests {
         }
 
         fn device_id(&self) -> &str {
-            "MOCK_DEVICE_BAD_SECTOR"
+            "MOCK_DEVICE_BAD_SECTORS"
         }
     }
 
     #[test]
-    fn test_engine_recovers_bad_sectors_with_zero_padding() {
+    fn test_disk_imaging_bad_sector_recovery_and_zero_fill() {
+        let sector_size = 512u32;
+        let total_sectors = 16usize;
+        let mut mock_data = vec![0xABu8; total_sectors * sector_size as usize];
+        // Populate recognizable pattern
+        for (i, byte) in mock_data.iter_mut().enumerate() {
+            *byte = (i % 256) as u8;
+        }
+
+        let bad_lba = 4u64;
+        let mock_reader = Box::new(MockBadSectorReader {
+            data: mock_data.clone(),
+            sector_size,
+            bad_lbas: vec![bad_lba],
+            read_counts: AtomicU32::new(0),
+        });
+
         let temp_dir = std::env::temp_dir().join(format!("vhs_imager_test_{}", std::process::id()));
         let _ = std::fs::create_dir_all(&temp_dir);
+        let output_img = temp_dir.join("dump_test.img");
+        let output_img_str = output_img.to_string_lossy().to_string();
+
         let ctx = AppContext::new_test(&temp_dir);
-
-        let total_bytes = 64 * 1024; // 64 KiB
-        let sector_size = 512;
-        // Bad sector at LBA 10
-        let bad_lbas = vec![10];
-        let mock = Box::new(MockBadSectorReader::new(total_bytes, sector_size, bad_lbas));
-
-        let out_img = temp_dir.join("test_dump.img");
         let config = ImagingConfig {
-            source_device_id: "mock".to_string(),
-            output_image_path: out_img.to_string_lossy().to_string(),
+            source_device_id: "MOCK_BAD_SECTOR_DEV".to_string(),
+            output_image_path: output_img_str.clone(),
             container_format: crate::domain::disk_imager::ImageContainerFormat::Img,
-            primary_chunk_bytes: 16 * 1024, // 16 KiB chunks
             physical_sector_bytes: sector_size,
-            max_sector_retries: 1,
+            primary_chunk_bytes: 2048, // 4 sectors per chunk
+            max_sector_retries: 2,
             zero_fill_corrupt_sectors: true,
             compute_sha256_sidecar: true,
             auto_chain_restoration: false,
             auto_enqueue_preset: None,
         };
 
-        let report = run_disk_imaging_job(&ctx, &config, None, Some(mock))
-            .expect("Engine should succeed with zero padding");
+        let report = run_disk_imaging_job(&ctx, &config, None, Some(mock_reader))
+            .expect("Imaging job should succeed with zero-padding");
 
         assert_eq!(report.damaged_sector_count, 1);
-        assert_eq!(report.zero_filled_bytes, 512);
-        assert_eq!(report.total_bytes_written, 64 * 1024);
+        assert_eq!(report.zero_filled_bytes, sector_size as u64);
+        assert_eq!(report.damaged_lba_ranges.len(), 1);
+        assert_eq!(report.damaged_lba_ranges[0].start_lba, bad_lba);
 
-        // Check generated file size on disk
-        let metadata = std::fs::metadata(&out_img).expect("Output image exists");
-        assert_eq!(metadata.len(), 64 * 1024);
+        // Verify output file size and zero-filled sector
+        assert!(output_img.exists());
+        let dumped_bytes = std::fs::read(&output_img).expect("Failed to read dumped image");
+        assert_eq!(dumped_bytes.len(), mock_data.len());
 
-        // Check zero-padded slice at LBA 10 (bytes 5120..5632)
-        let contents = std::fs::read(&out_img).expect("Read output image");
-        let bad_slice = &contents[5120..5632];
-        assert!(bad_slice.iter().all(|&b| b == 0x00));
+        // Verify that sector 4 is completely zeroed out
+        let bad_sector_start = (bad_lba * sector_size as u64) as usize;
+        let bad_sector_slice = &dumped_bytes[bad_sector_start..bad_sector_start + sector_size as usize];
+        assert!(bad_sector_slice.iter().all(|&b| b == 0x00));
 
-        // Other slices should NOT be all zero
-        let good_slice = &contents[0..512];
-        assert!(!good_slice.iter().all(|&b| b == 0x00));
+        // Verify that sector 3 retains original pattern
+        let good_sector_start = 3 * sector_size as usize;
+        let good_sector_slice = &dumped_bytes[good_sector_start..good_sector_start + sector_size as usize];
+        assert_eq!(good_sector_slice, &mock_data[good_sector_start..good_sector_start + sector_size as usize]);
 
-        // Check sidecars exist
-        let sha_path = format!("{}{}", config.output_image_path, SHA256_SIDECAR_SUFFIX);
-        let dump_log_path = format!("{}{}", config.output_image_path, DUMP_LOG_SIDECAR_SUFFIX);
+        // Verify sidecars
+        let sha_path = format!("{output_img_str}.sha256");
         assert!(std::path::Path::new(&sha_path).exists());
+        let dump_log_path = format!("{output_img_str}.dump_log.json");
         assert!(std::path::Path::new(&dump_log_path).exists());
 
         let _ = std::fs::remove_dir_all(&temp_dir);

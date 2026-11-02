@@ -5,11 +5,20 @@
 
 pub mod aligned_buffer;
 pub mod engine;
+pub mod manifest;
+pub mod recovery;
+pub mod telemetry;
 pub mod unix_io;
 pub mod windows_io;
 
 pub use aligned_buffer::SectorAlignedBuffer;
 pub use engine::*;
+pub use manifest::{
+    build_and_write_dump_report, promote_part_to_final_image, write_sha256_sidecar,
+    DumpReportParams,
+};
+pub use recovery::{recover_failing_chunk_window, RecoveryWindowConfig};
+pub use telemetry::emit_imaging_telemetry;
 
 /// Contract for unbuffered sector-aligned physical device readers.
 pub trait RawBlockReader: Send {
@@ -62,28 +71,26 @@ impl RawBlockReader for FileBlockReader {
     }
 }
 
-/// Factory function opening the appropriate OS block device reader or falling back to file reader.
+/// Factory creating the platform-appropriate direct block reader.
 pub fn open_block_device(
-    device_id: &str,
-    physical_sector_bytes: u32,
+    device_path: &str,
+    sector_size_hint: u32,
 ) -> Result<Box<dyn RawBlockReader>, std::io::Error> {
     #[cfg(windows)]
     {
-        if device_id.starts_with(r"\\.\") {
-            let win_reader = windows_io::WindowsBlockReader::open(device_id, physical_sector_bytes)?;
-            return Ok(Box::new(win_reader));
-        }
+        let reader = windows_io::WindowsBlockReader::open(device_path, sector_size_hint)?;
+        Ok(Box::new(reader))
     }
-
     #[cfg(unix)]
     {
-        if device_id.starts_with("/dev/") {
-            let unix_reader = unix_io::UnixBlockReader::open(device_id, physical_sector_bytes)?;
-            return Ok(Box::new(unix_reader));
-        }
+        let reader = unix_io::UnixBlockReader::open(device_path, sector_size_hint)?;
+        Ok(Box::new(reader))
     }
-
-    let p = std::path::Path::new(device_id);
-    let f_reader = FileBlockReader::open(p, physical_sector_bytes)?;
-    Ok(Box::new(f_reader))
+    #[cfg(not(any(windows, unix)))]
+    {
+        Err(std::io::Error::new(
+            std::io::ErrorKind::Unsupported,
+            "Direct block device reading unsupported on this platform",
+        ))
+    }
 }

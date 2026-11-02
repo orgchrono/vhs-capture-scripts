@@ -6,7 +6,9 @@
 
 pub mod checkpoint;
 pub mod neural_chain;
+pub mod oais_bagit;
 pub mod oais_packager;
+pub mod oais_qc;
 pub mod planner;
 pub mod process_runner;
 pub mod remux;
