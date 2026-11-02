@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Folder, HardDrive, ClipboardCheck } from 'lucide-react';
+import { Folder, HardDrive, ClipboardCheck, ChevronDown } from 'lucide-react';
 import type { RawFile, IncompleteJob } from '../../types';
 import { formatMbSize } from '../../lib/formatters';
 
@@ -72,7 +72,8 @@ export const QuickTapeSelector: React.FC<QuickTapeSelectorProps> = ({
             <HardDrive className="w-3.5 h-3.5 text-amber-400 shrink-0" />
           </button>
         ) : (
-          <select
+          <>
+            <select
             value={selectedFile || ''}
             disabled={isRestoring || isPaused}
             onChange={(e) => {
@@ -147,11 +148,12 @@ export const QuickTapeSelector: React.FC<QuickTapeSelectorProps> = ({
               </>
             )}
           </select>
-        )}
-        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
-          <HardDrive className="w-3.5 h-3.5" />
-        </div>
-      </div>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+            <ChevronDown className="w-3.5 h-3.5" />
+          </div>
+        </>
+      )}
     </div>
-  );
+  </div>
+);
 };
